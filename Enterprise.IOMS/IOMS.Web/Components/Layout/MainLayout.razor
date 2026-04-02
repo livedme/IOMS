@@ -6,21 +6,26 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1" Dense="true">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+    <MudAppBar Elevation="0" Dense="true" Style="border-bottom:1px solid var(--mud-palette-lines-default); backdrop-filter:blur(12px); background:rgba(255,255,255,0.85);">
+        <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Default" Edge="Edge.Start"
                        OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h6" Class="ml-2">Enterprise IOMS</MudText>
+        <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Class="ml-2 mr-2" />
+        <MudText Typo="Typo.h6" Style="font-weight:700;letter-spacing:-0.5px;">IOMS</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2 mt-1">Enterprise</MudText>
         <MudSpacer />
-        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                       Color="Color.Inherit" OnClick="@ToggleDarkMode" />
+        <MudTooltip Text="@(_isDarkMode ? "Light Mode" : "Dark Mode")">
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
+                           Color="Color.Default" OnClick="@ToggleDarkMode" />
+        </MudTooltip>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="DrawerVariant.Responsive">
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0"
+               Variant="DrawerVariant.Responsive" Style="border-right:1px solid var(--mud-palette-lines-default);">
         <NavMenu />
     </MudDrawer>
 
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <MudMainContent Style="min-height:100vh;">
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-6">
             @Body
         </MudContainer>
     </MudMainContent>
@@ -34,17 +39,54 @@
     {
         PaletteLight = new PaletteLight
         {
-            Primary = "#1976D2",
-            Secondary = "#00897B",
-            AppbarBackground = "#1976D2",
-            Background = "#F5F5F5",
+            Primary = "#4361EE",
+            Secondary = "#7209B7",
+            Tertiary = "#F72585",
+            Info = "#4CC9F0",
+            Success = "#06D6A0",
+            Warning = "#FFD166",
+            Error = "#EF476F",
+            AppbarBackground = "rgba(255,255,255,0.85)",
+            AppbarText = "#1A1A2E",
+            Background = "#F8F9FC",
+            Surface = "#FFFFFF",
             DrawerBackground = "#FFFFFF",
-            Surface = "#FFFFFF"
+            DrawerText = "#424559",
+            DrawerIcon = "#7C7F93",
+            TextPrimary = "#1A1A2E",
+            TextSecondary = "#7C7F93",
+            ActionDefault = "#7C7F93",
+            LinesDefault = "#E8EAF0",
+            LinesInputs = "#D1D5E0",
+            Divider = "#E8EAF0"
         },
         PaletteDark = new PaletteDark
         {
-            Primary = "#90CAF9",
-            Secondary = "#80CBC4"
+            Primary = "#7B8CFF",
+            Secondary = "#A855F7",
+            Tertiary = "#F472B6",
+            Info = "#67E8F9",
+            Success = "#34D399",
+            Warning = "#FCD34D",
+            Error = "#FB7185",
+            AppbarBackground = "rgba(26,26,46,0.9)",
+            AppbarText = "#E2E8F0",
+            Background = "#0F0F1A",
+            Surface = "#1A1A2E",
+            DrawerBackground = "#1A1A2E",
+            DrawerText = "#94A3B8",
+            DrawerIcon = "#64748B",
+            TextPrimary = "#E2E8F0",
+            TextSecondary = "#94A3B8",
+            ActionDefault = "#94A3B8",
+            LinesDefault = "#2D2D44",
+            LinesInputs = "#3D3D5C",
+            Divider = "#2D2D44"
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "12px",
+            DrawerWidthLeft = "270px"
         }
     };
 

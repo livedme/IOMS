@@ -34,70 +34,156 @@
 {
     @if (_stockTotals.Any())
     {
-        <MudPaper Class="pa-4 mb-4">
-            <MudText Typo="Typo.subtitle1">Total Items: @_stockTotals.Sum(s => s.Quantity) | Total Value: @_stockTotals.Sum(s => s.Value).ToString("C")</MudText>
-        </MudPaper>
+        @* ── KPI Cards ── *@
+        <MudGrid Class="mb-4">
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-primary);">
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                    <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Items</MudText>
+                    <MudText Typo="Typo.h5"><strong>@_stockTotals.Sum(s => s.Quantity).ToString("N0")</strong></MudText></div>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
+                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                    <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Value</MudText>
+                    <MudText Typo="Typo.h5"><strong>@_stockTotals.Sum(s => s.Value).ToString("C0")</strong></MudText></div>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-warning);">
+                    <MudIcon Icon="@Icons.Material.Filled.Lock" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                    <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Reserved</MudText>
+                    <MudText Typo="Typo.h5"><strong>@_stockTotals.Sum(s => s.Reserved).ToString("N0")</strong></MudText></div>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        @* ── Charts ── *@
+        <MudGrid Class="mb-4">
+            @if (_whStockLabels.Length > 0)
+            {
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="3">
+                        <MudText Typo="Typo.h6" Class="mb-2">Stock by Warehouse</MudText>
+                        <MudChart ChartType="ChartType.Donut" InputData="@_whStockData"
+                                  InputLabels="@_whStockLabels" Width="100%" Height="300px" />
+                    </MudPaper>
+                </MudItem>
+            }
+            @if (_topValueLabels.Length > 0)
+            {
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="3">
+                        <MudText Typo="Typo.h6" Class="mb-2">Top 10 Products by Value</MudText>
+                        <MudChart ChartType="ChartType.Bar" ChartSeries="@_topValueSeries"
+                                  XAxisLabels="@_topValueLabels" Width="100%" Height="300px" />
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
     }
-    <MudTable Items="_stockTotals" Hover="true" Striped="true" Loading="_loading">
+    <MudTable Items="_stockTotals" Hover="true" Striped="true" Loading="_loading" Dense="true">
         <HeaderContent>
             <MudTh>Product</MudTh>
             <MudTh>SKU</MudTh>
             <MudTh>Warehouse</MudTh>
-            <MudTh>Quantity</MudTh>
-            <MudTh>Reserved</MudTh>
-            <MudTh>Available</MudTh>
-            <MudTh>Value</MudTh>
+            <MudTh Style="text-align:right">Quantity</MudTh>
+            <MudTh Style="text-align:right">Reserved</MudTh>
+            <MudTh Style="text-align:right">Available</MudTh>
+            <MudTh Style="text-align:right">Value</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.ProductName</MudTd>
             <MudTd>@context.SKU</MudTd>
             <MudTd>@context.WarehouseName</MudTd>
-            <MudTd>@context.Quantity</MudTd>
-            <MudTd>@context.Reserved</MudTd>
-            <MudTd>@context.Available</MudTd>
-            <MudTd>@context.Value.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@context.Quantity</MudTd>
+            <MudTd Style="text-align:right">@context.Reserved</MudTd>
+            <MudTd Style="text-align:right">@context.Available</MudTd>
+            <MudTd Style="text-align:right">@context.Value.ToString("C")</MudTd>
         </RowTemplate>
     </MudTable>
 }
 else if (_reportType == "Movements")
 {
-    <MudTable Items="_movements" Hover="true" Striped="true" Loading="_loading">
+    @if (_movementTypeLabels.Length > 0)
+    {
+        <MudGrid Class="mb-4">
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Movements by Type</MudText>
+                    <MudChart ChartType="ChartType.Pie" InputData="@_movementTypeData"
+                              InputLabels="@_movementTypeLabels" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudItem>
+            @if (_movementTrendLabels.Length > 0)
+            {
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="3">
+                        <MudText Typo="Typo.h6" Class="mb-2">Movement Trend (Last 30 Days)</MudText>
+                        <MudChart ChartType="ChartType.Line" ChartSeries="@_movementTrendSeries"
+                                  XAxisLabels="@_movementTrendLabels" Width="100%" Height="300px"
+                                  ChartOptions="@(new ChartOptions { LineStrokeWidth = 3 })" />
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    <MudTable Items="_movements" Hover="true" Striped="true" Loading="_loading" Dense="true">
         <HeaderContent>
             <MudTh>Date</MudTh>
             <MudTh>Product</MudTh>
             <MudTh>Warehouse</MudTh>
             <MudTh>Type</MudTh>
-            <MudTh>Quantity</MudTh>
+            <MudTh Style="text-align:right">Quantity</MudTh>
             <MudTh>Reference</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.MovementDate.ToShortDateString()</MudTd>
             <MudTd>@context.Product.Name</MudTd>
             <MudTd>@context.Warehouse.Name</MudTd>
-            <MudTd>
-                <MudChip T="string" Size="Size.Small">@context.Type</MudChip>
-            </MudTd>
-            <MudTd>@context.Quantity</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small">@context.Type</MudChip></MudTd>
+            <MudTd Style="text-align:right">@context.Quantity</MudTd>
             <MudTd>@context.Reference</MudTd>
         </RowTemplate>
     </MudTable>
 }
 else if (_reportType == "Valuation")
 {
-    <MudTable Items="_valuationRows" Hover="true" Striped="true" Loading="_loading">
+    @if (_valuationRows.Any())
+    {
+        <MudGrid Class="mb-4">
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                    <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Inventory Value</MudText>
+                    <MudText Typo="Typo.h5"><strong>@_valuationRows.Sum(r => r.TotalValue).ToString("C0")</strong></MudText></div>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+        @if (_valChartLabels.Length > 0)
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-2">Top Products by Valuation</MudText>
+                <MudChart ChartType="ChartType.Bar" ChartSeries="@_valChartSeries"
+                          XAxisLabels="@_valChartLabels" Width="100%" Height="300px" />
+            </MudPaper>
+        }
+    }
+    <MudTable Items="_valuationRows" Hover="true" Striped="true" Loading="_loading" Dense="true">
         <HeaderContent>
             <MudTh>Product</MudTh>
             <MudTh>SKU</MudTh>
-            <MudTh>Total Qty</MudTh>
-            <MudTh>Cost Price</MudTh>
-            <MudTh>Total Value</MudTh>
+            <MudTh Style="text-align:right">Total Qty</MudTh>
+            <MudTh Style="text-align:right">Cost Price</MudTh>
+            <MudTh Style="text-align:right">Total Value</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.ProductName</MudTd>
             <MudTd>@context.SKU</MudTd>
-            <MudTd>@context.TotalQty</MudTd>
-            <MudTd>@context.CostPrice.ToString("C")</MudTd>
-            <MudTd>@context.TotalValue.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@context.TotalQty</MudTd>
+            <MudTd Style="text-align:right">@context.CostPrice.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@context.TotalValue.ToString("C")</MudTd>
         </RowTemplate>
     </MudTable>
 }
@@ -113,6 +199,22 @@ else if (_reportType == "Valuation")
     private List<StockMovement> _movements = new();
     private List<ValuationRow> _valuationRows = new();
     private bool _loading;
+
+    // Chart data - Stock Level
+    private string[] _whStockLabels = [];
+    private double[] _whStockData = [];
+    private string[] _topValueLabels = [];
+    private List<ChartSeries> _topValueSeries = new();
+
+    // Chart data - Movements
+    private string[] _movementTypeLabels = [];
+    private double[] _movementTypeData = [];
+    private string[] _movementTrendLabels = [];
+    private List<ChartSeries> _movementTrendSeries = new();
+
+    // Chart data - Valuation
+    private string[] _valChartLabels = [];
+    private List<ChartSeries> _valChartSeries = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -141,6 +243,19 @@ else if (_reportType == "Valuation")
                     i.Quantity, i.ReservedQuantity, i.Quantity - i.ReservedQuantity,
                     i.Quantity * i.Product.CostPrice))
                     .ToListAsync();
+
+                // Warehouse donut chart
+                var whGroups = _stockTotals.GroupBy(s => s.WarehouseName).ToList();
+                _whStockLabels = whGroups.Select(g => g.Key).ToArray();
+                _whStockData = whGroups.Select(g => (double)g.Sum(s => s.Quantity)).ToArray();
+
+                // Top products by value bar chart
+                var topVal = _stockTotals.OrderByDescending(s => s.Value).Take(10).ToList();
+                _topValueLabels = topVal.Select(s => s.ProductName.Length > 12 ? s.ProductName[..12] + ".." : s.ProductName).ToArray();
+                _topValueSeries = new List<ChartSeries>
+                {
+                    new() { Name = "Value", Data = topVal.Select(s => (double)s.Value).ToArray() }
+                };
             }
             else if (_reportType == "Movements")
             {
@@ -154,6 +269,19 @@ else if (_reportType == "Valuation")
                     query = query.Where(m => m.WarehouseId == _warehouseId.Value);
 
                 _movements = await query.OrderByDescending(m => m.MovementDate).Take(200).ToListAsync();
+
+                // Movement type pie
+                var typeGroups = _movements.GroupBy(m => m.Type).ToList();
+                _movementTypeLabels = typeGroups.Select(g => g.Key.ToString()).ToArray();
+                _movementTypeData = typeGroups.Select(g => (double)g.Count()).ToArray();
+
+                // Movement trend line
+                var trendGroups = _movements.GroupBy(m => m.MovementDate.Date).OrderBy(g => g.Key).ToList();
+                _movementTrendLabels = trendGroups.Select(g => g.Key.ToString("MMM dd")).ToArray();
+                _movementTrendSeries = new List<ChartSeries>
+                {
+                    new() { Name = "Movements", Data = trendGroups.Select(g => (double)g.Sum(m => Math.Abs(m.Quantity))).ToArray() }
+                };
             }
             else
             {
@@ -170,6 +298,14 @@ else if (_reportType == "Valuation")
                     .Select(g => new ValuationRow(g.Key.Name, g.Key.SKU, g.Sum(i => i.Quantity), g.Key.CostPrice, g.Sum(i => i.Quantity) * g.Key.CostPrice))
                     .OrderByDescending(v => v.TotalValue)
                     .ToListAsync();
+
+                // Valuation bar chart
+                var topValuation = _valuationRows.Take(10).ToList();
+                _valChartLabels = topValuation.Select(v => v.ProductName.Length > 12 ? v.ProductName[..12] + ".." : v.ProductName).ToArray();
+                _valChartSeries = new List<ChartSeries>
+                {
+                    new() { Name = "Total Value", Data = topValuation.Select(v => (double)v.TotalValue).ToArray() }
+                };
             }
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

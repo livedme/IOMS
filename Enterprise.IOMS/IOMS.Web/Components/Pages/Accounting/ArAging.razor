@@ -7,10 +7,65 @@
 
 <MudText Typo="Typo.h4" Class="mb-4">Accounts Receivable Aging</MudText>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load">Refresh</MudButton>
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load" StartIcon="@Icons.Material.Filled.Refresh">Refresh</MudButton>
+</MudPaper>
 
-    <MudTable Items="@_data" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+@if (_data.Any())
+{
+    @* ── KPI Cards ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-primary);">
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total AR Outstanding</MudText>
+                <MudText Typo="Typo.h5"><strong>@_data.Sum(d => d.Total).ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
+                <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Customers</MudText>
+                <MudText Typo="Typo.h5"><strong>@_data.Count</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-warning);">
+                <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Overdue (30+)</MudText>
+                <MudText Typo="Typo.h5"><strong>@_data.Sum(d => d.Days31to60 + d.Days61to90 + d.Days90Plus).ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
+                <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Critical (90+)</MudText>
+                <MudText Typo="Typo.h5"><strong>@_data.Sum(d => d.Days90Plus).ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Charts ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-2">Aging Buckets</MudText>
+                <MudChart ChartType="ChartType.Donut" InputData="@_bucketData"
+                          InputLabels="@_bucketLabels" Width="100%" Height="280px" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-2">Top Customers by Outstanding</MudText>
+                <MudChart ChartType="ChartType.Bar" ChartSeries="@_customerBarSeries"
+                          XAxisLabels="@_customerBarLabels" Width="100%" Height="280px" />
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_data" Dense="true" Hover="true" Striped="true" Loading="@_loading" Elevation="0">
         <HeaderContent>
             <MudTh>Customer</MudTh>
             <MudTh Style="text-align:right">Current</MudTh>
@@ -49,12 +104,39 @@
     private List<AgingReportDto> _data = new();
     private bool _loading = true;
 
+    // Chart data
+    private string[] _bucketLabels = { "Current", "1-30 Days", "31-60 Days", "61-90 Days", "90+ Days" };
+    private double[] _bucketData = [];
+    private string[] _customerBarLabels = [];
+    private List<ChartSeries> _customerBarSeries = new();
+
     protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load()
     {
         _loading = true;
-        try { _data = await AccountingService.GetArAging(); }
+        try
+        {
+            _data = await AccountingService.GetArAging();
+
+            // Aging buckets donut
+            _bucketData = new double[] {
+                (double)_data.Sum(d => d.Current),
+                (double)_data.Sum(d => d.Days1to30),
+                (double)_data.Sum(d => d.Days31to60),
+                (double)_data.Sum(d => d.Days61to90),
+                (double)_data.Sum(d => d.Days90Plus)
+            };
+
+            // Top customers bar
+            var topCustomers = _data.OrderByDescending(d => d.Total).Take(10).ToList();
+            _customerBarLabels = topCustomers.Select(d => d.EntityName.Length > 12 ? d.EntityName[..12] + ".." : d.EntityName).ToArray();
+            _customerBarSeries = new List<ChartSeries>
+            {
+                new() { Name = "Current", Data = topCustomers.Select(d => (double)d.Current).ToArray() },
+                new() { Name = "Overdue", Data = topCustomers.Select(d => (double)(d.Days1to30 + d.Days31to60 + d.Days61to90 + d.Days90Plus)).ToArray() }
+            };
+        }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         _loading = false;
     }

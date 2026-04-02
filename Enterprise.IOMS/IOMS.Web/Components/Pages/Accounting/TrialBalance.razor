@@ -7,7 +7,7 @@
 
 <MudText Typo="Typo.h4" Class="mb-4">Trial Balance</MudText>
 
-<MudPaper Elevation="2" Class="pa-4">
+<MudPaper Elevation="2" Class="pa-4 mb-4">
     <MudGrid>
         <MudItem xs="12" sm="4">
             <MudDatePicker @bind-Date="_asOfDate" Label="As Of Date" />
@@ -18,10 +18,62 @@
             </MudButton>
         </MudItem>
     </MudGrid>
+</MudPaper>
 
-    @if (_report != null)
-    {
-        <MudTable Items="@_report.Lines" Dense="true" Hover="true" Striped="true" Class="mt-4" Elevation="0">
+@if (_report != null)
+{
+    @* ── KPI Cards ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-primary);">
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Debits</MudText>
+                <MudText Typo="Typo.h5"><strong>@_report.TotalDebits.ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Credits</MudText>
+                <MudText Typo="Typo.h5"><strong>@_report.TotalCredits.ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="@($"border-left:4px solid {(_report.TotalDebits == _report.TotalCredits ? "var(--mud-palette-success)" : "var(--mud-palette-error)")};")">
+                <MudIcon Icon="@(_report.TotalDebits == _report.TotalCredits ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)"
+                         Color="@(_report.TotalDebits == _report.TotalCredits ? Color.Success : Color.Error)" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Balance</MudText>
+                <MudText Typo="Typo.h5"><strong>@((_report.TotalDebits - _report.TotalCredits).ToString("C0"))</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Charts ── *@
+    <MudGrid Class="mb-4">
+        @if (_acctTypeLabels.Length > 0)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Debits vs Credits by Account Type</MudText>
+                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_acctTypeSeries"
+                              XAxisLabels="@_acctTypeLabels" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudItem>
+        }
+        @if (_typeDistLabels.Length > 0)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Balance Distribution by Type</MudText>
+                    <MudChart ChartType="ChartType.Donut" InputData="@_typeDistData"
+                              InputLabels="@_typeDistLabels" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+
+    <MudPaper Elevation="2" Class="pa-4">
+        <MudTable Items="@_report.Lines" Dense="true" Hover="true" Striped="true" Elevation="0">
             <HeaderContent>
                 <MudTh>Code</MudTh>
                 <MudTh>Account</MudTh>
@@ -42,16 +94,42 @@
                 <MudTd Style="text-align:right"><strong>@_report.TotalCredits.ToString("C")</strong></MudTd>
             </FooterContent>
         </MudTable>
-    }
-</MudPaper>
+    </MudPaper>
+}
 
 @code {
     private DateTime? _asOfDate = DateTime.Today;
     private TrialBalanceDto? _report;
 
+    // Chart data
+    private string[] _acctTypeLabels = [];
+    private List<ChartSeries> _acctTypeSeries = new();
+    private string[] _typeDistLabels = [];
+    private double[] _typeDistData = [];
+
     private async Task Generate()
     {
-        try { _report = await AccountingService.GetTrialBalance(_asOfDate ?? DateTime.Today); }
+        try
+        {
+            _report = await AccountingService.GetTrialBalance(_asOfDate ?? DateTime.Today);
+
+            // Group by account type
+            var typeGroups = _report.Lines.GroupBy(l => l.AccountType.ToString()).ToList();
+            _acctTypeLabels = typeGroups.Select(g => g.Key).ToArray();
+            _acctTypeSeries = new List<ChartSeries>
+            {
+                new() { Name = "Debits", Data = typeGroups.Select(g => (double)g.Sum(l => l.Debit)).ToArray() },
+                new() { Name = "Credits", Data = typeGroups.Select(g => (double)g.Sum(l => l.Credit)).ToArray() }
+            };
+
+            // Balance by type donut
+            var typeDist = typeGroups.Select(g => new {
+                Type = g.Key,
+                Balance = Math.Abs((double)g.Sum(l => l.Debit) - (double)g.Sum(l => l.Credit))
+            }).Where(x => x.Balance > 0).ToList();
+            _typeDistLabels = typeDist.Select(t => t.Type).ToArray();
+            _typeDistData = typeDist.Select(t => t.Balance).ToArray();
+        }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 }

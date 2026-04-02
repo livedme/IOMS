@@ -20,39 +20,88 @@
 
 @if (_items.Any())
 {
-    <MudPaper Class="pa-4 mb-4">
-        <MudGrid>
-            <MudItem xs="4">
-                <MudText Typo="Typo.subtitle1">Total Dead Stock Items: @_items.Count</MudText>
+    @* ── KPI Cards ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Dead Stock Items</MudText>
+                <MudText Typo="Typo.h5"><strong>@_items.Count.ToString("N0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-warning);">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Quantity</MudText>
+                <MudText Typo="Typo.h5"><strong>@_items.Sum(i => i.Quantity).ToString("N0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-info);">
+                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Info" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Value Locked</MudText>
+                <MudText Typo="Typo.h5"><strong>@_items.Sum(i => i.Value).ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Charts ── *@
+    <MudGrid Class="mb-4">
+        @if (_whLabels.Length > 0)
+        {
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">By Warehouse</MudText>
+                    <MudChart ChartType="ChartType.Donut" InputData="@_whData"
+                              InputLabels="@_whLabels" Width="100%" Height="280px" />
+                </MudPaper>
             </MudItem>
-            <MudItem xs="4">
-                <MudText Typo="Typo.subtitle1">Total Quantity: @_items.Sum(i => i.Quantity)</MudText>
+        }
+        @if (_ageBucketLabels.Length > 0)
+        {
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Aging Distribution</MudText>
+                    <MudChart ChartType="ChartType.Pie" InputData="@_ageBucketData"
+                              InputLabels="@_ageBucketLabels" Width="100%" Height="280px" />
+                </MudPaper>
             </MudItem>
-            <MudItem xs="4">
-                <MudText Typo="Typo.subtitle1">Total Value: @_items.Sum(i => i.Value).ToString("C")</MudText>
+        }
+        @if (_topDeadLabels.Length > 0)
+        {
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Top 8 by Value</MudText>
+                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_topDeadSeries"
+                              XAxisLabels="@_topDeadLabels" Width="100%" Height="280px" />
+                </MudPaper>
             </MudItem>
-        </MudGrid>
-    </MudPaper>
+        }
+    </MudGrid>
 }
 
-<MudTable Items="_items" Hover="true" Striped="true" Loading="_loading">
+<MudTable Items="_items" Hover="true" Striped="true" Loading="_loading" Dense="true">
     <HeaderContent>
         <MudTh>Product</MudTh>
         <MudTh>SKU</MudTh>
         <MudTh>Warehouse</MudTh>
-        <MudTh>Quantity</MudTh>
-        <MudTh>Value</MudTh>
+        <MudTh Style="text-align:right">Quantity</MudTh>
+        <MudTh Style="text-align:right">Value</MudTh>
         <MudTh>Last Movement</MudTh>
-        <MudTh>Days Idle</MudTh>
+        <MudTh Style="text-align:right">Days Idle</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Product">@context.ProductName</MudTd>
         <MudTd DataLabel="SKU">@context.SKU</MudTd>
         <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
-        <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
-        <MudTd DataLabel="Value">@context.Value.ToString("C")</MudTd>
+        <MudTd DataLabel="Quantity" Style="text-align:right">@context.Quantity</MudTd>
+        <MudTd DataLabel="Value" Style="text-align:right">@context.Value.ToString("C")</MudTd>
         <MudTd DataLabel="Last Movement">@(context.LastMovementDate?.ToShortDateString() ?? "Never")</MudTd>
-        <MudTd DataLabel="Days Idle">@context.DaysSinceLastMovement</MudTd>
+        <MudTd DataLabel="Days Idle" Style="text-align:right">
+            <MudChip T="string" Size="Size.Small" Color="@(context.DaysSinceLastMovement > 180 ? Color.Error : Color.Warning)">
+                @context.DaysSinceLastMovement days
+            </MudChip>
+        </MudTd>
     </RowTemplate>
 </MudTable>
 
@@ -60,6 +109,14 @@
     private List<DeadStockItemDto> _items = new();
     private int _daysThreshold = 90;
     private bool _loading;
+
+    // Chart data
+    private string[] _whLabels = [];
+    private double[] _whData = [];
+    private string[] _ageBucketLabels = [];
+    private double[] _ageBucketData = [];
+    private string[] _topDeadLabels = [];
+    private List<ChartSeries> _topDeadSeries = new();
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
@@ -95,6 +152,28 @@
                 .Where(d => d.DaysSinceLastMovement >= _daysThreshold)
                 .OrderByDescending(d => d.DaysSinceLastMovement)
                 .ToList();
+
+            // Warehouse donut
+            var whGroups = _items.GroupBy(i => i.WarehouseName).ToList();
+            _whLabels = whGroups.Select(g => g.Key).ToArray();
+            _whData = whGroups.Select(g => (double)g.Sum(i => i.Value)).ToArray();
+
+            // Age bucket pie
+            var buckets = new[] {
+                ("90-180 days", _items.Where(i => i.DaysSinceLastMovement >= 90 && i.DaysSinceLastMovement < 180).Count()),
+                ("180-365 days", _items.Where(i => i.DaysSinceLastMovement >= 180 && i.DaysSinceLastMovement < 365).Count()),
+                ("365+ days", _items.Where(i => i.DaysSinceLastMovement >= 365).Count())
+            }.Where(b => b.Item2 > 0).ToList();
+            _ageBucketLabels = buckets.Select(b => b.Item1).ToArray();
+            _ageBucketData = buckets.Select(b => (double)b.Item2).ToArray();
+
+            // Top dead stock bar
+            var topDead = _items.OrderByDescending(i => i.Value).Take(8).ToList();
+            _topDeadLabels = topDead.Select(i => i.ProductName.Length > 12 ? i.ProductName[..12] + ".." : i.ProductName).ToArray();
+            _topDeadSeries = new List<ChartSeries>
+            {
+                new() { Name = "Value", Data = topDead.Select(i => (double)i.Value).ToArray() }
+            };
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }

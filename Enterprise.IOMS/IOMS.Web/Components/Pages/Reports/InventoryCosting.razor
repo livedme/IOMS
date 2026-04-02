@@ -25,29 +25,74 @@
 
 @if (_rows.Any())
 {
-    <MudPaper Class="pa-4 mb-4">
-        <MudText Typo="Typo.subtitle1">Total Inventory Value: @_rows.Sum(r => r.TotalValue).ToString("C")</MudText>
-    </MudPaper>
+    @* ── KPI Cards ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-primary);">
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Inventory Value</MudText>
+                <MudText Typo="Typo.h5"><strong>@_rows.Sum(r => r.TotalValue).ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-warning);">
+                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Landed Cost</MudText>
+                <MudText Typo="Typo.h5"><strong>@_rows.Sum(r => r.LandedCost).ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Products</MudText>
+                <MudText Typo="Typo.h5"><strong>@_rows.Count.ToString("N0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Charts ── *@
+    <MudGrid Class="mb-4">
+        @if (_topCostLabels.Length > 0)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Top 10 Products by Total Value</MudText>
+                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_topCostSeries"
+                              XAxisLabels="@_topCostLabels" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudItem>
+        }
+        @if (_costBreakdownLabels.Length > 0)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Cost Breakdown (Top 8 Products)</MudText>
+                    <MudChart ChartType="ChartType.Donut" InputData="@_costBreakdownData"
+                              InputLabels="@_costBreakdownLabels" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
 }
 
-<MudTable Items="_rows" Hover="true" Striped="true" Loading="_loading">
+<MudTable Items="_rows" Hover="true" Striped="true" Loading="_loading" Dense="true">
     <HeaderContent>
         <MudTh>Product</MudTh>
         <MudTh>SKU</MudTh>
-        <MudTh>Total Qty</MudTh>
-        <MudTh>Unit Cost</MudTh>
-        <MudTh>Total Value</MudTh>
-        <MudTh>Landed Cost</MudTh>
-        <MudTh>Effective Cost</MudTh>
+        <MudTh Style="text-align:right">Total Qty</MudTh>
+        <MudTh Style="text-align:right">Unit Cost</MudTh>
+        <MudTh Style="text-align:right">Total Value</MudTh>
+        <MudTh Style="text-align:right">Landed Cost</MudTh>
+        <MudTh Style="text-align:right">Effective Cost</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd>@context.ProductName</MudTd>
         <MudTd>@context.SKU</MudTd>
-        <MudTd>@context.TotalQty</MudTd>
-        <MudTd>@context.UnitCost.ToString("C")</MudTd>
-        <MudTd>@context.TotalValue.ToString("C")</MudTd>
-        <MudTd>@context.LandedCost.ToString("C")</MudTd>
-        <MudTd>@context.EffectiveCost.ToString("C")</MudTd>
+        <MudTd Style="text-align:right">@context.TotalQty</MudTd>
+        <MudTd Style="text-align:right">@context.UnitCost.ToString("C")</MudTd>
+        <MudTd Style="text-align:right">@context.TotalValue.ToString("C")</MudTd>
+        <MudTd Style="text-align:right">@context.LandedCost.ToString("C")</MudTd>
+        <MudTd Style="text-align:right">@context.EffectiveCost.ToString("C")</MudTd>
     </RowTemplate>
 </MudTable>
 
@@ -57,6 +102,12 @@
     private List<CostingRow> _rows = new();
     private string _costingMethod = "WeightedAverage";
     private bool _loading;
+
+    // Chart data
+    private string[] _topCostLabels = [];
+    private List<ChartSeries> _topCostSeries = new();
+    private string[] _costBreakdownLabels = [];
+    private double[] _costBreakdownData = [];
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
@@ -96,6 +147,20 @@
             })
             .OrderByDescending(r => r.TotalValue)
             .ToList();
+
+            // Top products bar chart
+            var topCost = _rows.Take(10).ToList();
+            _topCostLabels = topCost.Select(r => r.ProductName.Length > 12 ? r.ProductName[..12] + ".." : r.ProductName).ToArray();
+            _topCostSeries = new List<ChartSeries>
+            {
+                new() { Name = "Inventory Value", Data = topCost.Select(r => (double)r.TotalValue).ToArray() },
+                new() { Name = "Landed Cost", Data = topCost.Select(r => (double)r.LandedCost).ToArray() }
+            };
+
+            // Cost breakdown donut
+            var topBreakdown = _rows.Take(8).ToList();
+            _costBreakdownLabels = topBreakdown.Select(r => r.ProductName.Length > 15 ? r.ProductName[..15] + ".." : r.ProductName).ToArray();
+            _costBreakdownData = topBreakdown.Select(r => (double)(r.TotalValue + r.LandedCost)).ToArray();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }

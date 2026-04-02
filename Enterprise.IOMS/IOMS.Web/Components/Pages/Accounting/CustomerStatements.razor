@@ -6,13 +6,13 @@
 <PageTitle>Customer Statements</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4">Customer Statements</MudText>
 
-<MudPaper Class="pa-4 mb-4">
+<MudPaper Class="pa-4 mb-4" Elevation="2">
     <MudGrid>
         <MudItem xs="12" sm="4">
-            <MudSelect @bind-Value="_customerId" Label="Customer" Required="true">
+            <MudSelect T="Guid?" @bind-Value="_customerId" Label="Customer" Required="true">
                 @foreach (var c in _customers)
                 {
-                    <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
+                    <MudSelectItem T="Guid?" Value="@((Guid?)c.Id)">@c.Name</MudSelectItem>
                 }
             </MudSelect>
         </MudItem>
@@ -31,42 +31,95 @@
 
 @if (_selectedCustomer != null)
 {
-    <MudPaper Class="pa-4 mb-4">
-        <MudGrid>
-            <MudItem xs="4">
-                <MudText Typo="Typo.subtitle2">Customer: @_selectedCustomer.Name</MudText>
-                <MudText Typo="Typo.body2">@_selectedCustomer.Email</MudText>
+    @* ── KPI Cards ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-primary);">
+                <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Customer</MudText>
+                <MudText Typo="Typo.h6"><strong>@_selectedCustomer.Name</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-info);">
+                <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Info" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Invoiced</MudText>
+                <MudText Typo="Typo.h5"><strong>@_totalInvoiced.ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
+                <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Paid</MudText>
+                <MudText Typo="Typo.h5"><strong>@_totalPaid.ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Color="Color.Error" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Balance Due</MudText>
+                <MudText Typo="Typo.h5"><strong>@_balanceDue.ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (_statementLines.Any())
+    {
+        @* ── Charts ── *@
+        <MudGrid Class="mb-4">
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Balance Trend</MudText>
+                    <MudChart ChartType="ChartType.Line" ChartSeries="@_balanceTrendSeries"
+                              XAxisLabels="@_balanceTrendLabels" Width="100%" Height="300px"
+                              ChartOptions="@(new ChartOptions { LineStrokeWidth = 3 })" />
+                </MudPaper>
             </MudItem>
-            <MudItem xs="4">
-                <MudText Typo="Typo.subtitle2">Total Invoiced</MudText>
-                <MudText Typo="Typo.h6">@_totalInvoiced.ToString("C")</MudText>
-            </MudItem>
-            <MudItem xs="4">
-                <MudText Typo="Typo.subtitle2">Balance Due</MudText>
-                <MudText Typo="Typo.h6" Color="Color.Error">@_balanceDue.ToString("C")</MudText>
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Debits vs Credits</MudText>
+                    <MudChart ChartType="ChartType.Donut"
+                              InputData="@(new double[] { (double)_totalInvoiced, (double)_totalPaid })"
+                              InputLabels="@(new[] { "Invoiced", "Paid" })"
+                              Width="100%" Height="280px" />
+                </MudPaper>
             </MudItem>
         </MudGrid>
-    </MudPaper>
+
+        @if (_monthlyBarSeries.Any())
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-2">Monthly Debits & Credits</MudText>
+                <MudChart ChartType="ChartType.Bar" ChartSeries="@_monthlyBarSeries"
+                          XAxisLabels="@_monthlyBarLabels" Width="100%" Height="300px" />
+            </MudPaper>
+        }
+    }
 }
 
-<MudTable Items="_statementLines" Hover="true" Striped="true" Loading="_loading">
-    <HeaderContent>
-        <MudTh>Date</MudTh>
-        <MudTh>Type</MudTh>
-        <MudTh>Reference</MudTh>
-        <MudTh>Debit</MudTh>
-        <MudTh>Credit</MudTh>
-        <MudTh>Balance</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="Date">@context.Date.ToShortDateString()</MudTd>
-        <MudTd DataLabel="Type">@context.Type</MudTd>
-        <MudTd DataLabel="Reference">@context.Reference</MudTd>
-        <MudTd DataLabel="Debit">@(context.Debit > 0 ? context.Debit.ToString("C") : "")</MudTd>
-        <MudTd DataLabel="Credit">@(context.Credit > 0 ? context.Credit.ToString("C") : "")</MudTd>
-        <MudTd DataLabel="Balance">@context.RunningBalance.ToString("C")</MudTd>
-    </RowTemplate>
-</MudTable>
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="_statementLines" Hover="true" Striped="true" Loading="_loading" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Reference</MudTh>
+            <MudTh Style="text-align:right">Debit</MudTh>
+            <MudTh Style="text-align:right">Credit</MudTh>
+            <MudTh Style="text-align:right">Balance</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Date">@context.Date.ToShortDateString()</MudTd>
+            <MudTd DataLabel="Type">
+                <MudChip T="string" Size="Size.Small"
+                         Color="@(context.Type == "Invoice" ? Color.Info : Color.Success)">@context.Type</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Reference">@context.Reference</MudTd>
+            <MudTd DataLabel="Debit" Style="text-align:right">@(context.Debit > 0 ? context.Debit.ToString("C") : "")</MudTd>
+            <MudTd DataLabel="Credit" Style="text-align:right">@(context.Credit > 0 ? context.Credit.ToString("C") : "")</MudTd>
+            <MudTd DataLabel="Balance" Style="text-align:right"><strong>@context.RunningBalance.ToString("C")</strong></MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
 
 @code {
     private record StatementLine(DateTime Date, string Type, string Reference, decimal Debit, decimal Credit, decimal RunningBalance);
@@ -78,8 +131,15 @@
     private Customer? _selectedCustomer;
     private List<StatementLine> _statementLines = new();
     private decimal _totalInvoiced;
+    private decimal _totalPaid;
     private decimal _balanceDue;
     private bool _loading;
+
+    // Chart data
+    private string[] _balanceTrendLabels = [];
+    private List<ChartSeries> _balanceTrendSeries = new();
+    private string[] _monthlyBarLabels = [];
+    private List<ChartSeries> _monthlyBarSeries = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,9 +183,40 @@
 
             _statementLines = lines;
             _totalInvoiced = invoices.Sum(i => i.TotalAmount);
+            _totalPaid = payments.Sum(p => p.Amount);
             _balanceDue = balance;
+
+            BuildChartData();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
+    }
+
+    private void BuildChartData()
+    {
+        if (!_statementLines.Any()) return;
+
+        // Balance trend line - sample up to ~20 points
+        var lines = _statementLines;
+        int step = Math.Max(1, lines.Count / 20);
+        var sampled = lines.Where((_, i) => i % step == 0 || i == lines.Count - 1).ToList();
+        _balanceTrendLabels = sampled.Select(l => l.Date.ToString("MMM dd")).ToArray();
+        _balanceTrendSeries = new List<ChartSeries>
+        {
+            new() { Name = "Balance", Data = sampled.Select(l => (double)l.RunningBalance).ToArray() }
+        };
+
+        // Monthly debit/credit bar chart
+        var monthly = _statementLines
+            .GroupBy(l => new { l.Date.Year, l.Date.Month })
+            .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+            .ToList();
+
+        _monthlyBarLabels = monthly.Select(g => new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM yy")).ToArray();
+        _monthlyBarSeries = new List<ChartSeries>
+        {
+            new() { Name = "Debits", Data = monthly.Select(g => (double)g.Sum(l => l.Debit)).ToArray() },
+            new() { Name = "Credits", Data = monthly.Select(g => (double)g.Sum(l => l.Credit)).ToArray() }
+        };
     }
 }

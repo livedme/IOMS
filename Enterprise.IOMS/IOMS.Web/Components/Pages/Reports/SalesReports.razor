@@ -6,7 +6,7 @@
 <PageTitle>Sales Reports</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4">Sales Reports</MudText>
 
-<MudPaper Class="pa-4 mb-4">
+<MudPaper Class="pa-4 mb-4" Elevation="2">
     <MudGrid>
         <MudItem xs="12" sm="3">
             <MudDatePicker @bind-Date="_from" Label="From Date" />
@@ -23,64 +23,244 @@
         </MudItem>
         <MudItem xs="12" sm="3" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"
-                       StartIcon="@Icons.Material.Filled.Assessment">Generate</MudButton>
+                       StartIcon="@Icons.Material.Filled.Assessment" Disabled="_loading">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                Generate
+            </MudButton>
         </MudItem>
     </MudGrid>
 </MudPaper>
 
 @if (_summaryLoaded)
 {
-    <MudPaper Class="pa-4 mb-4">
-        <MudGrid>
-            <MudItem xs="3">
-                <MudText Typo="Typo.subtitle2">Total Orders</MudText>
-                <MudText Typo="Typo.h5">@_totalOrders</MudText>
+    @* ── KPI Cards Row 1 ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-primary);">
+                <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Orders</MudText>
+                <MudText Typo="Typo.h5"><strong>@_totalOrders.ToString("N0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
+                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Revenue</MudText>
+                <MudText Typo="Typo.h5"><strong>@_totalRevenue.ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-info);">
+                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Info" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Avg Order Value</MudText>
+                <MudText Typo="Typo.h5"><strong>@(_totalOrders > 0 ? (_totalRevenue / _totalOrders).ToString("C0") : "$0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-warning);">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Items Sold</MudText>
+                <MudText Typo="Typo.h5"><strong>@_totalItemsSold.ToString("N0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── KPI Cards Row 2 (Invoice / Payment) ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-tertiary);">
+                <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Tertiary" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Invoiced Amount</MudText>
+                <MudText Typo="Typo.h5"><strong>@_totalInvoiced.ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
+                <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Collected</MudText>
+                <MudText Typo="Typo.h5"><strong>@_totalCollected.ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Outstanding</MudText>
+                <MudText Typo="Typo.h5"><strong>@((_totalInvoiced - _totalCollected).ToString("C0"))</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-dark);">
+                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Dark" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Cancelled Orders</MudText>
+                <MudText Typo="Typo.h5"><strong>@_cancelledOrders.ToString("N0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Charts Row 1 ── *@
+    <MudGrid Class="mb-4">
+        @if (_dailySalesLabels.Length > 0)
+        {
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Daily Sales Trend</MudText>
+                    <MudChart ChartType="ChartType.Line" ChartSeries="@_dailySalesSeries"
+                              XAxisLabels="@_dailySalesLabels" Width="100%" Height="300px"
+                              ChartOptions="@(new ChartOptions { YAxisTicks = 5, LineStrokeWidth = 3 })" />
+                </MudPaper>
             </MudItem>
-            <MudItem xs="3">
-                <MudText Typo="Typo.subtitle2">Total Revenue</MudText>
-                <MudText Typo="Typo.h5">@_totalRevenue.ToString("C")</MudText>
+        }
+        @if (_statusChartData.Length > 0)
+        {
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Orders by Status</MudText>
+                    <MudChart ChartType="ChartType.Donut" InputData="@_statusChartData"
+                              InputLabels="@_statusChartLabels" Width="100%" Height="300px" />
+                </MudPaper>
             </MudItem>
-            <MudItem xs="3">
-                <MudText Typo="Typo.subtitle2">Average Order Value</MudText>
-                <MudText Typo="Typo.h5">@(_totalOrders > 0 ? (_totalRevenue / _totalOrders).ToString("C") : "$0.00")</MudText>
+        }
+    </MudGrid>
+
+    @* ── Charts Row 2 ── *@
+    <MudGrid Class="mb-4">
+        @if (_customerChartData.Length > 0)
+        {
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Revenue by Customer (Top 8)</MudText>
+                    <MudChart ChartType="ChartType.Donut" InputData="@_customerChartData"
+                              InputLabels="@_customerChartLabels" Width="100%" Height="300px" />
+                </MudPaper>
             </MudItem>
-            <MudItem xs="3">
-                <MudText Typo="Typo.subtitle2">Items Sold</MudText>
-                <MudText Typo="Typo.h5">@_totalItemsSold</MudText>
+        }
+        @if (_productChartLabels.Length > 0)
+        {
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Top Products by Revenue</MudText>
+                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_productChartSeries"
+                              XAxisLabels="@_productChartLabels" Width="100%" Height="300px" />
+                </MudPaper>
             </MudItem>
-        </MudGrid>
-    </MudPaper>
+        }
+    </MudGrid>
+
+    @* ── Charts Row 3 ── *@
+    <MudGrid Class="mb-4">
+        @if (_monthlyBarLabels.Length > 0)
+        {
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Monthly Revenue & Collection</MudText>
+                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_monthlyBarSeries"
+                              XAxisLabels="@_monthlyBarLabels" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudItem>
+        }
+        @if (_paymentMethodData.Length > 0)
+        {
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Payments by Method</MudText>
+                    <MudChart ChartType="ChartType.Pie" InputData="@_paymentMethodData"
+                              InputLabels="@_paymentMethodLabels" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
 }
 
+@* ── Data Tables ── *@
 @if (_reportType == "ByCustomer")
 {
-    <MudTable Items="_customerData" Hover="true" Striped="true">
-        <HeaderContent>
-            <MudTh>Customer</MudTh>
-            <MudTh>Orders</MudTh>
-            <MudTh>Revenue</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.Name</MudTd>
-            <MudTd>@context.OrderCount</MudTd>
-            <MudTd>@context.Revenue.ToString("C")</MudTd>
-        </RowTemplate>
-    </MudTable>
+    <MudPaper Elevation="2" Class="pa-4">
+        <MudTable Items="_customerData" Hover="true" Striped="true" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Customer</MudTh>
+                <MudTh Style="text-align:right">Orders</MudTh>
+                <MudTh Style="text-align:right">Revenue</MudTh>
+                <MudTh Style="text-align:right">Invoiced</MudTh>
+                <MudTh Style="text-align:right">Collected</MudTh>
+                <MudTh Style="text-align:right">Outstanding</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Name</MudTd>
+                <MudTd Style="text-align:right">@context.OrderCount</MudTd>
+                <MudTd Style="text-align:right">@context.Revenue.ToString("C")</MudTd>
+                <MudTd Style="text-align:right">@context.Invoiced.ToString("C")</MudTd>
+                <MudTd Style="text-align:right">@context.Collected.ToString("C")</MudTd>
+                <MudTd Style="text-align:right">
+                    <MudText Color="@(context.Outstanding > 0 ? Color.Error : Color.Success)">
+                        @context.Outstanding.ToString("C")
+                    </MudText>
+                </MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd><strong>Total</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_customerData.Sum(c => c.OrderCount)</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_customerData.Sum(c => c.Revenue).ToString("C")</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_customerData.Sum(c => c.Invoiced).ToString("C")</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_customerData.Sum(c => c.Collected).ToString("C")</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_customerData.Sum(c => c.Outstanding).ToString("C")</strong></MudTd>
+            </FooterContent>
+        </MudTable>
+    </MudPaper>
 }
 else if (_reportType == "ByProduct")
 {
-    <MudTable Items="_productData" Hover="true" Striped="true">
-        <HeaderContent>
-            <MudTh>Product</MudTh>
-            <MudTh>Units Sold</MudTh>
-            <MudTh>Revenue</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.ProductName</MudTd>
-            <MudTd>@context.UnitsSold</MudTd>
-            <MudTd>@context.Revenue.ToString("C")</MudTd>
-        </RowTemplate>
-    </MudTable>
+    <MudPaper Elevation="2" Class="pa-4">
+        <MudTable Items="_productData" Hover="true" Striped="true" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Product</MudTh>
+                <MudTh Style="text-align:right">Units Sold</MudTh>
+                <MudTh Style="text-align:right">Revenue</MudTh>
+                <MudTh Style="text-align:right">Tax</MudTh>
+                <MudTh Style="text-align:right">Avg. Price</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.ProductName</MudTd>
+                <MudTd Style="text-align:right">@context.UnitsSold.ToString("N0")</MudTd>
+                <MudTd Style="text-align:right">@context.Revenue.ToString("C")</MudTd>
+                <MudTd Style="text-align:right">@context.TaxAmount.ToString("C")</MudTd>
+                <MudTd Style="text-align:right">@(context.UnitsSold > 0 ? (context.Revenue / context.UnitsSold).ToString("C") : "-")</MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd><strong>Total</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_productData.Sum(p => p.UnitsSold).ToString("N0")</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_productData.Sum(p => p.Revenue).ToString("C")</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_productData.Sum(p => p.TaxAmount).ToString("C")</strong></MudTd>
+                <MudTd></MudTd>
+            </FooterContent>
+        </MudTable>
+    </MudPaper>
+}
+else if (_summaryLoaded)
+{
+    @* Summary view: recent orders table *@
+    <MudPaper Elevation="2" Class="pa-4">
+        <MudText Typo="Typo.h6" Class="mb-2">Recent Orders</MudText>
+        <MudTable Items="_recentOrders" Hover="true" Striped="true" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Order #</MudTh>
+                <MudTh>Date</MudTh>
+                <MudTh>Customer</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh Style="text-align:right">Amount</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.OrderNumber</MudTd>
+                <MudTd>@context.OrderDate.ToShortDateString()</MudTd>
+                <MudTd>@context.CustomerName</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+                <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
 }
 
 @code {
@@ -88,43 +268,183 @@ else if (_reportType == "ByProduct")
     private DateTime? _to = DateTime.Today;
     private string _reportType = "Summary";
     private bool _summaryLoaded;
+    private bool _loading;
 
+    // KPIs
     private int _totalOrders;
     private decimal _totalRevenue;
     private int _totalItemsSold;
-    private List<CustomerSalesRow> _customerData = new();
-    private List<TopProductDto> _productData = new();
+    private decimal _totalInvoiced;
+    private decimal _totalCollected;
+    private int _cancelledOrders;
 
-    private record CustomerSalesRow(string Name, int OrderCount, decimal Revenue);
+    // Table data
+    private List<CustomerSalesRow> _customerData = new();
+    private List<ProductSalesRow> _productData = new();
+    private List<RecentOrderRow> _recentOrders = new();
+
+    // Chart data
+    private string[] _dailySalesLabels = [];
+    private List<ChartSeries> _dailySalesSeries = new();
+    private double[] _customerChartData = [];
+    private string[] _customerChartLabels = [];
+    private string[] _productChartLabels = [];
+    private List<ChartSeries> _productChartSeries = new();
+    private double[] _statusChartData = [];
+    private string[] _statusChartLabels = [];
+    private string[] _monthlyBarLabels = [];
+    private List<ChartSeries> _monthlyBarSeries = new();
+    private double[] _paymentMethodData = [];
+    private string[] _paymentMethodLabels = [];
+
+    private record CustomerSalesRow(string Name, int OrderCount, decimal Revenue, decimal Invoiced, decimal Collected, decimal Outstanding);
+    private record ProductSalesRow(string ProductName, decimal Revenue, int UnitsSold, decimal TaxAmount);
+    private record RecentOrderRow(string OrderNumber, DateTime OrderDate, string CustomerName, string Status, decimal TotalAmount);
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
     private async Task LoadData()
     {
-        var fromDate = _from ?? DateTime.Today.AddMonths(-1);
-        var toDate = (_to ?? DateTime.Today).AddDays(1);
+        _loading = true;
+        try
+        {
+            var fromDate = _from ?? DateTime.Today.AddMonths(-1);
+            var toDate = (_to ?? DateTime.Today).AddDays(1);
 
-        var orders = await DbContext.SalesOrders
-            .Include(o => o.Customer)
-            .Include(o => o.Items).ThenInclude(i => i.Product)
-            .Where(o => o.OrderDate >= fromDate && o.OrderDate < toDate)
-            .AsNoTracking()
-            .ToListAsync();
+            // ── Load orders with items ──
+            var orders = await DbContext.SalesOrders
+                .Include(o => o.Customer)
+                .Include(o => o.Items).ThenInclude(i => i.Product)
+                .Where(o => o.OrderDate >= fromDate && o.OrderDate < toDate)
+                .AsNoTracking()
+                .ToListAsync();
 
-        _totalOrders = orders.Count;
-        _totalRevenue = orders.Sum(o => o.TotalAmount);
-        _totalItemsSold = orders.SelectMany(o => o.Items).Sum(i => i.Quantity);
-        _summaryLoaded = true;
+            // ── Load invoices for the same period ──
+            var invoices = await DbContext.Invoices
+                .Where(i => i.InvoiceType == InvoiceType.Sales && i.InvoiceDate >= fromDate && i.InvoiceDate < toDate)
+                .Include(i => i.Customer)
+                .AsNoTracking()
+                .ToListAsync();
 
-        _customerData = orders.GroupBy(o => o.Customer.Name)
-            .Select(g => new CustomerSalesRow(g.Key, g.Count(), g.Sum(o => o.TotalAmount)))
-            .OrderByDescending(c => c.Revenue)
-            .ToList();
+            // ── Load payments for the same period ──
+            var payments = await DbContext.Payments
+                .Where(p => p.PaymentType == PaymentType.Receipt && p.Status == PaymentStatus.Completed
+                            && p.PaymentDate >= fromDate && p.PaymentDate < toDate)
+                .AsNoTracking()
+                .ToListAsync();
 
-        _productData = orders.SelectMany(o => o.Items)
-            .GroupBy(i => i.Product.Name)
-            .Select(g => new TopProductDto(g.Key, g.Sum(i => i.LineTotal), g.Sum(i => i.Quantity)))
-            .OrderByDescending(p => p.Revenue)
-            .ToList();
+            // ── KPIs ──
+            _totalOrders = orders.Count;
+            _totalRevenue = orders.Sum(o => o.TotalAmount);
+            _totalItemsSold = orders.SelectMany(o => o.Items).Sum(i => i.Quantity);
+            _totalInvoiced = invoices.Sum(i => i.TotalAmount);
+            _totalCollected = payments.Sum(p => p.Amount);
+            _cancelledOrders = orders.Count(o => o.Status == OrderStatus.Cancelled);
+            _summaryLoaded = true;
+
+            // ── Customer breakdown (orders + invoices + payments) ──
+            var invByCustomer = invoices.Where(i => i.CustomerId.HasValue)
+                .GroupBy(i => i.Customer?.Name ?? "Unknown")
+                .ToDictionary(g => g.Key, g => g.Sum(i => i.TotalAmount));
+
+            var paidByCustomer = payments.Where(p => p.CustomerId.HasValue)
+                .GroupBy(p => p.CustomerId!.Value)
+                .ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
+
+            // Build a customer-name-to-id lookup from invoices
+            var custNameIdMap = invoices.Where(i => i.CustomerId.HasValue && i.Customer != null)
+                .Select(i => new { i.Customer!.Name, i.CustomerId!.Value })
+                .DistinctBy(x => x.Name)
+                .ToDictionary(x => x.Name, x => x.Value);
+
+            _customerData = orders.GroupBy(o => o.Customer.Name)
+                .Select(g =>
+                {
+                    var custName = g.Key;
+                    var invoiced = invByCustomer.GetValueOrDefault(custName, 0m);
+                    var custId = custNameIdMap.GetValueOrDefault(custName);
+                    var collected = custId != Guid.Empty ? paidByCustomer.GetValueOrDefault(custId, 0m) : 0m;
+                    return new CustomerSalesRow(custName, g.Count(), g.Sum(o => o.TotalAmount), invoiced, collected, invoiced - collected);
+                })
+                .OrderByDescending(c => c.Revenue)
+                .ToList();
+
+            // ── Product breakdown ──
+            _productData = orders.SelectMany(o => o.Items)
+                .GroupBy(i => i.Product.Name)
+                .Select(g => new ProductSalesRow(g.Key, g.Sum(i => i.LineTotal), g.Sum(i => i.Quantity), g.Sum(i => i.TaxAmount)))
+                .OrderByDescending(p => p.Revenue)
+                .ToList();
+
+            // ── Recent orders ──
+            _recentOrders = orders.OrderByDescending(o => o.OrderDate).Take(20)
+                .Select(o => new RecentOrderRow(o.OrderNumber, o.OrderDate, o.Customer.Name, o.Status.ToString(), o.TotalAmount))
+                .ToList();
+
+            BuildChartData(orders, invoices, payments);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
     }
+
+    private void BuildChartData(List<SalesOrder> orders, List<Invoice> invoices, List<Payment> payments)
+    {
+        // ── Daily sales trend (line) ──
+        var dailyGroups = orders.GroupBy(o => o.OrderDate.Date).OrderBy(g => g.Key).ToList();
+        int step = Math.Max(1, dailyGroups.Count / 25);
+        var sampled = dailyGroups.Where((_, i) => i % step == 0 || i == dailyGroups.Count - 1).ToList();
+        _dailySalesLabels = sampled.Select(g => g.Key.ToString("MMM dd")).ToArray();
+        _dailySalesSeries = new List<ChartSeries>
+        {
+            new() { Name = "Revenue", Data = sampled.Select(g => (double)g.Sum(o => o.TotalAmount)).ToArray() },
+            new() { Name = "Orders", Data = sampled.Select(g => (double)g.Count()).ToArray() }
+        };
+
+        // ── Orders by status (donut) ──
+        var statusGroups = orders.GroupBy(o => o.Status).Where(g => g.Any()).ToList();
+        _statusChartLabels = statusGroups.Select(g => g.Key.ToString()).ToArray();
+        _statusChartData = statusGroups.Select(g => (double)g.Count()).ToArray();
+
+        // ── Customer donut ──
+        var topCustomers = _customerData.Take(8).ToList();
+        _customerChartLabels = topCustomers.Select(c => c.Name.Length > 12 ? c.Name[..12] + ".." : c.Name).ToArray();
+        _customerChartData = topCustomers.Select(c => (double)c.Revenue).ToArray();
+
+        // ── Product bar chart ──
+        var topProducts = _productData.Take(10).ToList();
+        _productChartLabels = topProducts.Select(p => p.ProductName.Length > 12 ? p.ProductName[..12] + ".." : p.ProductName).ToArray();
+        _productChartSeries = new List<ChartSeries>
+        {
+            new() { Name = "Revenue", Data = topProducts.Select(p => (double)p.Revenue).ToArray() },
+            new() { Name = "Units Sold", Data = topProducts.Select(p => (double)p.UnitsSold).ToArray() }
+        };
+
+        // ── Monthly revenue & collection (bar) ──
+        var monthlyOrders = orders.GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month }).OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month).ToList();
+        var monthlyInv = invoices.GroupBy(i => new { i.InvoiceDate.Year, i.InvoiceDate.Month }).ToDictionary(g => g.Key, g => g.Sum(i => i.TotalAmount));
+        var monthlyPay = payments.GroupBy(p => new { p.PaymentDate.Year, p.PaymentDate.Month }).ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
+
+        _monthlyBarLabels = monthlyOrders.Select(g => new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM yy")).ToArray();
+        _monthlyBarSeries = new List<ChartSeries>
+        {
+            new() { Name = "Revenue", Data = monthlyOrders.Select(g => (double)g.Sum(o => o.TotalAmount)).ToArray() },
+            new() { Name = "Invoiced", Data = monthlyOrders.Select(g => (double)monthlyInv.GetValueOrDefault(new { g.Key.Year, g.Key.Month }, 0m)).ToArray() },
+            new() { Name = "Collected", Data = monthlyOrders.Select(g => (double)monthlyPay.GetValueOrDefault(new { g.Key.Year, g.Key.Month }, 0m)).ToArray() }
+        };
+
+        // ── Payments by method (pie) ──
+        var methodGroups = payments.GroupBy(p => p.PaymentMethod).Where(g => g.Any()).ToList();
+        _paymentMethodLabels = methodGroups.Select(g => g.Key.ToString()).ToArray();
+        _paymentMethodData = methodGroups.Select(g => (double)g.Sum(p => p.Amount)).ToArray();
+    }
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Pending" => Color.Warning,
+        "Approved" => Color.Info,
+        "Shipped" or "PartiallyShipped" => Color.Primary,
+        "Delivered" => Color.Success,
+        "Cancelled" => Color.Error,
+        _ => Color.Default
+    };
 }

@@ -63,7 +63,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await Task.WhenAll(LoadUnits(), LoadConversions());
+        await LoadUnits();
+        await LoadConversions();
     }
 
     private async Task LoadUnits()
