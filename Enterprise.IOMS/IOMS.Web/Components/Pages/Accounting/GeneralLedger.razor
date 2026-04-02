@@ -1,0 +1,127 @@
+@page "/accounting/general-ledger"
+@rendermode InteractiveServer
+@inject IAccountingService AccountingService
+@inject ISnackbar Snackbar
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+
+<PageTitle>General Ledger - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">General Ledger</MudText>
+
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="3">
+            <MudSelect @bind-Value="_selectedAccountId" Label="Account" Variant="Variant.Outlined"
+                       Clearable="true" Dense="true">
+                @foreach (var a in _accounts)
+                {
+                    <MudSelectItem Value="@a.Id">@a.Code - @a.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_fromDate" Label="From Date" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_toDate" Label="To Date" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadLedger"
+                       StartIcon="@Icons.Material.Filled.Search">Filter</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_entries" Dense="true" Hover="true" Striped="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Journal #</MudTh>
+            <MudTh>Account</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh Style="text-align:right">Debit</MudTh>
+            <MudTh Style="text-align:right">Credit</MudTh>
+            <MudTh Style="text-align:right">Balance</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.EntryDate.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd>@context.JournalNumber</MudTd>
+            <MudTd>@context.AccountCode - @context.AccountName</MudTd>
+            <MudTd>@context.Description</MudTd>
+            <MudTd Style="text-align:right">@(context.DebitAmount > 0 ? context.DebitAmount.ToString("N2") : "")</MudTd>
+            <MudTd Style="text-align:right">@(context.CreditAmount > 0 ? context.CreditAmount.ToString("N2") : "")</MudTd>
+            <MudTd Style="text-align:right"><strong>@context.RunningBalance.ToString("N2")</strong></MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    @if (_entries.Any())
+    {
+        <MudDivider Class="my-3" />
+        <MudGrid>
+            <MudItem xs="12" sm="4">
+                <MudText><strong>Total Debits:</strong> @_entries.Sum(e => e.DebitAmount).ToString("N2")</MudText>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudText><strong>Total Credits:</strong> @_entries.Sum(e => e.CreditAmount).ToString("N2")</MudText>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudText><strong>Net Balance:</strong> @(_entries.Sum(e => e.DebitAmount) - _entries.Sum(e => e.CreditAmount)).ToString("N2")</MudText>
+            </MudItem>
+        </MudGrid>
+    }
+</MudPaper>
+
+@code {
+    private List<AccountDto> _accounts = new();
+    private List<GeneralLedgerEntryDto> _entries = new();
+    private Guid? _selectedAccountId;
+    private DateTime? _fromDate = new DateTime(DateTime.Today.Year, 1, 1);
+    private DateTime? _toDate = DateTime.Today;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await AccountingService.GetAccounts(null, null, 1, 1000);
+            _accounts = result.Items;
+        }
+        catch (Exception ex) { Snackbar.Add($"Error loading accounts: {ex.Message}", Severity.Error); }
+    }
+
+    private async Task LoadLedger()
+    {
+        _loading = true;
+        try
+        {
+            var query = DbContext.JournalEntryLines
+                .Include(l => l.JournalEntry)
+                .Include(l => l.Account)
+                .AsQueryable();
+
+            if (_selectedAccountId.HasValue)
+                query = query.Where(l => l.AccountId == _selectedAccountId.Value);
+            if (_fromDate.HasValue)
+                query = query.Where(l => l.JournalEntry.EntryDate >= _fromDate.Value);
+            if (_toDate.HasValue)
+                query = query.Where(l => l.JournalEntry.EntryDate <= _toDate.Value);
+
+            var lines = await query.OrderBy(l => l.JournalEntry.EntryDate)
+                .ThenBy(l => l.JournalEntry.Reference)
+                .Select(l => new { l.JournalEntry.EntryDate, EntryNumber = l.JournalEntry.Reference, l.Account.Code, l.Account.Name, l.JournalEntry.Description, DebitAmount = l.Debit, CreditAmount = l.Credit })
+                .ToListAsync();
+
+            decimal runningBalance = 0;
+            _entries = lines.Select(l =>
+            {
+                runningBalance += l.DebitAmount - l.CreditAmount;
+                return new GeneralLedgerEntryDto(l.EntryDate, l.EntryNumber, l.Code, l.Name, l.Description, l.DebitAmount, l.CreditAmount, runningBalance);
+            }).ToList();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private record GeneralLedgerEntryDto(DateTime EntryDate, string JournalNumber, string AccountCode, string AccountName, string Description, decimal DebitAmount, decimal CreditAmount, decimal RunningBalance);
+}

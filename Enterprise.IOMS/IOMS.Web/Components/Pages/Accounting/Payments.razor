@@ -1,0 +1,92 @@
+@page "/accounting/payments"
+@rendermode InteractiveServer
+@inject IAccountingService AccountingService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+
+<PageTitle>Payments - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Payments</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="OpenCreateDialog" Class="mb-4">Record Payment</MudButton>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_payments" Dense="true" Hover="true" Striped="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Payment #</MudTh>
+            <MudTh>Date</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Entity</MudTh>
+            <MudTh>Method</MudTh>
+            <MudTh>Reference</MudTh>
+            <MudTh Style="text-align:right">Amount</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.PaymentNumber</strong></MudTd>
+            <MudTd>@context.PaymentDate.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.PaymentType == PaymentType.Receipt ? Color.Success : Color.Warning)">@context.PaymentType</MudChip></MudTd>
+            <MudTd>@context.EntityName</MudTd>
+            <MudTd>@context.PaymentMethod</MudTd>
+            <MudTd>@context.Reference</MudTd>
+            <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<PaymentDisplayDto> _payments = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        try
+        {
+            var data = await DbContext.Payments
+                .Include(p => p.Customer)
+                .Include(p => p.Supplier)
+                .OrderByDescending(p => p.PaymentDate)
+                .Take(200)
+                .ToListAsync();
+
+            _payments = data.Select(p => new PaymentDisplayDto
+            {
+                PaymentNumber = p.PaymentNumber,
+                PaymentDate = p.PaymentDate,
+                PaymentType = p.PaymentType,
+                PaymentMethod = p.PaymentMethod,
+                Amount = p.Amount,
+                Reference = p.Reference ?? "",
+                EntityName = p.Customer?.Name ?? p.Supplier?.Name ?? ""
+            }).ToList();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var dialog = await DialogService.ShowAsync<PaymentDialog>("Record Payment", new DialogParameters(),
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+            await Load();
+    }
+
+    private class PaymentDisplayDto
+    {
+        public string PaymentNumber { get; set; } = "";
+        public DateTime PaymentDate { get; set; }
+        public PaymentType PaymentType { get; set; }
+        public PaymentMethod PaymentMethod { get; set; }
+        public decimal Amount { get; set; }
+        public string Reference { get; set; } = "";
+        public string EntityName { get; set; } = "";
+    }
+}

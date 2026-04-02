@@ -1,0 +1,432 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject IDashboardService DashboardService
+@inject NavigationManager Nav
+
+<PageTitle>Dashboard - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2">Dashboard</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Welcome back! Here's your business overview.</MudText>
+
+@if (_loading)
+{
+    <MudGrid>
+        @for (int i = 0; i < 8; i++)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100px" />
+            </MudItem>
+        }
+    </MudGrid>
+}
+else if (_kpis != null)
+{
+    @* ── KPI Cards Row 1 ── *@
+    <MudGrid Class="mb-2">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left: 4px solid var(--mud-palette-primary);">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Total Products</MudText>
+                    <MudText Typo="Typo.h5"><strong>@_kpis.TotalProducts.ToString("N0")</strong></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left: 4px solid var(--mud-palette-success);">
+                <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Active Customers</MudText>
+                    <MudText Typo="Typo.h5"><strong>@_kpis.ActiveCustomers.ToString("N0")</strong></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left: 4px solid var(--mud-palette-info);">
+                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Info" Size="Size.Large" Class="mr-3" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Active Suppliers</MudText>
+                    <MudText Typo="Typo.h5"><strong>@_kpis.ActiveSuppliers.ToString("N0")</strong></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left: 4px solid var(--mud-palette-warning);">
+                <MudIcon Icon="@Icons.Material.Filled.Warehouse" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Inventory Value</MudText>
+                    <MudText Typo="Typo.h5"><strong>@_kpis.InventoryValue.ToString("C0")</strong></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Financial KPI Cards Row 2 ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="3" Style="background: linear-gradient(135deg, #1b5e20 0%, #388e3c 100%); color: white;">
+                <MudText Typo="Typo.body2" Style="opacity: 0.85">Sales This Month</MudText>
+                <MudText Typo="Typo.h4"><strong>@_kpis.SalesThisMonth.ToString("C0")</strong></MudText>
+                <MudText Typo="Typo.caption" Style="opacity: 0.7">@_kpis.PendingSalesOrders pending orders</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="3" Style="background: linear-gradient(135deg, #e65100 0%, #ff9800 100%); color: white;">
+                <MudText Typo="Typo.body2" Style="opacity: 0.85">Purchases This Month</MudText>
+                <MudText Typo="Typo.h4"><strong>@_kpis.PurchasesThisMonth.ToString("C0")</strong></MudText>
+                <MudText Typo="Typo.caption" Style="opacity: 0.7">@_kpis.PendingPurchaseOrders pending orders</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="3" Style="background: linear-gradient(135deg, #0d47a1 0%, #1976d2 100%); color: white;">
+                <MudText Typo="Typo.body2" Style="opacity: 0.85">Accounts Receivable</MudText>
+                <MudText Typo="Typo.h4"><strong>@_kpis.ArBalance.ToString("C0")</strong></MudText>
+                <MudText Typo="Typo.caption" Style="opacity: 0.7">Outstanding balance</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="3" Style="background: linear-gradient(135deg, #b71c1c 0%, #e53935 100%); color: white;">
+                <MudText Typo="Typo.body2" Style="opacity: 0.85">Accounts Payable</MudText>
+                <MudText Typo="Typo.h4"><strong>@_kpis.ApBalance.ToString("C0")</strong></MudText>
+                <div class="d-flex align-center mt-1">
+                    <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" Style="color: #ffcdd2;" Class="mr-1" />
+                    <MudText Typo="Typo.caption" Style="opacity: 0.85">@_kpis.OverdueInvoices overdue · @_kpis.LowStockItems low stock</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Charts Row ── *@
+    <MudGrid Class="mb-4">
+        @* Sales vs Purchases Trend *@
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="mr-1" Size="Size.Small" />
+                    Sales vs Purchases Trend (12 months)
+                </MudText>
+                @if (_salesChartSeries.Any())
+                {
+                    <MudChart ChartType="ChartType.Line" ChartSeries="@_salesChartSeries" XAxisLabels="@_salesLabels"
+                              Width="100%" Height="300px" ChartOptions="@_lineChartOptions" />
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">No sales data available yet.</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+
+        @* Sales Order Status Pie *@
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="3" Style="height: 100%;">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.PieChart" Class="mr-1" Size="Size.Small" />
+                    Sales Order Status
+                </MudText>
+                @if (_soStatusData.Length > 0)
+                {
+                    <MudChart ChartType="ChartType.Donut" InputData="@_soStatusData" InputLabels="@_soStatusLabels"
+                              Width="100%" Height="250px" />
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">No sales orders yet.</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="mb-4">
+        @* Top Products by Revenue *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Star" Class="mr-1" Size="Size.Small" Color="Color.Warning" />
+                    Top Products by Revenue
+                </MudText>
+                @if (_topProductsSeries.Any())
+                {
+                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_topProductsSeries" XAxisLabels="@_topProductLabels"
+                              Width="100%" Height="300px" ChartOptions="@_barChartOptions" />
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">No product sales data yet.</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+
+        @* Purchase Order Status Pie *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.DonutLarge" Class="mr-1" Size="Size.Small" />
+                    Purchase Order Status
+                </MudText>
+                @if (_poStatusData.Length > 0)
+                {
+                    <MudChart ChartType="ChartType.Pie" InputData="@_poStatusData" InputLabels="@_poStatusLabels"
+                              Width="100%" Height="300px" />
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">No purchase orders yet.</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Tables Row ── *@
+    <MudGrid Class="mb-4">
+        @* Low Stock Alerts *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="3">
+                <div class="d-flex justify-space-between align-center mb-3">
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-1" Size="Size.Small" Color="Color.Error" />
+                        Low Stock Alerts
+                    </MudText>
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">@_lowStockAlerts.Count items</MudChip>
+                </div>
+                @if (_lowStockAlerts.Any())
+                {
+                    <MudTable Items="@_lowStockAlerts" Dense="true" Hover="true" Elevation="0" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Product</MudTh>
+                            <MudTh>Warehouse</MudTh>
+                            <MudTh Style="text-align:right">Stock</MudTh>
+                            <MudTh Style="text-align:right">Reorder Lvl</MudTh>
+                            <MudTh>Status</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <MudText Typo="Typo.body2"><strong>@context.ProductName</strong></MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.SKU</MudText>
+                            </MudTd>
+                            <MudTd>@context.WarehouseName</MudTd>
+                            <MudTd Style="text-align:right">
+                                <MudText Color="@(context.CurrentStock == 0 ? Color.Error : Color.Warning)">
+                                    <strong>@context.CurrentStock</strong>
+                                </MudText>
+                            </MudTd>
+                            <MudTd Style="text-align:right">@context.ReorderLevel</MudTd>
+                            <MudTd>
+                                @if (context.CurrentStock == 0)
+                                {
+                                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Out of Stock</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Low</MudChip>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Success" Dense="true">All items are well-stocked!</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+
+        @* Recent Sales Orders *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="3">
+                <div class="d-flex justify-space-between align-center mb-3">
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Receipt" Class="mr-1" Size="Size.Small" Color="Color.Primary" />
+                        Recent Sales Orders
+                    </MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                               Href="/orders/sales">View All</MudButton>
+                </div>
+                @if (_recentSales.Any())
+                {
+                    <MudTable Items="@_recentSales" Dense="true" Hover="true" Elevation="0" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Order #</MudTh>
+                            <MudTh>Customer</MudTh>
+                            <MudTh>Date</MudTh>
+                            <MudTh Style="text-align:right">Amount</MudTh>
+                            <MudTh>Status</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <MudLink Href="@($"/orders/sales/{context.Id}")" Typo="Typo.body2">@context.OrderNumber</MudLink>
+                            </MudTd>
+                            <MudTd>@context.CustomerOrSupplier</MudTd>
+                            <MudTd>@context.Date.ToString("MMM dd")</MudTd>
+                            <MudTd Style="text-align:right"><strong>@context.TotalAmount.ToString("C")</strong></MudTd>
+                            <MudTd>
+                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">No sales orders yet.</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Recent Purchases ── *@
+    <MudGrid>
+        <MudItem xs="12">
+            <MudPaper Class="pa-4" Elevation="3">
+                <div class="d-flex justify-space-between align-center mb-3">
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="mr-1" Size="Size.Small" Color="Color.Warning" />
+                        Recent Purchase Orders
+                    </MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                               Href="/orders/purchase">View All</MudButton>
+                </div>
+                @if (_recentPurchases.Any())
+                {
+                    <MudTable Items="@_recentPurchases" Dense="true" Hover="true" Elevation="0" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Order #</MudTh>
+                            <MudTh>Supplier</MudTh>
+                            <MudTh>Date</MudTh>
+                            <MudTh Style="text-align:right">Amount</MudTh>
+                            <MudTh>Status</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd><strong>@context.OrderNumber</strong></MudTd>
+                            <MudTd>@context.CustomerOrSupplier</MudTd>
+                            <MudTd>@context.Date.ToString("MMM dd")</MudTd>
+                            <MudTd Style="text-align:right"><strong>@context.TotalAmount.ToString("C")</strong></MudTd>
+                            <MudTd>
+                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">No purchase orders yet.</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private DashboardKpiDto? _kpis;
+    private bool _loading = true;
+
+    // Chart data
+    private List<ChartSeries> _salesChartSeries = new();
+    private string[] _salesLabels = Array.Empty<string>();
+    private ChartOptions _lineChartOptions = new() { YAxisTicks = 1000, LineStrokeWidth = 3 };
+    private ChartOptions _barChartOptions = new() { YAxisTicks = 500 };
+
+    private double[] _soStatusData = Array.Empty<double>();
+    private string[] _soStatusLabels = Array.Empty<string>();
+    private double[] _poStatusData = Array.Empty<double>();
+    private string[] _poStatusLabels = Array.Empty<string>();
+
+    private List<ChartSeries> _topProductsSeries = new();
+    private string[] _topProductLabels = Array.Empty<string>();
+
+    // Table data
+    private List<LowStockAlertDto> _lowStockAlerts = new();
+    private List<RecentOrderDto> _recentSales = new();
+    private List<RecentOrderDto> _recentPurchases = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Load KPIs first
+            _kpis = await DashboardService.GetDashboardKPIs();
+            _loading = false;
+            StateHasChanged();
+
+            // Load charts and tables sequentially (single DbContext)
+            var salesData = await DashboardService.GetMonthlySalesData(12);
+            var purchaseData = await DashboardService.GetMonthlyPurchaseData(12);
+            var topProducts = await DashboardService.GetTopProducts(8);
+            _lowStockAlerts = await DashboardService.GetLowStockAlerts(10);
+            var soStatus = await DashboardService.GetSalesOrderStatusBreakdown();
+            var poStatus = await DashboardService.GetPurchaseOrderStatusBreakdown();
+            _recentSales = await DashboardService.GetRecentSalesOrders(8);
+            _recentPurchases = await DashboardService.GetRecentPurchaseOrders(8);
+
+            // Sales vs Purchases line chart
+            BuildTrendChart(salesData, purchaseData);
+
+            // Top products bar chart
+            if (topProducts.Any())
+            {
+                _topProductLabels = topProducts.Select(p => Truncate(p.ProductName, 12)).ToArray();
+                _topProductsSeries = new List<ChartSeries>
+                {
+                    new() { Name = "Revenue", Data = topProducts.Select(p => (double)p.Revenue).ToArray() }
+                };
+            }
+
+            // SO status donut
+            if (soStatus.Any())
+            {
+                _soStatusLabels = soStatus.Select(s => s.Status).ToArray();
+                _soStatusData = soStatus.Select(s => (double)s.Count).ToArray();
+            }
+
+            // PO status pie
+            if (poStatus.Any())
+            {
+                _poStatusLabels = poStatus.Select(s => s.Status).ToArray();
+                _poStatusData = poStatus.Select(s => (double)s.Count).ToArray();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Dashboard error: {ex.Message}");
+            _loading = false;
+        }
+    }
+
+    private void BuildTrendChart(List<MonthlySalesDto> sales, List<MonthlyPurchaseDto> purchases)
+    {
+        // Build a unified set of period labels
+        var allPeriods = sales.Select(s => s.Period)
+            .Union(purchases.Select(p => p.Period))
+            .OrderBy(p => p)
+            .ToList();
+
+        if (!allPeriods.Any()) return;
+
+        _salesLabels = allPeriods.Select(p =>
+        {
+            var parts = p.Split('-');
+            return parts.Length == 2 ? $"{System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(int.Parse(parts[1]))} {parts[0][2..]}" : p;
+        }).ToArray();
+
+        var salesDict = sales.ToDictionary(s => s.Period, s => (double)s.Amount);
+        var purchaseDict = purchases.ToDictionary(p => p.Period, p => (double)p.Amount);
+
+        _salesChartSeries = new List<ChartSeries>
+        {
+            new() { Name = "Sales", Data = allPeriods.Select(p => salesDict.GetValueOrDefault(p, 0)).ToArray() },
+            new() { Name = "Purchases", Data = allPeriods.Select(p => purchaseDict.GetValueOrDefault(p, 0)).ToArray() }
+        };
+    }
+
+    private static string Truncate(string value, int maxLength) =>
+        value.Length <= maxLength ? value : value[..(maxLength - 1)] + "…";
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Pending" or "Draft" => Color.Default,
+        "Confirmed" or "Submitted" or "Approved" => Color.Info,
+        "Processing" or "Shipped" or "Received" or "PartiallyReceived" => Color.Warning,
+        "Delivered" or "Completed" or "Invoiced" => Color.Success,
+        "Cancelled" or "Rejected" => Color.Error,
+        _ => Color.Default
+    };
+}

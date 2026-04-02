@@ -1,0 +1,75 @@
+@using IOMS.Application.DTOs
+@using IOMS.Application.Interfaces
+@using IOMS.Infrastructure.Data
+@inject IRfqService RfqService
+@inject AppDbContext DbContext
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>New RFQ</TitleContent>
+    <DialogContent>
+        <MudDatePicker Label="Required Date" @bind-Date="_requiredDate" />
+        <MudTextField T="string" Label="Notes" @bind-Value="_notes" Lines="2" Class="mt-2" />
+        <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Items</MudText>
+        @for (int i = 0; i < _items.Count; i++)
+        {
+            var idx = i;
+            <MudGrid>
+                <MudItem xs="5">
+                    <MudSelect T="Guid" Label="Product" Value="_items[idx].ProductId"
+                               ValueChanged="@(v => _items[idx] = _items[idx] with { ProductId = v })">
+                        @foreach (var p in _products)
+                        {
+                            <MudSelectItem Value="@p.Id">@p.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="3">
+                    <MudNumericField T="int" Label="Qty" Value="_items[idx].Quantity"
+                                     ValueChanged="@(v => _items[idx] = _items[idx] with { Quantity = v })" Min="1" />
+                </MudItem>
+                <MudItem xs="3">
+                    <MudNumericField T="decimal?" Label="Target Price" Value="_items[idx].TargetUnitPrice"
+                                     ValueChanged="@(v => _items[idx] = _items[idx] with { TargetUnitPrice = v })" />
+                </MudItem>
+                <MudItem xs="1" Class="d-flex align-center">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => _items.RemoveAt(idx)" />
+                </MudItem>
+            </MudGrid>
+        }
+        <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="() => _items.Add(new(Guid.Empty, 1, null))">Add Item</MudButton>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    private List<Product> _products = new();
+    private DateTime? _requiredDate;
+    private string? _notes;
+    private List<CreateRfqItemDto> _items = new() { new(Guid.Empty, 1, null) };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
+    }
+
+    private async Task Submit()
+    {
+        try
+        {
+            var validItems = _items.Where(i => i.ProductId != Guid.Empty).ToList();
+            await RfqService.CreateRfqRequest(new CreateRfqRequestDto(
+                _requiredDate.HasValue ? DateTime.SpecifyKind(_requiredDate.Value, DateTimeKind.Utc) : null,
+                _notes, validItems));
+            Snackbar.Add("RFQ created.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

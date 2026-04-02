@@ -1,0 +1,127 @@
+@page "/categories"
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+
+<PageTitle>Categories - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Categories</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="8">
+            <MudTextField @bind-Value="_searchString" Placeholder="Search categories..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" />
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog">New Category</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_categories" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4"
+              Elevation="0">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Parent</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd DataLabel="Parent">@context.ParentCategoryName</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="@(() => OpenEditDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => DeleteCategory(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<CategoryDto> _categories = new();
+    private string _searchString = "";
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadCategories();
+
+    private async Task LoadCategories()
+    {
+        _loading = true;
+        var cats = await DbContext.Categories.Include(c => c.ParentCategory).OrderBy(c => c.Name).ToListAsync();
+        _categories = cats.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId,
+            c.ParentCategory?.Name, 0)).ToList();
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<CategoryDialog>
+        {
+            { x => x.AllCategories, _categories }
+        };
+        var dialog = await DialogService.ShowAsync<CategoryDialog>("New Category", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is CreateCategoryDto dto)
+        {
+            DbContext.Categories.Add(new IOMS.Domain.Entities.Category
+            {
+                Name = dto.Name,
+                Description = dto.Description,
+                ParentCategoryId = dto.ParentCategoryId
+            });
+            await DbContext.SaveChangesAsync();
+            Snackbar.Add("Category created", Severity.Success);
+            await LoadCategories();
+        }
+    }
+
+    private async Task OpenEditDialog(CategoryDto category)
+    {
+        var parameters = new DialogParameters<CategoryDialog>
+        {
+            { x => x.Category, category },
+            { x => x.AllCategories, _categories }
+        };
+        var dialog = await DialogService.ShowAsync<CategoryDialog>("Edit Category", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is CreateCategoryDto dto)
+        {
+            var entity = await DbContext.Categories.FindAsync(category.Id);
+            if (entity != null)
+            {
+                entity.Name = dto.Name;
+                entity.Description = dto.Description;
+                entity.ParentCategoryId = dto.ParentCategoryId;
+                await DbContext.SaveChangesAsync();
+                Snackbar.Add("Category updated", Severity.Success);
+                await LoadCategories();
+            }
+        }
+    }
+
+    private async Task DeleteCategory(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBox("Confirm", "Delete this category?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            var entity = await DbContext.Categories.FindAsync(id);
+            if (entity != null)
+            {
+                entity.IsDeleted = true;
+                await DbContext.SaveChangesAsync();
+                Snackbar.Add("Category deleted", Severity.Success);
+                await LoadCategories();
+            }
+        }
+    }
+}

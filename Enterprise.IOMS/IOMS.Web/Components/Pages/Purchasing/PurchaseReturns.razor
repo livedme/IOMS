@@ -1,0 +1,108 @@
+@page "/orders/purchase-returns"
+@rendermode InteractiveServer
+@inject IPurchaseReturnService PurchaseReturnService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Purchase Returns - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Purchase Returns</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="OpenCreate" Class="mb-4">New Return</MudButton>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_search" Placeholder="Search..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="Load" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect Value="_statusFilter" Label="Status" Clearable="true"
+                       ValueChanged="@((PurchaseReturnStatus? v) => { _statusFilter = v; _ = Load(); })">
+                @foreach (PurchaseReturnStatus s in Enum.GetValues<PurchaseReturnStatus>())
+                {
+                    <MudSelectItem Value="@((PurchaseReturnStatus?)s)">@s</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_returns" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+        <HeaderContent>
+            <MudTh>Return #</MudTh>
+            <MudTh>PO #</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh Style="text-align:right">Total</MudTh>
+            <MudTh>Reason</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.ReturnNumber</strong></MudTd>
+            <MudTd>@context.PurchaseOrderNumber</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@GetColor(context.Status)">@context.Status</MudChip></MudTd>
+            <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
+            <MudTd>@context.Reason</MudTd>
+            <MudTd>
+                @if (context.Status == PurchaseReturnStatus.Draft)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small"
+                                   Title="Approve" OnClick="() => Approve(context.Id)" />
+                }
+                @if (context.Status == PurchaseReturnStatus.Approved)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Done" Color="Color.Primary" Size="Size.Small"
+                                   Title="Complete" OnClick="() => Complete(context.Id)" />
+                }
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<PurchaseReturnDto> _returns = new();
+    private string _search = "";
+    private PurchaseReturnStatus? _statusFilter;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        var result = await PurchaseReturnService.GetPurchaseReturns(_search, _statusFilter, 1, 100);
+        _returns = result.Items;
+        _loading = false;
+    }
+
+    private async Task OpenCreate()
+    {
+        var dialog = await DialogService.ShowAsync<PurchaseReturnDialog>("New Purchase Return");
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await Load();
+    }
+
+    private async Task Approve(Guid id)
+    {
+        try { await PurchaseReturnService.ApprovePurchaseReturn(id); Snackbar.Add("Approved.", Severity.Success); await Load(); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task Complete(Guid id)
+    {
+        try { await PurchaseReturnService.CompletePurchaseReturn(id); Snackbar.Add("Completed.", Severity.Success); await Load(); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private Color GetColor(PurchaseReturnStatus s) => s switch
+    {
+        PurchaseReturnStatus.Draft => Color.Default,
+        PurchaseReturnStatus.Approved => Color.Info,
+        PurchaseReturnStatus.Shipped => Color.Warning,
+        PurchaseReturnStatus.Completed => Color.Success,
+        PurchaseReturnStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+}

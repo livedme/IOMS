@@ -1,0 +1,116 @@
+@page "/inventory/transfers"
+@rendermode InteractiveServer
+@inject IInventoryService InventoryService
+@inject ISnackbar Snackbar
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+
+<PageTitle>Stock Transfers - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Stock Transfers</MudText>
+
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-3">New Transfer</MudText>
+    <MudGrid>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="Guid" Label="Product" @bind-Value="_transferProductId">
+                @foreach (var p in _products)
+                {
+                    <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudSelect T="Guid" Label="From Warehouse" @bind-Value="_sourceWarehouseId">
+                @foreach (var w in _warehouses)
+                {
+                    <MudSelectItem Value="@w.Id">@w.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudSelect T="Guid" Label="To Warehouse" @bind-Value="_targetWarehouseId">
+                @foreach (var w in _warehouses)
+                {
+                    <MudSelectItem Value="@w.Id">@w.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudNumericField T="int" Label="Quantity" @bind-Value="_transferQty" Min="1" />
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExecuteTransfer">Transfer</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Recent Transfers</MudText>
+    <MudTable Items="@_transfers" Dense="true" Hover="true" Striped="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Product</MudTh>
+            <MudTh>Warehouse</MudTh>
+            <MudTh Style="text-align:right">Quantity</MudTh>
+            <MudTh>Reference</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.MovementDate.ToString("yyyy-MM-dd HH:mm")</MudTd>
+            <MudTd>@context.ProductName</MudTd>
+            <MudTd>@context.WarehouseName</MudTd>
+            <MudTd Style="text-align:right">
+                <MudText Color="@(context.Quantity >= 0 ? Color.Success : Color.Error)">
+                    @(context.Quantity > 0 ? "+" : "")@context.Quantity
+                </MudText>
+            </MudTd>
+            <MudTd>@context.Reference</MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private record TransferDisplay(DateTime MovementDate, string ProductName, string WarehouseName, int Quantity, string? Reference);
+    private List<TransferDisplay> _transfers = new();
+    private List<Product> _products = new();
+    private List<Warehouse> _warehouses = new();
+    private Guid _transferProductId, _sourceWarehouseId, _targetWarehouseId;
+    private int _transferQty = 1;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
+        _warehouses = await DbContext.Warehouses.Where(w => w.IsActive).OrderBy(w => w.Name).ToListAsync();
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        _transfers = await DbContext.StockMovements
+            .Include(m => m.Product).Include(m => m.Warehouse)
+            .Where(m => m.Type == StockMovementType.Transfer)
+            .OrderByDescending(m => m.MovementDate).Take(100)
+            .Select(m => new TransferDisplay(m.MovementDate, m.Product.Name, m.Warehouse.Name, m.Quantity, m.Reference))
+            .ToListAsync();
+        _loading = false;
+    }
+
+    private async Task ExecuteTransfer()
+    {
+        try
+        {
+            if (_sourceWarehouseId == _targetWarehouseId)
+            {
+                Snackbar.Add("Source and target warehouses must be different.", Severity.Warning);
+                return;
+            }
+            await InventoryService.TransferStock(_transferProductId, _sourceWarehouseId, _targetWarehouseId, _transferQty);
+            Snackbar.Add("Stock transferred successfully.", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

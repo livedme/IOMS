@@ -1,0 +1,122 @@
+@page "/settings/price-lists"
+@rendermode InteractiveServer
+@inject IPricingService PricingService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+
+<PageTitle>Price Lists - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Price Lists & Discounts</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+    <MudTabPanel Text="Price Lists">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenPriceListDialog" Class="mb-3">Create Price List</MudButton>
+
+        <MudTable Items="@_priceLists" Dense="true" Hover="true" Striped="true" Loading="@_loadingLists" Elevation="0">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Effective From</MudTh>
+                <MudTh>Effective To</MudTh>
+                <MudTh>Active</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.Name</strong></MudTd>
+                <MudTd>@context.EffectiveFrom?.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd>@context.EffectiveTo?.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">@(context.IsActive ? "Active" : "Inactive")</MudChip></MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Discounts">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenDiscountDialog" Class="mb-3">Create Discount</MudButton>
+
+        <MudTable Items="@_discounts" Dense="true" Hover="true" Striped="true" Loading="@_loadingDiscounts" Elevation="0">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh>Value</MudTh>
+                <MudTh>Min Qty</MudTh>
+                <MudTh>Valid</MudTh>
+                <MudTh>Active</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.Name</strong></MudTd>
+                <MudTd>@context.DiscountType</MudTd>
+                <MudTd>@(context.DiscountType == DiscountType.Percentage ? $"{context.Value}%" : context.Value.ToString("C"))</MudTd>
+                <MudTd>@context.MinimumQuantity</MudTd>
+                <MudTd>@context.StartDate.ToString("MMM-dd") - @context.EndDate?.ToString("MMM-dd")</MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">@(context.IsActive ? "Active" : "Inactive")</MudChip></MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private List<PriceListDto> _priceLists = new();
+    private List<DiscountDisplayDto> _discounts = new();
+    private bool _loadingLists = true, _loadingDiscounts = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadPriceLists(), LoadDiscounts());
+    }
+
+    private async Task LoadPriceLists()
+    {
+        _loadingLists = true;
+        try { _priceLists = await PricingService.GetPriceLists(); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loadingLists = false;
+    }
+
+    private async Task LoadDiscounts()
+    {
+        _loadingDiscounts = true;
+        try
+        {
+            var data = await DbContext.Discounts.OrderBy(d => d.Name).ToListAsync();
+            _discounts = data.Select(d => new DiscountDisplayDto
+            {
+                Id = d.Id, Name = d.Name, DiscountType = d.Type, Value = d.Value,
+                MinimumQuantity = d.MinQuantity ?? 0, StartDate = d.StartDate ?? DateTime.MinValue, EndDate = d.EndDate, IsActive = d.IsActive
+            }).ToList();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loadingDiscounts = false;
+    }
+
+    private async Task OpenPriceListDialog()
+    {
+        var dialog = await DialogService.ShowAsync<PriceListDialog>("Create Price List", new DialogParameters(),
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+            await LoadPriceLists();
+    }
+
+    private async Task OpenDiscountDialog()
+    {
+        var dialog = await DialogService.ShowAsync<DiscountDialog>("Create Discount", new DialogParameters(),
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+            await LoadDiscounts();
+    }
+
+    private class DiscountDisplayDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public DiscountType DiscountType { get; set; }
+        public decimal Value { get; set; }
+        public int MinimumQuantity { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public bool IsActive { get; set; }
+    }
+}

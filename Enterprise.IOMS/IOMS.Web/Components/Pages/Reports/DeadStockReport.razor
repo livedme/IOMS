@@ -1,0 +1,102 @@
+@page "/reports/dead-stock"
+@rendermode InteractiveServer
+@inject IOMS.Infrastructure.Data.AppDbContext DbContext
+@inject ISnackbar Snackbar
+
+<PageTitle>Dead Stock Report</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">Dead Stock Report</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudNumericField @bind-Value="_daysThreshold" Label="Days Since Last Movement" Min="30" />
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"
+                       StartIcon="@Icons.Material.Filled.Refresh">Generate Report</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_items.Any())
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="4">
+                <MudText Typo="Typo.subtitle1">Total Dead Stock Items: @_items.Count</MudText>
+            </MudItem>
+            <MudItem xs="4">
+                <MudText Typo="Typo.subtitle1">Total Quantity: @_items.Sum(i => i.Quantity)</MudText>
+            </MudItem>
+            <MudItem xs="4">
+                <MudText Typo="Typo.subtitle1">Total Value: @_items.Sum(i => i.Value).ToString("C")</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+<MudTable Items="_items" Hover="true" Striped="true" Loading="_loading">
+    <HeaderContent>
+        <MudTh>Product</MudTh>
+        <MudTh>SKU</MudTh>
+        <MudTh>Warehouse</MudTh>
+        <MudTh>Quantity</MudTh>
+        <MudTh>Value</MudTh>
+        <MudTh>Last Movement</MudTh>
+        <MudTh>Days Idle</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Product">@context.ProductName</MudTd>
+        <MudTd DataLabel="SKU">@context.SKU</MudTd>
+        <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
+        <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+        <MudTd DataLabel="Value">@context.Value.ToString("C")</MudTd>
+        <MudTd DataLabel="Last Movement">@(context.LastMovementDate?.ToShortDateString() ?? "Never")</MudTd>
+        <MudTd DataLabel="Days Idle">@context.DaysSinceLastMovement</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<DeadStockItemDto> _items = new();
+    private int _daysThreshold = 90;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            var cutoffDate = DateTime.UtcNow.AddDays(-_daysThreshold);
+            var inventories = await DbContext.Inventories
+                .Include(i => i.Product)
+                .Include(i => i.Warehouse)
+                .Where(i => i.Quantity > 0)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var productIds = inventories.Select(i => i.ProductId).Distinct().ToList();
+            var lastMovements = await DbContext.StockMovements
+                .Where(m => productIds.Contains(m.ProductId))
+                .GroupBy(m => new { m.ProductId, m.WarehouseId })
+                .Select(g => new { g.Key.ProductId, g.Key.WarehouseId, LastDate = g.Max(m => m.MovementDate) })
+                .ToListAsync();
+
+            _items = inventories
+                .Select(inv =>
+                {
+                    var lm = lastMovements.FirstOrDefault(m => m.ProductId == inv.ProductId && m.WarehouseId == inv.WarehouseId);
+                    var lastDate = lm?.LastDate;
+                    var days = lastDate.HasValue ? (int)(DateTime.UtcNow - lastDate.Value).TotalDays : 999;
+                    return new DeadStockItemDto(inv.ProductId, inv.Product.Name, inv.Product.SKU,
+                        inv.Warehouse.Name, inv.Quantity, inv.Quantity * inv.Product.CostPrice, lastDate, days);
+                })
+                .Where(d => d.DaysSinceLastMovement >= _daysThreshold)
+                .OrderByDescending(d => d.DaysSinceLastMovement)
+                .ToList();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+}

@@ -1,0 +1,105 @@
+@page "/reports/tax"
+@rendermode InteractiveServer
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>Tax Reports - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Tax Reports</MudText>
+
+<MudGrid Class="mb-4">
+    <MudItem xs="12" md="3">
+        <MudDatePicker @bind-Date="_fromDate" Label="From Date" />
+    </MudItem>
+    <MudItem xs="12" md="3">
+        <MudDatePicker @bind-Date="_toDate" Label="To Date" />
+    </MudItem>
+    <MudItem xs="12" md="2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load" Class="mt-3">Generate</MudButton>
+    </MudItem>
+</MudGrid>
+
+<MudGrid Class="mb-4">
+    <MudItem xs="12" md="4">
+        <MudPaper Elevation="2" Class="pa-4 text-center">
+            <MudText Typo="Typo.subtitle1">Output Tax (Sales)</MudText>
+            <MudText Typo="Typo.h4" Color="Color.Error">@_outputTax.ToString("C")</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudPaper Elevation="2" Class="pa-4 text-center">
+            <MudText Typo="Typo.subtitle1">Input Tax (Purchases)</MudText>
+            <MudText Typo="Typo.h4" Color="Color.Success">@_inputTax.ToString("C")</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudPaper Elevation="2" Class="pa-4 text-center">
+            <MudText Typo="Typo.subtitle1">Net Tax Liability</MudText>
+            <MudText Typo="Typo.h4" Color="@(_netTax >= 0 ? Color.Error : Color.Success)">@_netTax.ToString("C")</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Tax by Rate</MudText>
+    <MudTable Items="@_taxByRate" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Tax Rate</MudTh>
+            <MudTh>Taxable Amount</MudTh>
+            <MudTh>Tax Amount</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.TaxName (@context.Rate%)</strong></MudTd>
+            <MudTd>@context.TaxableAmount.ToString("C")</MudTd>
+            <MudTd>@context.TaxAmount.ToString("C")</MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private DateTime? _fromDate = DateTime.Today.AddMonths(-3);
+    private DateTime? _toDate = DateTime.Today;
+    private decimal _outputTax, _inputTax, _netTax;
+    private List<TaxRateRow> _taxByRate = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        var from = _fromDate ?? DateTime.Today.AddMonths(-3);
+        var to = _toDate ?? DateTime.Today;
+
+        _outputTax = await DbContext.Set<IOMS.Domain.Entities.Invoice>()
+            .Where(i => !i.IsDeleted && i.InvoiceDate >= from && i.InvoiceDate <= to)
+            .SumAsync(i => i.TaxAmount);
+
+        _inputTax = await DbContext.Set<IOMS.Domain.Entities.PurchaseOrder>()
+            .Where(p => !p.IsDeleted && p.OrderDate >= from && p.OrderDate <= to)
+            .SumAsync(p => p.TaxAmount);
+
+        _netTax = _outputTax - _inputTax;
+
+        _taxByRate = await DbContext.Set<IOMS.Domain.Entities.TaxRate>()
+            .Where(t => !t.IsDeleted)
+            .Select(t => new TaxRateRow
+            {
+                TaxName = t.Name,
+                Rate = t.Rate,
+                TaxableAmount = 0,
+                TaxAmount = 0
+            }).ToListAsync();
+
+        _loading = false;
+    }
+
+    private class TaxRateRow
+    {
+        public string TaxName { get; set; } = "";
+        public decimal Rate { get; set; }
+        public decimal TaxableAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+    }
+}

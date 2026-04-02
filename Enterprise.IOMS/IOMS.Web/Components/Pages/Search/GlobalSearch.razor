@@ -1,0 +1,92 @@
+@page "/search"
+@rendermode InteractiveServer
+@inject ISearchService SearchService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Global Search - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Global Search</MudText>
+
+<MudGrid Class="mb-4">
+    <MudItem xs="12" md="8">
+        <MudTextField @bind-Value="_query" Label="Search..." Placeholder="Search products, orders, customers, invoices..."
+                      Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search"
+                      OnAdornmentClick="Search" OnKeyDown="OnKeyDown" Immediate="true" />
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudSelect @bind-Value="_entityFilter" Label="Filter by Entity" Variant="Variant.Outlined">
+            <MudSelectItem Value="@("")">All</MudSelectItem>
+            <MudSelectItem Value="@("Product")">Products</MudSelectItem>
+            <MudSelectItem Value="@("Customer")">Customers</MudSelectItem>
+            <MudSelectItem Value="@("Supplier")">Suppliers</MudSelectItem>
+            <MudSelectItem Value="@("SalesOrder")">Sales Orders</MudSelectItem>
+            <MudSelectItem Value="@("PurchaseOrder")">Purchase Orders</MudSelectItem>
+            <MudSelectItem Value="@("Invoice")">Invoices</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+</MudGrid>
+
+@if (_hasSearched)
+{
+    <MudText Typo="Typo.subtitle1" Class="mb-3">@_results.Count result(s) for "@_query"</MudText>
+
+    <MudPaper Elevation="2" Class="pa-4">
+        <MudTable Items="@_results" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+            <HeaderContent>
+                <MudTh>Type</MudTh>
+                <MudTh>Name/Number</MudTh>
+                <MudTh>Description</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.EntityType)">@context.EntityType</MudChip></MudTd>
+                <MudTd><strong>@context.Title</strong></MudTd>
+                <MudTd>@context.SubTitle</MudTd>
+                <MudTd>
+                    @if (!string.IsNullOrEmpty(context.Url))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => Navigation.NavigateTo(context.Url)">View</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private string _query = "";
+    private string _entityFilter = "";
+    private List<GlobalSearchResultDto> _results = new();
+    private bool _loading;
+    private bool _hasSearched;
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Search();
+    }
+
+    private async Task Search()
+    {
+        if (string.IsNullOrWhiteSpace(_query)) return;
+        _loading = true;
+        _hasSearched = true;
+        try
+        {
+            _results = await SearchService.Search(_query);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loading = false;
+    }
+
+    private Color GetTypeColor(string type) => type switch
+    {
+        "Product" => Color.Primary,
+        "Customer" => Color.Success,
+        "Supplier" => Color.Info,
+        "SalesOrder" => Color.Warning,
+        "PurchaseOrder" => Color.Secondary,
+        "Invoice" => Color.Error,
+        _ => Color.Default
+    };
+}

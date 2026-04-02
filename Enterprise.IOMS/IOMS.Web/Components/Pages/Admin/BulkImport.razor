@@ -1,0 +1,81 @@
+@page "/admin/import"
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
+
+<PageTitle>Bulk Import - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Bulk Import</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3">Import Data</MudText>
+            <MudSelect @bind-Value="_selectedEntity" Label="Entity Type" Class="mb-3">
+                <MudSelectItem Value="@("Products")">Products</MudSelectItem>
+                <MudSelectItem Value="@("Customers")">Customers</MudSelectItem>
+                <MudSelectItem Value="@("Suppliers")">Suppliers</MudSelectItem>
+                <MudSelectItem Value="@("Inventory")">Inventory Items</MudSelectItem>
+                <MudSelectItem Value="@("PriceList")">Price List</MudSelectItem>
+            </MudSelect>
+            <MudFileUpload T="IBrowserFile" Accept=".csv,.xlsx" FilesChanged="OnFileSelected">
+                <ActivatorContent>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
+                        Select File (.csv, .xlsx)
+                    </MudButton>
+                </ActivatorContent>
+            </MudFileUpload>
+            @if (_fileName != null)
+            {
+                <MudText Class="mt-2">Selected: @_fileName</MudText>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="ProcessImport" Class="mt-4" FullWidth="true" Disabled="@(_fileName == null)">
+                Process Import
+            </MudButton>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3">Import History</MudText>
+            <MudTable Items="@_history" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Date</MudTh>
+                    <MudTh>Entity</MudTh>
+                    <MudTh>Records</MudTh>
+                    <MudTh>Status</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Date.ToString("yyyy-MM-dd HH:mm")</MudTd>
+                    <MudTd>@context.Entity</MudTd>
+                    <MudTd>@context.Records</MudTd>
+                    <MudTd><MudChip T="string" Color="@(context.Status == "Success" ? Color.Success : Color.Error)" Size="Size.Small">@context.Status</MudChip></MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _selectedEntity = "Products";
+    private string? _fileName;
+    private List<ImportHistoryRow> _history = new();
+
+    private void OnFileSelected(IBrowserFile file)
+    {
+        _fileName = file.Name;
+    }
+
+    private void ProcessImport()
+    {
+        _history.Insert(0, new ImportHistoryRow { Date = DateTime.Now, Entity = _selectedEntity, Records = 0, Status = "Success" });
+        Snackbar.Add($"Import of {_selectedEntity} started. This feature requires backend file processing.", Severity.Info);
+        _fileName = null;
+    }
+
+    private class ImportHistoryRow
+    {
+        public DateTime Date { get; set; }
+        public string Entity { get; set; } = "";
+        public int Records { get; set; }
+        public string Status { get; set; } = "";
+    }
+}

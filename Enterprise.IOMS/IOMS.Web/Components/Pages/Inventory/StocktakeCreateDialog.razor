@@ -1,0 +1,42 @@
+@using IOMS.Application.DTOs
+@using IOMS.Application.Interfaces
+@inject IStocktakeService StocktakeService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>New Stocktake</TitleContent>
+    <DialogContent>
+        <MudSelect T="Guid" Label="Warehouse" @bind-Value="_warehouseId" Required="true">
+            @foreach (var w in Warehouses)
+            {
+                <MudSelectItem Value="@w.Id">@w.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" Label="Notes" @bind-Value="_notes" Lines="2" Class="mt-2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public List<Warehouse> Warehouses { get; set; } = new();
+
+    private Guid _warehouseId;
+    private string? _notes;
+
+    private async Task Submit()
+    {
+        try
+        {
+            await StocktakeService.CreateStocktake(new CreateStocktakeDto(_warehouseId, _notes));
+            Snackbar.Add("Stocktake created.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

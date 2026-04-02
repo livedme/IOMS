@@ -1,0 +1,111 @@
+@page "/reports/abc-analysis"
+@rendermode InteractiveServer
+@inject IOMS.Infrastructure.Data.AppDbContext DbContext
+@inject ISnackbar Snackbar
+
+<PageTitle>ABC Analysis</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">ABC Analysis</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="3">
+            <MudNumericField @bind-Value="_aPercent" Label="A Class %" Min="1" Max="100" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudNumericField @bind-Value="_bPercent" Label="B Class %" Min="1" Max="100" />
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"
+                       StartIcon="@Icons.Material.Filled.Analytics">Analyze</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_loaded)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="4">
+                <MudText Typo="Typo.subtitle2" Color="Color.Success">Class A: @_aItems.Count items (@_aItems.Sum(i => i.Revenue).ToString("C"))</MudText>
+            </MudItem>
+            <MudItem xs="4">
+                <MudText Typo="Typo.subtitle2" Color="Color.Warning">Class B: @_bItems.Count items (@_bItems.Sum(i => i.Revenue).ToString("C"))</MudText>
+            </MudItem>
+            <MudItem xs="4">
+                <MudText Typo="Typo.subtitle2" Color="Color.Error">Class C: @_cItems.Count items (@_cItems.Sum(i => i.Revenue).ToString("C"))</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+<MudTable Items="_allItems" Hover="true" Striped="true" Loading="_loading">
+    <HeaderContent>
+        <MudTh>Product</MudTh>
+        <MudTh>SKU</MudTh>
+        <MudTh>Revenue</MudTh>
+        <MudTh>% of Total</MudTh>
+        <MudTh>Cumulative %</MudTh>
+        <MudTh>Class</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Product">@context.ProductName</MudTd>
+        <MudTd DataLabel="SKU">@context.SKU</MudTd>
+        <MudTd DataLabel="Revenue">@context.Revenue.ToString("C")</MudTd>
+        <MudTd DataLabel="% of Total">@context.RevenuePercent.ToString("F1")%</MudTd>
+        <MudTd DataLabel="Cumulative %">@context.CumulativePercent.ToString("F1")%</MudTd>
+        <MudTd DataLabel="Class">
+            <MudChip T="string" Color="@(context.Class == "A" ? Color.Success : context.Class == "B" ? Color.Warning : Color.Error)" Size="Size.Small">
+                @context.Class
+            </MudChip>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private record AbcRow(string ProductName, string SKU, decimal Revenue, decimal RevenuePercent, decimal CumulativePercent, string Class);
+
+    private List<AbcRow> _allItems = new();
+    private List<AbcRow> _aItems = new();
+    private List<AbcRow> _bItems = new();
+    private List<AbcRow> _cItems = new();
+    private int _aPercent = 80;
+    private int _bPercent = 15;
+    private bool _loading;
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            var items = await DbContext.SalesOrderItems
+                .Include(i => i.Product)
+                .GroupBy(i => new { i.ProductId, i.Product.Name, i.Product.SKU })
+                .Select(g => new { g.Key.Name, g.Key.SKU, Revenue = g.Sum(i => i.LineTotal) })
+                .OrderByDescending(x => x.Revenue)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var totalRevenue = items.Sum(i => i.Revenue);
+            if (totalRevenue == 0) totalRevenue = 1;
+
+            decimal cumulative = 0;
+            _allItems = items.Select(i =>
+            {
+                var pct = i.Revenue / totalRevenue * 100;
+                cumulative += pct;
+                var cls = cumulative <= _aPercent ? "A" : cumulative <= _aPercent + _bPercent ? "B" : "C";
+                return new AbcRow(i.Name, i.SKU, i.Revenue, pct, cumulative, cls);
+            }).ToList();
+
+            _aItems = _allItems.Where(i => i.Class == "A").ToList();
+            _bItems = _allItems.Where(i => i.Class == "B").ToList();
+            _cItems = _allItems.Where(i => i.Class == "C").ToList();
+            _loaded = true;
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+}

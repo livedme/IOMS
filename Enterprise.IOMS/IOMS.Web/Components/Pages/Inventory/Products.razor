@@ -1,0 +1,174 @@
+@page "/products"
+@rendermode InteractiveServer
+@inject IInventoryService InventoryService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+
+<PageTitle>Products - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Products</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="8">
+            <MudTextField @bind-Value="_searchString" Placeholder="Search products..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadProducts" />
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog">New Product</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_products" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4"
+              Elevation="0">
+        <HeaderContent>
+            <MudTh>SKU</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Category</MudTh>
+            <MudTh Style="text-align:right">Cost Price</MudTh>
+            <MudTh Style="text-align:right">Selling Price</MudTh>
+            <MudTh Style="text-align:right">Reorder Level</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="SKU">@context.SKU</MudTd>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Category">@context.CategoryName</MudTd>
+            <MudTd DataLabel="Cost" Style="text-align:right">@context.CostPrice.ToString("C")</MudTd>
+            <MudTd DataLabel="Price" Style="text-align:right">@context.SellingPrice.ToString("C")</MudTd>
+            <MudTd DataLabel="Reorder" Style="text-align:right">@context.ReorderLevel</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="@(() => OpenEditDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => DeleteProduct(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>No products found</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<ProductDto> _products = new();
+    private string _searchString = "";
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadProducts();
+
+    private async Task LoadProducts()
+    {
+        _loading = true;
+        try
+        {
+            var query = DbContext.Products
+                .Include(p => p.Category)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(_searchString))
+                query = query.Where(p => p.Name.Contains(_searchString) || p.SKU.Contains(_searchString));
+
+            var products = await query.OrderBy(p => p.Name).Take(100).ToListAsync();
+            _products = products.Select(p => new ProductDto(
+                p.Id, p.Name, p.SKU, p.Barcode, p.Description,
+                p.CostPrice, p.SellingPrice, p.ReorderLevel, p.MinimumOrderQuantity,
+                p.CategoryId, p.Category?.Name, p.ImageUrl, 0, p.IsKit
+            )).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading products: {ex.Message}", Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var categories = await DbContext.Categories.ToListAsync();
+        var parameters = new DialogParameters<ProductDialog>
+        {
+            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0)).ToList() }
+        };
+
+        var dialog = await DialogService.ShowAsync<ProductDialog>("New Product", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is CreateProductDto dto)
+        {
+            var product = new IOMS.Domain.Entities.Product
+            {
+                Name = dto.Name,
+                SKU = dto.SKU,
+                Barcode = dto.Barcode,
+                Description = dto.Description,
+                CostPrice = dto.CostPrice,
+                SellingPrice = dto.SellingPrice,
+                ReorderLevel = dto.ReorderLevel,
+                MinimumOrderQuantity = dto.MinimumOrderQuantity,
+                CategoryId = dto.CategoryId,
+                ImageUrl = dto.ImageUrl
+            };
+            DbContext.Products.Add(product);
+            await DbContext.SaveChangesAsync();
+            Snackbar.Add("Product created successfully", Severity.Success);
+            await LoadProducts();
+        }
+    }
+
+    private async Task OpenEditDialog(ProductDto product)
+    {
+        var categories = await DbContext.Categories.ToListAsync();
+        var parameters = new DialogParameters<ProductDialog>
+        {
+            { x => x.Product, product },
+            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0)).ToList() }
+        };
+
+        var dialog = await DialogService.ShowAsync<ProductDialog>("Edit Product", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is CreateProductDto dto)
+        {
+            var entity = await DbContext.Products.FindAsync(product.Id);
+            if (entity != null)
+            {
+                entity.Name = dto.Name;
+                entity.SKU = dto.SKU;
+                entity.Barcode = dto.Barcode;
+                entity.Description = dto.Description;
+                entity.CostPrice = dto.CostPrice;
+                entity.SellingPrice = dto.SellingPrice;
+                entity.ReorderLevel = dto.ReorderLevel;
+                entity.MinimumOrderQuantity = dto.MinimumOrderQuantity;
+                entity.CategoryId = dto.CategoryId;
+                await DbContext.SaveChangesAsync();
+                Snackbar.Add("Product updated successfully", Severity.Success);
+                await LoadProducts();
+            }
+        }
+    }
+
+    private async Task DeleteProduct(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBox("Confirm Delete",
+            "Are you sure you want to delete this product?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            var entity = await DbContext.Products.FindAsync(id);
+            if (entity != null)
+            {
+                entity.IsDeleted = true;
+                await DbContext.SaveChangesAsync();
+                Snackbar.Add("Product deleted", Severity.Success);
+                await LoadProducts();
+            }
+        }
+    }
+}

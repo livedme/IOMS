@@ -1,0 +1,125 @@
+@inject IQuotationService QuotationService
+@inject ISnackbar Snackbar
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">New Sales Quotation</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="_customerId" Label="Customer" Required="true">
+                        @foreach (var c in _customers)
+                        {
+                            <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker @bind-Date="_quoteDate" Label="Quote Date" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker @bind-Date="_validUntil" Label="Valid Until" Required="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_notes" Label="Notes" Lines="2" />
+                </MudItem>
+            </MudGrid>
+
+            <MudText Typo="Typo.h6" Class="mt-4 mb-2">Line Items</MudText>
+            <MudTable Items="@_items" Dense="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Product</MudTh>
+                    <MudTh>Qty</MudTh>
+                    <MudTh>Unit Price</MudTh>
+                    <MudTh>Discount %</MudTh>
+                    <MudTh>Total</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudSelect @bind-Value="context.ProductId" Dense="true" Margin="Margin.Dense">
+                            @foreach (var p in _products)
+                            {
+                                <MudSelectItem Value="@p.Id">@p.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd><MudNumericField @bind-Value="context.Quantity" Min="1" Dense="true" Margin="Margin.Dense" /></MudTd>
+                    <MudTd><MudNumericField @bind-Value="context.UnitPrice" Min="0" Format="N2" Dense="true" Margin="Margin.Dense" /></MudTd>
+                    <MudTd><MudNumericField @bind-Value="context.DiscountPercent" Min="0" Max="100" Dense="true" Margin="Margin.Dense" /></MudTd>
+                    <MudTd>@((context.Quantity * context.UnitPrice * (1 - context.DiscountPercent / 100m)).ToString("C"))</MudTd>
+                    <MudTd><MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => _items.Remove(context)" /></MudTd>
+                </RowTemplate>
+            </MudTable>
+            <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Text" Color="Color.Primary" Class="mt-2"
+                       OnClick="() => _items.Add(new QuoteLineItem())">Add Item</MudButton>
+
+            <MudText Typo="Typo.h6" Class="mt-4 text-right">
+                Total: @_items.Sum(i => i.Quantity * i.UnitPrice * (1 - i.DiscountPercent / 100m)).ToString("C")
+            </MudText>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    private MudForm _form = null!;
+
+    private Guid _customerId;
+    private DateTime? _quoteDate = DateTime.Today;
+    private DateTime? _validUntil = DateTime.Today.AddDays(30);
+    private string _notes = "";
+    private List<QuoteLineItem> _items = new() { new() };
+
+    private List<Customer> _customers = new();
+    private List<Product> _products = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+        _products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
+    }
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || !_items.Any(i => i.ProductId != Guid.Empty))
+        {
+            Snackbar.Add("Please fill all fields and add at least one item", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var dto = new CreateSalesQuoteDto(
+                _customerId,
+                _quoteDate ?? DateTime.Today,
+                _validUntil ?? DateTime.Today.AddDays(30),
+                _notes,
+                _items.Where(i => i.ProductId != Guid.Empty).Select(i => new CreateSalesQuoteItemDto(
+                    i.ProductId, i.Quantity, i.UnitPrice, i.DiscountPercent)).ToList()
+            );
+
+            await QuotationService.CreateSalesQuote(dto);
+            Snackbar.Add("Quotation created", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private class QuoteLineItem
+    {
+        public Guid ProductId { get; set; }
+        public int Quantity { get; set; } = 1;
+        public decimal UnitPrice { get; set; }
+        public decimal DiscountPercent { get; set; }
+    }
+}

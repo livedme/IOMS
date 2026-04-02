@@ -1,0 +1,78 @@
+@page "/reports/balance-sheet"
+@rendermode InteractiveServer
+@inject IAccountingService AccountingService
+@inject ISnackbar Snackbar
+
+<PageTitle>Balance Sheet - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Balance Sheet</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudDatePicker @bind-Date="_asOfDate" Label="As Of Date" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Generate" Class="mt-2">Generate</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    @if (_report != null)
+    {
+        <MudGrid Class="mt-4">
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.h5" Color="Color.Primary">Assets</MudText>
+                <MudTable Items="@_report.Assets" Dense="true" Elevation="0">
+                    <RowTemplate>
+                        <MudTd>@context.AccountCode</MudTd>
+                        <MudTd>@context.AccountName</MudTd>
+                        <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+                    </RowTemplate>
+                    <FooterContent>
+                        <MudTd ColSpan="2"><strong>Total Assets</strong></MudTd>
+                        <MudTd Style="text-align:right"><strong>@_report.TotalAssets.ToString("C")</strong></MudTd>
+                    </FooterContent>
+                </MudTable>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.h5" Color="Color.Warning">Liabilities</MudText>
+                <MudTable Items="@_report.Liabilities" Dense="true" Elevation="0">
+                    <RowTemplate>
+                        <MudTd>@context.AccountCode</MudTd>
+                        <MudTd>@context.AccountName</MudTd>
+                        <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+                    </RowTemplate>
+                    <FooterContent>
+                        <MudTd ColSpan="2"><strong>Total Liabilities</strong></MudTd>
+                        <MudTd Style="text-align:right"><strong>@_report.TotalLiabilities.ToString("C")</strong></MudTd>
+                    </FooterContent>
+                </MudTable>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.h5" Color="Color.Info">Equity</MudText>
+                <MudTable Items="@_report.Equity" Dense="true" Elevation="0">
+                    <RowTemplate>
+                        <MudTd>@context.AccountCode</MudTd>
+                        <MudTd>@context.AccountName</MudTd>
+                        <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+                    </RowTemplate>
+                    <FooterContent>
+                        <MudTd ColSpan="2"><strong>Total Equity</strong></MudTd>
+                        <MudTd Style="text-align:right"><strong>@_report.TotalEquity.ToString("C")</strong></MudTd>
+                    </FooterContent>
+                </MudTable>
+            </MudItem>
+        </MudGrid>
+    }
+</MudPaper>
+
+@code {
+    private DateTime? _asOfDate = DateTime.Today;
+    private BalanceSheetDto? _report;
+
+    private async Task Generate()
+    {
+        try { _report = await AccountingService.GetBalanceSheet(_asOfDate ?? DateTime.Today); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

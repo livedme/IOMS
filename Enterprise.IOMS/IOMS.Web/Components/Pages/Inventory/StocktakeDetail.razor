@@ -1,0 +1,126 @@
+@page "/inventory/stocktakes/{Id:guid}"
+@rendermode InteractiveServer
+@inject IStocktakeService StocktakeService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Stocktake Detail - IOMS</PageTitle>
+
+@if (_stocktake == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-2">Stocktake - @_stocktake.WarehouseName</MudText>
+    <MudText Typo="Typo.subtitle1" Class="mb-4">Status: <MudChip T="string" Size="Size.Small">@_stocktake.Status</MudChip></MudText>
+
+    @if (_variance != null)
+    {
+        <MudGrid Class="mb-4">
+            <MudItem xs="12" sm="4">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.subtitle2">Total Items</MudText>
+                    <MudText Typo="Typo.h5">@_stocktake.TotalItems</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.subtitle2">Total Variance</MudText>
+                    <MudText Typo="Typo.h5" Color="@(_variance.TotalVariance == 0 ? Color.Success : Color.Warning)">@_variance.TotalVariance</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.subtitle2">Value Variance</MudText>
+                    <MudText Typo="Typo.h5">@_variance.ValueVariance.ToString("C")</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+
+    <MudPaper Elevation="2" Class="pa-4">
+        <MudTable Items="@_items" Dense="true" Hover="true" Striped="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Product</MudTh>
+                <MudTh>SKU</MudTh>
+                <MudTh Style="text-align:right">System Qty</MudTh>
+                <MudTh Style="text-align:right">Counted Qty</MudTh>
+                <MudTh Style="text-align:right">Variance</MudTh>
+                @if (_stocktake.Status != StocktakeStatus.Approved)
+                {
+                    <MudTh>Count</MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.ProductName</MudTd>
+                <MudTd>@context.ProductSKU</MudTd>
+                <MudTd Style="text-align:right">@context.SystemQuantity</MudTd>
+                <MudTd Style="text-align:right">@(context.CountedQuantity?.ToString() ?? "-")</MudTd>
+                <MudTd Style="text-align:right">
+                    @if (context.CountedQuantity.HasValue)
+                    {
+                        <MudText Color="@(context.Variance == 0 ? Color.Success : Color.Error)">@context.Variance</MudText>
+                    }
+                </MudTd>
+                @if (_stocktake.Status != StocktakeStatus.Approved)
+                {
+                    <MudTd>
+                        <MudNumericField T="int" Value="@(_countValues.GetValueOrDefault(context.Id, 0))"
+                                         ValueChanged="@(v => _countValues[context.Id] = v)"
+                                         Style="max-width:100px" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Save" Color="Color.Primary" Size="Size.Small"
+                                       OnClick="() => SaveCount(context.Id)" />
+                    </MudTd>
+                }
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+    @if (_stocktake.Status == StocktakeStatus.InProgress || _stocktake.Status == StocktakeStatus.PendingApproval)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Success" Class="mt-4"
+                   OnClick="Approve" StartIcon="@Icons.Material.Filled.CheckCircle">Approve & Adjust Stock</MudButton>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private StocktakeDto? _stocktake;
+    private StocktakeVarianceDto? _variance;
+    private List<StocktakeItemDto> _items = new();
+    private Dictionary<Guid, int> _countValues = new();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _stocktake = await StocktakeService.GetStocktakeById(Id);
+        _variance = await StocktakeService.GetVarianceReport(Id);
+        _items = _variance.Items;
+        foreach (var item in _items.Where(i => i.CountedQuantity.HasValue))
+            _countValues[item.Id] = item.CountedQuantity!.Value;
+    }
+
+    private async Task SaveCount(Guid itemId)
+    {
+        try
+        {
+            await StocktakeService.RecordCount(new RecordStocktakeCountDto(itemId, _countValues.GetValueOrDefault(itemId), null));
+            Snackbar.Add("Count recorded.", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task Approve()
+    {
+        try
+        {
+            await StocktakeService.ApproveStocktake(Id);
+            Snackbar.Add("Stocktake approved. Stock adjusted.", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

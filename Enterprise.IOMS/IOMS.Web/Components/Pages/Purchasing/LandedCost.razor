@@ -1,0 +1,113 @@
+@page "/purchasing/landed-cost"
+@rendermode InteractiveServer
+@inject ILandedCostService LandedCostService
+@inject ISnackbar Snackbar
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+
+<PageTitle>Landed Costs - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Landed Cost Management</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="5">
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3">Cost Components</MudText>
+            <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="() => _showAdd = true" Class="mb-2">Add Component</MudButton>
+            @if (_showAdd)
+            {
+                <MudGrid Class="mb-3">
+                    <MudItem xs="4"><MudTextField T="string" Label="Name" @bind-Value="_newName" /></MudItem>
+                    <MudItem xs="3"><MudTextField T="string" Label="Type" @bind-Value="_newType" /></MudItem>
+                    <MudItem xs="3"><MudNumericField T="decimal" Label="Rate" @bind-Value="_newRate" /></MudItem>
+                    <MudItem xs="2" Class="d-flex align-end">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="AddComponent">Save</MudButton>
+                    </MudItem>
+                </MudGrid>
+            }
+            <MudTable Items="@_components" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Type</MudTh>
+                    <MudTh Style="text-align:right">Default Rate</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Name</MudTd>
+                    <MudTd>@context.Type</MudTd>
+                    <MudTd Style="text-align:right">@context.DefaultRate.ToString("P2")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="7">
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3">Cost Allocations</MudText>
+            <MudGrid Class="mb-3">
+                <MudItem xs="4">
+                    <MudSelect T="Guid?" Label="Filter by PO" Clearable="true" Value="_filterPoId"
+                               ValueChanged="@(v => { _filterPoId = v; _ = LoadAllocations(); })">
+                        @foreach (var po in _purchaseOrders)
+                        {
+                            <MudSelectItem Value="@((Guid?)po.Id)">@po.OrderNumber</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+            <MudTable Items="@_allocations" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>PO #</MudTh>
+                    <MudTh>Component</MudTh>
+                    <MudTh Style="text-align:right">Amount</MudTh>
+                    <MudTh>Method</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@(context.PurchaseOrderNumber ?? "-")</MudTd>
+                    <MudTd>@context.ComponentName</MudTd>
+                    <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+                    <MudTd>@context.AllocationMethod</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<LandedCostComponentDto> _components = new();
+    private List<LandedCostAllocationDto> _allocations = new();
+    private List<PurchaseOrder> _purchaseOrders = new();
+    private Guid? _filterPoId;
+    private bool _showAdd;
+    private string _newName = "", _newType = "";
+    private decimal _newRate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _purchaseOrders = await DbContext.PurchaseOrders.OrderByDescending(p => p.OrderDate).Take(50).ToListAsync();
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _components = await LandedCostService.GetComponents();
+        await LoadAllocations();
+    }
+
+    private async Task LoadAllocations()
+    {
+        _allocations = await LandedCostService.GetAllocations(_filterPoId);
+    }
+
+    private async Task AddComponent()
+    {
+        try
+        {
+            await LandedCostService.CreateComponent(new CreateLandedCostComponentDto(_newName, _newType, _newRate));
+            Snackbar.Add("Component added.", Severity.Success);
+            _showAdd = false;
+            _newName = ""; _newType = ""; _newRate = 0;
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

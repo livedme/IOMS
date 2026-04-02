@@ -1,0 +1,30 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_code" Label="Account Code" Required="true" />
+        <MudTextField @bind-Value="_name" Label="Account Name" Required="true" Class="mt-3" />
+        <MudSelect @bind-Value="_type" Label="Account Type" Required="true" Class="mt-3">
+            @foreach (var type in Enum.GetValues<AccountType>())
+            {
+                <MudSelectItem Value="@type">@type</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+
+    private string _code = "", _name = "";
+    private string? _description;
+    private AccountType _type = AccountType.Asset;
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new CreateAccountDto(_code, _name, _type, null, _description)));
+}

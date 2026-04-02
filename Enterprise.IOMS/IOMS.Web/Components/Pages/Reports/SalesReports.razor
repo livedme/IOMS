@@ -1,0 +1,130 @@
+@page "/reports/sales"
+@rendermode InteractiveServer
+@inject IOMS.Infrastructure.Data.AppDbContext DbContext
+@inject ISnackbar Snackbar
+
+<PageTitle>Sales Reports</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">Sales Reports</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_from" Label="From Date" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_to" Label="To Date" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect @bind-Value="_reportType" Label="Report Type">
+                <MudSelectItem Value="@("Summary")">Summary</MudSelectItem>
+                <MudSelectItem Value="@("ByCustomer")">By Customer</MudSelectItem>
+                <MudSelectItem Value="@("ByProduct")">By Product</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"
+                       StartIcon="@Icons.Material.Filled.Assessment">Generate</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_summaryLoaded)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="3">
+                <MudText Typo="Typo.subtitle2">Total Orders</MudText>
+                <MudText Typo="Typo.h5">@_totalOrders</MudText>
+            </MudItem>
+            <MudItem xs="3">
+                <MudText Typo="Typo.subtitle2">Total Revenue</MudText>
+                <MudText Typo="Typo.h5">@_totalRevenue.ToString("C")</MudText>
+            </MudItem>
+            <MudItem xs="3">
+                <MudText Typo="Typo.subtitle2">Average Order Value</MudText>
+                <MudText Typo="Typo.h5">@(_totalOrders > 0 ? (_totalRevenue / _totalOrders).ToString("C") : "$0.00")</MudText>
+            </MudItem>
+            <MudItem xs="3">
+                <MudText Typo="Typo.subtitle2">Items Sold</MudText>
+                <MudText Typo="Typo.h5">@_totalItemsSold</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@if (_reportType == "ByCustomer")
+{
+    <MudTable Items="_customerData" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Customer</MudTh>
+            <MudTh>Orders</MudTh>
+            <MudTh>Revenue</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>@context.OrderCount</MudTd>
+            <MudTd>@context.Revenue.ToString("C")</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+else if (_reportType == "ByProduct")
+{
+    <MudTable Items="_productData" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Product</MudTh>
+            <MudTh>Units Sold</MudTh>
+            <MudTh>Revenue</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.ProductName</MudTd>
+            <MudTd>@context.UnitsSold</MudTd>
+            <MudTd>@context.Revenue.ToString("C")</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private DateTime? _from = DateTime.Today.AddMonths(-1);
+    private DateTime? _to = DateTime.Today;
+    private string _reportType = "Summary";
+    private bool _summaryLoaded;
+
+    private int _totalOrders;
+    private decimal _totalRevenue;
+    private int _totalItemsSold;
+    private List<CustomerSalesRow> _customerData = new();
+    private List<TopProductDto> _productData = new();
+
+    private record CustomerSalesRow(string Name, int OrderCount, decimal Revenue);
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        var fromDate = _from ?? DateTime.Today.AddMonths(-1);
+        var toDate = (_to ?? DateTime.Today).AddDays(1);
+
+        var orders = await DbContext.SalesOrders
+            .Include(o => o.Customer)
+            .Include(o => o.Items).ThenInclude(i => i.Product)
+            .Where(o => o.OrderDate >= fromDate && o.OrderDate < toDate)
+            .AsNoTracking()
+            .ToListAsync();
+
+        _totalOrders = orders.Count;
+        _totalRevenue = orders.Sum(o => o.TotalAmount);
+        _totalItemsSold = orders.SelectMany(o => o.Items).Sum(i => i.Quantity);
+        _summaryLoaded = true;
+
+        _customerData = orders.GroupBy(o => o.Customer.Name)
+            .Select(g => new CustomerSalesRow(g.Key, g.Count(), g.Sum(o => o.TotalAmount)))
+            .OrderByDescending(c => c.Revenue)
+            .ToList();
+
+        _productData = orders.SelectMany(o => o.Items)
+            .GroupBy(i => i.Product.Name)
+            .Select(g => new TopProductDto(g.Key, g.Sum(i => i.LineTotal), g.Sum(i => i.Quantity)))
+            .OrderByDescending(p => p.Revenue)
+            .ToList();
+    }
+}

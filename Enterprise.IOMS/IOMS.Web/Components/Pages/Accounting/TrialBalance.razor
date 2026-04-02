@@ -1,0 +1,57 @@
+@page "/reports/trial-balance"
+@rendermode InteractiveServer
+@inject IAccountingService AccountingService
+@inject ISnackbar Snackbar
+
+<PageTitle>Trial Balance - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Trial Balance</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudDatePicker @bind-Date="_asOfDate" Label="As Of Date" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Generate" Class="mt-2">
+                Generate
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    @if (_report != null)
+    {
+        <MudTable Items="@_report.Lines" Dense="true" Hover="true" Striped="true" Class="mt-4" Elevation="0">
+            <HeaderContent>
+                <MudTh>Code</MudTh>
+                <MudTh>Account</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh Style="text-align:right">Debit</MudTh>
+                <MudTh Style="text-align:right">Credit</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.AccountCode</strong></MudTd>
+                <MudTd>@context.AccountName</MudTd>
+                <MudTd>@context.AccountType</MudTd>
+                <MudTd Style="text-align:right">@(context.Debit > 0 ? context.Debit.ToString("C") : "")</MudTd>
+                <MudTd Style="text-align:right">@(context.Credit > 0 ? context.Credit.ToString("C") : "")</MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd ColSpan="3"><strong>Totals</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_report.TotalDebits.ToString("C")</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_report.TotalCredits.ToString("C")</strong></MudTd>
+            </FooterContent>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    private DateTime? _asOfDate = DateTime.Today;
+    private TrialBalanceDto? _report;
+
+    private async Task Generate()
+    {
+        try { _report = await AccountingService.GetTrialBalance(_asOfDate ?? DateTime.Today); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

@@ -1,0 +1,79 @@
+@page "/reports/profit-loss"
+@rendermode InteractiveServer
+@inject IAccountingService AccountingService
+@inject ISnackbar Snackbar
+
+<PageTitle>Profit & Loss - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Profit & Loss Statement</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudDatePicker @bind-Date="_fromDate" Label="From" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudDatePicker @bind-Date="_toDate" Label="To" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Generate" Class="mt-2">Generate</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    @if (_report != null)
+    {
+        <MudText Typo="Typo.h5" Class="mt-4" Color="Color.Success">Revenue</MudText>
+        <MudTable Items="@_report.RevenueLines" Dense="true" Elevation="0" Class="mb-4">
+            <HeaderContent>
+                <MudTh>Code</MudTh>
+                <MudTh>Account</MudTh>
+                <MudTh Style="text-align:right">Amount</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.AccountCode</MudTd>
+                <MudTd>@context.AccountName</MudTd>
+                <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd ColSpan="2"><strong>Total Revenue</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_report.TotalRevenue.ToString("C")</strong></MudTd>
+            </FooterContent>
+        </MudTable>
+
+        <MudText Typo="Typo.h5" Color="Color.Error">Expenses</MudText>
+        <MudTable Items="@_report.ExpenseLines" Dense="true" Elevation="0" Class="mb-4">
+            <HeaderContent>
+                <MudTh>Code</MudTh>
+                <MudTh>Account</MudTh>
+                <MudTh Style="text-align:right">Amount</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.AccountCode</MudTd>
+                <MudTd>@context.AccountName</MudTd>
+                <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd ColSpan="2"><strong>Total Expenses</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@_report.TotalExpenses.ToString("C")</strong></MudTd>
+            </FooterContent>
+        </MudTable>
+
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h5" Color="@(_report.NetProfit >= 0 ? Color.Success : Color.Error)">
+                Net Profit: @_report.NetProfit.ToString("C")
+            </MudText>
+        </MudPaper>
+    }
+</MudPaper>
+
+@code {
+    private DateTime? _fromDate = new DateTime(DateTime.Today.Year, 1, 1);
+    private DateTime? _toDate = DateTime.Today;
+    private ProfitAndLossDto? _report;
+
+    private async Task Generate()
+    {
+        try { _report = await AccountingService.GetProfitAndLoss(_fromDate ?? DateTime.Today.AddYears(-1), _toDate ?? DateTime.Today); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

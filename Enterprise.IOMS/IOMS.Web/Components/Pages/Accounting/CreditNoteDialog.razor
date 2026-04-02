@@ -1,0 +1,47 @@
+@inject ICreditDebitNoteService NoteService
+@inject ISnackbar Snackbar
+@inject IOMS.Infrastructure.Data.AppDbContext DbContext
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect @bind-Value="_invoiceId" Label="Invoice" Required="true">
+            @foreach (var inv in _invoices)
+            {
+                <MudSelectItem Value="@inv.Id">@inv.InvoiceNumber - @inv.TotalAmount.ToString("C")</MudSelectItem>
+            }
+        </MudSelect>
+        <MudNumericField @bind-Value="_amount" Label="Amount" Min="0.01m" Format="N2" Required="true" />
+        <MudTextField @bind-Value="_reason" Label="Reason" Lines="3" Required="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+
+    private Guid _invoiceId;
+    private decimal _amount;
+    private string? _reason;
+    private List<Invoice> _invoices = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _invoices = await DbContext.Set<Invoice>().OrderByDescending(i => i.InvoiceDate).Take(100).AsNoTracking().ToListAsync();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        try
+        {
+            var dto = new CreateCreditNoteDto(_invoiceId, _amount, _reason);
+            await NoteService.CreateCreditNote(dto);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

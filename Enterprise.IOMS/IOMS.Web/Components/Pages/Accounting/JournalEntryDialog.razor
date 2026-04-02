@@ -1,0 +1,104 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudDatePicker @bind-Date="_entryDate" Label="Entry Date" Required="true" />
+        <MudTextField @bind-Value="_description" Label="Description" Class="mt-3" />
+
+        <MudText Typo="Typo.h6" Class="mt-4 mb-2">Lines</MudText>
+
+        <MudTable Items="@_lines" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Account</MudTh>
+                <MudTh>Description</MudTh>
+                <MudTh Style="text-align:right">Debit</MudTh>
+                <MudTh Style="text-align:right">Credit</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@Accounts.FirstOrDefault(a => a.Id == context.AccountId)?.Name</MudTd>
+                <MudTd>@context.Description</MudTd>
+                <MudTd Style="text-align:right">@context.Debit.ToString("N2")</MudTd>
+                <MudTd Style="text-align:right">@context.Credit.ToString("N2")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => _lines.Remove(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <MudGrid Class="mt-3">
+            <MudItem xs="12" sm="3">
+                <MudSelect @bind-Value="_newAccountId" Label="Account" Dense="true">
+                    @foreach (var account in Accounts)
+                    {
+                        <MudSelectItem Value="@account.Id">@account.Code - @account.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_newLineDesc" Label="Desc" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudNumericField @bind-Value="_newDebit" Label="Debit" Format="N2" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudNumericField @bind-Value="_newCredit" Label="Credit" Format="N2" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddLine" Class="mt-2">Add</MudButton>
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid Class="mt-3">
+            <MudItem xs="6">
+                <MudText Color="@(_isBalanced ? Color.Success : Color.Error)">
+                    Debits: @_lines.Sum(l => l.Debit).ToString("N2") |
+                    Credits: @_lines.Sum(l => l.Credit).ToString("N2")
+                    @(_isBalanced ? " ✓ Balanced" : " ✗ Imbalanced")
+                </MudText>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
+                   Disabled="@(!_isBalanced || !_lines.Any())">Post</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<AccountDto> Accounts { get; set; } = new();
+
+    private DateTime? _entryDate = DateTime.Today;
+    private string? _description;
+    private List<CreateJournalEntryLineDto> _lines = new();
+
+    private Guid _newAccountId;
+    private string? _newLineDesc;
+    private decimal _newDebit, _newCredit;
+
+    private bool _isBalanced => _lines.Any() &&
+        Math.Abs(_lines.Sum(l => l.Debit) - _lines.Sum(l => l.Credit)) < 0.01m;
+
+    protected override void OnInitialized()
+    {
+        if (Accounts.Count > 0) _newAccountId = Accounts.First().Id;
+    }
+
+    private void AddLine()
+    {
+        if (_newAccountId == Guid.Empty || (_newDebit == 0 && _newCredit == 0)) return;
+        _lines.Add(new CreateJournalEntryLineDto(_newAccountId, _newDebit, _newCredit, _newLineDesc));
+        _newDebit = 0; _newCredit = 0; _newLineDesc = null;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        var dto = new CreateJournalEntryDto(_entryDate ?? DateTime.Today, _description, _lines);
+        MudDialog.Close(DialogResult.Ok(dto));
+    }
+}

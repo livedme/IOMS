@@ -1,0 +1,77 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_name" Label="Name" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_email" Label="Email" InputType="InputType.Email" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_phone" Label="Phone" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_creditLimit" Label="Credit Limit" Format="N2" Min="0m" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_address" Label="Address" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_city" Label="City" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_state" Label="State" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_country" Label="Country" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_postalCode" Label="Postal Code" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_paymentTerms" Label="Payment Terms" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox @bind-Value="_isTaxExempt" Label="Tax Exempt" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CustomerDto? Customer { get; set; }
+
+    private string _name = "";
+    private string? _email, _phone, _address, _city, _state, _country, _postalCode, _paymentTerms;
+    private decimal _creditLimit;
+    private bool _isTaxExempt;
+
+    protected override void OnInitialized()
+    {
+        if (Customer != null)
+        {
+            _name = Customer.Name;
+            _email = Customer.Email;
+            _phone = Customer.Phone;
+            _address = Customer.Address;
+            _city = Customer.City;
+            _state = Customer.State;
+            _country = Customer.Country;
+            _creditLimit = Customer.CreditLimit;
+            _paymentTerms = Customer.PaymentTerms;
+            _isTaxExempt = Customer.IsTaxExempt;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(
+        new CreateCustomerDto(_name, _email, _phone, _address, _city, _state, _country, _postalCode,
+            _creditLimit, _paymentTerms, null, null, null, _isTaxExempt)));
+}

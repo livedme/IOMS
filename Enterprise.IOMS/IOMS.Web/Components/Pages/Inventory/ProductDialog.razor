@@ -1,0 +1,90 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_name" Label="Name" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_sku" Label="SKU" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_barcode" Label="Barcode" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="_categoryId" Label="Category" Required="true">
+                    @foreach (var cat in Categories)
+                    {
+                        <MudSelectItem Value="@cat.Id">@cat.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_costPrice" Label="Cost Price" Format="N2" Min="0m" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_sellingPrice" Label="Selling Price" Format="N2" Min="0m" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_reorderLevel" Label="Reorder Level" Min="0" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_moq" Label="Min Order Qty" Min="1" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_description" Label="Description" Lines="3" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public ProductDto? Product { get; set; }
+    [Parameter] public List<CategoryDto> Categories { get; set; } = new();
+
+    private string _name = "";
+    private string _sku = "";
+    private string? _barcode;
+    private string? _description;
+    private Guid _categoryId;
+    private decimal _costPrice;
+    private decimal _sellingPrice;
+    private int _reorderLevel = 10;
+    private int _moq = 1;
+
+    protected override void OnInitialized()
+    {
+        if (Product != null)
+        {
+            _name = Product.Name;
+            _sku = Product.SKU;
+            _barcode = Product.Barcode;
+            _description = Product.Description;
+            _categoryId = Product.CategoryId;
+            _costPrice = Product.CostPrice;
+            _sellingPrice = Product.SellingPrice;
+            _reorderLevel = Product.ReorderLevel;
+            _moq = Product.MinimumOrderQuantity;
+        }
+        else if (Categories.Count > 0)
+        {
+            _categoryId = Categories.First().Id;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        var dto = new CreateProductDto(_name, _sku, _barcode, _description,
+            _costPrice, _sellingPrice, _reorderLevel, _moq, _categoryId, null, null);
+        MudDialog.Close(DialogResult.Ok(dto));
+    }
+}

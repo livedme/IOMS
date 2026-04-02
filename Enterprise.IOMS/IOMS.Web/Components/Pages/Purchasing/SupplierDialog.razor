@@ -1,0 +1,45 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_name" Label="Name" Required="true" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_email" Label="Email" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_phone" Label="Phone" /></MudItem>
+            <MudItem xs="12" sm="6"><MudNumericField @bind-Value="_leadTime" Label="Lead Time (days)" Min="0" /></MudItem>
+            <MudItem xs="12"><MudTextField @bind-Value="_address" Label="Address" /></MudItem>
+            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_city" Label="City" /></MudItem>
+            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_state" Label="State" /></MudItem>
+            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_country" Label="Country" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_postalCode" Label="Postal Code" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_paymentTerms" Label="Payment Terms" /></MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public SupplierDto? Supplier { get; set; }
+
+    private string _name = "";
+    private string? _email, _phone, _address, _city, _state, _country, _postalCode, _paymentTerms;
+    private int _leadTime;
+
+    protected override void OnInitialized()
+    {
+        if (Supplier != null)
+        {
+            _name = Supplier.Name; _email = Supplier.Email; _phone = Supplier.Phone;
+            _address = Supplier.Address; _city = Supplier.City; _state = Supplier.State;
+            _country = Supplier.Country; _paymentTerms = Supplier.PaymentTerms; _leadTime = Supplier.LeadTimeDays;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(
+        new CreateSupplierDto(_name, _email, _phone, _address, _city, _state, _country, _postalCode, _paymentTerms, null, _leadTime)));
+}

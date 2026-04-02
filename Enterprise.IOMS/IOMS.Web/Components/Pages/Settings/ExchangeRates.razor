@@ -1,0 +1,79 @@
+@page "/settings/exchange-rates"
+@rendermode InteractiveServer
+@inject IExchangeRateService ExchangeRateService
+@inject IPricingService PricingService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Exchange Rates - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Exchange Rates</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenDialog" Class="mb-3">Add Exchange Rate</MudButton>
+
+    <MudTable Items="@_rates" Dense="true" Hover="true" Striped="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>From Currency</MudTh>
+            <MudTh>To Currency</MudTh>
+            <MudTh>Rate</MudTh>
+            <MudTh>Effective Date</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.FromCurrencyCode</MudTd>
+            <MudTd>@context.ToCurrencyCode</MudTd>
+            <MudTd>@context.Rate.ToString("F6")</MudTd>
+            <MudTd>@context.EffectiveDate.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="@(() => Delete(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<ExchangeRateDto> _rates = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        try { _rates = await ExchangeRateService.GetExchangeRates(); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private async Task OpenDialog()
+    {
+        var currencies = await PricingService.GetCurrencies();
+        var parameters = new DialogParameters<ExchangeRateDialog> { { x => x.Currencies, currencies } };
+        var dialog = await DialogService.ShowAsync<ExchangeRateDialog>("Add Exchange Rate", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await Load();
+            Snackbar.Add("Exchange rate created", Severity.Success);
+        }
+    }
+
+    private async Task Delete(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBox("Confirm Delete", "Delete this exchange rate?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            try
+            {
+                await ExchangeRateService.DeleteExchangeRate(id);
+                await Load();
+                Snackbar.Add("Exchange rate deleted", Severity.Success);
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+}

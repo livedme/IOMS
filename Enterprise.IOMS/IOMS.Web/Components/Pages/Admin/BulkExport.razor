@@ -1,0 +1,82 @@
+@page "/admin/export"
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
+
+<PageTitle>Bulk Export - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Bulk Export</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudSelect @bind-Value="_selectedEntity" Label="Entity Type" Class="mb-3">
+                <MudSelectItem Value="@("Products")">Products</MudSelectItem>
+                <MudSelectItem Value="@("Customers")">Customers</MudSelectItem>
+                <MudSelectItem Value="@("Suppliers")">Suppliers</MudSelectItem>
+                <MudSelectItem Value="@("Inventory")">Inventory Items</MudSelectItem>
+                <MudSelectItem Value="@("SalesOrders")">Sales Orders</MudSelectItem>
+                <MudSelectItem Value="@("PurchaseOrders")">Purchase Orders</MudSelectItem>
+                <MudSelectItem Value="@("Invoices")">Invoices</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect @bind-Value="_format" Label="Format">
+                <MudSelectItem Value="@("CSV")">CSV</MudSelectItem>
+                <MudSelectItem Value="@("Excel")">Excel (.xlsx)</MudSelectItem>
+                <MudSelectItem Value="@("JSON")">JSON</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="2">
+            <MudDatePicker @bind-Date="_fromDate" Label="From Date" />
+        </MudItem>
+        <MudItem xs="12" md="2">
+            <MudDatePicker @bind-Date="_toDate" Label="To Date" />
+        </MudItem>
+        <MudItem xs="12" md="1" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" OnClick="Export">Export</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Elevation="2" Class="pa-4 mt-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Export History</MudText>
+    <MudTable Items="@_history" Dense="true" Hover="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Entity</MudTh>
+            <MudTh>Format</MudTh>
+            <MudTh>Records</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Date.ToString("yyyy-MM-dd HH:mm")</MudTd>
+            <MudTd>@context.Entity</MudTd>
+            <MudTd>@context.Format</MudTd>
+            <MudTd>@context.Records</MudTd>
+            <MudTd><MudChip T="string" Color="Color.Success" Size="Size.Small">@context.Status</MudChip></MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private string _selectedEntity = "Products";
+    private string _format = "CSV";
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
+    private List<ExportHistoryRow> _history = new();
+
+    private void Export()
+    {
+        _history.Insert(0, new ExportHistoryRow { Date = DateTime.Now, Entity = _selectedEntity, Format = _format, Records = 0, Status = "Completed" });
+        Snackbar.Add($"Export of {_selectedEntity} as {_format} queued. This feature requires backend file generation.", Severity.Info);
+    }
+
+    private class ExportHistoryRow
+    {
+        public DateTime Date { get; set; }
+        public string Entity { get; set; } = "";
+        public string Format { get; set; } = "";
+        public int Records { get; set; }
+        public string Status { get; set; } = "";
+    }
+}

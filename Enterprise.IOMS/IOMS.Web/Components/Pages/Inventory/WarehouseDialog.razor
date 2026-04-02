@@ -1,0 +1,31 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Required="true" />
+        <MudTextField @bind-Value="_code" Label="Code" Required="true" Class="mt-3" />
+        <MudTextField @bind-Value="_location" Label="Location" Class="mt-3" />
+        <MudTextField @bind-Value="_address" Label="Address" Lines="2" Class="mt-3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public WarehouseDto? Warehouse { get; set; }
+
+    private string _name = "", _code = "";
+    private string? _location, _address;
+
+    protected override void OnInitialized()
+    {
+        if (Warehouse != null)
+        { _name = Warehouse.Name; _code = Warehouse.Code; _location = Warehouse.Location; _address = Warehouse.Address; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new CreateWarehouseDto(_name, _code, _location, _address)));
+}

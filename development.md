@@ -141,7 +141,7 @@ The Enterprise Inventory & Order Management System (IOMS) is a centralized platf
 | Layer           | Technology                            | Justification                              |
 | --------------- | ------------------------------------- | ------------------------------------------ |
 | UI Framework    | Blazor Server + MudBlazor             | Rich interactive UI, single codebase (.NET) |
-| Backend         | .NET 8 (ASP.NET Core)                | Enterprise-grade, high performance          |
+| Backend         | .NET 10 (ASP.NET Core)                | Enterprise-grade, high performance          |
 | ORM             | Entity Framework Core (Code First)    | Rapid development, migration support        |
 | Database        | SQL Server                            | ACID compliance, enterprise-standard        |
 | Authentication  | ASP.NET Core Identity (Cookie-based)  | Built-in, no external IdP required          |

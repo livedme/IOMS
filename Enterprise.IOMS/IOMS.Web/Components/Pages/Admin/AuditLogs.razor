@@ -1,0 +1,108 @@
+@page "/admin/audit-logs"
+@rendermode InteractiveServer
+@inject IAuditLogService AuditLogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Audit Logs</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">Audit Logs</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_tableName" Label="Table Name" Immediate="true"
+                          OnKeyUp="@(async _ => await LoadData())" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect @bind-Value="_action" Label="Action" Clearable="true">
+                <MudSelectItem Value="@("Insert")">Insert</MudSelectItem>
+                <MudSelectItem Value="@("Update")">Update</MudSelectItem>
+                <MudSelectItem Value="@("Delete")">Delete</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"
+                       StartIcon="@Icons.Material.Filled.Refresh">Refresh</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable Items="_logs" Hover="true" Striped="true" Loading="_loading" Dense="true">
+    <HeaderContent>
+        <MudTh>Timestamp</MudTh>
+        <MudTh>Table</MudTh>
+        <MudTh>Record ID</MudTh>
+        <MudTh>Action</MudTh>
+        <MudTh>User</MudTh>
+        <MudTh>Details</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Timestamp">@context.Timestamp.ToString("g")</MudTd>
+        <MudTd DataLabel="Table">@context.TableName</MudTd>
+        <MudTd DataLabel="Record ID">@context.RecordId.ToString()[..8]...</MudTd>
+        <MudTd DataLabel="Action">
+            <MudChip T="string" Color="@(context.Action == "Insert" ? Color.Success : context.Action == "Delete" ? Color.Error : Color.Warning)" Size="Size.Small">
+                @context.Action
+            </MudChip>
+        </MudTd>
+        <MudTd DataLabel="User">@context.UserId</MudTd>
+        <MudTd DataLabel="Details">
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                           OnClick="@(() => ShowDetails(context))" Title="View Changes" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+<MudPagination Class="mt-4" Count="_totalPages" SelectedChanged="OnPageChanged" Selected="_page" />
+
+<MudDialog @bind-Visible="_detailsVisible">
+    <DialogContent>
+        @if (_selectedLog != null)
+        {
+            <MudText Typo="Typo.subtitle1">Old Values</MudText>
+            <MudText Class="mb-3" Style="white-space: pre-wrap; font-family: monospace; font-size: 0.85rem;">@(_selectedLog.OldValues ?? "N/A")</MudText>
+            <MudText Typo="Typo.subtitle1">New Values</MudText>
+            <MudText Style="white-space: pre-wrap; font-family: monospace; font-size: 0.85rem;">@(_selectedLog.NewValues ?? "N/A")</MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _detailsVisible = false)">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<AuditLogDto> _logs = new();
+    private string? _tableName;
+    private string? _action;
+    private int _page = 1;
+    private int _totalPages = 1;
+    private bool _loading;
+    private bool _detailsVisible;
+    private AuditLogDto? _selectedLog;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            var result = await AuditLogService.GetAuditLogs(_tableName, _action, _page, 25);
+            _logs = result.Items;
+            _totalPages = result.TotalPages;
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private void ShowDetails(AuditLogDto log)
+    {
+        _selectedLog = log;
+        _detailsVisible = true;
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        _page = page;
+        await LoadData();
+    }
+}

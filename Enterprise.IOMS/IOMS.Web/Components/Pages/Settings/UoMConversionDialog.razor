@@ -1,0 +1,51 @@
+@inject IUoMService UoMService
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect @bind-Value="_fromUoMId" Label="From Unit" Required="true" Variant="Variant.Outlined" Class="mb-3">
+            @foreach (var u in Units)
+            {
+                <MudSelectItem Value="@u.Id">@u.Name (@u.Abbreviation)</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect @bind-Value="_toUoMId" Label="To Unit" Required="true" Variant="Variant.Outlined" Class="mb-3">
+            @foreach (var u in Units)
+            {
+                <MudSelectItem Value="@u.Id">@u.Name (@u.Abbreviation)</MudSelectItem>
+            }
+        </MudSelect>
+        <MudNumericField @bind-Value="_factor" Label="Conversion Factor" Required="true" Variant="Variant.Outlined"
+                         Format="F6" Min="0.000001M" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public List<UnitOfMeasureDto> Units { get; set; } = new();
+
+    private Guid _fromUoMId, _toUoMId;
+    private decimal _factor = 1;
+    private bool _saving;
+
+    private async Task Submit()
+    {
+        if (_fromUoMId == Guid.Empty || _toUoMId == Guid.Empty || _fromUoMId == _toUoMId) return;
+        _saving = true;
+        try
+        {
+            await UoMService.CreateConversion(_fromUoMId, _toUoMId, _factor);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch { MudDialog.Close(DialogResult.Cancel()); }
+        finally { _saving = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

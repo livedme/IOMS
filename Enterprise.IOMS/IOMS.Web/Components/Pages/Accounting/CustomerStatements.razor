@@ -1,0 +1,131 @@
+@page "/reports/customer-statements"
+@rendermode InteractiveServer
+@inject IOMS.Infrastructure.Data.AppDbContext DbContext
+@inject ISnackbar Snackbar
+
+<PageTitle>Customer Statements</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">Customer Statements</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudSelect @bind-Value="_customerId" Label="Customer" Required="true">
+                @foreach (var c in _customers)
+                {
+                    <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_from" Label="From Date" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudDatePicker @bind-Date="_to" Label="To Date" />
+        </MudItem>
+        <MudItem xs="12" sm="2" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"
+                       StartIcon="@Icons.Material.Filled.Receipt">Generate</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_selectedCustomer != null)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="4">
+                <MudText Typo="Typo.subtitle2">Customer: @_selectedCustomer.Name</MudText>
+                <MudText Typo="Typo.body2">@_selectedCustomer.Email</MudText>
+            </MudItem>
+            <MudItem xs="4">
+                <MudText Typo="Typo.subtitle2">Total Invoiced</MudText>
+                <MudText Typo="Typo.h6">@_totalInvoiced.ToString("C")</MudText>
+            </MudItem>
+            <MudItem xs="4">
+                <MudText Typo="Typo.subtitle2">Balance Due</MudText>
+                <MudText Typo="Typo.h6" Color="Color.Error">@_balanceDue.ToString("C")</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+<MudTable Items="_statementLines" Hover="true" Striped="true" Loading="_loading">
+    <HeaderContent>
+        <MudTh>Date</MudTh>
+        <MudTh>Type</MudTh>
+        <MudTh>Reference</MudTh>
+        <MudTh>Debit</MudTh>
+        <MudTh>Credit</MudTh>
+        <MudTh>Balance</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Date">@context.Date.ToShortDateString()</MudTd>
+        <MudTd DataLabel="Type">@context.Type</MudTd>
+        <MudTd DataLabel="Reference">@context.Reference</MudTd>
+        <MudTd DataLabel="Debit">@(context.Debit > 0 ? context.Debit.ToString("C") : "")</MudTd>
+        <MudTd DataLabel="Credit">@(context.Credit > 0 ? context.Credit.ToString("C") : "")</MudTd>
+        <MudTd DataLabel="Balance">@context.RunningBalance.ToString("C")</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private record StatementLine(DateTime Date, string Type, string Reference, decimal Debit, decimal Credit, decimal RunningBalance);
+
+    private List<Customer> _customers = new();
+    private Guid? _customerId;
+    private DateTime? _from = DateTime.Today.AddMonths(-3);
+    private DateTime? _to = DateTime.Today;
+    private Customer? _selectedCustomer;
+    private List<StatementLine> _statementLines = new();
+    private decimal _totalInvoiced;
+    private decimal _balanceDue;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.Name).AsNoTracking().ToListAsync();
+    }
+
+    private async Task LoadData()
+    {
+        if (!_customerId.HasValue) return;
+        _loading = true;
+        try
+        {
+            _selectedCustomer = _customers.FirstOrDefault(c => c.Id == _customerId.Value);
+            var fromDate = _from ?? DateTime.Today.AddMonths(-3);
+            var toDate = (_to ?? DateTime.Today).AddDays(1);
+
+            var invoices = await DbContext.Invoices
+                .Where(i => i.CustomerId == _customerId.Value && i.InvoiceDate >= fromDate && i.InvoiceDate < toDate)
+                .OrderBy(i => i.InvoiceDate)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var payments = await DbContext.Payments
+                .Where(p => p.CustomerId == _customerId.Value && p.PaymentDate >= fromDate && p.PaymentDate < toDate)
+                .OrderBy(p => p.PaymentDate)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var lines = new List<StatementLine>();
+            decimal balance = 0;
+
+            var allTxns = invoices.Select(i => new { Date = i.InvoiceDate, Type = "Invoice", Reference = i.InvoiceNumber, Debit = i.TotalAmount, Credit = 0m })
+                .Concat(payments.Select(p => new { Date = p.PaymentDate, Type = "Payment", Reference = p.PaymentNumber, Debit = 0m, Credit = p.Amount }))
+                .OrderBy(t => t.Date);
+
+            foreach (var txn in allTxns)
+            {
+                balance += txn.Debit - txn.Credit;
+                lines.Add(new StatementLine(txn.Date, txn.Type, txn.Reference, txn.Debit, txn.Credit, balance));
+            }
+
+            _statementLines = lines;
+            _totalInvoiced = invoices.Sum(i => i.TotalAmount);
+            _balanceDue = balance;
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+}

@@ -1,0 +1,140 @@
+@page "/settings/uom"
+@rendermode InteractiveServer
+@inject IUoMService UoMService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Units of Measure - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Units of Measure</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+    <MudTabPanel Text="Units">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenUomDialog" Class="mb-3">Add Unit</MudButton>
+
+        <MudTable Items="@_units" Dense="true" Hover="true" Striped="true" Loading="@_loadingUnits" Elevation="0">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Abbreviation</MudTh>
+                <MudTh>Base Unit</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.Name</strong></MudTd>
+                <MudTd>@context.Abbreviation</MudTd>
+                <MudTd>@(context.IsBaseUnit ? "✓ Base" : "")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => DeleteUnit(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Conversions">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenConversionDialog" Class="mb-3">Add Conversion</MudButton>
+
+        <MudTable Items="@_conversions" Dense="true" Hover="true" Striped="true" Loading="@_loadingConversions" Elevation="0">
+            <HeaderContent>
+                <MudTh>From</MudTh>
+                <MudTh>To</MudTh>
+                <MudTh>Factor</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.FromUoMName</MudTd>
+                <MudTd>@context.ToUoMName</MudTd>
+                <MudTd>@context.ConversionFactor.ToString("F4")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => DeleteConversion(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private List<UnitOfMeasureDto> _units = new();
+    private List<UoMConversionDto> _conversions = new();
+    private bool _loadingUnits = true, _loadingConversions = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadUnits(), LoadConversions());
+    }
+
+    private async Task LoadUnits()
+    {
+        _loadingUnits = true;
+        try { _units = await UoMService.GetUnitsOfMeasure(); }
+        catch (Exception ex) { Snackbar.Add($"Error loading units: {ex.Message}", Severity.Error); }
+        finally { _loadingUnits = false; }
+    }
+
+    private async Task LoadConversions()
+    {
+        _loadingConversions = true;
+        try { _conversions = await UoMService.GetConversions(); }
+        catch (Exception ex) { Snackbar.Add($"Error loading conversions: {ex.Message}", Severity.Error); }
+        finally { _loadingConversions = false; }
+    }
+
+    private async Task OpenUomDialog()
+    {
+        var parameters = new DialogParameters<UoMDialog>();
+        var dialog = await DialogService.ShowAsync<UoMDialog>("Add Unit of Measure", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadUnits();
+            Snackbar.Add("Unit created successfully", Severity.Success);
+        }
+    }
+
+    private async Task OpenConversionDialog()
+    {
+        var parameters = new DialogParameters<UoMConversionDialog> { { x => x.Units, _units } };
+        var dialog = await DialogService.ShowAsync<UoMConversionDialog>("Add Conversion", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadConversions();
+            Snackbar.Add("Conversion created successfully", Severity.Success);
+        }
+    }
+
+    private async Task DeleteUnit(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBox("Confirm Delete", "Delete this unit of measure?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            try
+            {
+                await UoMService.DeleteUnitOfMeasure(id);
+                await LoadUnits();
+                Snackbar.Add("Unit deleted", Severity.Success);
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private async Task DeleteConversion(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBox("Confirm Delete", "Delete this conversion?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            try
+            {
+                await UoMService.DeleteConversion(id);
+                await LoadConversions();
+                Snackbar.Add("Conversion deleted", Severity.Success);
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+}

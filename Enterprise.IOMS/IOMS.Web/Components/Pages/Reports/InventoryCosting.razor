@@ -1,0 +1,103 @@
+@page "/reports/inventory-costing"
+@rendermode InteractiveServer
+@inject IOMS.Infrastructure.Data.AppDbContext DbContext
+@inject ILandedCostService LandedCostService
+@inject ISnackbar Snackbar
+
+<PageTitle>Inventory Costing</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">Inventory Costing</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudSelect @bind-Value="_costingMethod" Label="Costing Method">
+                <MudSelectItem Value="@("WeightedAverage")">Weighted Average</MudSelectItem>
+                <MudSelectItem Value="@("FIFO")">FIFO</MudSelectItem>
+                <MudSelectItem Value="@("StandardCost")">Standard Cost</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"
+                       StartIcon="@Icons.Material.Filled.Calculate">Calculate</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_rows.Any())
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.subtitle1">Total Inventory Value: @_rows.Sum(r => r.TotalValue).ToString("C")</MudText>
+    </MudPaper>
+}
+
+<MudTable Items="_rows" Hover="true" Striped="true" Loading="_loading">
+    <HeaderContent>
+        <MudTh>Product</MudTh>
+        <MudTh>SKU</MudTh>
+        <MudTh>Total Qty</MudTh>
+        <MudTh>Unit Cost</MudTh>
+        <MudTh>Total Value</MudTh>
+        <MudTh>Landed Cost</MudTh>
+        <MudTh>Effective Cost</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.ProductName</MudTd>
+        <MudTd>@context.SKU</MudTd>
+        <MudTd>@context.TotalQty</MudTd>
+        <MudTd>@context.UnitCost.ToString("C")</MudTd>
+        <MudTd>@context.TotalValue.ToString("C")</MudTd>
+        <MudTd>@context.LandedCost.ToString("C")</MudTd>
+        <MudTd>@context.EffectiveCost.ToString("C")</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private record CostingRow(string ProductName, string SKU, int TotalQty, decimal UnitCost, decimal TotalValue, decimal LandedCost, decimal EffectiveCost);
+
+    private List<CostingRow> _rows = new();
+    private string _costingMethod = "WeightedAverage";
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            var inventories = await DbContext.Inventories
+                .Include(i => i.Product)
+                .Where(i => i.Quantity > 0)
+                .GroupBy(i => new { i.ProductId, i.Product.Name, i.Product.SKU, i.Product.CostPrice })
+                .Select(g => new
+                {
+                    g.Key.ProductId,
+                    g.Key.Name,
+                    g.Key.SKU,
+                    g.Key.CostPrice,
+                    TotalQty = g.Sum(i => i.Quantity)
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            var allocations = await LandedCostService.GetAllocations(null);
+            var landedByPo = allocations.GroupBy(a => a.PurchaseOrderId)
+                .ToDictionary(g => g.Key ?? Guid.Empty, g => g.Sum(a => a.Amount));
+
+            var totalLanded = landedByPo.Values.Sum();
+            var totalInventoryValue = inventories.Sum(i => i.TotalQty * i.CostPrice);
+
+            _rows = inventories.Select(i =>
+            {
+                var value = i.TotalQty * i.CostPrice;
+                var landedShare = totalInventoryValue > 0 ? totalLanded * (value / totalInventoryValue) : 0;
+                var effectiveCost = i.TotalQty > 0 ? (value + landedShare) / i.TotalQty : i.CostPrice;
+                return new CostingRow(i.Name, i.SKU, i.TotalQty, i.CostPrice, value, landedShare, effectiveCost);
+            })
+            .OrderByDescending(r => r.TotalValue)
+            .ToList();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+}

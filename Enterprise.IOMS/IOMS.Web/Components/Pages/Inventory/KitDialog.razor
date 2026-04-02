@@ -1,0 +1,87 @@
+@inject IKitService KitService
+@inject ISnackbar Snackbar
+@inject IOMS.Infrastructure.Data.AppDbContext DbContext
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="_productId" Label="Product" Required="true">
+                    @foreach (var p in _products)
+                    {
+                        <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Components</MudText>
+                @for (int i = 0; i < _components.Count; i++)
+                {
+                    var idx = i;
+                    <MudGrid Class="mb-2">
+                        <MudItem xs="7">
+                            <MudSelect @bind-Value="_components[idx].ComponentProductId" Label="Component Product">
+                                @foreach (var p in _products.Where(p => p.Id != _productId))
+                                {
+                                    <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="3">
+                            <MudNumericField @bind-Value="_components[idx].Quantity" Label="Qty" Min="1" />
+                        </MudItem>
+                        <MudItem xs="2" Class="d-flex align-end">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                           OnClick="@(() => _components.RemoveAt(idx))" />
+                        </MudItem>
+                    </MudGrid>
+                }
+                <MudButton Variant="Variant.Text" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddComponent">Add Component</MudButton>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+
+    private Guid _productId;
+    private List<ComponentRow> _components = new() { new() };
+    private List<Product> _products = new();
+
+    private class ComponentRow
+    {
+        public Guid ComponentProductId { get; set; }
+        public int Quantity { get; set; } = 1;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _products = await DbContext.Set<Product>().OrderBy(p => p.Name).AsNoTracking().ToListAsync();
+    }
+
+    private void AddComponent() => _components.Add(new ComponentRow());
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        try
+        {
+            var components = _components
+                .Where(c => c.ComponentProductId != Guid.Empty)
+                .Select(c => new CreateKitComponentDto(c.ComponentProductId, c.Quantity))
+                .ToList();
+
+            var dto = new CreateKitDto(_productId, components);
+            await KitService.CreateKit(dto);
+            Snackbar.Add("Kit created successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

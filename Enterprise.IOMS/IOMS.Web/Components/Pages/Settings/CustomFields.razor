@@ -1,0 +1,113 @@
+@page "/settings/custom-fields"
+@rendermode InteractiveServer
+@inject ICustomFieldService FieldService
+@inject ISnackbar Snackbar
+
+<PageTitle>Custom Fields - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Custom Fields</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="() => _showCreate = true" Class="mb-4">New Custom Field</MudButton>
+
+@if (_showCreate)
+{
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Create Custom Field</MudText>
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <MudSelect @bind-Value="_entityType" Label="Entity Type">
+                    <MudSelectItem Value="@("Product")">Product</MudSelectItem>
+                    <MudSelectItem Value="@("Customer")">Customer</MudSelectItem>
+                    <MudSelectItem Value="@("Supplier")">Supplier</MudSelectItem>
+                    <MudSelectItem Value="@("SalesOrder")">Sales Order</MudSelectItem>
+                    <MudSelectItem Value="@("PurchaseOrder")">Purchase Order</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudTextField @bind-Value="_fieldName" Label="Field Name" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudSelect @bind-Value="_fieldType" Label="Field Type">
+                    @foreach (CustomFieldType ft in Enum.GetValues<CustomFieldType>())
+                    {
+                        <MudSelectItem Value="@ft">@ft</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudCheckBox @bind-Value="_isRequired" Label="Required" />
+            </MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Create" Class="mt-3">Save</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="() => _showCreate = false" Class="mt-3 ml-2">Cancel</MudButton>
+    </MudPaper>
+}
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_fields" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Entity Type</MudTh>
+            <MudTh>Field Name</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Required</MudTh>
+            <MudTh>Sort Order</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.EntityType</strong></MudTd>
+            <MudTd>@context.FieldName</MudTd>
+            <MudTd>@context.FieldType</MudTd>
+            <MudTd><MudIcon Icon="@(context.IsRequired ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)" Color="@(context.IsRequired ? Color.Success : Color.Default)" /></MudTd>
+            <MudTd>@context.SortOrder</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="() => Delete(context.Id)" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<CustomFieldDefinitionDto> _fields = new();
+    private string _entityType = "Product";
+    private string _fieldName = "";
+    private CustomFieldType _fieldType = CustomFieldType.Text;
+    private bool _isRequired;
+    private bool _showCreate;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _fields = await FieldService.GetDefinitions(null);
+        _loading = false;
+    }
+
+    private async Task Create()
+    {
+        try
+        {
+            var dto = new CreateCustomFieldDefinitionDto(_entityType, _fieldName, _fieldType, _isRequired, null);
+            await FieldService.CreateDefinition(dto);
+            Snackbar.Add("Custom field created.", Severity.Success);
+            _showCreate = false;
+            _fieldName = "";
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task Delete(Guid id)
+    {
+        try
+        {
+            await FieldService.DeleteDefinition(id);
+            Snackbar.Add("Field deleted.", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

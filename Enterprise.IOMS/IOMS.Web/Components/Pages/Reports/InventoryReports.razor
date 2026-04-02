@@ -1,0 +1,178 @@
+@page "/reports/inventory"
+@rendermode InteractiveServer
+@inject IOMS.Infrastructure.Data.AppDbContext DbContext
+@inject ISnackbar Snackbar
+
+<PageTitle>Inventory Reports</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">Inventory Reports</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudSelect @bind-Value="_warehouseId" Label="Warehouse" Clearable="true">
+                @foreach (var w in _warehouses)
+                {
+                    <MudSelectItem Value="@w.Id">@w.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect @bind-Value="_reportType" Label="Report Type">
+                <MudSelectItem Value="@("StockLevel")">Current Stock Levels</MudSelectItem>
+                <MudSelectItem Value="@("Movements")">Stock Movements</MudSelectItem>
+                <MudSelectItem Value="@("Valuation")">Inventory Valuation</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"
+                       StartIcon="@Icons.Material.Filled.Assessment">Generate</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_reportType == "StockLevel")
+{
+    @if (_stockTotals.Any())
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudText Typo="Typo.subtitle1">Total Items: @_stockTotals.Sum(s => s.Quantity) | Total Value: @_stockTotals.Sum(s => s.Value).ToString("C")</MudText>
+        </MudPaper>
+    }
+    <MudTable Items="_stockTotals" Hover="true" Striped="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh>Product</MudTh>
+            <MudTh>SKU</MudTh>
+            <MudTh>Warehouse</MudTh>
+            <MudTh>Quantity</MudTh>
+            <MudTh>Reserved</MudTh>
+            <MudTh>Available</MudTh>
+            <MudTh>Value</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.ProductName</MudTd>
+            <MudTd>@context.SKU</MudTd>
+            <MudTd>@context.WarehouseName</MudTd>
+            <MudTd>@context.Quantity</MudTd>
+            <MudTd>@context.Reserved</MudTd>
+            <MudTd>@context.Available</MudTd>
+            <MudTd>@context.Value.ToString("C")</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+else if (_reportType == "Movements")
+{
+    <MudTable Items="_movements" Hover="true" Striped="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Product</MudTh>
+            <MudTh>Warehouse</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Quantity</MudTh>
+            <MudTh>Reference</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.MovementDate.ToShortDateString()</MudTd>
+            <MudTd>@context.Product.Name</MudTd>
+            <MudTd>@context.Warehouse.Name</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small">@context.Type</MudChip>
+            </MudTd>
+            <MudTd>@context.Quantity</MudTd>
+            <MudTd>@context.Reference</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+else if (_reportType == "Valuation")
+{
+    <MudTable Items="_valuationRows" Hover="true" Striped="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh>Product</MudTh>
+            <MudTh>SKU</MudTh>
+            <MudTh>Total Qty</MudTh>
+            <MudTh>Cost Price</MudTh>
+            <MudTh>Total Value</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.ProductName</MudTd>
+            <MudTd>@context.SKU</MudTd>
+            <MudTd>@context.TotalQty</MudTd>
+            <MudTd>@context.CostPrice.ToString("C")</MudTd>
+            <MudTd>@context.TotalValue.ToString("C")</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private record StockRow(string ProductName, string SKU, string WarehouseName, int Quantity, int Reserved, int Available, decimal Value);
+    private record ValuationRow(string ProductName, string SKU, int TotalQty, decimal CostPrice, decimal TotalValue);
+
+    private string _reportType = "StockLevel";
+    private Guid? _warehouseId;
+    private List<Warehouse> _warehouses = new();
+    private List<StockRow> _stockTotals = new();
+    private List<StockMovement> _movements = new();
+    private List<ValuationRow> _valuationRows = new();
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _warehouses = await DbContext.Warehouses.Where(w => w.IsActive).OrderBy(w => w.Name).AsNoTracking().ToListAsync();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            if (_reportType == "StockLevel")
+            {
+                var query = DbContext.Inventories
+                    .Include(i => i.Product)
+                    .Include(i => i.Warehouse)
+                    .AsNoTracking()
+                    .AsQueryable();
+
+                if (_warehouseId.HasValue)
+                    query = query.Where(i => i.WarehouseId == _warehouseId.Value);
+
+                _stockTotals = await query.Select(i => new StockRow(
+                    i.Product.Name, i.Product.SKU, i.Warehouse.Name,
+                    i.Quantity, i.ReservedQuantity, i.Quantity - i.ReservedQuantity,
+                    i.Quantity * i.Product.CostPrice))
+                    .ToListAsync();
+            }
+            else if (_reportType == "Movements")
+            {
+                var query = DbContext.StockMovements
+                    .Include(m => m.Product)
+                    .Include(m => m.Warehouse)
+                    .AsNoTracking()
+                    .AsQueryable();
+
+                if (_warehouseId.HasValue)
+                    query = query.Where(m => m.WarehouseId == _warehouseId.Value);
+
+                _movements = await query.OrderByDescending(m => m.MovementDate).Take(200).ToListAsync();
+            }
+            else
+            {
+                var query = DbContext.Inventories
+                    .Include(i => i.Product)
+                    .AsNoTracking()
+                    .AsQueryable();
+
+                if (_warehouseId.HasValue)
+                    query = query.Where(i => i.WarehouseId == _warehouseId.Value);
+
+                _valuationRows = await query
+                    .GroupBy(i => new { i.ProductId, i.Product.Name, i.Product.SKU, i.Product.CostPrice })
+                    .Select(g => new ValuationRow(g.Key.Name, g.Key.SKU, g.Sum(i => i.Quantity), g.Key.CostPrice, g.Sum(i => i.Quantity) * g.Key.CostPrice))
+                    .OrderByDescending(v => v.TotalValue)
+                    .ToListAsync();
+            }
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+}

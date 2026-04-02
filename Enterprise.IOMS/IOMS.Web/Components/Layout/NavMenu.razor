@@ -1,0 +1,93 @@
+﻿<MudNavMenu>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+        Dashboard
+    </MudNavLink>
+
+    <MudNavLink Href="/search" Icon="@Icons.Material.Filled.Search">Global Search</MudNavLink>
+
+    <MudNavGroup Title="Inventory" Icon="@Icons.Material.Filled.Inventory">
+        <MudNavLink Href="/products" Icon="@Icons.Material.Filled.ShoppingBag">Products</MudNavLink>
+        <MudNavLink Href="/categories" Icon="@Icons.Material.Filled.Category">Categories</MudNavLink>
+        <MudNavLink Href="/warehouses" Icon="@Icons.Material.Filled.Warehouse">Warehouses</MudNavLink>
+        <MudNavLink Href="/inventory" Icon="@Icons.Material.Filled.Inventory2">Stock Levels</MudNavLink>
+        <MudNavLink Href="/stock-movements" Icon="@Icons.Material.Filled.SwapHoriz">Stock Movements</MudNavLink>
+        <MudNavLink Href="/inventory/transfers" Icon="@Icons.Material.Filled.MoveDown">Stock Transfers</MudNavLink>
+        <MudNavLink Href="/inventory/stocktakes" Icon="@Icons.Material.Filled.Checklist">Stocktakes</MudNavLink>
+        <MudNavLink Href="/products/kits" Icon="@Icons.Material.Filled.Construction">Kits / BOM</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Sales" Icon="@Icons.Material.Filled.PointOfSale">
+        <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People">Customers</MudNavLink>
+        <MudNavLink Href="/orders/sales" Icon="@Icons.Material.Filled.Receipt">Sales Orders</MudNavLink>
+        <MudNavLink Href="/quotes" Icon="@Icons.Material.Filled.RequestQuote">Quotations</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Purchasing" Icon="@Icons.Material.Filled.ShoppingCart">
+        <MudNavLink Href="/suppliers" Icon="@Icons.Material.Filled.LocalShipping">Suppliers</MudNavLink>
+        <MudNavLink Href="/orders/purchase" Icon="@Icons.Material.Filled.ShoppingCartCheckout">Purchase Orders</MudNavLink>
+        <MudNavLink Href="/orders/purchase-returns" Icon="@Icons.Material.Filled.AssignmentReturn">Purchase Returns</MudNavLink>
+        <MudNavLink Href="/quotes/rfq" Icon="@Icons.Material.Filled.RateReview">RFQ Requests</MudNavLink>
+        <MudNavLink Href="/purchasing/landed-cost" Icon="@Icons.Material.Filled.AttachMoney">Landed Cost</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Accounting" Icon="@Icons.Material.Filled.AccountBalance">
+        <MudNavLink Href="/accounting/accounts" Icon="@Icons.Material.Filled.AccountTree">Chart of Accounts</MudNavLink>
+        <MudNavLink Href="/accounting/journals" Icon="@Icons.Material.Filled.MenuBook">Journal Entries</MudNavLink>
+        <MudNavLink Href="/accounting/invoices" Icon="@Icons.Material.Filled.Description">Invoices</MudNavLink>
+        <MudNavLink Href="/accounting/payments" Icon="@Icons.Material.Filled.Payment">Payments</MudNavLink>
+        <MudNavLink Href="/accounting/credit-notes" Icon="@Icons.Material.Filled.NoteAdd">Credit Notes</MudNavLink>
+        <MudNavLink Href="/accounting/debit-notes" Icon="@Icons.Material.Filled.Note">Debit Notes</MudNavLink>
+        <MudNavLink Href="/accounting/general-ledger" Icon="@Icons.Material.Filled.Book">General Ledger</MudNavLink>
+        <MudNavLink Href="/accounting/reconciliation" Icon="@Icons.Material.Filled.CompareArrows">Bank Reconciliation</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Shipping" Icon="@Icons.Material.Filled.LocalShipping">
+        <MudNavLink Href="/shipping/delivery-notes" Icon="@Icons.Material.Filled.DeliveryDining">Delivery Notes</MudNavLink>
+        <MudNavLink Href="/shipping/shipments" Icon="@Icons.Material.Filled.Flight">Shipments</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Approvals" Icon="@Icons.Material.Filled.ThumbUp">
+        <MudNavLink Href="/approvals" Icon="@Icons.Material.Filled.PendingActions">My Approvals</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Reports" Icon="@Icons.Material.Filled.Assessment">
+        <MudNavLink Href="/reports/trial-balance" Icon="@Icons.Material.Filled.Balance">Trial Balance</MudNavLink>
+        <MudNavLink Href="/reports/profit-loss" Icon="@Icons.Material.Filled.TrendingUp">Profit & Loss</MudNavLink>
+        <MudNavLink Href="/reports/balance-sheet" Icon="@Icons.Material.Filled.PieChart">Balance Sheet</MudNavLink>
+        <MudNavLink Href="/reports/ar-aging" Icon="@Icons.Material.Filled.Timer">AR Aging</MudNavLink>
+        <MudNavLink Href="/reports/ap-aging" Icon="@Icons.Material.Filled.HourglassBottom">AP Aging</MudNavLink>
+        <MudNavLink Href="/reports/sales" Icon="@Icons.Material.Filled.BarChart">Sales Reports</MudNavLink>
+        <MudNavLink Href="/reports/inventory" Icon="@Icons.Material.Filled.Inventory">Inventory Reports</MudNavLink>
+        <MudNavLink Href="/reports/customer-statements" Icon="@Icons.Material.Filled.Summarize">Customer Statements</MudNavLink>
+        <MudNavLink Href="/reports/dead-stock" Icon="@Icons.Material.Filled.Warning">Dead Stock</MudNavLink>
+        <MudNavLink Href="/reports/tax" Icon="@Icons.Material.Filled.ReceiptLong">Tax Reports</MudNavLink>
+        <MudNavLink Href="/reports/abc-analysis" Icon="@Icons.Material.Filled.Analytics">ABC Analysis</MudNavLink>
+        <MudNavLink Href="/reports/inventory-costing" Icon="@Icons.Material.Filled.Calculate">Inventory Costing</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Settings" Icon="@Icons.Material.Filled.Settings">
+        <MudNavLink Href="/settings/tax" Icon="@Icons.Material.Filled.Receipt">Tax Rates</MudNavLink>
+        <MudNavLink Href="/settings/currencies" Icon="@Icons.Material.Filled.CurrencyExchange">Currencies</MudNavLink>
+        <MudNavLink Href="/settings/price-lists" Icon="@Icons.Material.Filled.PriceChange">Price Lists</MudNavLink>
+        <MudNavLink Href="/settings/discounts" Icon="@Icons.Material.Filled.Discount">Discounts</MudNavLink>
+        <MudNavLink Href="/settings/templates" Icon="@Icons.Material.Filled.Article">Document Templates</MudNavLink>
+        <MudNavLink Href="/settings/notifications" Icon="@Icons.Material.Filled.Notifications">Notifications</MudNavLink>
+        <MudNavLink Href="/settings/workflows" Icon="@Icons.Material.Filled.AccountTree">Approval Workflows</MudNavLink>
+        <MudNavLink Href="/settings/webhooks" Icon="@Icons.Material.Filled.Webhook">Webhooks</MudNavLink>
+        <MudNavLink Href="/settings/custom-fields" Icon="@Icons.Material.Filled.TextFields">Custom Fields</MudNavLink>
+        <MudNavLink Href="/settings/uom" Icon="@Icons.Material.Filled.Straighten">Units of Measure</MudNavLink>
+        <MudNavLink Href="/settings/exchange-rates" Icon="@Icons.Material.Filled.SwapHoriz">Exchange Rates</MudNavLink>
+        <MudNavLink Href="/settings/notification-templates" Icon="@Icons.Material.Filled.MailOutline">Notification Templates</MudNavLink>
+        <MudNavLink Href="/settings/scheduled-reports" Icon="@Icons.Material.Filled.Schedule">Scheduled Reports</MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Admin" Icon="@Icons.Material.Filled.AdminPanelSettings">
+        <MudNavLink Href="/admin/users" Icon="@Icons.Material.Filled.Group">User Management</MudNavLink>
+        <MudNavLink Href="/admin/roles" Icon="@Icons.Material.Filled.AdminPanelSettings">Role Management</MudNavLink>
+        <MudNavLink Href="/admin/audit-logs" Icon="@Icons.Material.Filled.History">Audit Logs</MudNavLink>
+        <MudNavLink Href="/admin/import" Icon="@Icons.Material.Filled.Upload">Bulk Import</MudNavLink>
+        <MudNavLink Href="/admin/export" Icon="@Icons.Material.Filled.Download">Bulk Export</MudNavLink>
+        <MudNavLink Href="/admin/data-privacy" Icon="@Icons.Material.Filled.Security">Data Privacy</MudNavLink>
+        <MudNavLink Href="/admin/archival" Icon="@Icons.Material.Filled.Archive">Data Archival</MudNavLink>
+    </MudNavGroup>
+</MudNavMenu>

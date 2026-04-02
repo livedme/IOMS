@@ -1,0 +1,41 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Required="true" />
+        <MudTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />
+        <MudSelect @bind-Value="_parentId" Label="Parent Category" Clearable="true" Class="mt-3">
+            @foreach (var cat in AllCategories.Where(c => Category == null || c.Id != Category.Id))
+            {
+                <MudSelectItem Value="@((Guid?)cat.Id)">@cat.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CategoryDto? Category { get; set; }
+    [Parameter] public List<CategoryDto> AllCategories { get; set; } = new();
+
+    private string _name = "";
+    private string? _description;
+    private Guid? _parentId;
+
+    protected override void OnInitialized()
+    {
+        if (Category != null)
+        {
+            _name = Category.Name;
+            _description = Category.Description;
+            _parentId = Category.ParentCategoryId;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new CreateCategoryDto(_name, _description, _parentId)));
+}

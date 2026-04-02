@@ -1,0 +1,114 @@
+@page "/accounting/journals"
+@rendermode InteractiveServer
+@inject IAccountingService AccountingService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Journal Entries - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Journal Entries</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="8">
+            <MudTextField @bind-Value="_search" Placeholder="Search by reference..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadEntries" />
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreate">New Journal Entry</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_entries.Items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+        <HeaderContent>
+            <MudTh>Reference</MudTh>
+            <MudTh>Date</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh Style="text-align:right">Total</MudTh>
+            <MudTh>Auto</MudTh>
+            <MudTh>Reversed</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.Reference</strong></MudTd>
+            <MudTd>@context.EntryDate.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd>@context.Description</MudTd>
+            <MudTd Style="text-align:right">@context.Lines.Sum(l => l.Debit).ToString("C")</MudTd>
+            <MudTd>
+                @if (context.IsAutoPosted)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.AutoMode" Size="Size.Small" Color="Color.Info" />
+                }
+            </MudTd>
+            <MudTd>
+                @if (context.IsReversed)
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Reversed</MudChip>
+                }
+            </MudTd>
+            <MudTd>
+                @if (!context.IsReversed)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Undo" Size="Size.Small" Color="Color.Warning"
+                                   OnClick="@(() => Reverse(context.Id))" />
+                }
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private PagedResult<JournalEntryDto> _entries = new(new(), 0, 1, 25);
+    private string _search = "";
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadEntries();
+
+    private async Task LoadEntries()
+    {
+        _loading = true;
+        try { _entries = await AccountingService.GetJournalEntries(_search, 1, 25); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loading = false;
+    }
+
+    private async Task Reverse(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBox("Reverse Entry",
+            "Are you sure you want to reverse this journal entry?", "Reverse", "Cancel");
+        if (confirm == true)
+        {
+            try
+            {
+                await AccountingService.ReverseJournalEntry(id, "Manual reversal");
+                Snackbar.Add("Journal entry reversed", Severity.Success);
+                await LoadEntries();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private async Task OpenCreate()
+    {
+        var accounts = await AccountingService.GetChartOfAccounts();
+        var parameters = new DialogParameters<JournalEntryDialog> { { x => x.Accounts, accounts } };
+        var dialog = await DialogService.ShowAsync<JournalEntryDialog>("New Journal Entry", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled && result.Data is CreateJournalEntryDto dto)
+        {
+            try
+            {
+                await AccountingService.CreateJournalEntry(dto);
+                Snackbar.Add("Journal entry created", Severity.Success);
+                await LoadEntries();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+}

@@ -1,0 +1,78 @@
+@using IOMS.Application.DTOs
+@using IOMS.Application.Interfaces
+@using IOMS.Infrastructure.Data
+@inject IPurchaseReturnService PurchaseReturnService
+@inject AppDbContext DbContext
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>New Purchase Return</TitleContent>
+    <DialogContent>
+        <MudSelect T="Guid" Label="Purchase Order" @bind-Value="_poId" Required="true">
+            @foreach (var po in _purchaseOrders)
+            {
+                <MudSelectItem Value="@po.Id">@po.OrderNumber</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" Label="Reason" @bind-Value="_reason" Lines="2" Class="mt-2" />
+        <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Return Items</MudText>
+        @for (int i = 0; i < _items.Count; i++)
+        {
+            var idx = i;
+            <MudGrid>
+                <MudItem xs="5">
+                    <MudSelect T="Guid" Label="Product" Value="_items[idx].ProductId" ValueChanged="@(v => _items[idx] = _items[idx] with { ProductId = v })">
+                        @foreach (var p in _products)
+                        {
+                            <MudSelectItem Value="@p.Id">@p.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="3">
+                    <MudNumericField T="int" Label="Qty" Value="_items[idx].Quantity" ValueChanged="@(v => _items[idx] = _items[idx] with { Quantity = v })" Min="1" />
+                </MudItem>
+                <MudItem xs="3">
+                    <MudNumericField T="decimal" Label="Unit Cost" Value="_items[idx].UnitCost" ValueChanged="@(v => _items[idx] = _items[idx] with { UnitCost = v })" />
+                </MudItem>
+                <MudItem xs="1" Class="d-flex align-center">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => _items.RemoveAt(idx)" />
+                </MudItem>
+            </MudGrid>
+        }
+        <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="() => _items.Add(new(Guid.Empty, 1, 0))">Add Item</MudButton>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+
+    private List<PurchaseOrder> _purchaseOrders = new();
+    private List<Product> _products = new();
+    private Guid _poId;
+    private string? _reason;
+    private List<CreatePurchaseReturnItemDto> _items = new() { new(Guid.Empty, 1, 0) };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _purchaseOrders = await DbContext.PurchaseOrders.OrderByDescending(p => p.OrderDate).Take(50).ToListAsync();
+        _products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
+    }
+
+    private async Task Submit()
+    {
+        try
+        {
+            var validItems = _items.Where(i => i.ProductId != Guid.Empty).ToList();
+            await PurchaseReturnService.CreatePurchaseReturn(new CreatePurchaseReturnDto(_poId, _reason, validItems));
+            Snackbar.Add("Purchase return created.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,106 @@
+@page "/settings/currencies"
+@rendermode InteractiveServer
+@inject IPricingService PricingService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+
+<PageTitle>Currencies - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Currencies & Exchange Rates</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+    <MudTabPanel Text="Currencies">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCurrencyDialog" Class="mb-3">Add Currency</MudButton>
+
+        <MudTable Items="@_currencies" Dense="true" Hover="true" Striped="true" Loading="@_loadingCurrencies" Elevation="0">
+            <HeaderContent>
+                <MudTh>Code</MudTh>
+                <MudTh>Name</MudTh>
+                <MudTh>Symbol</MudTh>
+                <MudTh>Base</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.Code</strong></MudTd>
+                <MudTd>@context.Name</MudTd>
+                <MudTd>@context.Symbol</MudTd>
+                <MudTd>@(context.IsBaseCurrency ? "✓ Base" : "")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Exchange Rates">
+        <MudTable Items="@_rates" Dense="true" Hover="true" Striped="true" Loading="@_loadingRates" Elevation="0">
+            <HeaderContent>
+                <MudTh>From</MudTh>
+                <MudTh>To</MudTh>
+                <MudTh>Rate</MudTh>
+                <MudTh>Effective Date</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.FromCurrency</MudTd>
+                <MudTd>@context.ToCurrency</MudTd>
+                <MudTd>@context.Rate.ToString("F6")</MudTd>
+                <MudTd>@context.EffectiveDate.ToString("yyyy-MM-dd")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private List<CurrencyDto> _currencies = new();
+    private List<ExchangeRateDisplayDto> _rates = new();
+    private bool _loadingCurrencies = true, _loadingRates = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadCurrencies(), LoadRates());
+    }
+
+    private async Task LoadCurrencies()
+    {
+        _loadingCurrencies = true;
+        try { _currencies = await PricingService.GetCurrencies(); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loadingCurrencies = false;
+    }
+
+    private async Task LoadRates()
+    {
+        _loadingRates = true;
+        try
+        {
+            var data = await DbContext.ExchangeRates
+                .Include(r => r.FromCurrency).Include(r => r.ToCurrency)
+                .OrderByDescending(r => r.EffectiveDate).Take(50).ToListAsync();
+            _rates = data.Select(r => new ExchangeRateDisplayDto
+            {
+                FromCurrency = r.FromCurrency?.Code ?? "",
+                ToCurrency = r.ToCurrency?.Code ?? "",
+                Rate = r.Rate,
+                EffectiveDate = r.EffectiveDate
+            }).ToList();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loadingRates = false;
+    }
+
+    private async Task OpenCurrencyDialog()
+    {
+        var dialog = await DialogService.ShowAsync<CurrencyDialog>("Add Currency", new DialogParameters(),
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+            await LoadCurrencies();
+    }
+
+    private class ExchangeRateDisplayDto
+    {
+        public string FromCurrency { get; set; } = "";
+        public string ToCurrency { get; set; } = "";
+        public decimal Rate { get; set; }
+        public DateTime EffectiveDate { get; set; }
+    }
+}

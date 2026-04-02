@@ -1,0 +1,37 @@
+@inject IUoMService UoMService
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Required="true" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_abbreviation" Label="Abbreviation" Required="true" Variant="Variant.Outlined" Class="mb-3" />
+        <MudCheckBox @bind-Value="_isBaseUnit" Label="Base Unit" Color="Color.Primary" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    private string _name = "", _abbreviation = "";
+    private bool _isBaseUnit, _saving;
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_abbreviation)) return;
+        _saving = true;
+        try
+        {
+            await UoMService.CreateUnitOfMeasure(_name, _abbreviation, _isBaseUnit);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { MudDialog.Close(DialogResult.Cancel()); }
+        finally { _saving = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,61 @@
+@page "/reports/ar-aging"
+@rendermode InteractiveServer
+@inject IAccountingService AccountingService
+@inject ISnackbar Snackbar
+
+<PageTitle>AR Aging - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Accounts Receivable Aging</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load">Refresh</MudButton>
+
+    <MudTable Items="@_data" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+        <HeaderContent>
+            <MudTh>Customer</MudTh>
+            <MudTh Style="text-align:right">Current</MudTh>
+            <MudTh Style="text-align:right">1-30 Days</MudTh>
+            <MudTh Style="text-align:right">31-60 Days</MudTh>
+            <MudTh Style="text-align:right">61-90 Days</MudTh>
+            <MudTh Style="text-align:right">90+ Days</MudTh>
+            <MudTh Style="text-align:right"><strong>Total</strong></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.EntityName</MudTd>
+            <MudTd Style="text-align:right">@context.Current.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@context.Days1to30.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@context.Days31to60.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@context.Days61to90.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">
+                <MudText Color="@(context.Days90Plus > 0 ? Color.Error : Color.Default)">
+                    @context.Days90Plus.ToString("C")
+                </MudText>
+            </MudTd>
+            <MudTd Style="text-align:right"><strong>@context.Total.ToString("C")</strong></MudTd>
+        </RowTemplate>
+        <FooterContent>
+            <MudTd><strong>Grand Total</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Current).ToString("C")</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Days1to30).ToString("C")</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Days31to60).ToString("C")</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Days61to90).ToString("C")</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Days90Plus).ToString("C")</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Total).ToString("C")</strong></MudTd>
+        </FooterContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<AgingReportDto> _data = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        try { _data = await AccountingService.GetArAging(); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loading = false;
+    }
+}

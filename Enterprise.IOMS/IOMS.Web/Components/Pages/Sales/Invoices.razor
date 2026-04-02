@@ -1,0 +1,99 @@
+@page "/accounting/invoices"
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+
+<PageTitle>Invoices - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Invoices</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_search" Placeholder="Search invoices..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="Load" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect @bind-Value="_typeFilter" Label="Type" Clearable="true">
+                <MudSelectItem Value="@((InvoiceType?)InvoiceType.Sales)">Sales</MudSelectItem>
+                <MudSelectItem Value="@((InvoiceType?)InvoiceType.Purchase)">Purchase</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+        <HeaderContent>
+            <MudTh>Invoice #</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Customer/Supplier</MudTh>
+            <MudTh>Date</MudTh>
+            <MudTh>Due Date</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh Style="text-align:right">Total</MudTh>
+            <MudTh Style="text-align:right">Paid</MudTh>
+            <MudTh Style="text-align:right">Balance</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.InvoiceNumber</strong></MudTd>
+            <MudTd>@context.InvoiceType</MudTd>
+            <MudTd>@(context.CustomerName ?? context.SupplierName)</MudTd>
+            <MudTd>@context.InvoiceDate.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd>
+                <MudText Color="@(context.DueDate < DateTime.Today && context.Status != InvoiceStatus.Paid ? Color.Error : Color.Default)">
+                    @context.DueDate.ToString("yyyy-MM-dd")
+                </MudText>
+            </MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
+            <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@context.PaidAmount.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@context.BalanceDue.ToString("C")</MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<InvoiceDto> _items = new();
+    private string _search = "";
+    private InvoiceType? _typeFilter;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        try
+        {
+            var query = DbContext.Invoices
+                .Include(i => i.Customer)
+                .Include(i => i.Supplier)
+                .AsQueryable();
+
+            if (_typeFilter.HasValue) query = query.Where(i => i.InvoiceType == _typeFilter.Value);
+            if (!string.IsNullOrWhiteSpace(_search))
+                query = query.Where(i => i.InvoiceNumber.Contains(_search));
+
+            var data = await query.OrderByDescending(i => i.InvoiceDate).Take(100).ToListAsync();
+            _items = data.Select(i => new InvoiceDto(i.Id, i.InvoiceNumber, i.InvoiceType, i.Status,
+                i.CustomerId, i.Customer?.Name, i.SupplierId, i.Supplier?.Name,
+                i.InvoiceDate, i.DueDate, i.SubTotal, i.TaxAmount, i.TotalAmount, i.PaidAmount, i.BalanceDue)).ToList();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loading = false;
+    }
+
+    private Color GetStatusColor(InvoiceStatus status) => status switch
+    {
+        InvoiceStatus.Draft => Color.Default,
+        InvoiceStatus.Sent => Color.Info,
+        InvoiceStatus.PartiallyPaid => Color.Warning,
+        InvoiceStatus.Paid => Color.Success,
+        InvoiceStatus.Overdue => Color.Error,
+        InvoiceStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+}

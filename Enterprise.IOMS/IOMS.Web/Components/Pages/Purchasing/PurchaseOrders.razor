@@ -1,0 +1,161 @@
+@page "/orders/purchase"
+@rendermode InteractiveServer
+@inject IPurchaseService PurchaseService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using IOMS.Infrastructure.Data
+@inject AppDbContext DbContext
+
+<PageTitle>Purchase Orders - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Purchase Orders</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_search" Placeholder="Search..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadOrders" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true">
+                @foreach (var status in Enum.GetValues<PurchaseOrderStatus>())
+                {
+                    <MudSelectItem Value="@((PurchaseOrderStatus?)status)">@status</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreate">New PO</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_orders.Items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+        <HeaderContent>
+            <MudTh>PO #</MudTh>
+            <MudTh>Supplier</MudTh>
+            <MudTh>Date</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh Style="text-align:right">Total</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.OrderNumber</MudTd>
+            <MudTd>@context.SupplierName</MudTd>
+            <MudTd>@context.OrderDate.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd>
+                <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="Size.Small">@context.Status</MudChip>
+            </MudTd>
+            <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
+            <MudTd>
+                @if (context.Status == PurchaseOrderStatus.Draft)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success"
+                                   OnClick="@(() => Approve(context.Id))" />
+                }
+                @if (context.Status == PurchaseOrderStatus.Approved || context.Status == PurchaseOrderStatus.PartiallyReceived)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Inventory" Size="Size.Small" Color="Color.Primary"
+                                   OnClick="@(() => ReceiveGoods(context))" />
+                }
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private PagedResult<PurchaseOrderDto> _orders = new(new(), 0, 1, 25);
+    private string _search = "";
+    private PurchaseOrderStatus? _statusFilter;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadOrders();
+
+    private async Task LoadOrders()
+    {
+        _loading = true;
+        try { _orders = await PurchaseService.GetPurchaseOrders(_search, _statusFilter, 1, 25); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loading = false;
+    }
+
+    private async Task Approve(Guid id)
+    {
+        try
+        {
+            await PurchaseService.ApprovePurchaseOrder(id);
+            Snackbar.Add("PO approved", Severity.Success);
+            await LoadOrders();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task ReceiveGoods(PurchaseOrderDto po)
+    {
+        var detail = await PurchaseService.GetPurchaseOrderById(po.Id);
+        if (detail == null) return;
+
+        var lines = detail.Items
+            .Where(i => i.ReceivedQuantity < i.Quantity)
+            .Select(i => new GoodsReceivedLineDto(i.Id, i.ProductId, i.Quantity - i.ReceivedQuantity))
+            .ToList();
+
+        if (!lines.Any()) { Snackbar.Add("All items already received", Severity.Info); return; }
+
+        var confirm = await DialogService.ShowMessageBox("Receive Goods",
+            $"Receive all outstanding items for {po.OrderNumber}?", "Receive", "Cancel");
+        if (confirm == true)
+        {
+            try
+            {
+                await PurchaseService.ReceiveGoods(po.Id, lines);
+                Snackbar.Add("Goods received successfully", Severity.Success);
+                await LoadOrders();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private async Task OpenCreate()
+    {
+        var suppliers = await DbContext.Suppliers.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync();
+        var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
+
+        var parameters = new DialogParameters<PurchaseOrderDialog>
+        {
+            { x => x.Suppliers, suppliers.Select(s => (s.Id, s.Name)).ToList() },
+            { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.CostPrice)).ToList() }
+        };
+
+        var dialog = await DialogService.ShowAsync<PurchaseOrderDialog>("New Purchase Order", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is CreatePurchaseOrderDto dto)
+        {
+            try
+            {
+                await PurchaseService.CreatePurchaseOrder(dto);
+                Snackbar.Add("Purchase order created", Severity.Success);
+                await LoadOrders();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private Color GetStatusColor(PurchaseOrderStatus status) => status switch
+    {
+        PurchaseOrderStatus.Draft => Color.Default,
+        PurchaseOrderStatus.Approved => Color.Info,
+        PurchaseOrderStatus.Submitted => Color.Primary,
+        PurchaseOrderStatus.PartiallyReceived => Color.Warning,
+        PurchaseOrderStatus.Received => Color.Success,
+        PurchaseOrderStatus.Closed => Color.Dark,
+        PurchaseOrderStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+}

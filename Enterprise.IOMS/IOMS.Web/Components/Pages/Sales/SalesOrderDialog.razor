@@ -1,0 +1,115 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="_customerId" Label="Customer" Required="true">
+                    @foreach (var c in Customers)
+                    {
+                        <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_notes" Label="Notes" />
+            </MudItem>
+        </MudGrid>
+
+        <MudText Typo="Typo.h6" Class="mt-4 mb-2">Order Items</MudText>
+
+        <MudTable Items="@_items" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Product</MudTh>
+                <MudTh>Qty</MudTh>
+                <MudTh>Unit Price</MudTh>
+                <MudTh>Discount %</MudTh>
+                <MudTh>Line Total</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@Products.FirstOrDefault(p => p.Id == context.ProductId).Name</MudTd>
+                <MudTd>@context.Quantity</MudTd>
+                <MudTd>@context.UnitPrice.ToString("C")</MudTd>
+                <MudTd>@context.DiscountPercent%</MudTd>
+                <MudTd>@((context.UnitPrice * context.Quantity * (1 - context.DiscountPercent / 100)).ToString("C"))</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => _items.Remove(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <MudGrid Class="mt-3">
+            <MudItem xs="12" sm="4">
+                <MudSelect @bind-Value="_newProductId" Label="Product">
+                    @foreach (var p in Products)
+                    {
+                        <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudNumericField @bind-Value="_newQty" Label="Qty" Min="1" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudNumericField @bind-Value="_newPrice" Label="Price" Format="N2" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudNumericField @bind-Value="_newDiscount" Label="Disc %" Format="N1" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddItem" Class="mt-2">Add</MudButton>
+            </MudItem>
+        </MudGrid>
+
+        <MudText Typo="Typo.h6" Class="mt-4" Align="Align.Right">
+            Total: @_items.Sum(i => i.UnitPrice * i.Quantity * (1 - i.DiscountPercent / 100)).ToString("C")
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_items.Any())">
+            Create Order
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public List<(Guid Id, string Name)> Customers { get; set; } = new();
+    [Parameter] public List<(Guid Id, string Name, string SKU, decimal Price)> Products { get; set; } = new();
+
+    private Guid _customerId;
+    private string? _notes;
+    private List<CreateSalesOrderItemDto> _items = new();
+
+    private Guid _newProductId;
+    private int _newQty = 1;
+    private decimal _newPrice;
+    private decimal _newDiscount;
+
+    protected override void OnInitialized()
+    {
+        if (Customers.Count > 0) _customerId = Customers.First().Id;
+        if (Products.Count > 0) { _newProductId = Products.First().Id; _newPrice = Products.First().Price; }
+    }
+
+    private void AddItem()
+    {
+        if (_newProductId == Guid.Empty || _newQty <= 0) return;
+        _items.Add(new CreateSalesOrderItemDto(_newProductId, _newQty, _newPrice, _newDiscount, null));
+        _newQty = 1;
+        _newDiscount = 0;
+        if (Products.Count > 0) { _newProductId = Products.First().Id; _newPrice = Products.First().Price; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        var dto = new CreateSalesOrderDto(_customerId, null, _notes, null, null, null, _items);
+        MudDialog.Close(DialogResult.Ok(dto));
+    }
+}

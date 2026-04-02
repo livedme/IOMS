@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="IOMS.Application/IOMS.Application.csproj" />
+  <Project Path="IOMS.Domain/IOMS.Domain.csproj" />
+  <Project Path="IOMS.Infrastructure/IOMS.Infrastructure.csproj" />
+  <Project Path="IOMS.Shared/IOMS.Shared.csproj" />
+  <Project Path="IOMS.Web/IOMS.Web.csproj" />
+</Solution>

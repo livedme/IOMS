@@ -1,0 +1,48 @@
+@inject IKitService KitService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Assemble @_quantity unit(s) of this kit at the selected warehouse.</MudText>
+        <MudGrid Class="mt-3">
+            <MudItem xs="12">
+                <MudSelect @bind-Value="_warehouseId" Label="Warehouse" Required="true">
+                    @foreach (var w in Warehouses)
+                    {
+                        <MudSelectItem Value="@w.Id">@w.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudNumericField @bind-Value="_quantity" Label="Quantity" Min="1" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Assemble</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid KitId { get; set; }
+    [Parameter] public List<Warehouse> Warehouses { get; set; } = new();
+
+    private Guid _warehouseId;
+    private int _quantity = 1;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        try
+        {
+            var dto = new KitAssemblyDto(KitId, _warehouseId, _quantity);
+            await KitService.AssembleKit(dto);
+            Snackbar.Add("Kit assembled successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}
