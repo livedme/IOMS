@@ -3,7 +3,7 @@
 <MudDialog>
     <DialogContent>
         <MudTextField @bind-Value="_name" Label="Name" Required="true" />
-        <MudTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />
+        <RichTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />
         <MudSelect @bind-Value="_parentId" Label="Parent Category" Clearable="true" Class="mt-3">
             @foreach (var cat in AllCategories.Where(c => Category == null || c.Id != Category.Id))
             {

@@ -11,7 +11,7 @@
             }
         </MudSelect>
         <MudTextField @bind-Value="_subject" Label="Subject" Required="true" Variant="Variant.Outlined" Class="mb-3" />
-        <MudTextField @bind-Value="_bodyTemplate" Label="Body Template" Required="true" Variant="Variant.Outlined"
+        <RichTextField @bind-Value="_bodyTemplate" Label="Body Template" Required="true"
                       Lines="6" Placeholder="Use {{Variable}} placeholders..." />
     </DialogContent>
     <DialogActions>

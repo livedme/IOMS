@@ -10,7 +10,7 @@
                 <MudSelectItem Value="@type">@type</MudSelectItem>
             }
         </MudSelect>
-        <MudTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />
+        <RichTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>

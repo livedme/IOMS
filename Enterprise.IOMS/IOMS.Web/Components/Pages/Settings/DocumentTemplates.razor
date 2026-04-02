@@ -30,7 +30,7 @@
                 <MudCheckBox @bind-Value="_isDefault" Label="Default Template" />
             </MudItem>
             <MudItem xs="12">
-                <MudTextField @bind-Value="_htmlContent" Label="HTML Content" Lines="5" />
+                <RichTextField @bind-Value="_htmlContent" Label="HTML Content" Lines="5" />
             </MudItem>
         </MudGrid>
         <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Create" Class="mt-3">Save</MudButton>

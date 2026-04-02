@@ -9,7 +9,7 @@
     <TitleContent>New RFQ</TitleContent>
     <DialogContent>
         <MudDatePicker Label="Required Date" @bind-Date="_requiredDate" />
-        <MudTextField T="string" Label="Notes" @bind-Value="_notes" Lines="2" Class="mt-2" />
+        <RichTextField Label="Notes" @bind-Value="_notes" Lines="2" Class="mt-2" />
         <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Items</MudText>
         @for (int i = 0; i < _items.Count; i++)
         {

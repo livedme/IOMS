@@ -11,7 +11,7 @@
             }
         </MudSelect>
         <MudNumericField @bind-Value="_amount" Label="Amount" Min="0.01m" Format="N2" Required="true" />
-        <MudTextField @bind-Value="_reason" Label="Reason" Lines="3" Required="true" />
+        <RichTextField @bind-Value="_reason" Label="Reason" Lines="3" Required="true" />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>

@@ -168,3 +168,63 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+/* ── Rich Text Editor (Quill) ── */
+.rich-text-field {
+    margin-bottom: 1rem;
+}
+
+.rich-text-field .mud-input-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--mud-palette-text-secondary);
+    margin-bottom: 4px;
+    letter-spacing: 0.03em;
+}
+
+.rich-text-field .ql-toolbar.ql-snow {
+    border: 1px solid var(--mud-palette-lines-inputs, #D1D5E0);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    background: var(--mud-palette-background, #F8F9FC);
+    padding: 6px 8px;
+}
+
+.rich-text-field .ql-container.ql-snow {
+    border: 1px solid var(--mud-palette-lines-inputs, #D1D5E0);
+    border-radius: 0 0 8px 8px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 0.875rem;
+}
+
+.rich-text-field .ql-editor {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 0.875rem;
+    color: var(--mud-palette-text-primary, #1A1A2E);
+    line-height: 1.6;
+}
+
+.rich-text-field .ql-editor.ql-blank::before {
+    color: var(--mud-palette-text-secondary, #7C7F93);
+    font-style: normal;
+    font-size: 0.875rem;
+}
+
+.rich-text-field .ql-toolbar .ql-stroke {
+    stroke: var(--mud-palette-text-secondary, #7C7F93);
+}
+
+.rich-text-field .ql-toolbar .ql-fill {
+    fill: var(--mud-palette-text-secondary, #7C7F93);
+}
+
+.rich-text-field .ql-toolbar button:hover .ql-stroke,
+.rich-text-field .ql-toolbar button.ql-active .ql-stroke {
+    stroke: #4361EE;
+}
+
+.rich-text-field .ql-toolbar button:hover .ql-fill,
+.rich-text-field .ql-toolbar button.ql-active .ql-fill {
+    fill: #4361EE;
+}
