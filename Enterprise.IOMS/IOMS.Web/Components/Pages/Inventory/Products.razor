@@ -3,6 +3,7 @@
 @inject IInventoryService InventoryService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject NavigationManager Navigation
 @using IOMS.Infrastructure.Data
 @inject AppDbContext DbContext
 
@@ -42,6 +43,8 @@
             <MudTd DataLabel="Price" Style="text-align:right">@context.SellingPrice.ToString("C")</MudTd>
             <MudTd DataLabel="Reorder" Style="text-align:right">@context.ReorderLevel</MudTd>
             <MudTd>
+                <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small" Color="Color.Default"
+                               Title="View Detail" OnClick="@(() => NavigateToDetail(context.Id))" />
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
                                OnClick="@(() => OpenEditDialog(context))" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
@@ -60,6 +63,8 @@
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync() => await LoadProducts();
+
+    private void NavigateToDetail(Guid id) => Navigation.NavigateTo($"/products/{id}");
 
     private async Task LoadProducts()
     {
