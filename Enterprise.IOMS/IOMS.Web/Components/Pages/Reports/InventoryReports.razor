@@ -66,7 +66,7 @@
                 <MudItem xs="12" md="6">
                     <MudPaper Class="pa-4" Elevation="3">
                         <MudText Typo="Typo.h6" Class="mb-2">Stock by Warehouse</MudText>
-                        <MudChart ChartType="ChartType.Donut" InputData="@_whStockData"
+                        <MudChart T="double" ChartType="ChartType.Donut" InputData="@_whStockData"
                                   InputLabels="@_whStockLabels" Width="100%" Height="300px" />
                     </MudPaper>
                 </MudItem>
@@ -76,7 +76,7 @@
                 <MudItem xs="12" md="6">
                     <MudPaper Class="pa-4" Elevation="3">
                         <MudText Typo="Typo.h6" Class="mb-2">Top 10 Products by Value</MudText>
-                        <MudChart ChartType="ChartType.Bar" ChartSeries="@_topValueSeries"
+                        <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_topValueSeries"
                                   XAxisLabels="@_topValueLabels" Width="100%" Height="300px" />
                     </MudPaper>
                 </MudItem>
@@ -112,7 +112,7 @@ else if (_reportType == "Movements")
             <MudItem xs="12" md="6">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Movements by Type</MudText>
-                    <MudChart ChartType="ChartType.Pie" InputData="@_movementTypeData"
+                    <MudChart T="double" ChartType="ChartType.Pie" InputData="@_movementTypeData"
                               InputLabels="@_movementTypeLabels" Width="100%" Height="300px" />
                 </MudPaper>
             </MudItem>
@@ -123,7 +123,7 @@ else if (_reportType == "Movements")
                         <MudText Typo="Typo.h6" Class="mb-2">Movement Trend (Last 30 Days)</MudText>
                         <MudChart ChartType="ChartType.Line" ChartSeries="@_movementTrendSeries"
                                   XAxisLabels="@_movementTrendLabels" Width="100%" Height="300px"
-                                  ChartOptions="@(new ChartOptions { LineStrokeWidth = 3 })" />
+                                  ChartOptions="@(new ChartOptions())" />
                     </MudPaper>
                 </MudItem>
             }
@@ -165,7 +165,7 @@ else if (_reportType == "Valuation")
         {
             <MudPaper Class="pa-4 mb-4" Elevation="3">
                 <MudText Typo="Typo.h6" Class="mb-2">Top Products by Valuation</MudText>
-                <MudChart ChartType="ChartType.Bar" ChartSeries="@_valChartSeries"
+                <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_valChartSeries"
                           XAxisLabels="@_valChartLabels" Width="100%" Height="300px" />
             </MudPaper>
         }
@@ -204,18 +204,17 @@ else if (_reportType == "Valuation")
     private string[] _whStockLabels = [];
     private double[] _whStockData = [];
     private string[] _topValueLabels = [];
-    private List<ChartSeries> _topValueSeries = new();
+    private List<ChartSeries<double>> _topValueSeries = new();
 
     // Chart data - Movements
     private string[] _movementTypeLabels = [];
     private double[] _movementTypeData = [];
     private string[] _movementTrendLabels = [];
-    private List<ChartSeries> _movementTrendSeries = new();
+    private List<ChartSeries<double>> _movementTrendSeries = new();
 
     // Chart data - Valuation
     private string[] _valChartLabels = [];
-    private List<ChartSeries> _valChartSeries = new();
-
+    private List<ChartSeries<double>> _valChartSeries = new();
     protected override async Task OnInitializedAsync()
     {
         _warehouses = await DbContext.Warehouses.Where(w => w.IsActive).OrderBy(w => w.Name).AsNoTracking().ToListAsync();
@@ -252,7 +251,7 @@ else if (_reportType == "Valuation")
                 // Top products by value bar chart
                 var topVal = _stockTotals.OrderByDescending(s => s.Value).Take(10).ToList();
                 _topValueLabels = topVal.Select(s => s.ProductName.Length > 12 ? s.ProductName[..12] + ".." : s.ProductName).ToArray();
-                _topValueSeries = new List<ChartSeries>
+                _topValueSeries = new List<ChartSeries<double>>
                 {
                     new() { Name = "Value", Data = topVal.Select(s => (double)s.Value).ToArray() }
                 };
@@ -278,7 +277,7 @@ else if (_reportType == "Valuation")
                 // Movement trend line
                 var trendGroups = _movements.GroupBy(m => m.MovementDate.Date).OrderBy(g => g.Key).ToList();
                 _movementTrendLabels = trendGroups.Select(g => g.Key.ToString("MMM dd")).ToArray();
-                _movementTrendSeries = new List<ChartSeries>
+                _movementTrendSeries = new List<ChartSeries<double>>
                 {
                     new() { Name = "Movements", Data = trendGroups.Select(g => (double)g.Sum(m => Math.Abs(m.Quantity))).ToArray() }
                 };
@@ -302,7 +301,7 @@ else if (_reportType == "Valuation")
                 // Valuation bar chart
                 var topValuation = _valuationRows.Take(10).ToList();
                 _valChartLabels = topValuation.Select(v => v.ProductName.Length > 12 ? v.ProductName[..12] + ".." : v.ProductName).ToArray();
-                _valChartSeries = new List<ChartSeries>
+                _valChartSeries = new List<ChartSeries<double>>
                 {
                     new() { Name = "Total Value", Data = topValuation.Select(v => (double)v.TotalValue).ToArray() }
                 };

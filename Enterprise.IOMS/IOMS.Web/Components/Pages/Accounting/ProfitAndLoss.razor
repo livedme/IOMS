@@ -54,7 +54,7 @@
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4" Elevation="3">
                 <MudText Typo="Typo.h6" Class="mb-2">Revenue vs Expenses</MudText>
-                <MudChart ChartType="ChartType.Bar" ChartSeries="@_pnlBarSeries"
+                <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_pnlBarSeries"
                           XAxisLabels="@_pnlBarLabels" Width="100%" Height="300px" />
             </MudPaper>
         </MudItem>
@@ -63,7 +63,7 @@
             <MudItem xs="12" md="6">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Expense Breakdown</MudText>
-                    <MudChart ChartType="ChartType.Donut" InputData="@_expenseDonutData"
+                    <MudChart T="double" ChartType="ChartType.Donut" InputData="@_expenseDonutData"
                               InputLabels="@_expenseDonutLabels" Width="100%" Height="300px" />
                 </MudPaper>
             </MudItem>
@@ -74,7 +74,7 @@
     {
         <MudPaper Class="pa-4 mb-4" Elevation="3">
             <MudText Typo="Typo.h6" Class="mb-2">Revenue by Account</MudText>
-            <MudChart ChartType="ChartType.Bar" ChartSeries="@_revenueBarSeries"
+            <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_revenueBarSeries"
                       XAxisLabels="@_revenueBarLabels" Width="100%" Height="250px" />
         </MudPaper>
     }
@@ -125,12 +125,11 @@
 
     // Chart data
     private string[] _pnlBarLabels = { "Revenue", "Expenses", "Net Profit" };
-    private List<ChartSeries> _pnlBarSeries = new();
+    private List<ChartSeries<double>> _pnlBarSeries = new();
     private double[] _expenseDonutData = [];
     private string[] _expenseDonutLabels = [];
     private string[] _revenueBarLabels = [];
-    private List<ChartSeries> _revenueBarSeries = new();
-
+    private List<ChartSeries<double>> _revenueBarSeries = new();
     private async Task Generate()
     {
         try
@@ -138,7 +137,7 @@
             _report = await AccountingService.GetProfitAndLoss(_fromDate ?? DateTime.Today.AddYears(-1), _toDate ?? DateTime.Today);
 
             // Revenue vs Expenses bar
-            _pnlBarSeries = new List<ChartSeries>
+            _pnlBarSeries = new List<ChartSeries<double>>
             {
                 new() { Name = "Amount", Data = new double[] { (double)_report.TotalRevenue, (double)_report.TotalExpenses, (double)Math.Abs(_report.NetProfit) } }
             };
@@ -150,7 +149,7 @@
 
             // Revenue bar
             _revenueBarLabels = _report.RevenueLines.Select(r => r.AccountName.Length > 15 ? r.AccountName[..15] + ".." : r.AccountName).ToArray();
-            _revenueBarSeries = new List<ChartSeries>
+            _revenueBarSeries = new List<ChartSeries<double>>
             {
                 new() { Name = "Revenue", Data = _report.RevenueLines.Select(r => (double)r.Amount).ToArray() }
             };

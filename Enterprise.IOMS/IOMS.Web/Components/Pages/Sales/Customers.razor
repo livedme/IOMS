@@ -135,7 +135,7 @@
 
     private async Task Delete(Guid id)
     {
-        var confirm = await DialogService.ShowMessageBox("Confirm", "Delete this customer?", "Delete", "Cancel");
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm", "Delete this customer?", "Delete", "Cancel");
         if (confirm == true)
         {
             var entity = await DbContext.Customers.FindAsync(id);

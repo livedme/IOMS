@@ -64,7 +64,7 @@
 
     private async Task Delete(Guid id)
     {
-        var confirm = await DialogService.ShowMessageBox("Confirm Delete", "Delete this exchange rate?", "Delete", "Cancel");
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm Delete", "Delete this exchange rate?", "Delete", "Cancel");
         if (confirm == true)
         {
             try

@@ -58,7 +58,7 @@
         <MudItem xs="12" md="4">
             <MudPaper Class="pa-4" Elevation="3">
                 <MudText Typo="Typo.h6" Class="mb-2">Financial Position</MudText>
-                <MudChart ChartType="ChartType.Donut" InputData="@_positionData"
+                <MudChart T="double" ChartType="ChartType.Donut" InputData="@_positionData"
                           InputLabels="@_positionLabels" Width="100%" Height="280px" />
             </MudPaper>
         </MudItem>
@@ -67,7 +67,7 @@
             <MudItem xs="12" md="4">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Asset Composition</MudText>
-                    <MudChart ChartType="ChartType.Pie" InputData="@_assetPieData"
+                    <MudChart T="double" ChartType="ChartType.Pie" InputData="@_assetPieData"
                               InputLabels="@_assetPieLabels" Width="100%" Height="280px" />
                 </MudPaper>
             </MudItem>
@@ -77,7 +77,7 @@
             <MudItem xs="12" md="4">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Liabilities & Equity</MudText>
-                    <MudChart ChartType="ChartType.Pie" InputData="@_liabEquityPieData"
+                    <MudChart T="double" ChartType="ChartType.Pie" InputData="@_liabEquityPieData"
                               InputLabels="@_liabEquityPieLabels" Width="100%" Height="280px" />
                 </MudPaper>
             </MudItem>

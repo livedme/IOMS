@@ -52,7 +52,7 @@
             <MudItem xs="12" md="4">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">By Warehouse</MudText>
-                    <MudChart ChartType="ChartType.Donut" InputData="@_whData"
+                    <MudChart T="double" ChartType="ChartType.Donut" InputData="@_whData"
                               InputLabels="@_whLabels" Width="100%" Height="280px" />
                 </MudPaper>
             </MudItem>
@@ -62,7 +62,7 @@
             <MudItem xs="12" md="4">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Aging Distribution</MudText>
-                    <MudChart ChartType="ChartType.Pie" InputData="@_ageBucketData"
+                    <MudChart T="double" ChartType="ChartType.Pie" InputData="@_ageBucketData"
                               InputLabels="@_ageBucketLabels" Width="100%" Height="280px" />
                 </MudPaper>
             </MudItem>
@@ -72,7 +72,7 @@
             <MudItem xs="12" md="4">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Top 8 by Value</MudText>
-                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_topDeadSeries"
+                    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_topDeadSeries"
                               XAxisLabels="@_topDeadLabels" Width="100%" Height="280px" />
                 </MudPaper>
             </MudItem>
@@ -116,7 +116,7 @@
     private string[] _ageBucketLabels = [];
     private double[] _ageBucketData = [];
     private string[] _topDeadLabels = [];
-    private List<ChartSeries> _topDeadSeries = new();
+    private List<ChartSeries<double>> _topDeadSeries = new();
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
@@ -170,7 +170,7 @@
             // Top dead stock bar
             var topDead = _items.OrderByDescending(i => i.Value).Take(8).ToList();
             _topDeadLabels = topDead.Select(i => i.ProductName.Length > 12 ? i.ProductName[..12] + ".." : i.ProductName).ToArray();
-            _topDeadSeries = new List<ChartSeries>
+            _topDeadSeries = new List<ChartSeries<double>>
             {
                 new() { Name = "Value", Data = topDead.Select(i => (double)i.Value).ToArray() }
             };

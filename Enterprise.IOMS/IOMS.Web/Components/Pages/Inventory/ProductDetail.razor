@@ -601,7 +601,7 @@ else
 
     private async Task DeleteProduct()
     {
-        var confirmed = await DialogService.ShowMessageBox(
+        var confirmed = await DialogService.ShowMessageBoxAsync(
             "Delete Product",
             $"Are you sure you want to delete '{_product?.Name}'? This action cannot be undone.",
             yesText: "Delete", cancelText: "Cancel");

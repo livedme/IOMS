@@ -53,21 +53,21 @@
         <MudItem xs="12" md="4">
             <MudPaper Class="pa-4" Elevation="3">
                 <MudText Typo="Typo.h6" Class="mb-2">Items by Class</MudText>
-                <MudChart ChartType="ChartType.Donut" InputData="@_classItemsData"
+                <MudChart T="double" ChartType="ChartType.Donut" InputData="@_classItemsData"
                           InputLabels="@_classLabels" Width="100%" Height="280px" />
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="4">
             <MudPaper Class="pa-4" Elevation="3">
                 <MudText Typo="Typo.h6" Class="mb-2">Revenue by Class</MudText>
-                <MudChart ChartType="ChartType.Pie" InputData="@_classRevenueData"
+                <MudChart T="double" ChartType="ChartType.Pie" InputData="@_classRevenueData"
                           InputLabels="@_classLabels" Width="100%" Height="280px" />
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="4">
             <MudPaper Class="pa-4" Elevation="3">
                 <MudText Typo="Typo.h6" Class="mb-2">Class Comparison</MudText>
-                <MudChart ChartType="ChartType.Bar" ChartSeries="@_classBarSeries"
+                <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_classBarSeries"
                           XAxisLabels="@_classLabels" Width="100%" Height="280px" />
             </MudPaper>
         </MudItem>
@@ -77,9 +77,9 @@
     {
         <MudPaper Class="pa-4 mb-4" Elevation="3">
             <MudText Typo="Typo.h6" Class="mb-2">Pareto Curve (Cumulative Revenue %)</MudText>
-            <MudChart ChartType="ChartType.Line" ChartSeries="@_paretoSeries"
+            <MudChart T="double" ChartType="ChartType.Line" ChartSeries="@_paretoSeries"
                       XAxisLabels="@_paretoLabels" Width="100%" Height="300px"
-                      ChartOptions="@(new ChartOptions { LineStrokeWidth = 3, YAxisTicks = 5 })" />
+                      ChartOptions="@(new ChartOptions())" />
         </MudPaper>
     }
 }
@@ -123,9 +123,9 @@
     private string[] _classLabels = { "Class A", "Class B", "Class C" };
     private double[] _classItemsData = [];
     private double[] _classRevenueData = [];
-    private List<ChartSeries> _classBarSeries = new();
+    private List<ChartSeries<double>> _classBarSeries = new();
     private string[] _paretoLabels = [];
-    private List<ChartSeries> _paretoSeries = new();
+    private List<ChartSeries<double>> _paretoSeries = new();
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
@@ -162,7 +162,7 @@
             // Class distribution charts
             _classItemsData = new double[] { _aItems.Count, _bItems.Count, _cItems.Count };
             _classRevenueData = new double[] { (double)_aItems.Sum(i => i.Revenue), (double)_bItems.Sum(i => i.Revenue), (double)_cItems.Sum(i => i.Revenue) };
-            _classBarSeries = new List<ChartSeries>
+            _classBarSeries = new List<ChartSeries<double>>
             {
                 new() { Name = "Items", Data = _classItemsData },
                 new() { Name = "Revenue ($K)", Data = new double[] {
@@ -175,7 +175,7 @@
             var step = Math.Max(1, _allItems.Count / 20);
             var paretoItems = _allItems.Where((_, idx) => idx % step == 0 || idx == _allItems.Count - 1).ToList();
             _paretoLabels = paretoItems.Select((_, idx) => $"{(idx * step + 1)}").ToArray();
-            _paretoSeries = new List<ChartSeries>
+            _paretoSeries = new List<ChartSeries<double>>
             {
                 new() { Name = "Cumulative %", Data = paretoItems.Select(i => (double)i.CumulativePercent).ToArray() }
             };

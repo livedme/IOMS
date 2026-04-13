@@ -65,7 +65,7 @@
             <MudItem xs="12" md="6">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Balance Distribution by Type</MudText>
-                    <MudChart ChartType="ChartType.Donut" InputData="@_typeDistData"
+                    <MudChart T="double" ChartType="ChartType.Donut" InputData="@_typeDistData"
                               InputLabels="@_typeDistLabels" Width="100%" Height="300px" />
                 </MudPaper>
             </MudItem>
@@ -103,7 +103,7 @@
 
     // Chart data
     private string[] _acctTypeLabels = [];
-    private List<ChartSeries> _acctTypeSeries = new();
+    private List<ChartSeries<double>> _acctTypeSeries = new();
     private string[] _typeDistLabels = [];
     private double[] _typeDistData = [];
 
@@ -116,7 +116,7 @@
             // Group by account type
             var typeGroups = _report.Lines.GroupBy(l => l.AccountType.ToString()).ToList();
             _acctTypeLabels = typeGroups.Select(g => g.Key).ToArray();
-            _acctTypeSeries = new List<ChartSeries>
+            _acctTypeSeries = new List<ChartSeries<double>>
             {
                 new() { Name = "Debits", Data = typeGroups.Select(g => (double)g.Sum(l => l.Debit)).ToArray() },
                 new() { Name = "Credits", Data = typeGroups.Select(g => (double)g.Sum(l => l.Credit)).ToArray() }
