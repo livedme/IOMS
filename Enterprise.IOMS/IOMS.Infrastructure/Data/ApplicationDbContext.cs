@@ -6,12 +6,12 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace IOMS.Infrastructure.Data;
 
-public class AppDbContext : IdentityDbContext<ApplicationUser>
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
     private readonly Guid _tenantId;
     private readonly string? _userId;
 
-    public AppDbContext(DbContextOptions<AppDbContext> options, ITenantProvider tenantProvider)
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ITenantProvider tenantProvider)
         : base(options)
     {
         _tenantId = tenantProvider.GetTenantId();
@@ -120,7 +120,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         {
             if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
             {
-                var method = typeof(AppDbContext).GetMethod(nameof(ConfigureGlobalFilters),
+                var method = typeof(ApplicationDbContext).GetMethod(nameof(ConfigureGlobalFilters),
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 var generic = method!.MakeGenericMethod(entityType.ClrType);
                 generic.Invoke(this, [builder]);

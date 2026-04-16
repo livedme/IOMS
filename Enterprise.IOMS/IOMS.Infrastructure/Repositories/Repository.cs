@@ -23,10 +23,10 @@ public interface IRepository<T> where T : BaseEntity
 
 public class Repository<T> : IRepository<T> where T : BaseEntity
 {
-    protected readonly Data.AppDbContext _context;
+    protected readonly Data.ApplicationDbContext _context;
     protected readonly DbSet<T> _dbSet;
 
-    public Repository(Data.AppDbContext context)
+    public Repository(Data.ApplicationDbContext context)
     {
         _context = context;
         _dbSet = context.Set<T>();

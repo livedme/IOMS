@@ -12,10 +12,10 @@ namespace IOMS.Infrastructure.Services;
 
 public class InventoryService : IInventoryService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
 
-    public InventoryService(AppDbContext context, IMapper mapper)
+    public InventoryService(ApplicationDbContext context, IMapper mapper)
     {
         _context = context;
         _mapper = mapper;
@@ -128,11 +128,11 @@ public class InventoryService : IInventoryService
 
 public class OrderService : IOrderService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IAccountingService _accountingService;
 
-    public OrderService(AppDbContext context, IMapper mapper, IAccountingService accountingService)
+    public OrderService(ApplicationDbContext context, IMapper mapper, IAccountingService accountingService)
     {
         _context = context;
         _mapper = mapper;
@@ -326,11 +326,11 @@ public class OrderService : IOrderService
 
 public class PurchaseService : IPurchaseService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IAccountingService _accountingService;
 
-    public PurchaseService(AppDbContext context, IMapper mapper, IAccountingService accountingService)
+    public PurchaseService(ApplicationDbContext context, IMapper mapper, IAccountingService accountingService)
     {
         _context = context;
         _mapper = mapper;

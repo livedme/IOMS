@@ -13,10 +13,10 @@ namespace IOMS.Infrastructure.Services;
 
 public class AccountingService : IAccountingService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
 
-    public AccountingService(AppDbContext context, IMapper mapper)
+    public AccountingService(ApplicationDbContext context, IMapper mapper)
     {
         _context = context;
         _mapper = mapper;

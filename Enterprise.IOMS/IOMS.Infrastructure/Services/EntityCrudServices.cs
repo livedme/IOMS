@@ -11,10 +11,10 @@ namespace IOMS.Infrastructure.Services;
 
 public class ProductService : IProductService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
 
-    public ProductService(AppDbContext db, IMapper mapper)
+    public ProductService(ApplicationDbContext db, IMapper mapper)
     {
         _db = db;
         _mapper = mapper;
@@ -136,10 +136,10 @@ public class ProductService : IProductService
 
 public class CustomerSupplierService : ICustomerSupplierService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
 
-    public CustomerSupplierService(AppDbContext db, IMapper mapper)
+    public CustomerSupplierService(ApplicationDbContext db, IMapper mapper)
     {
         _db = db;
         _mapper = mapper;
@@ -244,11 +244,11 @@ public class CustomerSupplierService : ICustomerSupplierService
 
 public class InvoiceService : IInvoiceService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
     private readonly ISharedNumberGenerator _numberGen;
 
-    public InvoiceService(AppDbContext db, IMapper mapper, ISharedNumberGenerator numberGen)
+    public InvoiceService(ApplicationDbContext db, IMapper mapper, ISharedNumberGenerator numberGen)
     {
         _db = db;
         _mapper = mapper;
@@ -321,10 +321,10 @@ public class InvoiceService : IInvoiceService
 
 public class UoMService : IUoMService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
 
-    public UoMService(AppDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
+    public UoMService(ApplicationDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
 
     public async Task<List<UnitOfMeasureDto>> GetUnitsOfMeasure()
     {
@@ -371,10 +371,10 @@ public class UoMService : IUoMService
 
 public class ExchangeRateService : IExchangeRateService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
 
-    public ExchangeRateService(AppDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
+    public ExchangeRateService(ApplicationDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
 
     public async Task<List<ExchangeRateDto>> GetExchangeRates()
     {
@@ -401,10 +401,10 @@ public class ExchangeRateService : IExchangeRateService
 
 public class NotificationTemplateService : INotificationTemplateService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
 
-    public NotificationTemplateService(AppDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
+    public NotificationTemplateService(ApplicationDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
 
     public async Task<List<NotificationTemplateDto>> GetTemplates()
     {

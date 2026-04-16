@@ -13,7 +13,7 @@ public static class SeedData
     public static async Task InitializeAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
@@ -134,7 +134,7 @@ public static class SeedData
         await SeedDummyDataAsync(context, tenantId);
     }
 
-    private static async Task SeedDummyDataAsync(AppDbContext context, Guid tenantId)
+    private static async Task SeedDummyDataAsync(ApplicationDbContext context, Guid tenantId)
     {
         // Check if dummy data already seeded (use Products as indicator)
         if (await context.Products.IgnoreQueryFilters().CountAsync(p => p.TenantId == tenantId) >= 20)

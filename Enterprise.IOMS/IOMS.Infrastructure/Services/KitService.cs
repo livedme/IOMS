@@ -11,10 +11,10 @@ namespace IOMS.Infrastructure.Services;
 
 public class KitService : IKitService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
 
-    public KitService(AppDbContext context, IMapper mapper)
+    public KitService(ApplicationDbContext context, IMapper mapper)
     {
         _context = context;
         _mapper = mapper;
