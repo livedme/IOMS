@@ -111,7 +111,7 @@
 
     private async Task DeleteCategory(Guid id)
     {
-        var confirm = await DialogService.ShowMessageBox("Confirm", "Delete this category?", "Delete", "Cancel");
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm", "Delete this category?", "Delete", "Cancel");
         if (confirm == true)
         {
             var entity = await DbContext.Categories.FindAsync(id);

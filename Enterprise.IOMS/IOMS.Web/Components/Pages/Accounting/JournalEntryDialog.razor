@@ -68,7 +68,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public List<AccountDto> Accounts { get; set; } = new();
 
     private DateTime? _entryDate = DateTime.Today;

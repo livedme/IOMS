@@ -50,14 +50,14 @@
         <MudItem xs="12" md="4">
             <MudPaper Class="pa-4" Elevation="3">
                 <MudText Typo="Typo.h6" Class="mb-2">Aging Buckets</MudText>
-                <MudChart ChartType="ChartType.Donut" InputData="@_bucketData"
+                <MudChart T=double T=double ChartType="ChartType.Donut" InputData="@_bucketData"
                           InputLabels="@_bucketLabels" Width="100%" Height="280px" />
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="8">
             <MudPaper Class="pa-4" Elevation="3">
                 <MudText Typo="Typo.h6" Class="mb-2">Top Customers by Outstanding</MudText>
-                <MudChart ChartType="ChartType.Bar" ChartSeries="@_customerBarSeries"
+                <MudChart T=double T=double ChartType="ChartType.Bar" ChartSeries="@_customerBarSeries"
                           XAxisLabels="@_customerBarLabels" Width="100%" Height="280px" />
             </MudPaper>
         </MudItem>
@@ -108,7 +108,7 @@
     private string[] _bucketLabels = { "Current", "1-30 Days", "31-60 Days", "61-90 Days", "90+ Days" };
     private double[] _bucketData = [];
     private string[] _customerBarLabels = [];
-    private List<ChartSeries> _customerBarSeries = new();
+    private List<ChartSeries<double>> _customerBarSeries = new();
 
     protected override async Task OnInitializedAsync() => await Load();
 
@@ -131,7 +131,7 @@
             // Top customers bar
             var topCustomers = _data.OrderByDescending(d => d.Total).Take(10).ToList();
             _customerBarLabels = topCustomers.Select(d => d.EntityName.Length > 12 ? d.EntityName[..12] + ".." : d.EntityName).ToArray();
-            _customerBarSeries = new List<ChartSeries>
+            _customerBarSeries = new List<ChartSeries<double>>
             {
                 new() { Name = "Current", Data = topCustomers.Select(d => (double)d.Current).ToArray() },
                 new() { Name = "Overdue", Data = topCustomers.Select(d => (double)(d.Days1to30 + d.Days31to60 + d.Days61to90 + d.Days90Plus)).ToArray() }

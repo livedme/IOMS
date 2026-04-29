@@ -50,7 +50,7 @@
     <MudItem xs="12" md="6">
         <MudPaper Class="pa-4" Elevation="3">
             <MudText Typo="Typo.h6" Class="mb-2">Output vs Input Tax</MudText>
-            <MudChart ChartType="ChartType.Bar" ChartSeries="@_taxComparisonSeries"
+            <MudChart T=double ChartType="ChartType.Bar" ChartSeries="@_taxComparisonSeries"
                       XAxisLabels="@_taxCompLabels" Width="100%" Height="300px" />
         </MudPaper>
     </MudItem>
@@ -59,7 +59,7 @@
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4" Elevation="3">
                 <MudText Typo="Typo.h6" Class="mb-2">Tax Distribution by Rate</MudText>
-                <MudChart ChartType="ChartType.Donut" InputData="@_taxRateChartData"
+                <MudChart T=double ChartType="ChartType.Donut" InputData="@_taxRateChartData"
                           InputLabels="@_taxRateChartLabels" Width="100%" Height="300px" />
             </MudPaper>
         </MudItem>
@@ -70,9 +70,9 @@
 {
     <MudPaper Class="pa-4 mb-4" Elevation="3">
         <MudText Typo="Typo.h6" Class="mb-2">Monthly Tax Trend</MudText>
-        <MudChart ChartType="ChartType.Line" ChartSeries="@_monthlyTaxSeries"
+        <MudChart T=double ChartType="ChartType.Line" ChartSeries="@_monthlyTaxSeries"
                   XAxisLabels="@_monthlyTaxLabels" Width="100%" Height="300px"
-                  ChartOptions="@(new ChartOptions { YAxisTicks = 5, LineStrokeWidth = 3 })" />
+                  ChartOptions="@(new ChartOptions())" />
     </MudPaper>
 }
 
@@ -100,12 +100,12 @@
     private bool _loading = true;
 
     // Chart data
-    private List<ChartSeries> _taxComparisonSeries = new();
+    private List<ChartSeries<double>> _taxComparisonSeries = new();
     private string[] _taxCompLabels = { "Output Tax", "Input Tax", "Net Liability" };
     private double[] _taxRateChartData = [];
     private string[] _taxRateChartLabels = [];
     private string[] _monthlyTaxLabels = [];
-    private List<ChartSeries> _monthlyTaxSeries = new();
+    private List<ChartSeries<double>> _monthlyTaxSeries = new();
 
     protected override async Task OnInitializedAsync() => await Load();
 
@@ -136,7 +136,7 @@
             }).ToListAsync();
 
         // Tax comparison bar
-        _taxComparisonSeries = new List<ChartSeries>
+        _taxComparisonSeries = new List<ChartSeries<double>>
         {
             new() { Name = "Amount", Data = new double[] { (double)_outputTax, (double)_inputTax, (double)Math.Abs(_netTax) } }
         };
@@ -166,7 +166,7 @@
         if (months.Count > 1)
         {
             _monthlyTaxLabels = months.Select(m => m.ToString("MMM yy")).ToArray();
-            _monthlyTaxSeries = new List<ChartSeries>
+            _monthlyTaxSeries = new List<ChartSeries<double>>
             {
                 new() { Name = "Output Tax", Data = months.Select(m =>
                     (double)invoices.Where(i => i.InvoiceDate.Year == m.Year && i.InvoiceDate.Month == m.Month).Sum(i => i.TaxAmount)).ToArray() },

@@ -57,7 +57,7 @@
             <MudItem xs="12" md="6">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Top 10 Products by Total Value</MudText>
-                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_topCostSeries"
+                    <MudChart T=double ChartType="ChartType.Bar" ChartSeries="@_topCostSeries"
                               XAxisLabels="@_topCostLabels" Width="100%" Height="300px" />
                 </MudPaper>
             </MudItem>
@@ -67,7 +67,7 @@
             <MudItem xs="12" md="6">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Cost Breakdown (Top 8 Products)</MudText>
-                    <MudChart ChartType="ChartType.Donut" InputData="@_costBreakdownData"
+                    <MudChart T=double ChartType="ChartType.Donut" InputData="@_costBreakdownData"
                               InputLabels="@_costBreakdownLabels" Width="100%" Height="300px" />
                 </MudPaper>
             </MudItem>
@@ -105,7 +105,7 @@
 
     // Chart data
     private string[] _topCostLabels = [];
-    private List<ChartSeries> _topCostSeries = new();
+    private List<ChartSeries<double>> _topCostSeries = new();
     private string[] _costBreakdownLabels = [];
     private double[] _costBreakdownData = [];
 
@@ -151,7 +151,7 @@
             // Top products bar chart
             var topCost = _rows.Take(10).ToList();
             _topCostLabels = topCost.Select(r => r.ProductName.Length > 12 ? r.ProductName[..12] + ".." : r.ProductName).ToArray();
-            _topCostSeries = new List<ChartSeries>
+            _topCostSeries = new List<ChartSeries<double>>
             {
                 new() { Name = "Inventory Value", Data = topCost.Select(r => (double)r.TotalValue).ToArray() },
                 new() { Name = "Landed Cost", Data = topCost.Select(r => (double)r.LandedCost).ToArray() }

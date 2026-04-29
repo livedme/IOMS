@@ -107,7 +107,7 @@ else if (_kpis != null)
                 </MudText>
                 @if (_salesChartSeries.Any())
                 {
-                    <MudChart ChartType="ChartType.Line" ChartSeries="@_salesChartSeries" XAxisLabels="@_salesLabels"
+                    <MudChart T=double ChartType="ChartType.Line" ChartSeries="@_salesChartSeries" XAxisLabels="@_salesLabels"
                               Width="100%" Height="300px" ChartOptions="@_lineChartOptions" />
                 }
                 else
@@ -126,7 +126,7 @@ else if (_kpis != null)
                 </MudText>
                 @if (_soStatusData.Length > 0)
                 {
-                    <MudChart ChartType="ChartType.Donut" InputData="@_soStatusData" InputLabels="@_soStatusLabels"
+                    <MudChart T=double ChartType="ChartType.Donut" InputData="@_soStatusData" InputLabels="@_soStatusLabels"
                               Width="100%" Height="250px" />
                 }
                 else
@@ -147,7 +147,7 @@ else if (_kpis != null)
                 </MudText>
                 @if (_topProductsSeries.Any())
                 {
-                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_topProductsSeries" XAxisLabels="@_topProductLabels"
+                    <MudChart T=double ChartType="ChartType.Bar" ChartSeries="@_topProductsSeries" XAxisLabels="@_topProductLabels"
                               Width="100%" Height="300px" ChartOptions="@_barChartOptions" />
                 }
                 else
@@ -166,7 +166,7 @@ else if (_kpis != null)
                 </MudText>
                 @if (_poStatusData.Length > 0)
                 {
-                    <MudChart ChartType="ChartType.Pie" InputData="@_poStatusData" InputLabels="@_poStatusLabels"
+                    <MudChart T=double ChartType="ChartType.Pie" InputData="@_poStatusData" InputLabels="@_poStatusLabels"
                               Width="100%" Height="300px" />
                 }
                 else
@@ -320,17 +320,17 @@ else if (_kpis != null)
     private bool _loading = true;
 
     // Chart data
-    private List<ChartSeries> _salesChartSeries = new();
+    private List<ChartSeries<double>> _salesChartSeries = new();
     private string[] _salesLabels = Array.Empty<string>();
-    private ChartOptions _lineChartOptions = new() { YAxisTicks = 1000, LineStrokeWidth = 3 };
-    private ChartOptions _barChartOptions = new() { YAxisTicks = 500 };
+    private ChartOptions _lineChartOptions = new();
+    private ChartOptions _barChartOptions = new();
 
     private double[] _soStatusData = Array.Empty<double>();
     private string[] _soStatusLabels = Array.Empty<string>();
     private double[] _poStatusData = Array.Empty<double>();
     private string[] _poStatusLabels = Array.Empty<string>();
 
-    private List<ChartSeries> _topProductsSeries = new();
+    private List<ChartSeries<double>> _topProductsSeries = new();
     private string[] _topProductLabels = Array.Empty<string>();
 
     // Table data
@@ -364,7 +364,7 @@ else if (_kpis != null)
             if (topProducts.Any())
             {
                 _topProductLabels = topProducts.Select(p => Truncate(p.ProductName, 12)).ToArray();
-                _topProductsSeries = new List<ChartSeries>
+                _topProductsSeries = new List<ChartSeries<double>>
                 {
                     new() { Name = "Revenue", Data = topProducts.Select(p => (double)p.Revenue).ToArray() }
                 };
@@ -410,7 +410,7 @@ else if (_kpis != null)
         var salesDict = sales.ToDictionary(s => s.Period, s => (double)s.Amount);
         var purchaseDict = purchases.ToDictionary(p => p.Period, p => (double)p.Amount);
 
-        _salesChartSeries = new List<ChartSeries>
+        _salesChartSeries = new List<ChartSeries<double>>
         {
             new() { Name = "Sales", Data = allPeriods.Select(p => salesDict.GetValueOrDefault(p, 0)).ToArray() },
             new() { Name = "Purchases", Data = allPeriods.Select(p => purchaseDict.GetValueOrDefault(p, 0)).ToArray() }

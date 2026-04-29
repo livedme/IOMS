@@ -46,7 +46,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     private List<Product> _products = new();
     private DateTime? _requiredDate;
     private string? _notes;

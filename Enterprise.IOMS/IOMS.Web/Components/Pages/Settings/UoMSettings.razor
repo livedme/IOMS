@@ -111,7 +111,7 @@
 
     private async Task DeleteUnit(Guid id)
     {
-        var confirm = await DialogService.ShowMessageBox("Confirm Delete", "Delete this unit of measure?", "Delete", "Cancel");
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm Delete", "Delete this unit of measure?", "Delete", "Cancel");
         if (confirm == true)
         {
             try
@@ -126,7 +126,7 @@
 
     private async Task DeleteConversion(Guid id)
     {
-        var confirm = await DialogService.ShowMessageBox("Confirm Delete", "Delete this conversion?", "Delete", "Cancel");
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm Delete", "Delete this conversion?", "Delete", "Cancel");
         if (confirm == true)
         {
             try

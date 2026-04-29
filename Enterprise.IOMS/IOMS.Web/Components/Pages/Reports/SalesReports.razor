@@ -104,9 +104,9 @@
             <MudItem xs="12" md="8">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Daily Sales Trend</MudText>
-                    <MudChart ChartType="ChartType.Line" ChartSeries="@_dailySalesSeries"
+                    <MudChart T=double ChartType="ChartType.Line" ChartSeries="@_dailySalesSeries"
                               XAxisLabels="@_dailySalesLabels" Width="100%" Height="300px"
-                              ChartOptions="@(new ChartOptions { YAxisTicks = 5, LineStrokeWidth = 3 })" />
+                              ChartOptions="@(new ChartOptions ())" />
                 </MudPaper>
             </MudItem>
         }
@@ -115,7 +115,7 @@
             <MudItem xs="12" md="4">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Orders by Status</MudText>
-                    <MudChart ChartType="ChartType.Donut" InputData="@_statusChartData"
+                    <MudChart T=double ChartType="ChartType.Donut" InputData="@_statusChartData"
                               InputLabels="@_statusChartLabels" Width="100%" Height="300px" />
                 </MudPaper>
             </MudItem>
@@ -129,7 +129,7 @@
             <MudItem xs="12" md="4">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Revenue by Customer (Top 8)</MudText>
-                    <MudChart ChartType="ChartType.Donut" InputData="@_customerChartData"
+                    <MudChart T=double ChartType="ChartType.Donut" InputData="@_customerChartData"
                               InputLabels="@_customerChartLabels" Width="100%" Height="300px" />
                 </MudPaper>
             </MudItem>
@@ -139,7 +139,7 @@
             <MudItem xs="12" md="8">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Top Products by Revenue</MudText>
-                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_productChartSeries"
+                    <MudChart T=double ChartType="ChartType.Bar" ChartSeries="@_productChartSeries"
                               XAxisLabels="@_productChartLabels" Width="100%" Height="300px" />
                 </MudPaper>
             </MudItem>
@@ -153,7 +153,7 @@
             <MudItem xs="12" md="8">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Monthly Revenue & Collection</MudText>
-                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_monthlyBarSeries"
+                    <MudChart T=double ChartType="ChartType.Bar" ChartSeries="@_monthlyBarSeries"
                               XAxisLabels="@_monthlyBarLabels" Width="100%" Height="300px" />
                 </MudPaper>
             </MudItem>
@@ -163,7 +163,7 @@
             <MudItem xs="12" md="4">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Payments by Method</MudText>
-                    <MudChart ChartType="ChartType.Pie" InputData="@_paymentMethodData"
+                    <MudChart T=double ChartType="ChartType.Pie" InputData="@_paymentMethodData"
                               InputLabels="@_paymentMethodLabels" Width="100%" Height="300px" />
                 </MudPaper>
             </MudItem>
@@ -285,15 +285,15 @@ else if (_summaryLoaded)
 
     // Chart data
     private string[] _dailySalesLabels = [];
-    private List<ChartSeries> _dailySalesSeries = new();
+    private List<ChartSeries<double>> _dailySalesSeries = new();
     private double[] _customerChartData = [];
     private string[] _customerChartLabels = [];
     private string[] _productChartLabels = [];
-    private List<ChartSeries> _productChartSeries = new();
+    private List<ChartSeries<double>> _productChartSeries = new();
     private double[] _statusChartData = [];
     private string[] _statusChartLabels = [];
     private string[] _monthlyBarLabels = [];
-    private List<ChartSeries> _monthlyBarSeries = new();
+    private List<ChartSeries<double>> _monthlyBarSeries = new();
     private double[] _paymentMethodData = [];
     private string[] _paymentMethodLabels = [];
 
@@ -394,7 +394,7 @@ else if (_summaryLoaded)
         int step = Math.Max(1, dailyGroups.Count / 25);
         var sampled = dailyGroups.Where((_, i) => i % step == 0 || i == dailyGroups.Count - 1).ToList();
         _dailySalesLabels = sampled.Select(g => g.Key.ToString("MMM dd")).ToArray();
-        _dailySalesSeries = new List<ChartSeries>
+        _dailySalesSeries = new List<ChartSeries<double>>
         {
             new() { Name = "Revenue", Data = sampled.Select(g => (double)g.Sum(o => o.TotalAmount)).ToArray() },
             new() { Name = "Orders", Data = sampled.Select(g => (double)g.Count()).ToArray() }
@@ -413,7 +413,7 @@ else if (_summaryLoaded)
         // ── Product bar chart ──
         var topProducts = _productData.Take(10).ToList();
         _productChartLabels = topProducts.Select(p => p.ProductName.Length > 12 ? p.ProductName[..12] + ".." : p.ProductName).ToArray();
-        _productChartSeries = new List<ChartSeries>
+        _productChartSeries = new List<ChartSeries<double>>
         {
             new() { Name = "Revenue", Data = topProducts.Select(p => (double)p.Revenue).ToArray() },
             new() { Name = "Units Sold", Data = topProducts.Select(p => (double)p.UnitsSold).ToArray() }
@@ -425,7 +425,7 @@ else if (_summaryLoaded)
         var monthlyPay = payments.GroupBy(p => new { p.PaymentDate.Year, p.PaymentDate.Month }).ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
 
         _monthlyBarLabels = monthlyOrders.Select(g => new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM yy")).ToArray();
-        _monthlyBarSeries = new List<ChartSeries>
+        _monthlyBarSeries = new List<ChartSeries<double>>
         {
             new() { Name = "Revenue", Data = monthlyOrders.Select(g => (double)g.Sum(o => o.TotalAmount)).ToArray() },
             new() { Name = "Invoiced", Data = monthlyOrders.Select(g => (double)monthlyInv.GetValueOrDefault(new { g.Key.Year, g.Key.Month }, 0m)).ToArray() },

@@ -70,15 +70,15 @@
             <MudItem xs="12" md="8">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Balance Trend</MudText>
-                    <MudChart ChartType="ChartType.Line" ChartSeries="@_balanceTrendSeries"
+                    <MudChart T=double T="double"  ChartType="ChartType.Line" ChartSeries="@_balanceTrendSeries"
                               XAxisLabels="@_balanceTrendLabels" Width="100%" Height="300px"
-                              ChartOptions="@(new ChartOptions { LineStrokeWidth = 3 })" />
+                              ChartOptions="@(new ChartOptions())" />
                 </MudPaper>
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudPaper Class="pa-4" Elevation="3">
                     <MudText Typo="Typo.h6" Class="mb-2">Debits vs Credits</MudText>
-                    <MudChart ChartType="ChartType.Donut"
+                    <MudChart T=double T=double ChartType="ChartType.Donut"
                               InputData="@(new double[] { (double)_totalInvoiced, (double)_totalPaid })"
                               InputLabels="@(new[] { "Invoiced", "Paid" })"
                               Width="100%" Height="280px" />
@@ -90,7 +90,7 @@
         {
             <MudPaper Class="pa-4 mb-4" Elevation="3">
                 <MudText Typo="Typo.h6" Class="mb-2">Monthly Debits & Credits</MudText>
-                <MudChart ChartType="ChartType.Bar" ChartSeries="@_monthlyBarSeries"
+                <MudChart T=double ChartType="ChartType.Bar" ChartSeries="@_monthlyBarSeries"
                           XAxisLabels="@_monthlyBarLabels" Width="100%" Height="300px" />
             </MudPaper>
         }
@@ -137,9 +137,9 @@
 
     // Chart data
     private string[] _balanceTrendLabels = [];
-    private List<ChartSeries> _balanceTrendSeries = new();
+    private List<ChartSeries<double>> _balanceTrendSeries = new();
     private string[] _monthlyBarLabels = [];
-    private List<ChartSeries> _monthlyBarSeries = new();
+    private List<ChartSeries<double>> _monthlyBarSeries = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -201,7 +201,7 @@
         int step = Math.Max(1, lines.Count / 20);
         var sampled = lines.Where((_, i) => i % step == 0 || i == lines.Count - 1).ToList();
         _balanceTrendLabels = sampled.Select(l => l.Date.ToString("MMM dd")).ToArray();
-        _balanceTrendSeries = new List<ChartSeries>
+        _balanceTrendSeries = new List<ChartSeries<double>>
         {
             new() { Name = "Balance", Data = sampled.Select(l => (double)l.RunningBalance).ToArray() }
         };
@@ -213,7 +213,7 @@
             .ToList();
 
         _monthlyBarLabels = monthly.Select(g => new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM yy")).ToArray();
-        _monthlyBarSeries = new List<ChartSeries>
+        _monthlyBarSeries = new List<ChartSeries<double>>
         {
             new() { Name = "Debits", Data = monthly.Select(g => (double)g.Sum(l => l.Debit)).ToArray() },
             new() { Name = "Credits", Data = monthly.Select(g => (double)g.Sum(l => l.Credit)).ToArray() }
