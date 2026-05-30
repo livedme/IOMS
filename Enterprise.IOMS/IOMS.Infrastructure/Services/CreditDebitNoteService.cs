@@ -11,9 +11,9 @@ namespace IOMS.Infrastructure.Services;
 
 public class CreditDebitNoteService : ICreditDebitNoteService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public CreditDebitNoteService(AppDbContext context) => _context = context;
+    public CreditDebitNoteService(ApplicationDbContext context) => _context = context;
 
     public async Task<PagedResult<CreditNoteDto>> GetCreditNotes(string? search, int page, int pageSize)
     {

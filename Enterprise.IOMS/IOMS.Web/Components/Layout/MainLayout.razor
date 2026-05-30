@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthStateProvider
 
 <MudThemeProvider Theme="_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
@@ -17,6 +18,34 @@
             <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
                            Color="Color.Default" OnClick="@ToggleDarkMode" />
         </MudTooltip>
+
+        @* User avatar + dropdown *@
+        <MudMenu @bind-Open="_menuOpen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">
+            <ActivatorContent>
+                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="ml-1 cursor-pointer"
+                           Style="font-size:0.8rem;font-weight:600;"
+                           @onclick="ToggleUserMenu">
+                    @_userInitial
+                </MudAvatar>
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem Disabled="true">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@_userDisplayName</MudText>
+                        @* <MudText Typo="Typo.caption" Color="Color.Secondary">@_userEmail</MudText> *@
+                    </MudStack>
+                </MudMenuItem>
+                <MudMenuItem Class="logout justify-content-end d-flex" IconColor="Color.Error">
+                    <form action="/Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="returnUrl" value="/" />
+                        <button type="submit" style="background:none;border:none;padding:0;cursor:pointer;color:var(--mud-palette-error);font:inherit; float:right;">
+                            Sign out
+                        </button>
+                    </form>
+                </MudMenuItem>
+            </ChildContent>
+        </MudMenu>
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0"
@@ -34,6 +63,7 @@
 @code {
     private bool _drawerOpen = true;
     private bool _isDarkMode = false;
+    private bool _menuOpen = false;
 
     private MudTheme _theme = new()
     {
@@ -90,6 +120,32 @@
         }
     };
 
+    private string _userDisplayName = "";
+    private string _userEmail = "";
+    private string _userInitial = "?";
+
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
     private void ToggleDarkMode() => _isDarkMode = !_isDarkMode;
+    private void ToggleUserMenu() => _menuOpen = !_menuOpen;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _userDisplayName = user.FindFirst("name")?.Value
+                ?? user.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+                ?? user.Identity.Name
+                ?? "";
+            _userEmail = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                ?? user.FindFirst("email")?.Value
+                ?? "";
+            _userInitial = string.IsNullOrWhiteSpace(_userDisplayName)
+                ? "?"
+                : _userDisplayName[0].ToString().ToUpper();
+        }
+    }
+
+
 }

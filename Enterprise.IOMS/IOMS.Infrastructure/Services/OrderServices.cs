@@ -12,13 +12,46 @@ namespace IOMS.Infrastructure.Services;
 
 public class InventoryService : IInventoryService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
 
-    public InventoryService(AppDbContext context, IMapper mapper)
+    public InventoryService(ApplicationDbContext context, IMapper mapper)
     {
         _context = context;
         _mapper = mapper;
+    }
+
+    public async Task<PagedResult<InventoryTrackingDto>> GetInventoryTrackingByWarehouse(Guid warehouseId, int page, int pageSize)
+    {
+        var query = _context.Inventories
+            .Include(i => i.Product)
+            .Include(i => i.Warehouse)
+            .Where(i => i.WarehouseId == warehouseId);
+
+        var total = await query.CountAsync();
+        var items = await query
+            .OrderBy(i => i.Product.Name)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .ToListAsync();
+
+        var dtos = items.Select(i => new InventoryTrackingDto(
+            i.Id,
+            i.ProductId,
+            i.Product.Name,
+            i.Product.SKU,
+            i.WarehouseId,
+            i.Warehouse.Name,
+            i.Quantity,
+            i.ReservedQuantity,
+            i.AvailableQuantity,
+            i.BinLocation,
+            i.SerialNumber,
+            i.BatchNumber,
+            i.ExpiryDate,
+            i.Condition
+        )).ToList();
+
+        return new PagedResult<InventoryTrackingDto>(dtos, total, page, pageSize);
     }
 
     public async Task<int> GetStockLevel(Guid productId, Guid warehouseId)
@@ -128,11 +161,11 @@ public class InventoryService : IInventoryService
 
 public class OrderService : IOrderService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IAccountingService _accountingService;
 
-    public OrderService(AppDbContext context, IMapper mapper, IAccountingService accountingService)
+    public OrderService(ApplicationDbContext context, IMapper mapper, IAccountingService accountingService)
     {
         _context = context;
         _mapper = mapper;
@@ -326,11 +359,11 @@ public class OrderService : IOrderService
 
 public class PurchaseService : IPurchaseService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IAccountingService _accountingService;
 
-    public PurchaseService(AppDbContext context, IMapper mapper, IAccountingService accountingService)
+    public PurchaseService(ApplicationDbContext context, IMapper mapper, IAccountingService accountingService)
     {
         _context = context;
         _mapper = mapper;

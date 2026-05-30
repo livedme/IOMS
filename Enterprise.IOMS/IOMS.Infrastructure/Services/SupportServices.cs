@@ -13,9 +13,9 @@ namespace IOMS.Infrastructure.Services;
 // ─── Tax Service ────────────────────────────────────────────────────────────
 public class TaxService : ITaxService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public TaxService(AppDbContext context) => _context = context;
+    public TaxService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<TaxRateDto>> GetTaxRates()
     {
@@ -115,9 +115,9 @@ public class TaxService : ITaxService
 // ─── Pricing Service ────────────────────────────────────────────────────────
 public class PricingService : IPricingService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public PricingService(AppDbContext context) => _context = context;
+    public PricingService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<PriceListDto>> GetPriceLists()
     {
@@ -296,10 +296,10 @@ public class PricingService : IPricingService
 // ─── Quotation Service ──────────────────────────────────────────────────────
 public class QuotationService : IQuotationService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
 
-    public QuotationService(AppDbContext context, IMapper mapper)
+    public QuotationService(ApplicationDbContext context, IMapper mapper)
     {
         _context = context;
         _mapper = mapper;
@@ -448,9 +448,9 @@ public class QuotationService : IQuotationService
 // ─── Shipping Service ───────────────────────────────────────────────────────
 public class ShippingService : IShippingService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public ShippingService(AppDbContext context) => _context = context;
+    public ShippingService(ApplicationDbContext context) => _context = context;
 
     public async Task<Guid> CreateDeliveryNote(CreateDeliveryNoteDto dto)
     {
@@ -521,9 +521,9 @@ public class ShippingService : IShippingService
 // ─── Dashboard Service ──────────────────────────────────────────────────────
 public class DashboardService : IDashboardService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public DashboardService(AppDbContext context) => _context = context;
+    public DashboardService(ApplicationDbContext context) => _context = context;
 
     public async Task<DashboardKpiDto> GetDashboardKPIs()
     {
@@ -678,9 +678,9 @@ public class DashboardService : IDashboardService
 // ─── Search Service ─────────────────────────────────────────────────────────
 public class SearchService : ISearchService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public SearchService(AppDbContext context) => _context = context;
+    public SearchService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<GlobalSearchResultDto>> Search(string query, int maxResults = 20)
     {

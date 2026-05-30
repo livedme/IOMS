@@ -12,10 +12,10 @@ namespace IOMS.Infrastructure.Services;
 
 public class PurchaseReturnService : IPurchaseReturnService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
 
-    public PurchaseReturnService(AppDbContext context, IMapper mapper)
+    public PurchaseReturnService(ApplicationDbContext context, IMapper mapper)
     {
         _context = context;
         _mapper = mapper;

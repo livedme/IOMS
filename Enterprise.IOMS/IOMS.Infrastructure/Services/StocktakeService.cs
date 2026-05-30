@@ -11,10 +11,10 @@ namespace IOMS.Infrastructure.Services;
 
 public class StocktakeService : IStocktakeService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
 
-    public StocktakeService(AppDbContext context, IMapper mapper)
+    public StocktakeService(ApplicationDbContext context, IMapper mapper)
     {
         _context = context;
         _mapper = mapper;

@@ -26,6 +26,12 @@ public class SalesOrder : BaseEntity
     public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
     public ICollection<DeliveryNote> DeliveryNotes { get; set; } = new List<DeliveryNote>();
     public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
+
+    // Order processing enhancements
+    public bool IsBackOrder { get; set; }
+    public string? ShippingCarrier { get; set; }
+    public string? TrackingNumber { get; set; }
+    public DateTime? DeliveredDate { get; set; }
 }
 
 public class SalesOrderItem : BaseEntity
@@ -44,6 +50,10 @@ public class SalesOrderItem : BaseEntity
     public decimal LineTotal { get; set; }
     public Guid? UoMId { get; set; }
     public UnitOfMeasure? UoM { get; set; }
+
+    // Partial shipment and return support
+    public int ReturnedQuantity { get; set; }
+    public bool IsBackOrdered { get; set; }
 }
 
 public class PurchaseOrder : BaseEntity

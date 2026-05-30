@@ -5,15 +5,143 @@ namespace IOMS.Application.DTOs;
 // Products
 public record ProductDto(Guid Id, string Name, string SKU, string? Barcode, string? Description,
     decimal CostPrice, decimal SellingPrice, int ReorderLevel, int MinimumOrderQuantity,
-    Guid CategoryId, string? CategoryName, string? ImageUrl, int TotalStock, bool IsKit);
+    Guid CategoryId, string? CategoryName, string? ImageUrl, int TotalStock, bool IsKit,
+    ProductType ProductType = ProductType.General);
+
+// Extended Product DTO for electronics/mechanical attributes
+public record ProductDetailsDto(
+    Guid Id,
+    string Name,
+    string SKU,
+    string? Barcode,
+    string? Description,
+    decimal CostPrice,
+    decimal SellingPrice,
+    int ReorderLevel,
+    int MinimumOrderQuantity,
+    Guid CategoryId,
+    string? CategoryName,
+    string? ImageUrl,
+    int TotalStock,
+    bool IsKit,
+    ProductType ProductType,
+    // Electronics
+    string? Model,
+    string? Brand,
+    string? Voltage,
+    string? Power,
+    string? BatteryType,
+    string? Connectivity,
+    string? InterfaceType,
+    string? Certification,
+    decimal? OperatingTempMin,
+    decimal? OperatingTempMax,
+    string? FirmwareVersion,
+    string? WarrantyPeriod,
+    DateTime? WarrantyExpiryDate,
+    string? Specifications,
+    // Mechanical
+    string? Material,
+    string? Dimensions,
+    decimal? Tolerance,
+    string? MaintenanceInterval,
+    ProductCondition? Condition,
+    DateTime? LastMaintenanceDate,
+    string? SurfaceFinish,
+    string? HardnessRating,
+    string? OperatingPressure
+) : ProductDto(Id, Name, SKU, Barcode, Description, CostPrice, SellingPrice, ReorderLevel, MinimumOrderQuantity, CategoryId, CategoryName, ImageUrl, TotalStock, IsKit, ProductType);
 
 public record CreateProductDto(string Name, string SKU, string? Barcode, string? Description,
     decimal CostPrice, decimal SellingPrice, int ReorderLevel, int MinimumOrderQuantity,
     Guid CategoryId, Guid? BaseUoMId, string? ImageUrl);
 
+// Extended CreateProductDto
+public record CreateProductDetailsDto(
+    string Name,
+    string SKU,
+    string? Barcode,
+    string? Description,
+    decimal CostPrice,
+    decimal SellingPrice,
+    int ReorderLevel,
+    int MinimumOrderQuantity,
+    Guid CategoryId,
+    Guid? BaseUoMId,
+    string? ImageUrl,
+    ProductType ProductType,
+    // Electronics
+    string? Model,
+    string? Brand,
+    string? Voltage,
+    string? Power,
+    string? BatteryType,
+    string? Connectivity,
+    string? InterfaceType,
+    string? Certification,
+    decimal? OperatingTempMin,
+    decimal? OperatingTempMax,
+    string? FirmwareVersion,
+    string? WarrantyPeriod,
+    DateTime? WarrantyExpiryDate,
+    string? Specifications,
+    // Mechanical
+    string? Material,
+    string? Dimensions,
+    decimal? Tolerance,
+    string? MaintenanceInterval,
+    ProductCondition? Condition,
+    DateTime? LastMaintenanceDate,
+    string? SurfaceFinish,
+    string? HardnessRating,
+    string? OperatingPressure
+);
+
 public record UpdateProductDto(Guid Id, string Name, string SKU, string? Barcode, string? Description,
     decimal CostPrice, decimal SellingPrice, int ReorderLevel, int MinimumOrderQuantity,
     Guid CategoryId, Guid? BaseUoMId, string? ImageUrl);
+
+// Extended UpdateProductDto
+public record UpdateProductDetailsDto(
+    Guid Id,
+    string Name,
+    string SKU,
+    string? Barcode,
+    string? Description,
+    decimal CostPrice,
+    decimal SellingPrice,
+    int ReorderLevel,
+    int MinimumOrderQuantity,
+    Guid CategoryId,
+    Guid? BaseUoMId,
+    string? ImageUrl,
+    ProductType ProductType,
+    // Electronics
+    string? Model,
+    string? Brand,
+    string? Voltage,
+    string? Power,
+    string? BatteryType,
+    string? Connectivity,
+    string? InterfaceType,
+    string? Certification,
+    decimal? OperatingTempMin,
+    decimal? OperatingTempMax,
+    string? FirmwareVersion,
+    string? WarrantyPeriod,
+    DateTime? WarrantyExpiryDate,
+    string? Specifications,
+    // Mechanical
+    string? Material,
+    string? Dimensions,
+    decimal? Tolerance,
+    string? MaintenanceInterval,
+    ProductCondition? Condition,
+    DateTime? LastMaintenanceDate,
+    string? SurfaceFinish,
+    string? HardnessRating,
+    string? OperatingPressure
+);
 
 // Categories
 public record CategoryDto(Guid Id, string Name, string? Description, Guid? ParentCategoryId,
@@ -29,6 +157,24 @@ public record CreateWarehouseDto(string Name, string Code, string? Location, str
 public record InventoryDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU,
     Guid WarehouseId, string WarehouseName, int Quantity, int ReservedQuantity,
     int AvailableQuantity, string? BinLocation);
+
+// Extended InventoryDto for tracking
+public record InventoryTrackingDto(
+    Guid Id,
+    Guid ProductId,
+    string ProductName,
+    string ProductSKU,
+    Guid WarehouseId,
+    string WarehouseName,
+    int Quantity,
+    int ReservedQuantity,
+    int AvailableQuantity,
+    string? BinLocation,
+    string? SerialNumber,
+    string? BatchNumber,
+    DateTime? ExpiryDate,
+    string? Condition
+);
 
 public record StockAdjustmentDto(Guid ProductId, Guid WarehouseId, int QuantityChange, string Reason);
 public record StockTransferDto(Guid ProductId, Guid SourceWarehouseId, Guid TargetWarehouseId, int Quantity);

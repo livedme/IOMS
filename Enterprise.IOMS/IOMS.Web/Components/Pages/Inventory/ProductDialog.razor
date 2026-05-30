@@ -1,8 +1,13 @@
 @using MudBlazor
+@using IOMS.Domain.Enums
 
 <MudDialog>
     <DialogContent>
         <MudGrid>
+            @* === Basic Info === *@
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1" Style="font-weight:700;">Basic Information</MudText>
+            </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="_name" Label="Name" Required="true" />
             </MudItem>
@@ -32,9 +37,114 @@
             <MudItem xs="12" sm="6">
                 <MudNumericField @bind-Value="_moq" Label="Min Order Qty" Min="1" />
             </MudItem>
-            <MudItem xs="12">
-                <RichTextField @bind-Value="_description" Label="Description" Lines="3" />
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_brand" Label="Brand" />
             </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_model" Label="Model" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="_productType" Label="Product Type" Required="true">
+                    <MudSelectItem Value="ProductType.General">General</MudSelectItem>
+                    <MudSelectItem Value="ProductType.Electronics">Electronics</MudSelectItem>
+                    <MudSelectItem Value="ProductType.Mechanical">Mechanical</MudSelectItem>
+                    <MudSelectItem Value="ProductType.ElectroMechanical">Electro-Mechanical</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_description" Label="Description" Lines="3" />
+            </MudItem>
+
+            @* === Electronics Attributes === *@
+            @if (_productType == ProductType.Electronics || _productType == ProductType.ElectroMechanical)
+            {
+                <MudItem xs="12" Class="mt-2">
+                    <MudDivider />
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="font-weight:700; color:var(--mud-palette-info);">
+                        Electronics Attributes
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_voltage" Label="Voltage (e.g. 220V AC)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_power" Label="Power (e.g. 100W)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_batteryType" Label="Battery Type" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_connectivity" Label="Connectivity (e.g. WiFi, BT)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_interfaceType" Label="Interface Type (e.g. USB-C)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_certification" Label="Certification (e.g. CE, FCC)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_operatingTempMin" Label="Operating Temp Min (°C)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_operatingTempMax" Label="Operating Temp Max (°C)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_firmwareVersion" Label="Firmware Version" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_warrantyPeriod" Label="Warranty Period (e.g. 2 Years)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_warrantyExpiryDate" Label="Warranty Expiry Date" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_specifications" Label="Specifications" Lines="2" />
+                </MudItem>
+            }
+
+            @* === Mechanical Attributes === *@
+            @if (_productType == ProductType.Mechanical || _productType == ProductType.ElectroMechanical)
+            {
+                <MudItem xs="12" Class="mt-2">
+                    <MudDivider />
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="font-weight:700; color:var(--mud-palette-warning);">
+                        Mechanical Attributes
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_material" Label="Material (e.g. Stainless Steel)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_dimensions" Label="Dimensions (L×W×H)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_tolerance" Label="Tolerance (mm)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_maintenanceInterval" Label="Maintenance Interval" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="_condition" Label="Condition">
+                        <MudSelectItem T="ProductCondition?" Value="null">— Select —</MudSelectItem>
+                        <MudSelectItem T="ProductCondition?" Value="ProductCondition.New">New</MudSelectItem>
+                        <MudSelectItem T="ProductCondition?" Value="ProductCondition.Used">Used</MudSelectItem>
+                        <MudSelectItem T="ProductCondition?" Value="ProductCondition.Refurbished">Refurbished</MudSelectItem>
+                        <MudSelectItem T="ProductCondition?" Value="ProductCondition.Remanufactured">Remanufactured</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_lastMaintenanceDate" Label="Last Maintenance Date" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_surfaceFinish" Label="Surface Finish" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_hardnessRating" Label="Hardness Rating (e.g. 60 HRC)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_operatingPressure" Label="Operating Pressure (e.g. 10 Bar)" />
+                </MudItem>
+            }
         </MudGrid>
     </DialogContent>
     <DialogActions>
@@ -45,10 +155,10 @@
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
-
-    [Parameter] public ProductDto? Product { get; set; }
+    [Parameter] public object? Product { get; set; }
     [Parameter] public List<CategoryDto> Categories { get; set; } = new();
 
+    // Basic fields
     private string _name = "";
     private string _sku = "";
     private string? _barcode;
@@ -58,20 +168,85 @@
     private decimal _sellingPrice;
     private int _reorderLevel = 10;
     private int _moq = 1;
+    private string? _model;
+    private string? _brand;
+    private ProductType _productType = ProductType.General;
+
+    // Electronics fields
+    private string? _voltage;
+    private string? _power;
+    private string? _batteryType;
+    private string? _connectivity;
+    private string? _interfaceType;
+    private string? _certification;
+    private decimal? _operatingTempMin;
+    private decimal? _operatingTempMax;
+    private string? _firmwareVersion;
+    private string? _warrantyPeriod;
+    private DateTime? _warrantyExpiryDate;
+    private string? _specifications;
+
+    // Mechanical fields
+    private string? _material;
+    private string? _dimensions;
+    private decimal? _tolerance;
+    private string? _maintenanceInterval;
+    private ProductCondition? _condition;
+    private DateTime? _lastMaintenanceDate;
+    private string? _surfaceFinish;
+    private string? _hardnessRating;
+    private string? _operatingPressure;
 
     protected override void OnInitialized()
     {
-        if (Product != null)
+        if (Product is ProductDetailsDto details)
         {
-            _name = Product.Name;
-            _sku = Product.SKU;
-            _barcode = Product.Barcode;
-            _description = Product.Description;
-            _categoryId = Product.CategoryId;
-            _costPrice = Product.CostPrice;
-            _sellingPrice = Product.SellingPrice;
-            _reorderLevel = Product.ReorderLevel;
-            _moq = Product.MinimumOrderQuantity;
+            _name = details.Name;
+            _sku = details.SKU;
+            _barcode = details.Barcode;
+            _description = details.Description;
+            _categoryId = details.CategoryId;
+            _costPrice = details.CostPrice;
+            _sellingPrice = details.SellingPrice;
+            _reorderLevel = details.ReorderLevel;
+            _moq = details.MinimumOrderQuantity;
+            _model = details.Model;
+            _brand = details.Brand;
+            _productType = details.ProductType;
+            _voltage = details.Voltage;
+            _power = details.Power;
+            _batteryType = details.BatteryType;
+            _connectivity = details.Connectivity;
+            _interfaceType = details.InterfaceType;
+            _certification = details.Certification;
+            _operatingTempMin = details.OperatingTempMin;
+            _operatingTempMax = details.OperatingTempMax;
+            _firmwareVersion = details.FirmwareVersion;
+            _warrantyPeriod = details.WarrantyPeriod;
+            _warrantyExpiryDate = details.WarrantyExpiryDate;
+            _specifications = details.Specifications;
+            _material = details.Material;
+            _dimensions = details.Dimensions;
+            _tolerance = details.Tolerance;
+            _maintenanceInterval = details.MaintenanceInterval;
+            _condition = details.Condition;
+            _lastMaintenanceDate = details.LastMaintenanceDate;
+            _surfaceFinish = details.SurfaceFinish;
+            _hardnessRating = details.HardnessRating;
+            _operatingPressure = details.OperatingPressure;
+        }
+        else if (Product is ProductDto p)
+        {
+            _name = p.Name;
+            _sku = p.SKU;
+            _barcode = p.Barcode;
+            _description = p.Description;
+            _categoryId = p.CategoryId;
+            _costPrice = p.CostPrice;
+            _sellingPrice = p.SellingPrice;
+            _reorderLevel = p.ReorderLevel;
+            _moq = p.MinimumOrderQuantity;
+            _productType = p.ProductType;
         }
         else if (Categories.Count > 0)
         {
@@ -83,8 +258,43 @@
 
     private void Submit()
     {
-        var dto = new CreateProductDto(_name, _sku, _barcode, _description,
-            _costPrice, _sellingPrice, _reorderLevel, _moq, _categoryId, null, null);
+        var dto = new CreateProductDetailsDto(
+            _name,
+            _sku,
+            _barcode,
+            _description,
+            _costPrice,
+            _sellingPrice,
+            _reorderLevel,
+            _moq,
+            _categoryId,
+            null, // BaseUoMId
+            null, // ImageUrl
+            _productType,
+            _model,
+            _brand,
+            _voltage,
+            _power,
+            _batteryType,
+            _connectivity,
+            _interfaceType,
+            _certification,
+            _operatingTempMin,
+            _operatingTempMax,
+            _firmwareVersion,
+            _warrantyPeriod,
+            _warrantyExpiryDate,
+            _specifications,
+            _material,
+            _dimensions,
+            _tolerance,
+            _maintenanceInterval,
+            _condition,
+            _lastMaintenanceDate,
+            _surfaceFinish,
+            _hardnessRating,
+            _operatingPressure
+        );
         MudDialog.Close(DialogResult.Ok(dto));
     }
 }

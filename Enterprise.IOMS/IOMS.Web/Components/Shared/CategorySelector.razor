@@ -1,0 +1,121 @@
+@using IOMS.Application.DTOs
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_search" Placeholder="Search category" Class="mb-2" />
+        <MudGrid>
+            <MudItem xs="12" sm="4">
+                <MudList T="CategoryDto">
+                    @foreach (var cat in FilteredCategories(_categories.Where(c => c.ParentCategoryId == null)))
+                    {
+                        <MudListItem @onclick="() => SelectCategory(cat)">
+                            @cat.Name
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                @if (_selectedParent != null)
+                {
+                    <MudList T="CategoryDto">
+                        @foreach (var cat in FilteredCategories(_categories.Where(c => c.ParentCategoryId == _selectedParent.Id)))
+                        {
+                            <MudListItem @onclick="() => SelectSubCategory(cat)">
+                                @cat.Name
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                @if (_selectedChild != null)
+                {
+                    <MudList T="CategoryDto">
+                        @foreach (var cat in FilteredCategories(_categories.Where(c => c.ParentCategoryId == _selectedChild.Id)))
+                        {
+                            <MudListItem @onclick="() => SelectFinalCategory(cat)">
+                                @cat.Name
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            </MudItem>
+        </MudGrid>
+        <MudDivider Class="my-2" />
+        <MudText Typo="Typo.body2">Current selection: <b>@CurrentSelection</b></MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirm" Disabled="@(_finalSelected == null)">Confirm</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<CategoryDto> Categories { get; set; } = new();
+    [Parameter] public Guid? SelectedCategoryId { get; set; }
+
+    private string _search = string.Empty;
+    private List<CategoryDto> _categories = new();
+    private CategoryDto? _selectedParent;
+    private CategoryDto? _selectedChild;
+    private CategoryDto? _finalSelected;
+
+    protected override void OnInitialized()
+    {
+        _categories = Categories;
+        if (SelectedCategoryId.HasValue)
+        {
+            _finalSelected = _categories.FirstOrDefault(c => c.Id == SelectedCategoryId);
+            if (_finalSelected != null)
+            {
+                _selectedChild = _categories.FirstOrDefault(c => c.Id == _finalSelected.ParentCategoryId);
+                _selectedParent = _selectedChild != null ? _categories.FirstOrDefault(c => c.Id == _selectedChild.ParentCategoryId) : _categories.FirstOrDefault(c => c.Id == _finalSelected.ParentCategoryId);
+            }
+        }
+    }
+
+    private IEnumerable<CategoryDto> FilteredCategories(IEnumerable<CategoryDto> cats)
+    {
+        if (string.IsNullOrWhiteSpace(_search))
+            return cats;
+        return cats.Where(c => c.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void SelectCategory(CategoryDto cat)
+    {
+        _selectedParent = cat;
+        _selectedChild = null;
+        _finalSelected = null;
+    }
+    private void SelectSubCategory(CategoryDto cat)
+    {
+        _selectedChild = cat;
+        _finalSelected = null;
+    }
+    private void SelectFinalCategory(CategoryDto cat)
+    {
+        _finalSelected = cat;
+    }
+    private void Cancel() => MudDialog.Cancel();
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(_finalSelected));
+    private string CurrentSelection
+    {
+        get
+        {
+            if (_finalSelected != null)
+            {
+                var names = new List<string>();
+                var cat = _finalSelected;
+                while (cat != null)
+                {
+                    names.Insert(0, cat.Name);
+                    cat = _categories.FirstOrDefault(c => c.Id == cat.ParentCategoryId);
+                }
+                return string.Join(" > ", names);
+            }
+            return "None";
+        }
+    }
+}

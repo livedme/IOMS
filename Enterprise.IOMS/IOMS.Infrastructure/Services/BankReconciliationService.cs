@@ -9,9 +9,9 @@ namespace IOMS.Infrastructure.Services;
 
 public class BankReconciliationService : IBankReconciliationService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public BankReconciliationService(AppDbContext context) => _context = context;
+    public BankReconciliationService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<BankStatementDto>> GetBankStatements()
     {

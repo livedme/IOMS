@@ -4,21 +4,31 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-IOMS_Web1-8b230c55-f78b-4354-843b-3cc489a57c16</UserSecretsId>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\IOMS.Application\IOMS.Application.csproj" />
-    <ProjectReference Include="..\IOMS.Infrastructure\IOMS.Infrastructure.csproj" />
-    <ProjectReference Include="..\IOMS.Shared\IOMS.Shared.csproj" />
-  </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="16.1.1" />
-    <PackageReference Include="MudBlazor" Version="9.4.0" />
-    <PackageReference Include="MediatR" Version="14.1.0" />
-    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <Content Remove="Components\Pages\Auth.razor" />
   </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\IOMS.Application\IOMS.Application.csproj" />
+		<ProjectReference Include="..\IOMS.Infrastructure\IOMS.Infrastructure.csproj" />
+		<ProjectReference Include="..\IOMS.Shared\IOMS.Shared.csproj" />
+	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.8" /> 
+		<PackageReference Include="AutoMapper" Version="16.1.1" />
+		<PackageReference Include="MudBlazor" Version="9.4.0" />
+		<PackageReference Include="MediatR" Version="14.1.0" />
+		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+	</ItemGroup>
 </Project>

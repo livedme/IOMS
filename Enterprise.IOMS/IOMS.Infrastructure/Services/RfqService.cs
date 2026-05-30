@@ -12,10 +12,10 @@ namespace IOMS.Infrastructure.Services;
 
 public class RfqService : IRfqService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
 
-    public RfqService(AppDbContext context, IMapper mapper)
+    public RfqService(ApplicationDbContext context, IMapper mapper)
     {
         _context = context;
         _mapper = mapper;

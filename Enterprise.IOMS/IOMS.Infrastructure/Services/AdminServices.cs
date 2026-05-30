@@ -10,9 +10,9 @@ namespace IOMS.Infrastructure.Services;
 
 public class LandedCostService : ILandedCostService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public LandedCostService(AppDbContext context) => _context = context;
+    public LandedCostService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<LandedCostComponentDto>> GetComponents()
     {
@@ -69,9 +69,9 @@ public class LandedCostService : ILandedCostService
 
 public class ApprovalService : IApprovalService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public ApprovalService(AppDbContext context) => _context = context;
+    public ApprovalService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<ApprovalWorkflowRuleDto>> GetWorkflowRules()
     {
@@ -188,9 +188,9 @@ public class ApprovalService : IApprovalService
 
 public class DocumentTemplateService : IDocumentTemplateService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public DocumentTemplateService(AppDbContext context) => _context = context;
+    public DocumentTemplateService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<DocumentTemplateDto>> GetTemplates()
     {
@@ -235,9 +235,9 @@ public class DocumentTemplateService : IDocumentTemplateService
 
 public class WebhookService : IWebhookService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public WebhookService(AppDbContext context) => _context = context;
+    public WebhookService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<WebhookSubscriptionDto>> GetSubscriptions()
     {
@@ -281,9 +281,9 @@ public class WebhookService : IWebhookService
 
 public class CustomFieldService : ICustomFieldService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public CustomFieldService(AppDbContext context) => _context = context;
+    public CustomFieldService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<CustomFieldDefinitionDto>> GetDefinitions(string? entityType)
     {
@@ -358,9 +358,9 @@ public class CustomFieldService : ICustomFieldService
 
 public class AuditLogService : IAuditLogService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public AuditLogService(AppDbContext context) => _context = context;
+    public AuditLogService(ApplicationDbContext context) => _context = context;
 
     public async Task<PagedResult<AuditLogDto>> GetAuditLogs(string? tableName, string? action, int page, int pageSize)
     {
@@ -384,9 +384,9 @@ public class AuditLogService : IAuditLogService
 
 public class ScheduledReportService : IScheduledReportService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public ScheduledReportService(AppDbContext context) => _context = context;
+    public ScheduledReportService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<ScheduledReportDto>> GetScheduledReports()
     {
@@ -433,9 +433,9 @@ public class ScheduledReportService : IScheduledReportService
 
 public class DataPrivacyService : IDataPrivacyService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public DataPrivacyService(AppDbContext context) => _context = context;
+    public DataPrivacyService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<DataSubjectRequestDto>> GetRequests()
     {
@@ -472,9 +472,9 @@ public class DataPrivacyService : IDataPrivacyService
 
 public class ArchivalService : IArchivalService
 {
-    private readonly AppDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public ArchivalService(AppDbContext context) => _context = context;
+    public ArchivalService(ApplicationDbContext context) => _context = context;
 
     public async Task<List<ArchivalPolicyDto>> GetPolicies()
     {

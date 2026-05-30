@@ -3,6 +3,7 @@ using IOMS.Domain.Enums;
 
 namespace IOMS.Application.Interfaces;
 
+
 public interface IInventoryService
 {
     Task<int> GetStockLevel(Guid productId, Guid warehouseId);
@@ -10,6 +11,9 @@ public interface IInventoryService
     Task TransferStock(Guid productId, Guid sourceWarehouseId, Guid targetWarehouseId, int quantity);
     Task<List<LowStockAlertDto>> GetLowStockAlerts();
     Task<PagedResult<InventoryDto>> GetInventoryByWarehouse(Guid warehouseId, int page, int pageSize);
+
+    // Extended inventory tracking
+    Task<PagedResult<InventoryTrackingDto>> GetInventoryTrackingByWarehouse(Guid warehouseId, int page, int pageSize);
 }
 
 public interface IOrderService
@@ -242,9 +246,13 @@ public interface IArchivalService
 public interface IProductService
 {
     Task<PagedResult<ProductDto>> GetProducts(string? search, Guid? categoryId, int page, int pageSize);
+    Task<PagedResult<ProductDto>> GetProductsByType(string? search, Guid? categoryId, ProductType? productType, int page, int pageSize);
     Task<ProductDto?> GetProductById(Guid id);
+    Task<ProductDetailsDto?> GetProductDetailsById(Guid id);
     Task<Guid> CreateProduct(CreateProductDto dto);
+    Task<Guid> CreateProductDetails(CreateProductDetailsDto dto);
     Task UpdateProduct(UpdateProductDto dto);
+    Task UpdateProductDetails(UpdateProductDetailsDto dto);
     Task DeleteProduct(Guid id);
     Task<PagedResult<CategoryDto>> GetCategories(string? search, int page, int pageSize);
     Task<List<CategoryDto>> GetAllCategories();

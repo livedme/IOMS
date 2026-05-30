@@ -11,10 +11,10 @@ namespace IOMS.Infrastructure.Services;
 
 public class ProductService : IProductService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
 
-    public ProductService(AppDbContext db, IMapper mapper)
+    public ProductService(ApplicationDbContext db, IMapper mapper)
     {
         _db = db;
         _mapper = mapper;
@@ -33,10 +33,31 @@ public class ProductService : IProductService
         return new PagedResult<ProductDto>(_mapper.Map<List<ProductDto>>(items), total, page, pageSize);
     }
 
+    public async Task<PagedResult<ProductDto>> GetProductsByType(string? search, Guid? categoryId, ProductType? productType, int page, int pageSize)
+    {
+        var query = _db.Products.Include(p => p.Category).Include(p => p.Inventories).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(p => p.Name.Contains(search) || p.SKU.Contains(search));
+        if (categoryId.HasValue)
+            query = query.Where(p => p.CategoryId == categoryId.Value);
+        if (productType.HasValue)
+            query = query.Where(p => p.ProductType == productType.Value);
+
+        var total = await query.CountAsync();
+        var items = await query.OrderBy(p => p.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+        return new PagedResult<ProductDto>(_mapper.Map<List<ProductDto>>(items), total, page, pageSize);
+    }
+
     public async Task<ProductDto?> GetProductById(Guid id)
     {
         var product = await _db.Products.Include(p => p.Category).Include(p => p.Inventories).FirstOrDefaultAsync(p => p.Id == id);
         return product == null ? null : _mapper.Map<ProductDto>(product);
+    }
+
+    public async Task<ProductDetailsDto?> GetProductDetailsById(Guid id)
+    {
+        var product = await _db.Products.Include(p => p.Category).Include(p => p.Inventories).FirstOrDefaultAsync(p => p.Id == id);
+        return product == null ? null : _mapper.Map<ProductDetailsDto>(product);
     }
 
     public async Task<Guid> CreateProduct(CreateProductDto dto)
@@ -53,6 +74,33 @@ public class ProductService : IProductService
         return product.Id;
     }
 
+    public async Task<Guid> CreateProductDetails(CreateProductDetailsDto dto)
+    {
+        var product = new Product
+        {
+            Name = dto.Name, SKU = dto.SKU, Barcode = dto.Barcode, Description = dto.Description,
+            CostPrice = dto.CostPrice, SellingPrice = dto.SellingPrice, ReorderLevel = dto.ReorderLevel,
+            MinimumOrderQuantity = dto.MinimumOrderQuantity, CategoryId = dto.CategoryId,
+            BaseUoMId = dto.BaseUoMId, ImageUrl = dto.ImageUrl,
+            ProductType = dto.ProductType,
+            // Electronics
+            Model = dto.Model, Voltage = dto.Voltage, Power = dto.Power,
+            BatteryType = dto.BatteryType, Connectivity = dto.Connectivity,
+            InterfaceType = dto.InterfaceType, Certification = dto.Certification,
+            OperatingTempMin = dto.OperatingTempMin, OperatingTempMax = dto.OperatingTempMax,
+            FirmwareVersion = dto.FirmwareVersion, WarrantyPeriod = dto.WarrantyPeriod,
+            WarrantyExpiryDate = dto.WarrantyExpiryDate, Specifications = dto.Specifications,
+            // Mechanical
+            Material = dto.Material, Dimensions = dto.Dimensions, Tolerance = dto.Tolerance,
+            MaintenanceInterval = dto.MaintenanceInterval, Condition = dto.Condition,
+            LastMaintenanceDate = dto.LastMaintenanceDate, SurfaceFinish = dto.SurfaceFinish,
+            HardnessRating = dto.HardnessRating, OperatingPressure = dto.OperatingPressure
+        };
+        _db.Products.Add(product);
+        await _db.SaveChangesAsync();
+        return product.Id;
+    }
+
     public async Task UpdateProduct(UpdateProductDto dto)
     {
         var product = await _db.Products.FindAsync(dto.Id) ?? throw new KeyNotFoundException("Product not found");
@@ -61,6 +109,31 @@ public class ProductService : IProductService
         product.SellingPrice = dto.SellingPrice; product.ReorderLevel = dto.ReorderLevel;
         product.MinimumOrderQuantity = dto.MinimumOrderQuantity; product.CategoryId = dto.CategoryId;
         product.BaseUoMId = dto.BaseUoMId; product.ImageUrl = dto.ImageUrl;
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task UpdateProductDetails(UpdateProductDetailsDto dto)
+    {
+        var product = await _db.Products.FindAsync(dto.Id) ?? throw new KeyNotFoundException("Product not found");
+        product.Name = dto.Name; product.SKU = dto.SKU; product.Barcode = dto.Barcode;
+        product.Description = dto.Description; product.CostPrice = dto.CostPrice;
+        product.SellingPrice = dto.SellingPrice; product.ReorderLevel = dto.ReorderLevel;
+        product.MinimumOrderQuantity = dto.MinimumOrderQuantity; product.CategoryId = dto.CategoryId;
+        product.BaseUoMId = dto.BaseUoMId; product.ImageUrl = dto.ImageUrl;
+        product.ProductType = dto.ProductType;
+        // Electronics
+        product.Model = dto.Model; product.Voltage = dto.Voltage; product.Power = dto.Power;
+        product.BatteryType = dto.BatteryType; product.Connectivity = dto.Connectivity;
+        product.InterfaceType = dto.InterfaceType; product.Certification = dto.Certification;
+        product.OperatingTempMin = dto.OperatingTempMin; product.OperatingTempMax = dto.OperatingTempMax;
+        product.FirmwareVersion = dto.FirmwareVersion; product.WarrantyPeriod = dto.WarrantyPeriod;
+        product.WarrantyExpiryDate = dto.WarrantyExpiryDate; product.Specifications = dto.Specifications;
+        // Mechanical
+        product.Material = dto.Material; product.Dimensions = dto.Dimensions;
+        product.Tolerance = dto.Tolerance; product.MaintenanceInterval = dto.MaintenanceInterval;
+        product.Condition = dto.Condition; product.LastMaintenanceDate = dto.LastMaintenanceDate;
+        product.SurfaceFinish = dto.SurfaceFinish; product.HardnessRating = dto.HardnessRating;
+        product.OperatingPressure = dto.OperatingPressure;
         await _db.SaveChangesAsync();
     }
 
@@ -136,10 +209,10 @@ public class ProductService : IProductService
 
 public class CustomerSupplierService : ICustomerSupplierService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
 
-    public CustomerSupplierService(AppDbContext db, IMapper mapper)
+    public CustomerSupplierService(ApplicationDbContext db, IMapper mapper)
     {
         _db = db;
         _mapper = mapper;
@@ -244,11 +317,11 @@ public class CustomerSupplierService : ICustomerSupplierService
 
 public class InvoiceService : IInvoiceService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
     private readonly ISharedNumberGenerator _numberGen;
 
-    public InvoiceService(AppDbContext db, IMapper mapper, ISharedNumberGenerator numberGen)
+    public InvoiceService(ApplicationDbContext db, IMapper mapper, ISharedNumberGenerator numberGen)
     {
         _db = db;
         _mapper = mapper;
@@ -321,10 +394,10 @@ public class InvoiceService : IInvoiceService
 
 public class UoMService : IUoMService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
 
-    public UoMService(AppDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
+    public UoMService(ApplicationDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
 
     public async Task<List<UnitOfMeasureDto>> GetUnitsOfMeasure()
     {
@@ -371,10 +444,10 @@ public class UoMService : IUoMService
 
 public class ExchangeRateService : IExchangeRateService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
 
-    public ExchangeRateService(AppDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
+    public ExchangeRateService(ApplicationDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
 
     public async Task<List<ExchangeRateDto>> GetExchangeRates()
     {
@@ -401,10 +474,10 @@ public class ExchangeRateService : IExchangeRateService
 
 public class NotificationTemplateService : INotificationTemplateService
 {
-    private readonly AppDbContext _db;
+    private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
 
-    public NotificationTemplateService(AppDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
+    public NotificationTemplateService(ApplicationDbContext db, IMapper mapper) { _db = db; _mapper = mapper; }
 
     public async Task<List<NotificationTemplateDto>> GetTemplates()
     {

@@ -100,6 +100,16 @@ public enum LandedCostAllocMethod
     ByValue, ByWeight, ByVolume, ByQuantity
 }
 
+public enum ProductType
+{
+    General, Electronics, Mechanical, ElectroMechanical
+}
+
+public enum ProductCondition
+{
+    New, Used, Refurbished, Remanufactured
+}
+
 public enum InvoiceType
 {
     Sales, Purchase
