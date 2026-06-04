@@ -253,6 +253,10 @@ public interface IProductService
     Task UpdateProduct(UpdateProductDto dto);
     Task UpdateProductDetails(UpdateProductDetailsDto dto);
     Task DeleteProduct(Guid id);
+    Task<PagedResult<BrandDto>> GetBrands(string? search, int page, int pageSize);
+    Task<List<BrandDto>> GetAllBrands();
+    Task<Guid> CreateBrand(CreateBrandDto dto);
+    Task DeleteBrand(Guid id);
     Task<PagedResult<CategoryDto>> GetCategories(string? search, int page, int pageSize);
     Task<List<CategoryDto>> GetAllCategories();
     Task<Guid> CreateCategory(CreateCategoryDto dto);

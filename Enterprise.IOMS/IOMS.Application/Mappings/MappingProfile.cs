@@ -11,14 +11,19 @@ public class MappingProfile : Profile
         // Product
         CreateMap<Product, ProductDto>()
             .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null))
+            .ForMember(d => d.BrandName, o => o.MapFrom(s => s.Brand != null ? s.Brand.Name : null))
             .ForMember(d => d.TotalStock, o => o.MapFrom(s => s.Inventories.Sum(i => i.Quantity)));
 
         // Product Details (extended attributes)
         CreateMap<Product, ProductDetailsDto>()
             .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null))
             .ForMember(d => d.TotalStock, o => o.MapFrom(s => s.Inventories.Sum(i => i.Quantity)))
-            .ForMember(d => d.Brand, o => o.MapFrom(s => s.BrandId.ToString()))
+            .ForMember(d => d.BrandName, o => o.MapFrom(s => s.Brand != null ? s.Brand.Name : null))
             .ForMember(d => d.Model, o => o.MapFrom(s => s.Model));
+
+        // Brand
+        CreateMap<Brand, BrandDto>()
+            .ForMember(d => d.ProductCount, o => o.MapFrom(s => s.Products.Count));
 
         // Category
         CreateMap<Category, CategoryDto>()

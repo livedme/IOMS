@@ -20,6 +20,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     // Core
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<Brand> Brands => Set<Brand>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<Inventory> Inventories => Set<Inventory>();
@@ -158,12 +159,28 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     private static void ConfigureRelationships(ModelBuilder builder)
     {
+        builder.Entity<Brand>(b =>
+        {
+            b.Property(x => x.BrandCode).HasMaxLength(50);
+            b.Property(x => x.LogoUrl).HasMaxLength(2048);
+            b.Property(x => x.Status).HasMaxLength(32).HasDefaultValue("Active");
+            b.Property(x => x.OriginCompany).HasMaxLength(200);
+            b.Property(x => x.OriginCountry).HasMaxLength(100);
+        });
+
         // Category hierarchy
         builder.Entity<Category>()
             .HasOne(c => c.ParentCategory)
             .WithMany(c => c.SubCategories)
             .HasForeignKey(c => c.ParentCategoryId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Product-brand
+        builder.Entity<Product>()
+            .HasOne(p => p.Brand)
+            .WithMany(b => b.Products)
+            .HasForeignKey(p => p.BrandId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         // Account hierarchy
         builder.Entity<Account>()
@@ -388,6 +405,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<Product>().HasIndex(p => p.Name);
 
         builder.Entity<Category>().HasIndex(c => new { c.TenantId, c.Name });
+        builder.Entity<Brand>().HasIndex(b => new { b.TenantId, b.Name });
+        builder.Entity<Brand>().HasIndex(b => new { b.TenantId, b.BrandCode });
 
         builder.Entity<Inventory>().HasIndex(i => new { i.ProductId, i.WarehouseId }).IsUnique();
 

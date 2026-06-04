@@ -1,0 +1,82 @@
+@using MudBlazor
+@rendermode InteractiveServer
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_name" Label="Name" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_brandCode" Label="Brand Code" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="string" @bind-Value="_status" Label="Status">
+                    <MudSelectItem Value=@("Active")>Active</MudSelectItem>
+                    <MudSelectItem Value=@("Inactive")>Inactive</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="int?" @bind-Value="_foundedYear" Label="Founded Year" Min="1800" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_originCompany" Label="Origin Company" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_originCountry" Label="Origin Country" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_logoUrl" Label="Logo URL" />
+            </MudItem>
+            <MudItem xs="12">
+                <RichTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public BrandDto? Brand { get; set; }
+
+    private string _name = "";
+    private string? _brandCode;
+    private string? _description;
+    private string? _logoUrl;
+    private string _status = "Active";
+    private string? _originCompany;
+    private string? _originCountry;
+    private int? _foundedYear;
+
+    protected override void OnInitialized()
+    {
+        if (Brand != null)
+        {
+            _name = Brand.Name;
+            _brandCode = Brand.BrandCode;
+            _description = Brand.Description;
+            _logoUrl = Brand.LogoUrl;
+            _status = string.IsNullOrWhiteSpace(Brand.Status) ? "Active" : Brand.Status;
+            _originCompany = Brand.OriginCompany;
+            _originCountry = Brand.OriginCountry;
+            _foundedYear = Brand.FoundedYear;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new CreateBrandDto
+    {
+        Name = _name,
+        BrandCode = _brandCode,
+        Description = _description,
+        LogoUrl = _logoUrl,
+        Status = _status,
+        OriginCompany = _originCompany,
+        OriginCountry = _originCountry,
+        FoundedYear = _foundedYear
+    }));
+}

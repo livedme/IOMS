@@ -22,7 +22,7 @@ public class ProductService : IProductService
 
     public async Task<PagedResult<ProductDto>> GetProducts(string? search, Guid? categoryId, int page, int pageSize)
     {
-        var query = _db.Products.Include(p => p.Category).Include(p => p.Inventories).AsQueryable();
+        var query = _db.Products.Include(p => p.Category).Include(p => p.Brand).Include(p => p.Inventories).AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(p => p.Name.Contains(search) || p.SKU.Contains(search));
         if (categoryId.HasValue)
@@ -35,13 +35,13 @@ public class ProductService : IProductService
 
     public async Task<ProductDto?> GetProductById(Guid id)
     {
-        var product = await _db.Products.Include(p => p.Category).Include(p => p.Inventories).FirstOrDefaultAsync(p => p.Id == id);
+        var product = await _db.Products.Include(p => p.Category).Include(p => p.Brand).Include(p => p.Inventories).FirstOrDefaultAsync(p => p.Id == id);
         return product == null ? null : _mapper.Map<ProductDto>(product);
     }
 
     public async Task<ProductDetailsDto?> GetProductDetailsById(Guid id)
     {
-        var product = await _db.Products.Include(p => p.Category).Include(p => p.Inventories).FirstOrDefaultAsync(p => p.Id == id);
+        var product = await _db.Products.Include(p => p.Category).Include(p => p.Brand).Include(p => p.Inventories).FirstOrDefaultAsync(p => p.Id == id);
         return product == null ? null : _mapper.Map<ProductDetailsDto>(product);
     }
 
@@ -52,6 +52,7 @@ public class ProductService : IProductService
             Name = dto.Name, SKU = dto.SKU, Barcode = dto.Barcode, Description = dto.Description,
             CostPrice = dto.CostPrice, SellingPrice = dto.SellingPrice, ReorderLevel = dto.ReorderLevel,
             MinimumOrderQuantity = dto.MinimumOrderQuantity, CategoryId = dto.CategoryId,
+            BrandId = dto.BrandId,
             BaseUoMId = dto.BaseUoMId, ImageUrl = dto.ImageUrl
         };
         _db.Products.Add(product);
@@ -66,6 +67,7 @@ public class ProductService : IProductService
             Name = dto.Name, SKU = dto.SKU, Barcode = dto.Barcode, Description = dto.Description,
             CostPrice = dto.CostPrice, SellingPrice = dto.SellingPrice, ReorderLevel = dto.ReorderLevel,
             MinimumOrderQuantity = dto.MinimumOrderQuantity, CategoryId = dto.CategoryId,
+            BrandId = dto.BrandId,
             BaseUoMId = dto.BaseUoMId, ImageUrl = dto.ImageUrl,
             Model = dto.Model
         };
@@ -81,6 +83,7 @@ public class ProductService : IProductService
         product.Description = dto.Description; product.CostPrice = dto.CostPrice;
         product.SellingPrice = dto.SellingPrice; product.ReorderLevel = dto.ReorderLevel;
         product.MinimumOrderQuantity = dto.MinimumOrderQuantity; product.CategoryId = dto.CategoryId;
+        product.BrandId = dto.BrandId;
         product.BaseUoMId = dto.BaseUoMId; product.ImageUrl = dto.ImageUrl;
         await _db.SaveChangesAsync();
     }
@@ -92,6 +95,7 @@ public class ProductService : IProductService
         product.Description = dto.Description; product.CostPrice = dto.CostPrice;
         product.SellingPrice = dto.SellingPrice; product.ReorderLevel = dto.ReorderLevel;
         product.MinimumOrderQuantity = dto.MinimumOrderQuantity; product.CategoryId = dto.CategoryId;
+        product.BrandId = dto.BrandId;
         product.BaseUoMId = dto.BaseUoMId; product.ImageUrl = dto.ImageUrl;
         product.Model = dto.Model;
         await _db.SaveChangesAsync();
@@ -101,6 +105,52 @@ public class ProductService : IProductService
     {
         var product = await _db.Products.FindAsync(id) ?? throw new KeyNotFoundException("Product not found");
         product.IsDeleted = true;
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task<PagedResult<BrandDto>> GetBrands(string? search, int page, int pageSize)
+    {
+        var query = _db.Brands.Include(b => b.Products).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(b => b.Name.Contains(search)
+                || (b.BrandCode != null && b.BrandCode.Contains(search))
+                || (b.Description != null && b.Description.Contains(search))
+                || (b.OriginCompany != null && b.OriginCompany.Contains(search))
+                || (b.OriginCountry != null && b.OriginCountry.Contains(search)));
+
+        var total = await query.CountAsync();
+        var items = await query.OrderBy(b => b.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+        return new PagedResult<BrandDto>(_mapper.Map<List<BrandDto>>(items), total, page, pageSize);
+    }
+
+    public async Task<List<BrandDto>> GetAllBrands()
+    {
+        var brands = await _db.Brands.Include(b => b.Products).OrderBy(b => b.Name).ToListAsync();
+        return _mapper.Map<List<BrandDto>>(brands);
+    }
+
+    public async Task<Guid> CreateBrand(CreateBrandDto dto)
+    {
+        var brand = new Brand
+        {
+            Name = dto.Name,
+            BrandCode = dto.BrandCode,
+            Description = dto.Description,
+            LogoUrl = dto.LogoUrl,
+            Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status,
+            OriginCompany = dto.OriginCompany,
+            OriginCountry = dto.OriginCountry,
+            FoundedYear = dto.FoundedYear
+        };
+        _db.Brands.Add(brand);
+        await _db.SaveChangesAsync();
+        return brand.Id;
+    }
+
+    public async Task DeleteBrand(Guid id)
+    {
+        var brand = await _db.Brands.FindAsync(id) ?? throw new KeyNotFoundException("Brand not found");
+        brand.IsDeleted = true;
         await _db.SaveChangesAsync();
     }
 

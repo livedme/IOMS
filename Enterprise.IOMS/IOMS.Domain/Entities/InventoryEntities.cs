@@ -18,7 +18,8 @@ public class Product : BaseEntity
     public Guid? BaseUoMId { get; set; }
     public UnitOfMeasure? BaseUoM { get; set; }
 
-    public int BrandId { get; set; }
+    public Guid? BrandId { get; set; }
+    public Brand? Brand { get; set; }
     public string? Model { get; set; }
     public string? Unit { get; set; }
     public string? OriginManufacturer { get; set; }
@@ -36,6 +37,19 @@ public class Product : BaseEntity
 
     // --- General/Extensible attributes ---
     public string? Specifications { get; set; }         // Additional specs (JSON or delimited)
+}
+
+public class Brand : BaseEntity
+{
+    public string Name { get; set; } = string.Empty;
+    public string? BrandCode { get; set; }
+    public string? Description { get; set; }
+    public string? LogoUrl { get; set; }
+    public string Status { get; set; } = "Active";
+    public string? OriginCompany { get; set; }
+    public string? OriginCountry { get; set; }
+    public int? FoundedYear { get; set; }
+    public ICollection<Product> Products { get; set; } = new List<Product>();
 }
 
 public class Category : BaseEntity

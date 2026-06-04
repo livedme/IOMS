@@ -5,7 +5,7 @@ namespace IOMS.Application.DTOs;
 // Products
 public record ProductDto(Guid Id, string Name, string SKU, string? Barcode, string? Description,
     decimal CostPrice, decimal SellingPrice, decimal WholeSellingPrice, int ReorderLevel, int MinimumOrderQuantity,
-    Guid CategoryId, string? CategoryName, string? ImageUrl, int TotalStock, bool IsKit);
+    Guid CategoryId, string? CategoryName, Guid? BrandId, string? BrandName, string? ImageUrl, int TotalStock, bool IsKit);
 
 // Extended Product DTO with additional product fields
 public record ProductDetailsDto(
@@ -21,16 +21,17 @@ public record ProductDetailsDto(
     int MinimumOrderQuantity,
     Guid CategoryId,
     string? CategoryName,
+    Guid? BrandId,
+    string? BrandName,
     string? ImageUrl,
     int TotalStock,
     bool IsKit,
-    string? Model,
-    string? Brand
-) : ProductDto(Id, Name, SKU, Barcode, Description, CostPrice, SellingPrice, WholeSellingPrice, ReorderLevel, MinimumOrderQuantity, CategoryId, CategoryName, ImageUrl, TotalStock, IsKit);
+    string? Model
+) : ProductDto(Id, Name, SKU, Barcode, Description, CostPrice, SellingPrice, WholeSellingPrice, ReorderLevel, MinimumOrderQuantity, CategoryId, CategoryName, BrandId, BrandName, ImageUrl, TotalStock, IsKit);
 
 public record CreateProductDto(string Name, string SKU, string? Barcode, string? Description,
     decimal CostPrice, decimal SellingPrice, decimal WholeSellingPrice, int ReorderLevel, int MinimumOrderQuantity,
-    Guid CategoryId, Guid? BaseUoMId, string? ImageUrl);
+    Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl);
 
 // Extended CreateProductDto
 public record CreateProductDetailsDto(
@@ -44,15 +45,15 @@ public record CreateProductDetailsDto(
     int ReorderLevel,
     int MinimumOrderQuantity,
     Guid CategoryId,
+    Guid? BrandId,
     Guid? BaseUoMId,
     string? ImageUrl,
-    string? Model,
-    string? Brand
+    string? Model
 );
 
 public record UpdateProductDto(Guid Id, string Name, string SKU, string? Barcode, string? Description,
     decimal CostPrice, decimal SellingPrice, int ReorderLevel, int MinimumOrderQuantity,
-    Guid CategoryId, Guid? BaseUoMId, string? ImageUrl);
+    Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl);
 
 // Extended UpdateProductDto
 public record UpdateProductDetailsDto(
@@ -66,11 +67,52 @@ public record UpdateProductDetailsDto(
     int ReorderLevel,
     int MinimumOrderQuantity,
     Guid CategoryId,
+    Guid? BrandId,
     Guid? BaseUoMId,
     string? ImageUrl,
-    string? Model,
-    string? Brand
+    string? Model
 );
+
+// Brands
+public class BrandDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? BrandCode { get; set; }
+    public string? Description { get; set; }
+    public string? LogoUrl { get; set; }
+    public string Status { get; set; } = "Active";
+    public DateTime? CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string? OriginCompany { get; set; }
+    public string? OriginCountry { get; set; }
+    public int? FoundedYear { get; set; }
+    public int? ProductCount { get; set; }
+
+    public BrandDto()
+    {
+    }
+
+    public BrandDto(Guid id, string name, string? description, int? productCount)
+    {
+        Id = id;
+        Name = name;
+        Description = description;
+        ProductCount = productCount;
+    }
+}
+
+public class CreateBrandDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? BrandCode { get; set; }
+    public string? Description { get; set; }
+    public string? LogoUrl { get; set; }
+    public string Status { get; set; } = "Active";
+    public string? OriginCompany { get; set; }
+    public string? OriginCountry { get; set; }
+    public int? FoundedYear { get; set; }
+}
 
 // Categories
 public record CategoryDto(Guid Id, string Name, string? Description, Guid? ParentCategoryId,

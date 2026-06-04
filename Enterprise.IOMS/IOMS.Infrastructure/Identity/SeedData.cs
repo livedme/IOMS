@@ -136,10 +136,6 @@ public static class SeedData
 
     private static async Task SeedDummyDataAsync(ApplicationDbContext context, Guid tenantId)
     {
-        // Check if dummy data already seeded (use Products as indicator)
-        if (await context.Products.IgnoreQueryFilters().CountAsync(p => p.TenantId == tenantId) >= 20)
-            return;
-
         var cb = "system";
         var rng = new Random(42); // fixed seed for reproducibility
 
@@ -172,6 +168,26 @@ public static class SeedData
         else
         {
             categories = await context.Categories.IgnoreQueryFilters().Where(c => c.TenantId == tenantId).OrderBy(c => c.Name).ToListAsync();
+        }
+
+        // --- Brands (10 test records) ---
+        if (!await context.Brands.IgnoreQueryFilters().AnyAsync(b => b.TenantId == tenantId))
+        {
+            var brands = new[]
+            {
+                new Brand { Name = "Apex Industrial", BrandCode = "BR-001", Description = "General industrial supplies brand", LogoUrl = "https://example.com/logos/apex-industrial.png", Status = "Active", OriginCompany = "Apex Holdings", OriginCountry = "USA", FoundedYear = 2008, TenantId = tenantId, CreatedBy = cb },
+                new Brand { Name = "NorthStar Tools", BrandCode = "BR-002", Description = "Professional tools and equipment", LogoUrl = "https://example.com/logos/northstar-tools.png", Status = "Active", OriginCompany = "NorthStar Group", OriginCountry = "Canada", FoundedYear = 2011, TenantId = tenantId, CreatedBy = cb },
+                new Brand { Name = "Vertex Office", BrandCode = "BR-003", Description = "Office furniture and accessories", LogoUrl = "https://example.com/logos/vertex-office.png", Status = "Active", OriginCompany = "Vertex Brands", OriginCountry = "Germany", FoundedYear = 2014, TenantId = tenantId, CreatedBy = cb },
+                new Brand { Name = "PrimeTech Solutions", BrandCode = "BR-004", Description = "Electronics and IT peripherals", LogoUrl = "https://example.com/logos/primetech-solutions.png", Status = "Active", OriginCompany = "PrimeTech Group", OriginCountry = "Japan", FoundedYear = 2005, TenantId = tenantId, CreatedBy = cb },
+                new Brand { Name = "GreenField Packaging", BrandCode = "BR-005", Description = "Packaging and shipping materials", LogoUrl = "https://example.com/logos/greenfield-packaging.png", Status = "Active", OriginCompany = "GreenField Industries", OriginCountry = "UK", FoundedYear = 2018, TenantId = tenantId, CreatedBy = cb },
+                new Brand { Name = "Metro Supply Co", BrandCode = "BR-006", Description = "Everyday supply chain essentials", LogoUrl = "https://example.com/logos/metro-supply.png", Status = "Active", OriginCompany = "Metro Supply Group", OriginCountry = "USA", FoundedYear = 2010, TenantId = tenantId, CreatedBy = cb },
+                new Brand { Name = "Summit Safety", BrandCode = "BR-007", Description = "Safety and protective equipment", LogoUrl = "https://example.com/logos/summit-safety.png", Status = "Active", OriginCompany = "Summit Safety Ltd", OriginCountry = "Australia", FoundedYear = 2013, TenantId = tenantId, CreatedBy = cb },
+                new Brand { Name = "Orbit Maintenance", BrandCode = "BR-008", Description = "Maintenance and facility products", LogoUrl = "https://example.com/logos/orbit-maintenance.png", Status = "Inactive", OriginCompany = "Orbit Works", OriginCountry = "Singapore", FoundedYear = 2016, TenantId = tenantId, CreatedBy = cb },
+                new Brand { Name = "Fusion Components", BrandCode = "BR-009", Description = "Parts and component supplies", LogoUrl = "https://example.com/logos/fusion-components.png", Status = "Active", OriginCompany = "Fusion Manufacturing", OriginCountry = "South Korea", FoundedYear = 2002, TenantId = tenantId, CreatedBy = cb },
+                new Brand { Name = "Crestline Trade", BrandCode = "BR-010", Description = "Wholesale trading brand", LogoUrl = "https://example.com/logos/crestline-trade.png", Status = "Active", OriginCompany = "Crestline International", OriginCountry = "India", FoundedYear = 2019, TenantId = tenantId, CreatedBy = cb }
+            };
+            context.Brands.AddRange(brands);
+            await context.SaveChangesAsync();
         }
 
         // --- Warehouses (20 total incl existing) ---

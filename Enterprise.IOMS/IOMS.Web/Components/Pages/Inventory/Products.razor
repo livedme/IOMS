@@ -30,6 +30,7 @@
             <MudTh>SKU</MudTh>
             <MudTh>Name</MudTh>
             <MudTh>Category</MudTh>
+            <MudTh>Brand</MudTh>
             <MudTh Style="text-align:right">Cost Price</MudTh>
             <MudTh Style="text-align:right">Selling Price</MudTh>
             <MudTh Style="text-align:right">Reorder Level</MudTh>
@@ -39,6 +40,7 @@
             <MudTd DataLabel="SKU">@context.SKU</MudTd>
             <MudTd DataLabel="Name">@context.Name</MudTd>
             <MudTd DataLabel="Category">@context.CategoryName</MudTd>
+            <MudTd DataLabel="Brand">@context.BrandName</MudTd>
             <MudTd DataLabel="Cost" Style="text-align:right">@context.CostPrice.ToString("C")</MudTd>
             <MudTd DataLabel="Price" Style="text-align:right">@context.SellingPrice.ToString("C")</MudTd>
             <MudTd DataLabel="Reorder" Style="text-align:right">@context.ReorderLevel</MudTd>
@@ -73,6 +75,7 @@
         {
             var query = DbContext.Products
                 .Include(p => p.Category)
+                .Include(p => p.Brand)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(_searchString))
@@ -82,7 +85,7 @@
             _products = products.Select(p => new ProductDto(
                 p.Id, p.Name, p.SKU, p.Barcode, p.Description,
                 p.CostPrice, p.SellingPrice, p.WholeSellingPrice, p.ReorderLevel, p.MinimumOrderQuantity,
-                p.CategoryId, p.Category?.Name, p.ImageUrl, 0, p.IsKit
+                p.CategoryId, p.Category?.Name, p.BrandId, p.Brand?.Name, p.ImageUrl, 0, p.IsKit
             )).ToList();
         }
         catch (Exception ex)
@@ -95,9 +98,11 @@
     private async Task OpenCreateDialog()
     {
         var categories = await DbContext.Categories.ToListAsync(); // IOMS.Web.Utility.Common.GetCategoryList(DbContext);
+        var brands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
         var parameters = new DialogParameters<ProductDialog>
         {
-            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList() }
+            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList() },
+            { x => x.Brands, brands.Select(b => new BrandDto(b.Id, b.Name, b.Description, 0)).ToList() }
         };
 
         var dialog = await DialogService.ShowAsync<ProductDialog>("New Product", parameters,
@@ -112,6 +117,7 @@
                 Description = dto.Description, CostPrice = dto.CostPrice,
                 SellingPrice = dto.SellingPrice, ReorderLevel = dto.ReorderLevel,
                 MinimumOrderQuantity = dto.MinimumOrderQuantity, CategoryId = dto.CategoryId,
+                BrandId = dto.BrandId,
                 ImageUrl = dto.ImageUrl,
                 Model = dto.Model
             };
@@ -125,22 +131,24 @@
     private async Task OpenEditDialog(ProductDto product)
     {
         var categories = await DbContext.Categories.ToListAsync();
-        var fullProduct = await DbContext.Products.FindAsync(product.Id);
+        var brands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
+        var fullProduct = await DbContext.Products.Include(p => p.Brand).FirstOrDefaultAsync(p => p.Id == product.Id);
         ProductDetailsDto? detailsDto = null;
         if (fullProduct != null)
         {
             detailsDto = new ProductDetailsDto(
                 fullProduct.Id, fullProduct.Name, fullProduct.SKU, fullProduct.Barcode, fullProduct.Description,
                 fullProduct.CostPrice, fullProduct.SellingPrice, fullProduct.WholeSellingPrice, fullProduct.ReorderLevel, fullProduct.MinimumOrderQuantity,
-                fullProduct.CategoryId, product.CategoryName, fullProduct.ImageUrl, 0, fullProduct.IsKit,
-                fullProduct.Model, fullProduct.BrandId.ToString()
+                fullProduct.CategoryId, product.CategoryName, fullProduct.BrandId, fullProduct.Brand?.Name, fullProduct.ImageUrl, 0, fullProduct.IsKit,
+                fullProduct.Model
             );
         }
 
         var parameters = new DialogParameters<ProductDialog>
         {
             { x => x.Product, (object?)(detailsDto ?? (object?)product) },
-            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList() }
+            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList() },
+            { x => x.Brands, brands.Select(b => new BrandDto(b.Id, b.Name, b.Description, 0)).ToList() }
         };
 
         var dialog = await DialogService.ShowAsync<ProductDialog>("Edit Product", parameters,
@@ -156,6 +164,7 @@
                 entity.Description = dto.Description; entity.CostPrice = dto.CostPrice;
                 entity.SellingPrice = dto.SellingPrice; entity.ReorderLevel = dto.ReorderLevel;
                 entity.MinimumOrderQuantity = dto.MinimumOrderQuantity; entity.CategoryId = dto.CategoryId;
+                entity.BrandId = dto.BrandId;
                 entity.ImageUrl = dto.ImageUrl;
                 entity.Model = dto.Model;
                 await DbContext.SaveChangesAsync();

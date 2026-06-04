@@ -158,7 +158,7 @@ else
                                         <MudText Typo="Typo.body1" Style="font-weight:600;">@(_product.Model ?? "—")</MudText>
                                         <MudDivider />
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">Brand</MudText>
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@(_product.BrandId)</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@(_product.Brand?.Name ?? "—")</MudText>
                                         <MudDivider />
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">Whole Selling Price</MudText>
                                         <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.WholeSellingPrice</MudText>
@@ -487,6 +487,7 @@ else
             _product = await DbContext.Products
                 .Include(p => p.Category)
                     .ThenInclude(c => c!.ParentCategory)
+                .Include(p => p.Brand)
                 .Include(p => p.Inventories)
                     .ThenInclude(i => i.Warehouse)
                 .FirstOrDefaultAsync(p => p.Id == Id);
