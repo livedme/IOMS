@@ -33,21 +33,6 @@ public class ProductService : IProductService
         return new PagedResult<ProductDto>(_mapper.Map<List<ProductDto>>(items), total, page, pageSize);
     }
 
-    public async Task<PagedResult<ProductDto>> GetProductsByType(string? search, Guid? categoryId, ProductType? productType, int page, int pageSize)
-    {
-        var query = _db.Products.Include(p => p.Category).Include(p => p.Inventories).AsQueryable();
-        if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(p => p.Name.Contains(search) || p.SKU.Contains(search));
-        if (categoryId.HasValue)
-            query = query.Where(p => p.CategoryId == categoryId.Value);
-        if (productType.HasValue)
-            query = query.Where(p => p.ProductType == productType.Value);
-
-        var total = await query.CountAsync();
-        var items = await query.OrderBy(p => p.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-        return new PagedResult<ProductDto>(_mapper.Map<List<ProductDto>>(items), total, page, pageSize);
-    }
-
     public async Task<ProductDto?> GetProductById(Guid id)
     {
         var product = await _db.Products.Include(p => p.Category).Include(p => p.Inventories).FirstOrDefaultAsync(p => p.Id == id);
@@ -82,19 +67,7 @@ public class ProductService : IProductService
             CostPrice = dto.CostPrice, SellingPrice = dto.SellingPrice, ReorderLevel = dto.ReorderLevel,
             MinimumOrderQuantity = dto.MinimumOrderQuantity, CategoryId = dto.CategoryId,
             BaseUoMId = dto.BaseUoMId, ImageUrl = dto.ImageUrl,
-            ProductType = dto.ProductType,
-            // Electronics
-            Model = dto.Model, Voltage = dto.Voltage, Power = dto.Power,
-            BatteryType = dto.BatteryType, Connectivity = dto.Connectivity,
-            InterfaceType = dto.InterfaceType, Certification = dto.Certification,
-            OperatingTempMin = dto.OperatingTempMin, OperatingTempMax = dto.OperatingTempMax,
-            FirmwareVersion = dto.FirmwareVersion, WarrantyPeriod = dto.WarrantyPeriod,
-            WarrantyExpiryDate = dto.WarrantyExpiryDate, Specifications = dto.Specifications,
-            // Mechanical
-            Material = dto.Material, Dimensions = dto.Dimensions, Tolerance = dto.Tolerance,
-            MaintenanceInterval = dto.MaintenanceInterval, Condition = dto.Condition,
-            LastMaintenanceDate = dto.LastMaintenanceDate, SurfaceFinish = dto.SurfaceFinish,
-            HardnessRating = dto.HardnessRating, OperatingPressure = dto.OperatingPressure
+            Model = dto.Model
         };
         _db.Products.Add(product);
         await _db.SaveChangesAsync();
@@ -120,20 +93,7 @@ public class ProductService : IProductService
         product.SellingPrice = dto.SellingPrice; product.ReorderLevel = dto.ReorderLevel;
         product.MinimumOrderQuantity = dto.MinimumOrderQuantity; product.CategoryId = dto.CategoryId;
         product.BaseUoMId = dto.BaseUoMId; product.ImageUrl = dto.ImageUrl;
-        product.ProductType = dto.ProductType;
-        // Electronics
-        product.Model = dto.Model; product.Voltage = dto.Voltage; product.Power = dto.Power;
-        product.BatteryType = dto.BatteryType; product.Connectivity = dto.Connectivity;
-        product.InterfaceType = dto.InterfaceType; product.Certification = dto.Certification;
-        product.OperatingTempMin = dto.OperatingTempMin; product.OperatingTempMax = dto.OperatingTempMax;
-        product.FirmwareVersion = dto.FirmwareVersion; product.WarrantyPeriod = dto.WarrantyPeriod;
-        product.WarrantyExpiryDate = dto.WarrantyExpiryDate; product.Specifications = dto.Specifications;
-        // Mechanical
-        product.Material = dto.Material; product.Dimensions = dto.Dimensions;
-        product.Tolerance = dto.Tolerance; product.MaintenanceInterval = dto.MaintenanceInterval;
-        product.Condition = dto.Condition; product.LastMaintenanceDate = dto.LastMaintenanceDate;
-        product.SurfaceFinish = dto.SurfaceFinish; product.HardnessRating = dto.HardnessRating;
-        product.OperatingPressure = dto.OperatingPressure;
+        product.Model = dto.Model;
         await _db.SaveChangesAsync();
     }
 

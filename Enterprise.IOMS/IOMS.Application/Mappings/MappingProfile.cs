@@ -11,36 +11,14 @@ public class MappingProfile : Profile
         // Product
         CreateMap<Product, ProductDto>()
             .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null))
-            .ForMember(d => d.TotalStock, o => o.MapFrom(s => s.Inventories.Sum(i => i.Quantity)))
-            .ForMember(d => d.ProductType, o => o.MapFrom(s => s.ProductType));
+            .ForMember(d => d.TotalStock, o => o.MapFrom(s => s.Inventories.Sum(i => i.Quantity)));
 
-        // Product Details (electronics/mechanical extended attributes)
+        // Product Details (extended attributes)
         CreateMap<Product, ProductDetailsDto>()
             .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null))
             .ForMember(d => d.TotalStock, o => o.MapFrom(s => s.Inventories.Sum(i => i.Quantity)))
             .ForMember(d => d.Brand, o => o.MapFrom(s => s.BrandId.ToString()))
-            .ForMember(d => d.ProductType, o => o.MapFrom(s => s.ProductType))
-            .ForMember(d => d.Voltage, o => o.MapFrom(s => s.Voltage))
-            .ForMember(d => d.Power, o => o.MapFrom(s => s.Power))
-            .ForMember(d => d.BatteryType, o => o.MapFrom(s => s.BatteryType))
-            .ForMember(d => d.Connectivity, o => o.MapFrom(s => s.Connectivity))
-            .ForMember(d => d.InterfaceType, o => o.MapFrom(s => s.InterfaceType))
-            .ForMember(d => d.Certification, o => o.MapFrom(s => s.Certification))
-            .ForMember(d => d.OperatingTempMin, o => o.MapFrom(s => s.OperatingTempMin))
-            .ForMember(d => d.OperatingTempMax, o => o.MapFrom(s => s.OperatingTempMax))
-            .ForMember(d => d.FirmwareVersion, o => o.MapFrom(s => s.FirmwareVersion))
-            .ForMember(d => d.WarrantyPeriod, o => o.MapFrom(s => s.WarrantyPeriod))
-            .ForMember(d => d.WarrantyExpiryDate, o => o.MapFrom(s => s.WarrantyExpiryDate))
-            .ForMember(d => d.Specifications, o => o.MapFrom(s => s.Specifications))
-            .ForMember(d => d.Material, o => o.MapFrom(s => s.Material))
-            .ForMember(d => d.Dimensions, o => o.MapFrom(s => s.Dimensions))
-            .ForMember(d => d.Tolerance, o => o.MapFrom(s => s.Tolerance))
-            .ForMember(d => d.MaintenanceInterval, o => o.MapFrom(s => s.MaintenanceInterval))
-            .ForMember(d => d.Condition, o => o.MapFrom(s => s.Condition))
-            .ForMember(d => d.LastMaintenanceDate, o => o.MapFrom(s => s.LastMaintenanceDate))
-            .ForMember(d => d.SurfaceFinish, o => o.MapFrom(s => s.SurfaceFinish))
-            .ForMember(d => d.HardnessRating, o => o.MapFrom(s => s.HardnessRating))
-            .ForMember(d => d.OperatingPressure, o => o.MapFrom(s => s.OperatingPressure));
+            .ForMember(d => d.Model, o => o.MapFrom(s => s.Model));
 
         // Category
         CreateMap<Category, CategoryDto>()

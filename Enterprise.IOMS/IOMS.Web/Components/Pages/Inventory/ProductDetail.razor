@@ -5,7 +5,6 @@
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
 @using IOMS.Infrastructure.Data
-@using IOMS.Domain.Enums
 
 <PageTitle>@(_product?.Name ?? "Product Detail") - IOMS</PageTitle>
 
@@ -44,7 +43,6 @@ else
             @* Product Core Info *@
             <MudItem xs="12" sm="6">
                 <MudText Typo="Typo.h5" Style="font-weight:800;line-height:1.2;">@_product.Name</MudText>
-
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-1">
                     <MudText Typo="Typo.body2" Color="Color.Secondary">SKU:</MudText>
                     <MudText Typo="Typo.body2" Style="font-weight:600;">@_product.SKU</MudText>
@@ -58,29 +56,9 @@ else
                         </MudPaper>
                     }
                 </MudStack>
-
-                <MudGrid Class="mt-2" Spacing="2">
-                    <MudItem xs="12">
-                        <MudChip T="string" Size="Size.Small"
-                                 Color="@GetProductTypeColor(_product.ProductType)"
-                                 Variant="Variant.Filled" Class="mr-1">
-                            @_product.ProductType
-                        </MudChip>
-                    </MudItem>
+                <MudGrid Class="mt-2" Spacing="2">                   
                     <MudItem>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Category</MudText>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
-                            @if (!string.IsNullOrEmpty(_parentCategoryName))
-                            {
-                                <MudText Typo="Typo.body2" Style="font-weight:500;">@_parentCategoryName</MudText>
-                                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small"
-                                         Style="color:#9EA8C8;" />
-                            }
-                            <MudText Typo="Typo.body2" Style="font-weight:600;">@_product.Category?.Name</MudText>
-                        </MudStack>
-                    </MudItem>
-                    <MudItem>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                        @* <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText> *@
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                             <div style="width:8px;height:8px;border-radius:50%;background:#06D6A0;"></div>
                             <MudText Typo="Typo.body2" Style="font-weight:600;">Active</MudText>
@@ -154,140 +132,70 @@ else
                 @* Overview Tab *@
                 <MudTabPanel Text="Overview">
                     <MudGrid>
-                        <MudItem xs="12" sm="6">
-                            <MudStack Spacing="0">
-                                <div style="padding:12px 0;">
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Reorder Level</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.ReorderLevel</MudText>
-                                </div>
-                                <MudDivider />
-                                <div style="padding:12px 0;">
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Reorder Quantity</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.MinimumOrderQuantity</MudText>
-                                </div>
-                                <MudDivider />
-                                <div style="padding:12px 0;">
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Lead Time</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight:600;">
-                                        @(_preferredSupplier?.LeadTimeDays > 0
-                                            ? $"{_preferredSupplier.LeadTimeDays} days"
-                                            : "N/A")
-                                    </MudText>
-                                </div>
-                                <MudDivider />
-                                <div style="padding:12px 0;">
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Preferred Supplier</MudText>
-                                    @if (_preferredSupplier != null)
-                                    {
-                                        <MudLink Href="@($"/suppliers/{_preferredSupplier.Id}")"
-                                                 Style="font-weight:600;color:#4361EE;">
-                                            @_preferredSupplier.Name
-                                        </MudLink>
-                                    }
-                                    else
-                                    {
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">N/A</MudText>
-                                    }
-                                </div>
-                            </MudStack>
-                        </MudItem>
-                        <MudItem xs="12" sm="6">
-                            <MudStack Spacing="0">
-                                <div style="padding:8px 0;">
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Model</MudText>
-                                    <MudText Typo="Typo.body1" Style="font-weight:600;">@(_product.Model ?? "—")</MudText>
-                                </div>
-                                <MudDivider />
-                                @if (_product.ProductType == ProductType.Electronics || _product.ProductType == ProductType.ElectroMechanical)
-                                {
-                                    <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1" Style="font-weight:700;color:var(--mud-palette-info);">Electronics</MudText>
-                                    @foreach (var (label, value) in new[]
-                                    {
-                                        ("Voltage", _product.Voltage),
-                                        ("Power", _product.Power),
-                                        ("Battery Type", _product.BatteryType),
-                                        ("Connectivity", _product.Connectivity),
-                                        ("Interface Type", _product.InterfaceType),
-                                        ("Certification", _product.Certification),
-                                        ("Firmware Version", _product.FirmwareVersion),
-                                        ("Warranty Period", _product.WarrantyPeriod),
-                                        ("Specifications", _product.Specifications),
-                                    })
-                                    {
-                                        if (!string.IsNullOrEmpty(value))
+                            <MudItem xs="12" sm="6">
+                                <MudStack Spacing="5" Class="ps-3">
+                                    <div style="padding:12px 0;">  
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Product Details:</MudText>
+                                        <MudText Typo="Typo.body2">@_product.Description</MudText>
+                                    </div>
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudStack Spacing="0">
+                                    <div style="padding:8px 0;">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Category</MudText>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
+                                            @if (!string.IsNullOrEmpty(_parentCategoryName))
+                                            {
+                                                <MudText Typo="Typo.body2" Style="font-weight:500;">@_parentCategoryName</MudText>
+                                                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small"
+                                                         Style="color:#9EA8C8;" />
+                                            }
+                                            <MudText Typo="Typo.body2" Style="font-weight:600;">@_product.Category?.Name</MudText>
+                                        </MudStack>
+                                        <MudDivider />
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Model</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@(_product.Model ?? "—")</MudText>
+                                        <MudDivider />
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Brand</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@(_product.BrandId)</MudText>
+                                        <MudDivider />
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Whole Selling Price</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.WholeSellingPrice</MudText>
+                                        <MudDivider />
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Reorder Level</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.ReorderLevel</MudText>
+                                        <MudDivider />
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Reorder Quantity</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.MinimumOrderQuantity</MudText>
+                                        <MudDivider />
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Lead Time</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight:600;">
+                                            @(_preferredSupplier?.LeadTimeDays > 0
+                                                ? $"{_preferredSupplier.LeadTimeDays} days"
+                                                : "N/A")
+                                        </MudText>
+                                    </div>
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="12" sm="12">
+                                <MudStack Spacing="0" Class="ps-3">
+                                    <div style="padding:12px 0;">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Preferred Supplier</MudText>
+                                        @if (_preferredSupplier != null)
                                         {
-                                            <div style="padding:6px 0;">
-                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@label</MudText>
-                                                <MudText Typo="Typo.body2" Style="font-weight:500;">@value</MudText>
-                                            </div>
-                                            <MudDivider />
+                                            <MudLink Href="@($"/suppliers/{_preferredSupplier.Id}")"
+                                                     Style="font-weight:600;color:#4361EE;">
+                                                @_preferredSupplier.Name
+                                            </MudLink>
                                         }
-                                    }
-                                    @if (_product.OperatingTempMin.HasValue || _product.OperatingTempMax.HasValue)
-                                    {
-                                        <div style="padding:6px 0;">
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Operating Temp</MudText>
-                                            <MudText Typo="Typo.body2" Style="font-weight:500;">@(_product.OperatingTempMin)°C to @(_product.OperatingTempMax)°C</MudText>
-                                        </div>
-                                        <MudDivider />
-                                    }
-                                    @if (_product.WarrantyExpiryDate.HasValue)
-                                    {
-                                        <div style="padding:6px 0;">
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Warranty Expiry</MudText>
-                                            <MudText Typo="Typo.body2" Style="font-weight:500;">@_product.WarrantyExpiryDate.Value.ToShortDateString()</MudText>
-                                        </div>
-                                        <MudDivider />
-                                    }
-                                }
-                                @if (_product.ProductType == ProductType.Mechanical || _product.ProductType == ProductType.ElectroMechanical)
-                                {
-                                    <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1" Style="font-weight:700;color:var(--mud-palette-warning);">Mechanical</MudText>
-                                    @foreach (var (label, value) in new[]
-                                    {
-                                        ("Material", _product.Material),
-                                        ("Dimensions", _product.Dimensions),
-                                        ("Maintenance Interval", _product.MaintenanceInterval),
-                                        ("Surface Finish", _product.SurfaceFinish),
-                                        ("Hardness Rating", _product.HardnessRating),
-                                        ("Operating Pressure", _product.OperatingPressure),
-                                    })
-                                    {
-                                        if (!string.IsNullOrEmpty(value))
+                                        else
                                         {
-                                            <div style="padding:6px 0;">
-                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@label</MudText>
-                                                <MudText Typo="Typo.body2" Style="font-weight:500;">@value</MudText>
-                                            </div>
-                                            <MudDivider />
+                                            <MudText Typo="Typo.body1" Style="font-weight:600;">N/A</MudText>
                                         }
-                                    }
-                                    @if (_product.Tolerance.HasValue)
-                                    {
-                                        <div style="padding:6px 0;">
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Tolerance</MudText>
-                                            <MudText Typo="Typo.body2" Style="font-weight:500;">@_product.Tolerance mm</MudText>
-                                        </div>
-                                        <MudDivider />
-                                    }
-                                    @if (_product.Condition.HasValue)
-                                    {
-                                        <div style="padding:6px 0;">
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Condition</MudText>
-                                            <MudChip T="string" Size="Size.Small" Color="Color.Default">@_product.Condition</MudChip>
-                                        </div>
-                                        <MudDivider />
-                                    }
-                                    @if (_product.LastMaintenanceDate.HasValue)
-                                    {
-                                        <div style="padding:6px 0;">
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Last Maintenance</MudText>
-                                            <MudText Typo="Typo.body2" Style="font-weight:500;">@_product.LastMaintenanceDate.Value.ToShortDateString()</MudText>
-                                        </div>
-                                    }
-                                }
-                            </MudStack>
-                        </MudItem>
+                                    </div>
+                                </MudStack>
+                            </MudItem>
                     </MudGrid>
                 </MudTabPanel>
 
@@ -672,14 +580,6 @@ else
         0 => ("#1B7A50", "#FFFFFF"),
         1 => ("#E8893A", "#FFFFFF"),
         _ => ("#4361EE", "#FFFFFF")
-    };
-
-    private static Color GetProductTypeColor(ProductType type) => type switch
-    {
-        ProductType.Electronics => Color.Info,
-        ProductType.Mechanical => Color.Warning,
-        ProductType.ElectroMechanical => Color.Secondary,
-        _ => Color.Default
     };
 
     private Task AddStock()

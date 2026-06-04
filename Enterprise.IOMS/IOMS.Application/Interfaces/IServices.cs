@@ -246,7 +246,6 @@ public interface IArchivalService
 public interface IProductService
 {
     Task<PagedResult<ProductDto>> GetProducts(string? search, Guid? categoryId, int page, int pageSize);
-    Task<PagedResult<ProductDto>> GetProductsByType(string? search, Guid? categoryId, ProductType? productType, int page, int pageSize);
     Task<ProductDto?> GetProductById(Guid id);
     Task<ProductDetailsDto?> GetProductDetailsById(Guid id);
     Task<Guid> CreateProduct(CreateProductDto dto);

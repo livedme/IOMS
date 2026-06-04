@@ -34,33 +34,6 @@ public class Product : BaseEntity
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
     public ICollection<PriceListItem> PriceListItems { get; set; } = new List<PriceListItem>();
 
-    // Product type classification
-    public ProductType ProductType { get; set; } = ProductType.General;
-
-    // --- Electronics-specific attributes ---
-    public string? Voltage { get; set; }               // e.g., "110V-240V AC"
-    public string? Power { get; set; }                  // e.g., "65W"
-    public string? FirmwareVersion { get; set; }
-    public string? BatteryType { get; set; }            // e.g., "Li-Ion 4000mAh"
-    public string? Connectivity { get; set; }            // e.g., "WiFi 6, Bluetooth 5.0"
-    public string? InterfaceType { get; set; }           // e.g., "USB-C, HDMI 2.1"
-    public string? Certification { get; set; }           // e.g., "CE, FCC, RoHS"
-    public decimal? OperatingTempMin { get; set; }      // °C
-    public decimal? OperatingTempMax { get; set; }      // °C
-    public string? WarrantyPeriod { get; set; }         // e.g., "2 years"
-    public DateTime? WarrantyExpiryDate { get; set; }
-
-    // --- Mechanical-specific attributes ---
-    public string? Material { get; set; }
-    public string? Dimensions { get; set; }             // e.g., "100x50x30mm"
-    public decimal? Tolerance { get; set; }             // e.g., 0.01 (mm)
-    public string? MaintenanceInterval { get; set; }    // e.g., "6 months"
-    public ProductCondition? Condition { get; set; }
-    public DateTime? LastMaintenanceDate { get; set; }
-    public string? SurfaceFinish { get; set; }          // e.g., "Anodized", "Powder Coated"
-    public string? HardnessRating { get; set; }         // e.g., "58 HRC"
-    public string? OperatingPressure { get; set; }      // e.g., "0-100 PSI"
-
     // --- General/Extensible attributes ---
     public string? Specifications { get; set; }         // Additional specs (JSON or delimited)
 }
@@ -69,6 +42,7 @@ public class Category : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string? Path { get; set; }    
     public Guid? ParentCategoryId { get; set; }
     public Category? ParentCategory { get; set; }
     public ICollection<Category> SubCategories { get; set; } = new List<Category>();

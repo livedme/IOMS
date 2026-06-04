@@ -5,7 +5,6 @@
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
 @using IOMS.Infrastructure.Data
-@using IOMS.Domain.Enums
 @inject ApplicationDbContext DbContext
 
 <PageTitle>Products - IOMS</PageTitle>
@@ -19,17 +18,7 @@
                           AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
                           DebounceInterval="300" OnDebounceIntervalElapsed="LoadProducts" />
         </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudSelect Value="_typeFilter" Label="Product Type" Clearable="true"
-                       T="ProductType?" ValueChanged="OnTypeFilterChanged">
-                <MudSelectItem T="ProductType?" Value="null">All Types</MudSelectItem>
-                <MudSelectItem T="ProductType?" Value="ProductType.General">General</MudSelectItem>
-                <MudSelectItem T="ProductType?" Value="ProductType.Electronics">Electronics</MudSelectItem>
-                <MudSelectItem T="ProductType?" Value="ProductType.Mechanical">Mechanical</MudSelectItem>
-                <MudSelectItem T="ProductType?" Value="ProductType.ElectroMechanical">Electro-Mechanical</MudSelectItem>
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3" Class="d-flex justify-end">
+        <MudItem xs="12" sm="6" Class="d-flex justify-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                        OnClick="OpenCreateDialog">New Product</MudButton>
         </MudItem>
@@ -41,7 +30,6 @@
             <MudTh>SKU</MudTh>
             <MudTh>Name</MudTh>
             <MudTh>Category</MudTh>
-            <MudTh>Type</MudTh>
             <MudTh Style="text-align:right">Cost Price</MudTh>
             <MudTh Style="text-align:right">Selling Price</MudTh>
             <MudTh Style="text-align:right">Reorder Level</MudTh>
@@ -51,11 +39,6 @@
             <MudTd DataLabel="SKU">@context.SKU</MudTd>
             <MudTd DataLabel="Name">@context.Name</MudTd>
             <MudTd DataLabel="Category">@context.CategoryName</MudTd>
-            <MudTd DataLabel="Type">
-                <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.ProductType)" Variant="Variant.Outlined">
-                    @context.ProductType
-                </MudChip>
-            </MudTd>
             <MudTd DataLabel="Cost" Style="text-align:right">@context.CostPrice.ToString("C")</MudTd>
             <MudTd DataLabel="Price" Style="text-align:right">@context.SellingPrice.ToString("C")</MudTd>
             <MudTd DataLabel="Reorder" Style="text-align:right">@context.ReorderLevel</MudTd>
@@ -77,18 +60,11 @@
 @code {
     private List<ProductDto> _products = new();
     private string _searchString = "";
-    private ProductType? _typeFilter = null;
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync() => await LoadProducts();
 
     private void NavigateToDetail(Guid id) => Navigation.NavigateTo($"/products/{id}");
-
-    private async Task OnTypeFilterChanged(ProductType? value)
-    {
-        _typeFilter = value;
-        await LoadProducts();
-    }
 
     private async Task LoadProducts()
     {
@@ -102,14 +78,11 @@
             if (!string.IsNullOrWhiteSpace(_searchString))
                 query = query.Where(p => p.Name.Contains(_searchString) || p.SKU.Contains(_searchString));
 
-            if (_typeFilter.HasValue)
-                query = query.Where(p => p.ProductType == _typeFilter.Value);
-
             var products = await query.OrderBy(p => p.Name).Take(100).ToListAsync();
             _products = products.Select(p => new ProductDto(
                 p.Id, p.Name, p.SKU, p.Barcode, p.Description,
-                p.CostPrice, p.SellingPrice, p.ReorderLevel, p.MinimumOrderQuantity,
-                p.CategoryId, p.Category?.Name, p.ImageUrl, 0, p.IsKit, p.ProductType
+                p.CostPrice, p.SellingPrice, p.WholeSellingPrice, p.ReorderLevel, p.MinimumOrderQuantity,
+                p.CategoryId, p.Category?.Name, p.ImageUrl, 0, p.IsKit
             )).ToList();
         }
         catch (Exception ex)
@@ -121,10 +94,10 @@
 
     private async Task OpenCreateDialog()
     {
-        var categories = await DbContext.Categories.ToListAsync();
+        var categories = await DbContext.Categories.ToListAsync(); // IOMS.Web.Utility.Common.GetCategoryList(DbContext);
         var parameters = new DialogParameters<ProductDialog>
         {
-            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0)).ToList() }
+            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList() }
         };
 
         var dialog = await DialogService.ShowAsync<ProductDialog>("New Product", parameters,
@@ -139,19 +112,8 @@
                 Description = dto.Description, CostPrice = dto.CostPrice,
                 SellingPrice = dto.SellingPrice, ReorderLevel = dto.ReorderLevel,
                 MinimumOrderQuantity = dto.MinimumOrderQuantity, CategoryId = dto.CategoryId,
-                ImageUrl = dto.ImageUrl, ProductType = dto.ProductType,
-                // Electronics
-                Model = dto.Model, Voltage = dto.Voltage, Power = dto.Power,
-                BatteryType = dto.BatteryType, Connectivity = dto.Connectivity,
-                InterfaceType = dto.InterfaceType, Certification = dto.Certification,
-                OperatingTempMin = dto.OperatingTempMin, OperatingTempMax = dto.OperatingTempMax,
-                FirmwareVersion = dto.FirmwareVersion, WarrantyPeriod = dto.WarrantyPeriod,
-                WarrantyExpiryDate = dto.WarrantyExpiryDate, Specifications = dto.Specifications,
-                // Mechanical
-                Material = dto.Material, Dimensions = dto.Dimensions, Tolerance = dto.Tolerance,
-                MaintenanceInterval = dto.MaintenanceInterval, Condition = dto.Condition,
-                LastMaintenanceDate = dto.LastMaintenanceDate, SurfaceFinish = dto.SurfaceFinish,
-                HardnessRating = dto.HardnessRating, OperatingPressure = dto.OperatingPressure
+                ImageUrl = dto.ImageUrl,
+                Model = dto.Model
             };
             DbContext.Products.Add(product);
             await DbContext.SaveChangesAsync();
@@ -169,22 +131,16 @@
         {
             detailsDto = new ProductDetailsDto(
                 fullProduct.Id, fullProduct.Name, fullProduct.SKU, fullProduct.Barcode, fullProduct.Description,
-                fullProduct.CostPrice, fullProduct.SellingPrice, fullProduct.ReorderLevel, fullProduct.MinimumOrderQuantity,
+                fullProduct.CostPrice, fullProduct.SellingPrice, fullProduct.WholeSellingPrice, fullProduct.ReorderLevel, fullProduct.MinimumOrderQuantity,
                 fullProduct.CategoryId, product.CategoryName, fullProduct.ImageUrl, 0, fullProduct.IsKit,
-                fullProduct.ProductType, fullProduct.Model, fullProduct.BrandId.ToString(),
-                fullProduct.Voltage, fullProduct.Power, fullProduct.BatteryType, fullProduct.Connectivity,
-                fullProduct.InterfaceType, fullProduct.Certification, fullProduct.OperatingTempMin, fullProduct.OperatingTempMax,
-                fullProduct.FirmwareVersion, fullProduct.WarrantyPeriod, fullProduct.WarrantyExpiryDate, fullProduct.Specifications,
-                fullProduct.Material, fullProduct.Dimensions, fullProduct.Tolerance, fullProduct.MaintenanceInterval,
-                fullProduct.Condition, fullProduct.LastMaintenanceDate, fullProduct.SurfaceFinish,
-                fullProduct.HardnessRating, fullProduct.OperatingPressure
+                fullProduct.Model, fullProduct.BrandId.ToString()
             );
         }
 
         var parameters = new DialogParameters<ProductDialog>
         {
             { x => x.Product, (object?)(detailsDto ?? (object?)product) },
-            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0)).ToList() }
+            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList() }
         };
 
         var dialog = await DialogService.ShowAsync<ProductDialog>("Edit Product", parameters,
@@ -200,20 +156,8 @@
                 entity.Description = dto.Description; entity.CostPrice = dto.CostPrice;
                 entity.SellingPrice = dto.SellingPrice; entity.ReorderLevel = dto.ReorderLevel;
                 entity.MinimumOrderQuantity = dto.MinimumOrderQuantity; entity.CategoryId = dto.CategoryId;
-                entity.ImageUrl = dto.ImageUrl; entity.ProductType = dto.ProductType;
-                // Electronics
-                entity.Model = dto.Model; entity.Voltage = dto.Voltage; entity.Power = dto.Power;
-                entity.BatteryType = dto.BatteryType; entity.Connectivity = dto.Connectivity;
-                entity.InterfaceType = dto.InterfaceType; entity.Certification = dto.Certification;
-                entity.OperatingTempMin = dto.OperatingTempMin; entity.OperatingTempMax = dto.OperatingTempMax;
-                entity.FirmwareVersion = dto.FirmwareVersion; entity.WarrantyPeriod = dto.WarrantyPeriod;
-                entity.WarrantyExpiryDate = dto.WarrantyExpiryDate; entity.Specifications = dto.Specifications;
-                // Mechanical
-                entity.Material = dto.Material; entity.Dimensions = dto.Dimensions;
-                entity.Tolerance = dto.Tolerance; entity.MaintenanceInterval = dto.MaintenanceInterval;
-                entity.Condition = dto.Condition; entity.LastMaintenanceDate = dto.LastMaintenanceDate;
-                entity.SurfaceFinish = dto.SurfaceFinish; entity.HardnessRating = dto.HardnessRating;
-                entity.OperatingPressure = dto.OperatingPressure;
+                entity.ImageUrl = dto.ImageUrl;
+                entity.Model = dto.Model;
                 await DbContext.SaveChangesAsync();
                 Snackbar.Add("Product updated successfully", Severity.Success);
                 await LoadProducts();
@@ -237,12 +181,4 @@
             }
         }
     }
-
-    private Color GetTypeColor(ProductType type) => type switch
-    {
-        ProductType.Electronics => Color.Info,
-        ProductType.Mechanical => Color.Warning,
-        ProductType.ElectroMechanical => Color.Secondary,
-        _ => Color.Default
-    };
 }
