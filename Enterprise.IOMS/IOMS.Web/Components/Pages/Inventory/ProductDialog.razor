@@ -20,21 +20,23 @@
                 <MudAutocomplete T="CategoryDto"
                                  Label="Category"
                                  Required="true"
-                                 Value="_selectedCategory"
-                                 ValueChanged="OnCategoryChanged"
+                                 @bind-Value="_selectedCategory"
+                                 @bind-Text="_categoryText"
+                                 @bind-Value:after="OnCategoryChanged"
                                  SearchFunc="SearchCategories"
-                                 ToStringFunc="@(c => c?.Path ?? c?.Name ?? "")"
-                                 ResetValueOnEmptyText="false"
+                                 ToStringFunc="@(c => c?.Path ?? c?.Name ?? "")"                                 
+                                 ResetValueOnEmptyText="true"
                                  CoerceText="true"
                                  Clearable="true" Class="pb-5" />
 
                 <MudAutocomplete T="BrandDto"
                                  Label="Brand"
-                                 Value="_selectedBrand"
-                                 ValueChanged="OnBrandChanged"
+                                 @bind-Value="_selectedBrand"
+                                 @bind-Text="_brandText"
+                                 @bind-Value:after="OnBrandChanged"
                                  SearchFunc="SearchBrands"
                                  ToStringFunc="@(b => b?.Name ?? "")"
-                                 ResetValueOnEmptyText="false"
+                                 ResetValueOnEmptyText="true"
                                  CoerceText="true"
                                  Clearable="true" Class="pb-5" />
                 <MudTextField @bind-Value="_model" Label="Model" Class="pb-5" />
@@ -58,6 +60,8 @@
     </DialogActions>
 </MudDialog>
 @inject ApplicationDbContext DbContext
+@inject IDialogService DialogService
+
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public object? Product { get; set; }
@@ -71,17 +75,26 @@
     private string? _description;
     private Guid _categoryId;
     private CategoryDto? _selectedCategory;
+    private string? _categoryText;
     private Guid? _brandId;
     private BrandDto? _selectedBrand;
+    private string? _brandText;
     private decimal _costPrice;
     private decimal _sellingPrice;
     private decimal _wholeSellingPrice;
     private int _reorderLevel = 10;
     private int _moq = 1;
     private string? _model;
+    private static readonly CategoryDto AddNewCategoryOption =
+        new(Guid.Empty, "Add New", "Create a new category", null, null, 0, "Add New");
+    private static readonly BrandDto AddNewBrandOption =
+        new(Guid.Empty, "Add New", "Create a new brand", 0);
 
     protected override void OnInitialized()
     {
+        Categories = Categories.Where(c => c.Id != Guid.Empty).ToList();
+        Brands = Brands.Where(b => b.Id != Guid.Empty).ToList();
+
         if (Product is ProductDetailsDto details)
         {
             _name = details.Name;
@@ -89,7 +102,8 @@
             _barcode = details.Barcode;
             _description = details.Description;
             _categoryId = details.CategoryId;
-            _selectedCategory = Categories.FirstOrDefault(c => c.Id == details.CategoryId);
+            _selectedCategory = GetRealCategoryById(details.CategoryId);
+            _categoryText = CategoryToDisplay(_selectedCategory);
             _costPrice = details.CostPrice;
             _wholeSellingPrice = details.WholeSellingPrice;
             _sellingPrice = details.SellingPrice;
@@ -97,7 +111,8 @@
             _moq = details.MinimumOrderQuantity;
             _model = details.Model;
             _brandId = details.BrandId;
-            _selectedBrand = Brands.FirstOrDefault(b => b.Id == details.BrandId);
+            _selectedBrand = GetRealBrandById(details.BrandId);
+            _brandText = BrandToDisplay(_selectedBrand);
         }
         else if (Product is ProductDto p)
         {
@@ -106,47 +121,208 @@
             _barcode = p.Barcode;
             _description = p.Description;
             _categoryId = p.CategoryId;
-            _selectedCategory = Categories.FirstOrDefault(c => c.Id == p.CategoryId);
+            _selectedCategory = GetRealCategoryById(p.CategoryId);
+            _categoryText = CategoryToDisplay(_selectedCategory);
+            _brandId = p.BrandId;
+            _selectedBrand = GetRealBrandById(p.BrandId);
+            _brandText = BrandToDisplay(_selectedBrand);
             _costPrice = p.CostPrice;
             _wholeSellingPrice = p.WholeSellingPrice;
             _sellingPrice = p.SellingPrice;
             _reorderLevel = p.ReorderLevel;
             _moq = p.MinimumOrderQuantity;
         }
-        else if (Categories.Count > 0)
+        else if (Categories.Any(c => c.Id != Guid.Empty))
         {
-            _selectedCategory = Categories.First();
+            _selectedCategory = Categories.First(c => c.Id != Guid.Empty);
             _categoryId = _selectedCategory.Id;
+            _categoryText = CategoryToDisplay(_selectedCategory);
         }
     }
 
     private Task<IEnumerable<CategoryDto>> SearchCategories(string text, CancellationToken _)
     {
-        var results = string.IsNullOrWhiteSpace(text)
-            ? Categories
-            : Categories.Where(c => c.Name.Contains(text, StringComparison.OrdinalIgnoreCase) || (c.Path!=null && c.Path.Contains(text, StringComparison.OrdinalIgnoreCase)));
-        return Task.FromResult(results.AsEnumerable());
+        IEnumerable<CategoryDto> baseResults;
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            baseResults = Categories.Where(c => c.Id != Guid.Empty);
+        }
+        else
+        {
+            baseResults = Categories.Where(c =>
+                c.Id != Guid.Empty &&
+                (c.Name.Contains(text, StringComparison.OrdinalIgnoreCase) ||
+                 (c.Path != null && c.Path.Contains(text, StringComparison.OrdinalIgnoreCase))));
+        }
+
+        var results = new[] { AddNewCategoryOption }.Concat(baseResults).DistinctBy(c => c.Id);
+        return Task.FromResult(results);
     }
 
     private Task<IEnumerable<BrandDto>> SearchBrands(string text, CancellationToken _)
     {
-        var results = string.IsNullOrWhiteSpace(text)
-            ? Brands
-            : Brands.Where(b => b.Name.Contains(text, StringComparison.OrdinalIgnoreCase));
-        return Task.FromResult(results.AsEnumerable());
+        IEnumerable<BrandDto> baseResults;
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            baseResults = Brands.Where(b => b.Id != Guid.Empty);
+        }
+        else
+        {
+            baseResults = Brands.Where(b =>
+                b.Id != Guid.Empty &&
+                b.Name.Contains(text, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var results = new[] { AddNewBrandOption }.Concat(baseResults).DistinctBy(b => b.Id);
+        return Task.FromResult(results);
     }
 
-    private void OnCategoryChanged(CategoryDto? cat)
+    private async Task OnCategoryChanged()
     {
-        _selectedCategory = cat;
-        _categoryId = cat?.Id ?? Guid.Empty;
+        var cat = _selectedCategory;
+
+        if (cat?.Id == Guid.Empty)
+        {
+            var previousCategory = _selectedCategory;
+            var parameters = new DialogParameters<CategoryDialog>
+            {
+                { x => x.AllCategories, Categories.Where(c => c.Id != Guid.Empty).ToList() }
+            };
+
+            var dialog = await DialogService.ShowAsync<CategoryDialog>("New Category", parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            var result = await dialog.Result;
+
+            if (result != null && !result.Canceled && result.Data is CreateCategoryDto dto)
+            {
+                var parent = await DbContext.Categories.FindAsync(dto.ParentCategoryId);
+                var path = parent == null ? dto.Name : parent.ParentCategory == null ? $"{parent.Name} > {dto.Name}" : $"{parent.ParentCategory.Name} > {parent.Name} > {dto.Name}";
+
+                var category = new IOMS.Domain.Entities.Category
+                    {
+                        Name = dto.Name,
+                        Path = path,
+                        Description = dto.Description,
+                        ParentCategoryId = dto.ParentCategoryId
+                    };
+                DbContext.Categories.Add(category);
+                await DbContext.SaveChangesAsync();
+                //  Snackbar.Add("Category created", Severity.Success);
+                //  await LoadCategories();
+
+                cat = new CategoryDto(category.Id, category.Name, category.Description, category.ParentCategoryId, null, 0, category.Path);
+
+                var myCategories = await DbContext.Categories.ToListAsync();
+                Categories = myCategories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList();
+
+                _selectedCategory = GetRealCategoryById(cat.Id);
+                _categoryId = _selectedCategory?.Id ?? Guid.Empty;
+                _categoryText = CategoryToDisplay(_selectedCategory);
+                StateHasChanged();
+            }
+            else
+            {
+                _selectedCategory = previousCategory;
+                _categoryId = previousCategory?.Id ?? Guid.Empty;
+                _categoryText = CategoryToDisplay(_selectedCategory);
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            _categoryId = cat?.Id ?? Guid.Empty;
+            _categoryText = CategoryToDisplay(_selectedCategory);
+        }
+
+     
     }
 
-    private void OnBrandChanged(BrandDto? brand)
+    private CategoryDto? GetRealCategoryById(Guid categoryId)
     {
-        _selectedBrand = brand;
+        if (categoryId == Guid.Empty)
+            return null;
+
+        return Categories.FirstOrDefault(c => c.Id == categoryId);
+    }
+
+    private async Task OnBrandChanged()
+    {
+        var brand = _selectedBrand;
+
+        if (brand?.Id == Guid.Empty)
+        {
+            var previousBrand = _selectedBrand;
+
+            var dialog = await DialogService.ShowAsync<BrandDialog>("New Brand",
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            var result = await dialog.Result;
+
+            if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
+            {
+                var entity = new IOMS.Domain.Entities.Brand
+                {
+                    Name = dto.Name,
+                    BrandCode = dto.BrandCode,
+                    Description = dto.Description,
+                    LogoUrl = dto.LogoUrl,
+                    Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status,
+                    OriginCompany = dto.OriginCompany,
+                    OriginCountry = dto.OriginCountry,
+                    FoundedYear = dto.FoundedYear
+                };
+
+                DbContext.Brands.Add(entity);
+                await DbContext.SaveChangesAsync();
+
+                var allBrands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
+                Brands = allBrands.Select(b => new BrandDto
+                {
+                    Id = b.Id,
+                    Name = b.Name,
+                    BrandCode = b.BrandCode,
+                    Description = b.Description,
+                    LogoUrl = b.LogoUrl,
+                    Status = b.Status,
+                    OriginCompany = b.OriginCompany,
+                    OriginCountry = b.OriginCountry,
+                    FoundedYear = b.FoundedYear
+                }).ToList();
+
+                _selectedBrand = GetRealBrandById(entity.Id);
+                _brandId = _selectedBrand?.Id;
+                _brandText = BrandToDisplay(_selectedBrand);
+                StateHasChanged();
+            }
+            else
+            {
+                _selectedBrand = previousBrand;
+                _brandId = previousBrand?.Id;
+                _brandText = BrandToDisplay(_selectedBrand);
+                StateHasChanged();
+            }
+
+            return;
+        }
+
         _brandId = brand?.Id;
+        _brandText = BrandToDisplay(_selectedBrand);
     }
+
+    private BrandDto? GetRealBrandById(Guid? brandId)
+    {
+        if (!brandId.HasValue || brandId.Value == Guid.Empty)
+            return null;
+
+        return Brands.FirstOrDefault(b => b.Id == brandId.Value);
+    }
+
+    private static string? CategoryToDisplay(CategoryDto? category)
+        => category?.Path ?? category?.Name;
+
+    private static string? BrandToDisplay(BrandDto? brand)
+        => brand?.Name;
 
     private void Cancel() => MudDialog.Cancel();
 
