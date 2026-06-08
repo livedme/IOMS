@@ -2,7 +2,7 @@ namespace IOMS.Domain.Enums;
 
 public enum OrderStatus
 {
-    Pending, Approved, Packed, Shipped, PartiallyShipped, Delivered, Cancelled
+    Pending, Approved, Sold, Packed, Shipped, PartiallyShipped, Delivered, Cancelled
 }
 
 public enum PurchaseOrderStatus

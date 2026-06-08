@@ -40,7 +40,7 @@
                 <MudTh>Actions</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd><MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.EntityType)">@context.EntityType</MudChip></MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetTypeColor(context.EntityType)">@context.EntityType</MudChip></MudTd>
                 <MudTd><strong>@context.Title</strong></MudTd>
                 <MudTd>@context.SubTitle</MudTd>
                 <MudTd>
@@ -79,14 +79,5 @@
         _loading = false;
     }
 
-    private Color GetTypeColor(string type) => type switch
-    {
-        "Product" => Color.Primary,
-        "Customer" => Color.Success,
-        "Supplier" => Color.Info,
-        "SalesOrder" => Color.Warning,
-        "PurchaseOrder" => Color.Secondary,
-        "Invoice" => Color.Error,
-        _ => Color.Default
-    };
+  
 }

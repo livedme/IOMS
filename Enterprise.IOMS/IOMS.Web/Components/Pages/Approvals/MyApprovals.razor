@@ -20,7 +20,7 @@
             <MudTd><strong>@context.DocumentType</strong></MudTd>
             <MudTd>@context.DocumentId.ToString()[..8]...</MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small" Color="@GetColor(context.Status)">@context.Status</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetColor(context.Status)">@context.Status</MudChip>
             </MudTd>
             <MudTd>@context.CurrentLevel</MudTd>
             <MudTd>
@@ -65,12 +65,5 @@
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 
-    private Color GetColor(ApprovalDecision d) => d switch
-    {
-        ApprovalDecision.Pending => Color.Warning,
-        ApprovalDecision.Approved => Color.Success,
-        ApprovalDecision.Rejected => Color.Error,
-        ApprovalDecision.Escalated => Color.Info,
-        _ => Color.Default
-    };
+    
 }

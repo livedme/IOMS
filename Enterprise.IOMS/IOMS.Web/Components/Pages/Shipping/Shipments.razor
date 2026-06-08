@@ -25,7 +25,7 @@
             <MudTd>@(context.ShippedDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
             <MudTd>@(context.DeliveredDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small" Color="@GetColor(context.Status)">@context.Status</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetColor(context.Status)">@context.Status</MudChip>
             </MudTd>
             <MudTd>
                 @if (context.Status == ShipmentStatus.Pending)
@@ -69,13 +69,5 @@
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 
-    private Color GetColor(ShipmentStatus s) => s switch
-    {
-        ShipmentStatus.Pending => Color.Default,
-        ShipmentStatus.InTransit => Color.Info,
-        ShipmentStatus.Delivered => Color.Success,
-        ShipmentStatus.Failed => Color.Error,
-        ShipmentStatus.Returned => Color.Warning,
-        _ => Color.Default
-    };
+   
 }

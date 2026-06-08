@@ -180,7 +180,7 @@ public record SalesOrderItemDto(Guid Id, Guid ProductId, string ProductName, str
     decimal TaxRate, decimal TaxAmount, decimal LineTotal);
 
 public record CreateSalesOrderDto(Guid CustomerId, Guid? WarehouseId, string? Notes,
-    string? ShippingAddress, DateTime? ExpectedDeliveryDate, Guid? CurrencyId,
+    string? ShippingAddress, DateTime? ExpectedDeliveryDate, Guid? CurrencyId, OrderStatus? Status,
     List<CreateSalesOrderItemDto> Items);
 
 public record CreateSalesOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice,
@@ -532,3 +532,7 @@ public record CreateExchangeRateDto(Guid FromCurrencyId, Guid ToCurrencyId, deci
 // User Management
 public record UserDto(string Id, string FullName, string? Email, string? Department,
     bool IsActive, DateTime CreatedAt, DateTime? LastLoginAt, List<string> Roles);
+
+public record FilterItem(Guid Id, string Name, bool IsSelect);
+
+

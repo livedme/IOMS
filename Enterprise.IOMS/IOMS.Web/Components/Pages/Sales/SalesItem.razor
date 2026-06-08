@@ -1,4 +1,4 @@
-@page "/sales/orders"
+@page "/orders/sales"
 @rendermode InteractiveServer
 @inject IOrderService OrderService
 @inject ISnackbar Snackbar
@@ -7,21 +7,23 @@
 @using IOMS.Infrastructure.Data
 @inject ApplicationDbContext DbContext
 
-<PageTitle>Sales Orders - IOMS</PageTitle>
+<PageTitle>Sales - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Sales Orders</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Sales</MudText>
 
 <MudPaper Elevation="2" Class="pa-4">
-    <MudGrid>
+    <MudGrid Class="mb-3">
         <MudItem xs="12" sm="4">
             <MudTextField @bind-Value="_search" Placeholder="Search orders..." Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
                           DebounceInterval="300" OnDebounceIntervalElapsed="LoadOrders" />
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true">
+            <MudSelect T=OrderStatus? Value="@_statusFilter" Placeholder="Select status" Clearable="true" ValueChanged="OnStatusFilterChanged">                
                 @foreach (var status in Enum.GetValues<OrderStatus>())
-                {
+                { 
+                    if (OrderStatus.Pending == status || OrderStatus.Approved == status) continue;
+
                     <MudSelectItem Value="@((OrderStatus?)status)">@status</MudSelectItem>
                 }
             </MudSelect>
@@ -32,7 +34,7 @@
         </MudItem>
     </MudGrid>
 
-    <MudTable Items="@_orders.Items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+    <MudTable Items="@_orders.Items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">      
         <HeaderContent>
             <MudTh>Order #</MudTh>
             <MudTh>Customer</MudTh>
@@ -40,7 +42,7 @@
             <MudTh>Status</MudTh>
             <MudTh Style="text-align:right">Total</MudTh>
             <MudTh>Actions</MudTh>
-        </HeaderContent>
+        </HeaderContent>       
         <RowTemplate>
             <MudTd>@context.OrderNumber</MudTd>
             <MudTd>@context.CustomerName</MudTd>
@@ -73,7 +75,13 @@
 @code {
     private PagedResult<SalesOrderDto> _orders = new(new(), 0, 1, 25);
     private string _search = "";
-    private List<OrderStatus?> _statusFilters;
+    private List<OrderStatus?> _statusFilters = new() {
+        OrderStatus.Sold,
+                OrderStatus.Packed,
+                OrderStatus.Shipped,
+                OrderStatus.PartiallyShipped,
+                OrderStatus.Delivered,
+                OrderStatus.Cancelled };
     private OrderStatus? _statusFilter;
     private bool _loading = true;
     private int _page = 1;
@@ -86,6 +94,33 @@
         try { _orders = await OrderService.GetSalesOrders(_search, _statusFilters, _page, 25); }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         _loading = false;
+    }
+
+    // private void OnCountryChanged(string newValue)
+    // {
+    //     _selectedCountry = newValue; Manually update the backing field
+    //     ExecuteCustomLogic(newValue); Run your event logic
+    // }
+
+    private async Task OnStatusFilterChanged(OrderStatus? status)
+    {
+        if (status.HasValue)
+        {
+            _statusFilters.Clear();
+            _statusFilters.Add(status.Value);
+        }
+        else
+        {
+            _statusFilters = new() {
+                OrderStatus.Sold, 
+                OrderStatus.Packed,
+                OrderStatus.Shipped,
+                OrderStatus.PartiallyShipped,
+                OrderStatus.Delivered,
+                OrderStatus.Cancelled
+            };
+        }
+        await LoadOrders();
     }
 
     private async Task Approve(Guid id)
@@ -143,5 +178,4 @@
         }
     }
 
-  
 }

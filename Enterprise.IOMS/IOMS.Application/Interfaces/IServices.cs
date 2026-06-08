@@ -23,7 +23,7 @@ public interface IOrderService
     Task CancelOrder(Guid orderId, string reason);
     Task UpdateOrderStatus(Guid orderId, OrderStatus newStatus);
     Task<SalesOrderDto?> GetSalesOrderById(Guid id);
-    Task<PagedResult<SalesOrderDto>> GetSalesOrders(string? search, OrderStatus? status, int page, int pageSize);
+    Task<PagedResult<SalesOrderDto>> GetSalesOrders(string? search, List<OrderStatus?>? status, int page, int pageSize);
 }
 
 public interface IPurchaseService

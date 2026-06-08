@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IOMS.Web.Utility
 {
-    public class Common
+    public class CommonData
     {
         public static List<CategoryDto> GetCategoryList(ApplicationDbContext dbContext)
         {

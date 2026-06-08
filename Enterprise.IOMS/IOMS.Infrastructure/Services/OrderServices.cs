@@ -183,7 +183,7 @@ public class OrderService : IOrderService
             ShippingAddress = dto.ShippingAddress,
             ExpectedDeliveryDate = dto.ExpectedDeliveryDate,
             CurrencyId = dto.CurrencyId,
-            Status = OrderStatus.Pending
+            Status = dto.Status == null ? OrderStatus.Pending : dto.Status.Value
         };
 
         foreach (var item in dto.Items)
@@ -319,14 +319,14 @@ public class OrderService : IOrderService
         return order == null ? null : _mapper.Map<SalesOrderDto>(order);
     }
 
-    public async Task<PagedResult<SalesOrderDto>> GetSalesOrders(string? search, OrderStatus? status, int page, int pageSize)
+    public async Task<PagedResult<SalesOrderDto>> GetSalesOrders(string? search, List<OrderStatus?> status, int page, int pageSize)
     {
         var query = _context.SalesOrders
             .Include(o => o.Customer)
             .Include(o => o.Items).ThenInclude(i => i.Product)
             .AsQueryable();
 
-        if (status.HasValue) query = query.Where(o => o.Status == status.Value);
+        if (status != null && status.Any()) query = query.Where(o => status.Contains(o.Status));
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(o => o.OrderNumber.Contains(search) || o.Customer.Name.Contains(search));
 
@@ -335,7 +335,7 @@ public class OrderService : IOrderService
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
         return new PagedResult<SalesOrderDto>(_mapper.Map<List<SalesOrderDto>>(items), total, page, pageSize);
-    }
+    }    
 
     private async Task<TaxCalculationResult> CalculateItemTax(Guid productId, Guid customerId, decimal amount)
     {

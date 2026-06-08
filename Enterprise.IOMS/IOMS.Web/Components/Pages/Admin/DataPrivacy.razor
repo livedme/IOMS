@@ -48,7 +48,7 @@
             <MudTd><strong>@context.RequestType</strong></MudTd>
             <MudTd>@context.SubjectEmail</MudTd>
             <MudTd>
-                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip>
             </MudTd>
             <MudTd>@(context.CompletedAt?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
             <MudTd>
@@ -104,12 +104,5 @@
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 
-    private Color GetStatusColor(DataSubjectRequestStatus s) => s switch
-    {
-        DataSubjectRequestStatus.Pending => Color.Warning,
-        DataSubjectRequestStatus.InProgress => Color.Info,
-        DataSubjectRequestStatus.Completed => Color.Success,
-        DataSubjectRequestStatus.Cancelled => Color.Error,
-        _ => Color.Default
-    };
+   
 }

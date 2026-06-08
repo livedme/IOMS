@@ -42,7 +42,7 @@
     <RowTemplate>
         <MudTd DataLabel="RFQ #">@context.RfqNumber</MudTd>
         <MudTd DataLabel="Status">
-            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+            <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip>
         </MudTd>
         <MudTd DataLabel="Required Date">@(context.RequiredDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
         <MudTd DataLabel="Items">@context.Items.Count</MudTd>
@@ -93,13 +93,4 @@
         await LoadData();
     }
 
-    private Color GetStatusColor(RfqStatus s) => s switch
-    {
-        RfqStatus.Draft => Color.Default,
-        RfqStatus.Sent => Color.Info,
-        RfqStatus.Received => Color.Warning,
-        RfqStatus.Awarded => Color.Success,
-        RfqStatus.Closed => Color.Dark,
-        _ => Color.Error
-    };
 }

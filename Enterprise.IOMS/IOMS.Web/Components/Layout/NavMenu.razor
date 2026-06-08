@@ -19,9 +19,10 @@
     </MudNavGroup>
 
     <MudText Typo="Typo.caption" Class="px-4 pt-4 pb-1" Style="text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--mud-palette-text-secondary);">Sales & Purchasing</MudText>
-    <MudNavGroup Title="Sales" Icon="@Icons.Material.Outlined.PointOfSale" Expanded="false">
+    <MudNavGroup Title="Sales" Icon="@Icons.Material.Outlined.PointOfSale" Expanded="false">        
+        <MudNavLink Href="/orders/sales" Icon="@Icons.Material.Outlined.Receipt">Sales</MudNavLink>
+        <MudNavLink Href="/sales/orders" Icon="@Icons.Material.Outlined.Receipt">Orders</MudNavLink>
         <MudNavLink Href="/customers" Icon="@Icons.Material.Outlined.People">Customers</MudNavLink>
-        <MudNavLink Href="/orders/sales" Icon="@Icons.Material.Outlined.Receipt">Sales Orders</MudNavLink>
         <MudNavLink Href="/quotes" Icon="@Icons.Material.Outlined.RequestQuote">Quotations</MudNavLink>
     </MudNavGroup>
 

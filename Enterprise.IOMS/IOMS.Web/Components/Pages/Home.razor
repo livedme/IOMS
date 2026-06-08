@@ -260,7 +260,7 @@ else if (_kpis != null)
                             <MudTd>@context.Date.ToString("MMM dd")</MudTd>
                             <MudTd Style="text-align:right"><strong>@context.TotalAmount.ToString("C")</strong></MudTd>
                             <MudTd>
-                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip>
                             </MudTd>
                         </RowTemplate>
                     </MudTable>
@@ -301,7 +301,7 @@ else if (_kpis != null)
                             <MudTd>@context.Date.ToString("MMM dd")</MudTd>
                             <MudTd Style="text-align:right"><strong>@context.TotalAmount.ToString("C")</strong></MudTd>
                             <MudTd>
-                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip>
                             </MudTd>
                         </RowTemplate>
                     </MudTable>
@@ -420,13 +420,5 @@ else if (_kpis != null)
     private static string Truncate(string value, int maxLength) =>
         value.Length <= maxLength ? value : value[..(maxLength - 1)] + "…";
 
-    private static Color GetStatusColor(string status) => status switch
-    {
-        "Pending" or "Draft" => Color.Default,
-        "Confirmed" or "Submitted" or "Approved" => Color.Info,
-        "Processing" or "Shipped" or "Received" or "PartiallyReceived" => Color.Warning,
-        "Delivered" or "Completed" or "Invoiced" => Color.Success,
-        "Cancelled" or "Rejected" => Color.Error,
-        _ => Color.Default
-    };
+   
 }

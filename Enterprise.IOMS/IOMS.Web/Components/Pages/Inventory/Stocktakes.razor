@@ -43,7 +43,7 @@
         <MudTd DataLabel="Start Date">@context.StartDate.ToShortDateString()</MudTd>
         <MudTd DataLabel="End Date">@(context.EndDate?.ToShortDateString() ?? "-")</MudTd>
         <MudTd DataLabel="Status">
-            <MudChip T="string" Size="Size.Small" Color="@GetColor(context.Status)">@context.Status</MudChip>
+            <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetColor(context.Status)">@context.Status</MudChip>
         </MudTd>
         <MudTd DataLabel="Total Items">@context.TotalItems</MudTd>
         <MudTd DataLabel="Counted">@context.CountedItems</MudTd>
@@ -110,12 +110,4 @@
         await LoadData();
     }
 
-    private Color GetColor(StocktakeStatus s) => s switch
-    {
-        StocktakeStatus.Draft => Color.Default,
-        StocktakeStatus.InProgress => Color.Info,
-        StocktakeStatus.PendingApproval => Color.Warning,
-        StocktakeStatus.Approved => Color.Success,
-        _ => Color.Error
-    };
 }

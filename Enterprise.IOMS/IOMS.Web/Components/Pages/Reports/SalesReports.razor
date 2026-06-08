@@ -253,7 +253,7 @@ else if (_summaryLoaded)
                 <MudTd>@context.OrderDate.ToShortDateString()</MudTd>
                 <MudTd>@context.CustomerName</MudTd>
                 <MudTd>
-                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                    <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">
                         @context.Status
                     </MudChip>
                 </MudTd>
@@ -438,13 +438,5 @@ else if (_summaryLoaded)
         _paymentMethodData = methodGroups.Select(g => (double)g.Sum(p => p.Amount)).ToArray();
     }
 
-    private static Color GetStatusColor(string status) => status switch
-    {
-        "Pending" => Color.Warning,
-        "Approved" => Color.Info,
-        "Shipped" or "PartiallyShipped" => Color.Primary,
-        "Delivered" => Color.Success,
-        "Cancelled" => Color.Error,
-        _ => Color.Default
-    };
+ 
 }

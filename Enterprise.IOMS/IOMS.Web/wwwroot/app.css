@@ -58,3 +58,11 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.bg-dialog-sales {    
+    background-color: #e9e9e9;
+}
+
+    .bg-dialog-sales .mud-table {
+        border-radius: 0rem;
+    }

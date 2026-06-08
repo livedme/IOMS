@@ -1,23 +1,66 @@
+@using IOMS.Infrastructure.Data
 @using MudBlazor
 
-<MudDialog>
+<MudDialog Class="bg-dialog-sales">
     <DialogContent>
         <MudGrid>
-            <MudItem xs="12" sm="6">
-                <MudSelect @bind-Value="_customerId" Label="Customer" Required="true">
+            <MudItem xs="12" sm="6" Class="mb-4">
+                <MudAutocomplete T="FilterItem"
+                                 @ref="CustomerDropDownControl"
+                                 Label="Customer"
+                                 Required="true"
+                                 @key="_lastCustomerSelection"
+                                 @bind-Value="_selectedCustomer"
+                                 @bind-Text="_customerText"
+                                 @bind-Value:after="OnCustomerChanged"
+                                 SearchFunc="SearchCustomers"
+                                 ToStringFunc="@(c => c?.Name ?? "")"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true"
+                                 Clearable="true" Class="pb-5" />
+
+                @* <MudSelect @bind-Value="_customerId" Label="Customer" Required="true">
                     @foreach (var c in Customers)
                     {
                         <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
                     }
-                </MudSelect>
+                </MudSelect> *@
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="_notes" Label="Notes" />
             </MudItem>
+        </MudGrid>        
+        <MudDivider></MudDivider>
+        <MudGrid Class="mb-5">
+            <MudItem xs="12" sm="3">
+                <MudSelect T=Guid Value="_newProductId" Label="Product" ValueChanged="OnProductFilterChanged"> 
+                    @foreach (var p in Products)
+                    {
+                        <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="1">
+                <MudNumericField @bind-Value="_newQty" Label="Qty" Min="1" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudNumericField @bind-Value="_newPrice" Label="Unit Price" Format="N2" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudNumericField @bind-Value="_newDiscount" Label="Disc %" Format="N1" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                @{
+                    _newTotalPrice = (_newQty * _newPrice * (1 - _newDiscount / 100)).ToString("C");
+                }
+                <MudNumericField @bind-Value="@_newTotalPrice" Label="Total Price" Format="N1" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddItem" Class="mt-2">Add</MudButton>
+            </MudItem>
         </MudGrid>
-
+        <MudDivider></MudDivider>
         <MudText Typo="Typo.h6" Class="mt-4 mb-2">Order Items</MudText>
-
         <MudTable Items="@_items" Dense="true" Elevation="0">
             <HeaderContent>
                 <MudTh>Product</MudTh>
@@ -40,29 +83,7 @@
             </RowTemplate>
         </MudTable>
 
-        <MudGrid Class="mt-3">
-            <MudItem xs="12" sm="4">
-                <MudSelect @bind-Value="_newProductId" Label="Product">
-                    @foreach (var p in Products)
-                    {
-                        <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="2">
-                <MudNumericField @bind-Value="_newQty" Label="Qty" Min="1" />
-            </MudItem>
-            <MudItem xs="12" sm="2">
-                <MudNumericField @bind-Value="_newPrice" Label="Price" Format="N2" />
-            </MudItem>
-            <MudItem xs="12" sm="2">
-                <MudNumericField @bind-Value="_newDiscount" Label="Disc %" Format="N1" />
-            </MudItem>
-            <MudItem xs="12" sm="2">
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddItem" Class="mt-2">Add</MudButton>
-            </MudItem>
-        </MudGrid>
-
+        
         <MudText Typo="Typo.h6" Class="mt-4" Align="Align.Right">
             Total: @_items.Sum(i => i.UnitPrice * i.Quantity * (1 - i.DiscountPercent / 100)).ToString("C")
         </MudText>
@@ -70,18 +91,35 @@
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_items.Any())">
-            Create Order
+            Sale
+        </MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitToPrint" Disabled="@(!_items.Any())">
+            Sale & Print
         </MudButton>
     </DialogActions>
 </MudDialog>
 
+@inject ApplicationDbContext DbContext
+@inject IDialogService DialogService
+
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
-
-    [Parameter] public List<(Guid Id, string Name)> Customers { get; set; } = new();
+    [Parameter] public List<CustomerDto> Customers { get; set; } = new();
     [Parameter] public List<(Guid Id, string Name, string SKU, decimal Price)> Products { get; set; } = new();
 
-    private Guid _customerId;
+    private MudAutocomplete<FilterItem> CustomerDropDownControl = default!;
+    //private FilterItem _customer;
+    private FilterItem _selectedCustomer;
+    private FilterItem? _lastCustomerSelection;
+    private int _selectedCustomerIndex=0;
+    private string? _customerText;
+    private static readonly FilterItem AddNewCustomerOption = new(Guid.Empty, "Add New", false);
+
+
+    // private static readonly BrandDto AddNewBrandOption =
+    // new(Guid.Empty, "Add New", "Create a new brand", 0);
+
+
     private string? _notes;
     private List<CreateSalesOrderItemDto> _items = new();
 
@@ -89,11 +127,18 @@
     private int _newQty = 1;
     private decimal _newPrice;
     private decimal _newDiscount;
+    private string _newTotalPrice = "$0.00";    
 
     protected override void OnInitialized()
     {
-        if (Customers.Count > 0) _customerId = Customers.First().Id;
+        if (Customers.Count > 0) _selectedCustomer = Customers.Select(x => new FilterItem(x.Id, x.Name, x.IsActive)).First();
         if (Products.Count > 0) { _newProductId = Products.First().Id; _newPrice = Products.First().Price; }
+    }
+
+    private void OnProductFilterChanged(Guid productId)
+    {
+        var p = Products.FirstOrDefault(p => p.Id == productId);
+        if (p != default) _newPrice = p.Price;
     }
 
     private void AddItem()
@@ -109,7 +154,110 @@
 
     private void Submit()
     {
-        var dto = new CreateSalesOrderDto(_customerId, null, _notes, null, null, null, _items);
+        var dto = new CreateSalesOrderDto(_selectedCustomer.Id, null, _notes, null, null, null, OrderStatus.Sold, _items);
         MudDialog.Close(DialogResult.Ok(dto));
+    }
+    private void SubmitToPrint()
+    {
+        var dto = new CreateSalesOrderDto(_selectedCustomer.Id, null, _notes, null, null, null, OrderStatus.Delivered, _items);
+        MudDialog.Close(DialogResult.Ok(dto));
+    }
+
+    private async Task OnCustomerChanged()
+    {
+        var cust = _selectedCustomer;
+
+        if (cust?.Id == Guid.Empty)
+        {
+            var previousCustomer = _lastCustomerSelection;
+            var parameters = new DialogParameters<CustomerDialog>
+            {
+                { x => x.Customer, Customers.Where(c => c.Id != Guid.Empty).FirstOrDefault() }
+            };
+
+            var dialog = await DialogService.ShowAsync<CustomerDialog>("New Customer", parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            var result = await dialog.Result;
+
+            await CustomerDropDownControl.ResetAsync();
+
+            if (result != null && !result.Canceled && result.Data is CreateCustomerDto dto)
+            {
+                var newCustomer = new IOMS.Domain.Entities.Customer
+                    {
+                        Name = dto.Name,
+                        Email = dto.Email,
+                        Phone = dto.Phone,
+                        Address = dto.Address,
+                        City = dto.City,
+                        State = dto.State,
+                        Country = dto.Country,
+                        PostalCode = dto.PostalCode,
+                        CreditLimit = dto.CreditLimit,
+                        PaymentTerms = dto.PaymentTerms,
+                        IsTaxExempt = dto.IsTaxExempt
+                    };
+
+                // await DbContext.SaveChangesAsync();
+                // Snackbar.Add("Customer updated", Severity.Success);
+                // await LoadData();
+
+                DbContext.Customers.Add(newCustomer);
+                await DbContext.SaveChangesAsync();     
+                var latestCustomer = await DbContext.Customers.ToListAsync();
+                Customers = latestCustomer.Select(c => new CustomerDto(c.Id, c.Name, c.Email, c.Phone, c.Address, c.City, c.State, c.Country, c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList();
+
+                cust = new FilterItem(newCustomer.Id, newCustomer.Name, false);
+
+                //var latestCustomers = await DbContext.Customers.ToListAsync();
+
+                _selectedCustomer = Customers.Where(x => x.Id == newCustomer.Id).Select(c => new FilterItem(c.Id, c.Name, false)).FirstOrDefault();
+                //_selectedCustomer = Customers.FirstOrDefault();
+                _lastCustomerSelection = _selectedCustomer;
+                //_customerId = _selectedCustomer?.Id ?? Guid.Empty;
+                _customerText = _selectedCustomer?.Name;
+                
+                
+
+                StateHasChanged();
+            }
+            else
+            {
+                _selectedCustomer = previousCustomer;
+                _lastCustomerSelection = _selectedCustomer;
+                //_customer = previousCustomer;
+                _customerText = _selectedCustomer?.Name;
+
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            _selectedCustomer = cust;
+            _lastCustomerSelection = cust;
+            _customerText = cust?.Name;
+        }
+    }
+
+    private Task<IEnumerable<FilterItem>> SearchCustomers(string text, CancellationToken _)
+    {
+        IEnumerable<FilterItem> baseResults;
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            baseResults = Customers.Where(c => c.Id != Guid.Empty).Select(c => new FilterItem(c.Id, c.Name, false));
+        }
+        else
+        {
+            baseResults = Customers.Where(c =>
+                c.Id != Guid.Empty &&
+                (c.Name.Contains(text, StringComparison.OrdinalIgnoreCase)))
+                .Select(c => new FilterItem(c.Id, c.Name, false));
+        }
+
+        //var results = new[] { AddNewCustomerOption }.Concat(baseResults).DistinctBy(c => c.Id);
+        var results = baseResults.Append(AddNewCustomerOption).DistinctBy(c => c.Id);
+
+        return Task.FromResult(results);
     }
 }
