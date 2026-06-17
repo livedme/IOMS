@@ -372,7 +372,7 @@ else if (_summaryLoaded)
             // ── Product breakdown ──
             _productData = orders.SelectMany(o => o.Items)
                 .GroupBy(i => i.Product.Name)
-                .Select(g => new ProductSalesRow(g.Key, g.Sum(i => i.LineTotal), g.Sum(i => i.Quantity), g.Sum(i => i.TaxAmount)))
+                .Select(g => new ProductSalesRow(g.Key, g.Sum(i => i.LineTotalPrice), g.Sum(i => i.Quantity), 0))
                 .OrderByDescending(p => p.Revenue)
                 .ToList();
 

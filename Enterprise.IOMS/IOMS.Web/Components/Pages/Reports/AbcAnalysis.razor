@@ -137,7 +137,7 @@
             var items = await DbContext.SalesOrderItems
                 .Include(i => i.Product)
                 .GroupBy(i => new { i.ProductId, i.Product.Name, i.Product.SKU })
-                .Select(g => new { g.Key.Name, g.Key.SKU, Revenue = g.Sum(i => i.LineTotal) })
+                .Select(g => new { g.Key.Name, g.Key.SKU, Revenue = g.Sum(i => i.LineTotalPrice) })
                 .OrderByDescending(x => x.Revenue)
                 .AsNoTracking()
                 .ToListAsync();

@@ -66,3 +66,75 @@ h1:focus {
     .bg-dialog-sales .mud-table {
         border-radius: 0rem;
     }
+
+
+.icon-toggle
+{
+    color: #222e3c !important;
+}
+    .icon-toggle svg {
+        fill: #222e3c !important;
+    }
+.mud-navmenu.mud-navmenu-primary .mud-nav-link.active:not(.mud-nav-link-disabled) {
+    --mud-ripple-color: rgb(142 159 237) !important;    
+    color: rgb(142 159 237) !important;
+}
+    .mud-navmenu.mud-navmenu-primary .mud-nav-link.active:not(.mud-nav-link-disabled) .mud-nav-link-icon {
+        color: rgb(142 159 237) !important;
+    }
+.mud-icon-size-medium {
+    font-size: 1rem;
+    margin-top: 3px;
+}
+.toggle-user-menu {
+    font-size: 20px;
+    margin-top: 2px;
+}
+
+.profile-dd-menu {
+    border: 1px solid #efefef;
+    border-radius: 4px;
+    width: 175px;
+}
+    .profile-dd-menu .mud-menu-list {
+        padding: 0px;
+    }
+    .profile-dd-menu .mud-menu-item {
+        border: 1px solid #efefef;
+        padding: 10px;
+    }
+.left-nav-menu {
+    scrollbar-color: rgb(79 87 120) transparent !important;
+}
+
+.add-item-icon .mud-button-label {
+    padding: 0rem;
+}
+.add-item-icon .mud-button-label .mud-button-icon-size-medium {
+    margin:0px;
+}
+._newDiscount {
+    width: 100% !important;
+    margin-right: 10px !important;
+}
+._discountType {
+    width: 80px !important;
+}
+.product-item-list .mud-table-container {
+    width: 100%;
+    overflow-y: auto;
+    border: 1px solid #c4c4c4;
+    padding-bottom: 36px;
+}
+
+.DiscountField {
+    width: 100% !important;
+    margin-right: 10px !important;
+}
+
+.DiscountTypeField {
+    width: 100px !important;
+}
+.product-item-list .mud-table-row .mud-table-cell {
+    font-weight: bolder;
+}

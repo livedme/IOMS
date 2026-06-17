@@ -192,7 +192,7 @@ public class OrderService : IOrderService
                 ?? throw new EntityNotFoundException("Product", item.ProductId);
 
             var taxResult = await CalculateItemTax(item.ProductId, dto.CustomerId, item.UnitPrice * item.Quantity);
-            var discountAmt = item.UnitPrice * item.Quantity * (item.DiscountPercent / 100m);
+            var discountAmt = item.UnitPrice * item.Quantity * (item.DiscountAmount / 100m);
             var lineTotal = (item.UnitPrice * item.Quantity) - discountAmt + taxResult.TaxAmount;
 
             order.Items.Add(new SalesOrderItem
@@ -200,19 +200,18 @@ public class OrderService : IOrderService
                 ProductId = item.ProductId,
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice,
-                DiscountPercent = item.DiscountPercent,
+                DiscountType = item.DiscountType,
                 DiscountAmount = discountAmt,
-                TaxRate = taxResult.TaxRate,
-                TaxAmount = taxResult.TaxAmount,
-                LineTotal = lineTotal,
+                
+                LineTotalPrice = lineTotal,
                 UoMId = item.UoMId
             });
         }
 
-        order.SubTotal = order.Items.Sum(i => i.UnitPrice * i.Quantity);
+        order.ItemsTotalPrice = order.Items.Sum(i => i.LineTotalPrice);
         order.DiscountAmount = order.Items.Sum(i => i.DiscountAmount);
-        order.TaxAmount = order.Items.Sum(i => i.TaxAmount);
-        order.TotalAmount = order.SubTotal - order.DiscountAmount + order.TaxAmount + order.FreightAmount;
+        order.TaxAmount = order.TaxAmount;
+        order.TotalAmount = order.ItemsTotalPrice - order.DiscountAmount + order.TaxAmount + order.TruckCharge + order.LabourCharge;
 
         _context.SalesOrders.Add(order);
         await _context.SaveChangesAsync();

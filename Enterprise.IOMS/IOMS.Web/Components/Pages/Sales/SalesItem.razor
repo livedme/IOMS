@@ -96,12 +96,6 @@
         _loading = false;
     }
 
-    // private void OnCountryChanged(string newValue)
-    // {
-    //     _selectedCountry = newValue; Manually update the backing field
-    //     ExecuteCustomLogic(newValue); Run your event logic
-    // }
-
     private async Task OnStatusFilterChanged(OrderStatus? status)
     {
         if (status.HasValue)

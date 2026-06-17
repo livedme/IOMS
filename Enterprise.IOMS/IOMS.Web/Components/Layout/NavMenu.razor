@@ -1,4 +1,4 @@
-﻿<MudNavMenu Bordered="true" Color="Color.Primary" Class="pa-2">
+﻿<MudNavMenu Bordered="true" Color="Color.Primary" Class="pa-2 ioms-nav-menu overflow-auto pt-4 left-nav-menu">
     <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.SpaceDashboard">
         Dashboard
     </MudNavLink>
@@ -87,7 +87,7 @@
         <MudNavLink Href="/settings/scheduled-reports" Icon="@Icons.Material.Outlined.Schedule">Scheduled Reports</MudNavLink>
     </MudNavGroup>
 
-    <MudNavGroup Title="Admin" Icon="@Icons.Material.Outlined.AdminPanelSettings" Expanded="false">
+    <MudNavGroup Title="Admin" Icon="@Icons.Material.Outlined.AdminPanelSettings" Expanded="false" Class="">
         <MudNavLink Href="/admin/users" Icon="@Icons.Material.Outlined.Group">User Management</MudNavLink>
         <MudNavLink Href="/admin/roles" Icon="@Icons.Material.Outlined.AdminPanelSettings">Role Management</MudNavLink>
         <MudNavLink Href="/admin/audit-logs" Icon="@Icons.Material.Outlined.History">Audit Logs</MudNavLink>
@@ -97,3 +97,4 @@
         <MudNavLink Href="/admin/archival" Icon="@Icons.Material.Outlined.Archive">Data Archival</MudNavLink>
     </MudNavGroup>
 </MudNavMenu>
+<MudSpacer></MudSpacer>

@@ -4,6 +4,7 @@ using IOMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260616193835_UpdateOrderFields")]
+    partial class UpdateOrderFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2799,10 +2802,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("ItemsTotalPrice")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
                     b.Property<decimal>("LabourCharge")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
@@ -2839,6 +2838,10 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<decimal>("TaxAmount")
                         .HasPrecision(18, 6)
@@ -2904,8 +2907,9 @@ namespace IOMS.Infrastructure.Migrations
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
 
-                    b.Property<int>("DiscountType")
-                        .HasColumnType("int");
+                    b.Property<decimal>("DiscountPercent")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<bool>("IsBackOrdered")
                         .HasColumnType("bit");
@@ -2913,7 +2917,7 @@ namespace IOMS.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("LineTotalPrice")
+                    b.Property<decimal>("LineTotal")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
 
@@ -2938,12 +2942,16 @@ namespace IOMS.Infrastructure.Migrations
                     b.Property<int>("ShippedQuantity")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("TotalDiscount")
+                    b.Property<decimal>("TaxAmount")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 6)
@@ -2994,9 +3002,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Property<decimal>("DiscountAmount")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
-
-                    b.Property<int>("DiscountType")
-                        .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -3079,9 +3084,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Property<decimal>("DiscountPercent")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
-
-                    b.Property<int>("DiscountType")
-                        .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");

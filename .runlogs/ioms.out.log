@@ -1,0 +1,666 @@
+Using launch settings from F:\Microskill\00. Demo Apps\Inventory & Order Managament System\IOMS\Enterprise.IOMS\IOMS.Web\Properties\launchSettings.json...
+Building...
+F:\Microskill\00. Demo Apps\Inventory & Order Managament System\IOMS\Enterprise.IOMS\IOMS.Web\IOMS.Web.csproj : warning NU1504: Duplicate 'PackageReference' items found. Remove the duplicate items or use the Update functionality to ensure a consistent restore behavior. The duplicate 'PackageReference' items are: Microsoft.EntityFrameworkCore.Design 10.0.8, Microsoft.EntityFrameworkCore.Design 10.0.*.
+F:\Microskill\00. Demo Apps\Inventory & Order Managament System\IOMS\Enterprise.IOMS\IOMS.Web\IOMS.Web.csproj : warning NU1504: Duplicate 'PackageReference' items found. Remove the duplicate items or use the Update functionality to ensure a consistent restore behavior. The duplicate 'PackageReference' items are: Microsoft.EntityFrameworkCore.Design 10.0.8, Microsoft.EntityFrameworkCore.Design 10.0.*.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (21ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT 1
+info: Microsoft.EntityFrameworkCore.Migrations[20411]
+      Acquiring an exclusive lock for migration application. See https://aka.ms/efcore-docs-migrations-lock for more information if this takes too long.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (25ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DECLARE @result int;
+      EXEC @result = sp_getapplock @Resource = '__EFMigrationsLock', @LockOwner = 'Session', @LockMode = 'Exclusive';
+      SELECT @result
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+      BEGIN
+          CREATE TABLE [__EFMigrationsHistory] (
+              [MigrationId] nvarchar(150) NOT NULL,
+              [ProductVersion] nvarchar(32) NOT NULL,
+              CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+          );
+      END;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT OBJECT_ID(N'[__EFMigrationsHistory]');
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [MigrationId], [ProductVersion]
+      FROM [__EFMigrationsHistory]
+      ORDER BY [MigrationId];
+info: Microsoft.EntityFrameworkCore.Migrations[20405]
+      No migrations were applied. The database is already up to date.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      DECLARE @result int;
+      EXEC @result = sp_releaseapplock @Resource = '__EFMigrationsLock', @LockOwner = 'Session';
+      SELECT @result
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[@normalizedName='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [a].[Id], [a].[ConcurrencyStamp], [a].[Name], [a].[NormalizedName]
+      FROM [AspNetRoles] AS [a]
+      WHERE [a].[NormalizedName] = @normalizedName
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@normalizedName='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [a].[Id], [a].[ConcurrencyStamp], [a].[Name], [a].[NormalizedName]
+      FROM [AspNetRoles] AS [a]
+      WHERE [a].[NormalizedName] = @normalizedName
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@normalizedName='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [a].[Id], [a].[ConcurrencyStamp], [a].[Name], [a].[NormalizedName]
+      FROM [AspNetRoles] AS [a]
+      WHERE [a].[NormalizedName] = @normalizedName
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@normalizedName='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [a].[Id], [a].[ConcurrencyStamp], [a].[Name], [a].[NormalizedName]
+      FROM [AspNetRoles] AS [a]
+      WHERE [a].[NormalizedName] = @normalizedName
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@normalizedName='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [a].[Id], [a].[ConcurrencyStamp], [a].[Name], [a].[NormalizedName]
+      FROM [AspNetRoles] AS [a]
+      WHERE [a].[NormalizedName] = @normalizedName
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@normalizedName='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [a].[Id], [a].[ConcurrencyStamp], [a].[Name], [a].[NormalizedName]
+      FROM [AspNetRoles] AS [a]
+      WHERE [a].[NormalizedName] = @normalizedName
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@normalizedEmail='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(2) [a].[Id], [a].[AccessFailedCount], [a].[ConcurrencyStamp], [a].[CreatedAt], [a].[Department], [a].[Email], [a].[EmailConfirmed], [a].[FullName], [a].[IsActive], [a].[LastLoginAt], [a].[LockoutEnabled], [a].[LockoutEnd], [a].[NormalizedEmail], [a].[NormalizedUserName], [a].[PasswordHash], [a].[PhoneNumber], [a].[PhoneNumberConfirmed], [a].[SecurityStamp], [a].[TenantId], [a].[TwoFactorEnabled], [a].[UserName]
+      FROM [AspNetUsers] AS [a]
+      WHERE [a].[NormalizedEmail] = @normalizedEmail
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Accounts] AS [a]
+              WHERE [a].[TenantId] = @tenantId) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Currencies] AS [c]
+              WHERE [c].[TenantId] = @tenantId) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Warehouses] AS [w]
+              WHERE [w].[TenantId] = @tenantId) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Categories] AS [c]
+              WHERE [c].[TenantId] = @tenantId) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [UnitsOfMeasure] AS [u]
+              WHERE [u].[TenantId] = @tenantId) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [TaxJurisdictions] AS [t]
+              WHERE [t].[TenantId] = @tenantId) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [c].[Id], [c].[Code], [c].[CreatedAt], [c].[CreatedBy], [c].[DecimalPlaces], [c].[IsActive], [c].[IsBaseCurrency], [c].[IsDeleted], [c].[Name], [c].[RowVersion], [c].[Symbol], [c].[TenantId], [c].[UpdatedAt], [c].[UpdatedBy]
+      FROM [Currencies] AS [c]
+      WHERE [c].[TenantId] = @tenantId AND [c].[Code] = N'USD'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Currencies] AS [c]
+              WHERE [c].[TenantId] = @tenantId AND [c].[Code] = N'EUR') THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [c].[Id], [c].[CreatedAt], [c].[CreatedBy], [c].[Description], [c].[IsDeleted], [c].[Name], [c].[ParentCategoryId], [c].[Path], [c].[RowVersion], [c].[TenantId], [c].[UpdatedAt], [c].[UpdatedBy]
+      FROM [Categories] AS [c]
+      WHERE [c].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Categories] AS [c]
+      WHERE [c].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [c].[Id], [c].[CreatedAt], [c].[CreatedBy], [c].[Description], [c].[IsDeleted], [c].[Name], [c].[ParentCategoryId], [c].[Path], [c].[RowVersion], [c].[TenantId], [c].[UpdatedAt], [c].[UpdatedBy]
+      FROM [Categories] AS [c]
+      WHERE [c].[TenantId] = @tenantId
+      ORDER BY [c].[Name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [Brands] AS [b]
+              WHERE [b].[TenantId] = @tenantId) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [w].[Id], [w].[Address], [w].[Code], [w].[CreatedAt], [w].[CreatedBy], [w].[IsActive], [w].[IsDeleted], [w].[Location], [w].[Name], [w].[RowVersion], [w].[TenantId], [w].[UpdatedAt], [w].[UpdatedBy]
+      FROM [Warehouses] AS [w]
+      WHERE [w].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Products] AS [p]
+      WHERE [p].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p='?' (DbType = Int32), @tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@p) [p].[Id], [p].[Barcode], [p].[BaseUoMId], [p].[BrandId], [p].[CategoryId], [p].[CostPrice], [p].[CreatedAt], [p].[CreatedBy], [p].[Description], [p].[ImageUrl], [p].[IsDeleted], [p].[IsKit], [p].[IsTaxExempt], [p].[MinimumOrderQuantity], [p].[Model], [p].[Name], [p].[OriginCountry], [p].[OriginManufacturer], [p].[ReorderLevel], [p].[RowVersion], [p].[SKU], [p].[SellingPrice], [p].[Specifications], [p].[TenantId], [p].[Unit], [p].[UpdatedAt], [p].[UpdatedBy], [p].[Volume], [p].[Weight], [p].[WholeSellingPrice]
+      FROM [Products] AS [p]
+      WHERE [p].[TenantId] = @tenantId
+      ORDER BY [p].[SKU]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Customers] AS [c]
+      WHERE [c].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@p='?' (DbType = Int32), @tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@p) [c].[Id], [c].[Address], [c].[City], [c].[Country], [c].[CreatedAt], [c].[CreatedBy], [c].[CreditLimit], [c].[DefaultCurrencyId], [c].[DefaultPriceListId], [c].[Email], [c].[IsActive], [c].[IsDeleted], [c].[IsTaxExempt], [c].[Name], [c].[PaymentTerms], [c].[Phone], [c].[PostalCode], [c].[RowVersion], [c].[State], [c].[TaxExemptionCode], [c].[TaxJurisdictionId], [c].[TenantId], [c].[UpdatedAt], [c].[UpdatedBy]
+      FROM [Customers] AS [c]
+      WHERE [c].[TenantId] = @tenantId
+      ORDER BY [c].[Name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Suppliers] AS [s]
+      WHERE [s].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@p='?' (DbType = Int32), @tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@p) [s].[Id], [s].[Address], [s].[City], [s].[Country], [s].[CreatedAt], [s].[CreatedBy], [s].[DefaultCurrencyId], [s].[Email], [s].[IsActive], [s].[IsDeleted], [s].[LeadTimeDays], [s].[Name], [s].[PaymentTerms], [s].[Phone], [s].[PostalCode], [s].[Rating], [s].[RowVersion], [s].[State], [s].[TenantId], [s].[UpdatedAt], [s].[UpdatedBy]
+      FROM [Suppliers] AS [s]
+      WHERE [s].[TenantId] = @tenantId
+      ORDER BY [s].[Name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Inventories] AS [i]
+      WHERE [i].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [StockMovements] AS [s]
+      WHERE [s].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [SalesOrders] AS [s]
+      WHERE [s].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p='?' (DbType = Int32), @tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@p) [s].[Id], [s].[CreatedAt], [s].[CreatedBy], [s].[CurrencyId], [s].[CustomerId], [s].[DeliveredDate], [s].[DiscountAmount], [s].[ExchangeRate], [s].[ExpectedDeliveryDate], [s].[FreightAmount], [s].[IsBackOrder], [s].[IsDeleted], [s].[Notes], [s].[OrderDate], [s].[OrderNumber], [s].[RowVersion], [s].[ShippingAddress], [s].[ShippingCarrier], [s].[Status], [s].[SubTotal], [s].[TaxAmount], [s].[TenantId], [s].[TotalAmount], [s].[TrackingNumber], [s].[UpdatedAt], [s].[UpdatedBy], [s].[WarehouseId]
+      FROM [SalesOrders] AS [s]
+      WHERE [s].[TenantId] = @tenantId
+      ORDER BY [s].[OrderNumber]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [PurchaseOrders] AS [p]
+      WHERE [p].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@p='?' (DbType = Int32), @tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@p) [p].[Id], [p].[CreatedAt], [p].[CreatedBy], [p].[CurrencyId], [p].[ExchangeRate], [p].[ExpectedDeliveryDate], [p].[IsDeleted], [p].[Notes], [p].[OrderDate], [p].[OrderNumber], [p].[RowVersion], [p].[Status], [p].[SubTotal], [p].[SupplierId], [p].[TaxAmount], [p].[TenantId], [p].[TotalAmount], [p].[UpdatedAt], [p].[UpdatedBy], [p].[WarehouseId]
+      FROM [PurchaseOrders] AS [p]
+      WHERE [p].[TenantId] = @tenantId
+      ORDER BY [p].[OrderNumber]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [SalesQuotes] AS [s]
+      WHERE [s].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Invoices] AS [i]
+      WHERE [i].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@p='?' (DbType = Int32), @tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@p) [i].[Id], [i].[CreatedAt], [i].[CreatedBy], [i].[CurrencyId], [i].[CustomerId], [i].[DueDate], [i].[ExchangeRate], [i].[InvoiceDate], [i].[InvoiceNumber], [i].[InvoiceType], [i].[IsDeleted], [i].[Notes], [i].[PaidAmount], [i].[PurchaseOrderId], [i].[RowVersion], [i].[SalesOrderId], [i].[Status], [i].[SubTotal], [i].[SupplierId], [i].[TaxAmount], [i].[TenantId], [i].[TotalAmount], [i].[UpdatedAt], [i].[UpdatedBy]
+      FROM [Invoices] AS [i]
+      WHERE [i].[TenantId] = @tenantId
+      ORDER BY [i].[InvoiceNumber]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Payments] AS [p]
+      WHERE [p].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [JournalEntries] AS [j]
+      WHERE [j].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [PriceLists] AS [p]
+      WHERE [p].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [DeliveryNotes] AS [d]
+      WHERE [d].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Shipments] AS [s]
+      WHERE [s].[TenantId] = @tenantId
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[Id], [t].[Code], [t].[Country], [t].[CreatedAt], [t].[CreatedBy], [t].[Description], [t].[IsDeleted], [t].[Name], [t].[RowVersion], [t].[State], [t].[TenantId], [t].[UpdatedAt], [t].[UpdatedBy]
+      FROM [TaxJurisdictions] AS [t]
+      WHERE [t].[TenantId] = @tenantId
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5205
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: F:\Microskill\00. Demo Apps\Inventory & Order Managament System\IOMS\Enterprise.IOMS\IOMS.Web
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.
+warn: LuckyPennySoftware.AutoMapper.License[0]
+      You do not have a valid license key for the Lucky Penny software AutoMapper. This is allowed for development and testing scenarios. If you are running in production you are required to have a licensed version. Please visit https://luckypennysoftware.com to obtain a valid license.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p='?' (DbType = Int32), @ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [p0].[Id], [p0].[Barcode], [p0].[BaseUoMId], [p0].[BrandId], [p0].[CategoryId], [p0].[CostPrice], [p0].[CreatedAt], [p0].[CreatedBy], [p0].[Description], [p0].[ImageUrl], [p0].[IsDeleted], [p0].[IsKit], [p0].[IsTaxExempt], [p0].[MinimumOrderQuantity], [p0].[Model], [p0].[Name], [p0].[OriginCountry], [p0].[OriginManufacturer], [p0].[ReorderLevel], [p0].[RowVersion], [p0].[SKU], [p0].[SellingPrice], [p0].[Specifications], [p0].[TenantId], [p0].[Unit], [p0].[UpdatedAt], [p0].[UpdatedBy], [p0].[Volume], [p0].[Weight], [p0].[WholeSellingPrice], [c0].[Id], [c0].[CreatedAt], [c0].[CreatedBy], [c0].[Description], [c0].[IsDeleted], [c0].[Name], [c0].[ParentCategoryId], [c0].[Path], [c0].[RowVersion], [c0].[TenantId], [c0].[UpdatedAt], [c0].[UpdatedBy], [b0].[Id], [b0].[BrandCode], [b0].[CreatedAt], [b0].[CreatedBy], [b0].[Description], [b0].[FoundedYear], [b0].[IsDeleted], [b0].[LogoUrl], [b0].[Name], [b0].[OriginCompany], [b0].[OriginCountry], [b0].[RowVersion], [b0].[Status], [b0].[TenantId], [b0].[UpdatedAt], [b0].[UpdatedBy]
+      FROM (
+          SELECT TOP(@p) [p].[Id], [p].[Barcode], [p].[BaseUoMId], [p].[BrandId], [p].[CategoryId], [p].[CostPrice], [p].[CreatedAt], [p].[CreatedBy], [p].[Description], [p].[ImageUrl], [p].[IsDeleted], [p].[IsKit], [p].[IsTaxExempt], [p].[MinimumOrderQuantity], [p].[Model], [p].[Name], [p].[OriginCountry], [p].[OriginManufacturer], [p].[ReorderLevel], [p].[RowVersion], [p].[SKU], [p].[SellingPrice], [p].[Specifications], [p].[TenantId], [p].[Unit], [p].[UpdatedAt], [p].[UpdatedBy], [p].[Volume], [p].[Weight], [p].[WholeSellingPrice]
+          FROM [Products] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+          ORDER BY [p].[Name]
+      ) AS [p0]
+      INNER JOIN (
+          SELECT [c].[Id], [c].[CreatedAt], [c].[CreatedBy], [c].[Description], [c].[IsDeleted], [c].[Name], [c].[ParentCategoryId], [c].[Path], [c].[RowVersion], [c].[TenantId], [c].[UpdatedAt], [c].[UpdatedBy]
+          FROM [Categories] AS [c]
+          WHERE [c].[TenantId] = @ef_filter___tenantId AND [c].[IsDeleted] = CAST(0 AS bit)
+      ) AS [c0] ON [p0].[CategoryId] = [c0].[Id]
+      LEFT JOIN (
+          SELECT [b].[Id], [b].[BrandCode], [b].[CreatedAt], [b].[CreatedBy], [b].[Description], [b].[FoundedYear], [b].[IsDeleted], [b].[LogoUrl], [b].[Name], [b].[OriginCompany], [b].[OriginCountry], [b].[RowVersion], [b].[Status], [b].[TenantId], [b].[UpdatedAt], [b].[UpdatedBy]
+          FROM [Brands] AS [b]
+          WHERE [b].[TenantId] = @ef_filter___tenantId AND [b].[IsDeleted] = CAST(0 AS bit)
+      ) AS [b0] ON [p0].[BrandId] = [b0].[Id]
+      ORDER BY [p0].[Name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p='?' (DbType = Int32), @ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [p0].[Id], [p0].[Barcode], [p0].[BaseUoMId], [p0].[BrandId], [p0].[CategoryId], [p0].[CostPrice], [p0].[CreatedAt], [p0].[CreatedBy], [p0].[Description], [p0].[ImageUrl], [p0].[IsDeleted], [p0].[IsKit], [p0].[IsTaxExempt], [p0].[MinimumOrderQuantity], [p0].[Model], [p0].[Name], [p0].[OriginCountry], [p0].[OriginManufacturer], [p0].[ReorderLevel], [p0].[RowVersion], [p0].[SKU], [p0].[SellingPrice], [p0].[Specifications], [p0].[TenantId], [p0].[Unit], [p0].[UpdatedAt], [p0].[UpdatedBy], [p0].[Volume], [p0].[Weight], [p0].[WholeSellingPrice], [c0].[Id], [c0].[CreatedAt], [c0].[CreatedBy], [c0].[Description], [c0].[IsDeleted], [c0].[Name], [c0].[ParentCategoryId], [c0].[Path], [c0].[RowVersion], [c0].[TenantId], [c0].[UpdatedAt], [c0].[UpdatedBy], [b0].[Id], [b0].[BrandCode], [b0].[CreatedAt], [b0].[CreatedBy], [b0].[Description], [b0].[FoundedYear], [b0].[IsDeleted], [b0].[LogoUrl], [b0].[Name], [b0].[OriginCompany], [b0].[OriginCountry], [b0].[RowVersion], [b0].[Status], [b0].[TenantId], [b0].[UpdatedAt], [b0].[UpdatedBy]
+      FROM (
+          SELECT TOP(@p) [p].[Id], [p].[Barcode], [p].[BaseUoMId], [p].[BrandId], [p].[CategoryId], [p].[CostPrice], [p].[CreatedAt], [p].[CreatedBy], [p].[Description], [p].[ImageUrl], [p].[IsDeleted], [p].[IsKit], [p].[IsTaxExempt], [p].[MinimumOrderQuantity], [p].[Model], [p].[Name], [p].[OriginCountry], [p].[OriginManufacturer], [p].[ReorderLevel], [p].[RowVersion], [p].[SKU], [p].[SellingPrice], [p].[Specifications], [p].[TenantId], [p].[Unit], [p].[UpdatedAt], [p].[UpdatedBy], [p].[Volume], [p].[Weight], [p].[WholeSellingPrice]
+          FROM [Products] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+          ORDER BY [p].[Name]
+      ) AS [p0]
+      INNER JOIN (
+          SELECT [c].[Id], [c].[CreatedAt], [c].[CreatedBy], [c].[Description], [c].[IsDeleted], [c].[Name], [c].[ParentCategoryId], [c].[Path], [c].[RowVersion], [c].[TenantId], [c].[UpdatedAt], [c].[UpdatedBy]
+          FROM [Categories] AS [c]
+          WHERE [c].[TenantId] = @ef_filter___tenantId AND [c].[IsDeleted] = CAST(0 AS bit)
+      ) AS [c0] ON [p0].[CategoryId] = [c0].[Id]
+      LEFT JOIN (
+          SELECT [b].[Id], [b].[BrandCode], [b].[CreatedAt], [b].[CreatedBy], [b].[Description], [b].[FoundedYear], [b].[IsDeleted], [b].[LogoUrl], [b].[Name], [b].[OriginCompany], [b].[OriginCountry], [b].[RowVersion], [b].[Status], [b].[TenantId], [b].[UpdatedAt], [b].[UpdatedBy]
+          FROM [Brands] AS [b]
+          WHERE [b].[TenantId] = @ef_filter___tenantId AND [b].[IsDeleted] = CAST(0 AS bit)
+      ) AS [b0] ON [p0].[BrandId] = [b0].[Id]
+      ORDER BY [p0].[Name]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Products] AS [p]
+      WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Customers] AS [c]
+      WHERE [c].[TenantId] = @ef_filter___tenantId AND [c].[IsDeleted] = CAST(0 AS bit) AND [c].[IsActive] = CAST(1 AS bit)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Suppliers] AS [s]
+      WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit) AND [s].[IsActive] = CAST(1 AS bit)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid), @startOfMonth='?' (DbType = DateTime2)], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([s].[TotalAmount]), 0.0)
+      FROM [SalesOrders] AS [s]
+      WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit) AND [s].[OrderDate] >= @startOfMonth AND [s].[Status] <> 7
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid), @startOfMonth='?' (DbType = DateTime2)], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([p].[TotalAmount]), 0.0)
+      FROM [PurchaseOrders] AS [p]
+      WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit) AND [p].[OrderDate] >= @startOfMonth AND [p].[Status] <> 6
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [SalesOrders] AS [s]
+      WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit) AND [s].[Status] = 0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [PurchaseOrders] AS [p]
+      WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit) AND [p].[Status] IN (0, 1)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Inventories] AS [i]
+      INNER JOIN (
+          SELECT [p].[Id], [p].[ReorderLevel]
+          FROM [Products] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+      ) AS [p0] ON [i].[ProductId] = [p0].[Id]
+      WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit) AND [i].[Quantity] <= [p0].[ReorderLevel] AND [p0].[ReorderLevel] > 0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([i].[TotalAmount] - [i].[PaidAmount]), 0.0)
+      FROM [Invoices] AS [i]
+      WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit) AND [i].[InvoiceType] = 0 AND [i].[Status] <> 2 AND [i].[Status] <> 5
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([i].[TotalAmount] - [i].[PaidAmount]), 0.0)
+      FROM [Invoices] AS [i]
+      WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit) AND [i].[InvoiceType] = 1 AND [i].[Status] <> 2 AND [i].[Status] <> 5
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid), @now='?' (DbType = DateTime2)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Invoices] AS [i]
+      WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit) AND [i].[DueDate] < @now AND [i].[Status] <> 2 AND [i].[Status] <> 5
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM(CAST([i].[Quantity] AS decimal(18,6)) * [p0].[CostPrice]), 0.0)
+      FROM [Inventories] AS [i]
+      INNER JOIN (
+          SELECT [p].[Id], [p].[CostPrice]
+          FROM [Products] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+      ) AS [p0] ON [i].[ProductId] = [p0].[Id]
+      WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid), @cutoff='?' (DbType = DateTime2)], CommandType='Text', CommandTimeout='30']
+      SELECT [s0].[Year], [s0].[Month], COALESCE(SUM([s0].[TotalAmount]), 0.0) AS [Amount], COUNT(*) AS [Count]
+      FROM (
+          SELECT [s].[TotalAmount], DATEPART(year, [s].[OrderDate]) AS [Year], DATEPART(month, [s].[OrderDate]) AS [Month]
+          FROM [SalesOrders] AS [s]
+          WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit) AND [s].[OrderDate] >= @cutoff AND [s].[Status] <> 7
+      ) AS [s0]
+      GROUP BY [s0].[Year], [s0].[Month]
+      ORDER BY [s0].[Year], [s0].[Month]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid), @cutoff='?' (DbType = DateTime2)], CommandType='Text', CommandTimeout='30']
+      SELECT [p0].[Year], [p0].[Month], COALESCE(SUM([p0].[TotalAmount]), 0.0) AS [Amount], COUNT(*) AS [Count]
+      FROM (
+          SELECT [p].[TotalAmount], DATEPART(year, [p].[OrderDate]) AS [Year], DATEPART(month, [p].[OrderDate]) AS [Month]
+          FROM [PurchaseOrders] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit) AND [p].[OrderDate] >= @cutoff AND [p].[Status] <> 6
+      ) AS [p0]
+      GROUP BY [p0].[Year], [p0].[Month]
+      ORDER BY [p0].[Year], [p0].[Month]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p='?' (DbType = Int32), @ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@p) [p0].[Name], COALESCE(SUM(CAST([s].[Quantity] AS decimal(18,6)) * [s].[UnitPrice]), 0.0) AS [Revenue], COALESCE(SUM([s].[Quantity]), 0) AS [Units]
+      FROM [SalesOrderItems] AS [s]
+      INNER JOIN (
+          SELECT [p].[Id], [p].[Name]
+          FROM [Products] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+      ) AS [p0] ON [s].[ProductId] = [p0].[Id]
+      WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit)
+      GROUP BY [s].[ProductId], [p0].[Name]
+      ORDER BY COALESCE(SUM(CAST([s].[Quantity] AS decimal(18,6)) * [s].[UnitPrice]), 0.0) DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p='?' (DbType = Int32), @ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[ProductId], [s].[Name] AS [ProductName], [s].[SKU], [w0].[Name] AS [WarehouseName], [s].[Quantity] AS [CurrentStock], [s].[ReorderLevel]
+      FROM (
+          SELECT TOP(@p) [i].[ProductId], [i].[Quantity], [i].[WarehouseId], [p0].[Name], [p0].[ReorderLevel], [p0].[SKU]
+          FROM [Inventories] AS [i]
+          INNER JOIN (
+              SELECT [p].[Id], [p].[Name], [p].[ReorderLevel], [p].[SKU]
+              FROM [Products] AS [p]
+              WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+          ) AS [p0] ON [i].[ProductId] = [p0].[Id]
+          WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit) AND [i].[Quantity] <= [p0].[ReorderLevel] AND [p0].[ReorderLevel] > 0
+          ORDER BY [i].[Quantity]
+      ) AS [s]
+      INNER JOIN (
+          SELECT [w].[Id], [w].[Name]
+          FROM [Warehouses] AS [w]
+          WHERE [w].[TenantId] = @ef_filter___tenantId AND [w].[IsDeleted] = CAST(0 AS bit)
+      ) AS [w0] ON [s].[WarehouseId] = [w0].[Id]
+      ORDER BY [s].[Quantity]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Status], COUNT(*) AS [Count]
+      FROM [SalesOrders] AS [s]
+      WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit)
+      GROUP BY [s].[Status]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[Status], COUNT(*) AS [Count]
+      FROM [PurchaseOrders] AS [p]
+      WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+      GROUP BY [p].[Status]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@p='?' (DbType = Int32), @ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [s0].[Id], [s0].[OrderNumber], [c0].[Name] AS [CustomerName], [s0].[OrderDate], [s0].[TotalAmount], [s0].[Status]
+      FROM (
+          SELECT TOP(@p) [s].[Id], [s].[CustomerId], [s].[OrderDate], [s].[OrderNumber], [s].[Status], [s].[TotalAmount]
+          FROM [SalesOrders] AS [s]
+          WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit)
+          ORDER BY [s].[OrderDate] DESC
+      ) AS [s0]
+      INNER JOIN (
+          SELECT [c].[Id], [c].[Name]
+          FROM [Customers] AS [c]
+          WHERE [c].[TenantId] = @ef_filter___tenantId AND [c].[IsDeleted] = CAST(0 AS bit)
+      ) AS [c0] ON [s0].[CustomerId] = [c0].[Id]
+      ORDER BY [s0].[OrderDate] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@p='?' (DbType = Int32), @ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [p0].[Id], [p0].[OrderNumber], [s0].[Name] AS [SupplierName], [p0].[OrderDate], [p0].[TotalAmount], [p0].[Status]
+      FROM (
+          SELECT TOP(@p) [p].[Id], [p].[OrderDate], [p].[OrderNumber], [p].[Status], [p].[SupplierId], [p].[TotalAmount]
+          FROM [PurchaseOrders] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+          ORDER BY [p].[OrderDate] DESC
+      ) AS [p0]
+      INNER JOIN (
+          SELECT [s].[Id], [s].[Name]
+          FROM [Suppliers] AS [s]
+          WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit)
+      ) AS [s0] ON [p0].[SupplierId] = [s0].[Id]
+      ORDER BY [p0].[OrderDate] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Products] AS [p]
+      WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Customers] AS [c]
+      WHERE [c].[TenantId] = @ef_filter___tenantId AND [c].[IsDeleted] = CAST(0 AS bit) AND [c].[IsActive] = CAST(1 AS bit)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Suppliers] AS [s]
+      WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit) AND [s].[IsActive] = CAST(1 AS bit)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid), @startOfMonth='?' (DbType = DateTime2)], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([s].[TotalAmount]), 0.0)
+      FROM [SalesOrders] AS [s]
+      WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit) AND [s].[OrderDate] >= @startOfMonth AND [s].[Status] <> 7
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid), @startOfMonth='?' (DbType = DateTime2)], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([p].[TotalAmount]), 0.0)
+      FROM [PurchaseOrders] AS [p]
+      WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit) AND [p].[OrderDate] >= @startOfMonth AND [p].[Status] <> 6
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [SalesOrders] AS [s]
+      WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit) AND [s].[Status] = 0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [PurchaseOrders] AS [p]
+      WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit) AND [p].[Status] IN (0, 1)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Inventories] AS [i]
+      INNER JOIN (
+          SELECT [p].[Id], [p].[ReorderLevel]
+          FROM [Products] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+      ) AS [p0] ON [i].[ProductId] = [p0].[Id]
+      WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit) AND [i].[Quantity] <= [p0].[ReorderLevel] AND [p0].[ReorderLevel] > 0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([i].[TotalAmount] - [i].[PaidAmount]), 0.0)
+      FROM [Invoices] AS [i]
+      WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit) AND [i].[InvoiceType] = 0 AND [i].[Status] <> 2 AND [i].[Status] <> 5
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM([i].[TotalAmount] - [i].[PaidAmount]), 0.0)
+      FROM [Invoices] AS [i]
+      WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit) AND [i].[InvoiceType] = 1 AND [i].[Status] <> 2 AND [i].[Status] <> 5
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid), @now='?' (DbType = DateTime2)], CommandType='Text', CommandTimeout='30']
+      SELECT COUNT(*)
+      FROM [Invoices] AS [i]
+      WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit) AND [i].[DueDate] < @now AND [i].[Status] <> 2 AND [i].[Status] <> 5
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT COALESCE(SUM(CAST([i].[Quantity] AS decimal(18,6)) * [p0].[CostPrice]), 0.0)
+      FROM [Inventories] AS [i]
+      INNER JOIN (
+          SELECT [p].[Id], [p].[CostPrice]
+          FROM [Products] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+      ) AS [p0] ON [i].[ProductId] = [p0].[Id]
+      WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid), @cutoff='?' (DbType = DateTime2)], CommandType='Text', CommandTimeout='30']
+      SELECT [s0].[Year], [s0].[Month], COALESCE(SUM([s0].[TotalAmount]), 0.0) AS [Amount], COUNT(*) AS [Count]
+      FROM (
+          SELECT [s].[TotalAmount], DATEPART(year, [s].[OrderDate]) AS [Year], DATEPART(month, [s].[OrderDate]) AS [Month]
+          FROM [SalesOrders] AS [s]
+          WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit) AND [s].[OrderDate] >= @cutoff AND [s].[Status] <> 7
+      ) AS [s0]
+      GROUP BY [s0].[Year], [s0].[Month]
+      ORDER BY [s0].[Year], [s0].[Month]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid), @cutoff='?' (DbType = DateTime2)], CommandType='Text', CommandTimeout='30']
+      SELECT [p0].[Year], [p0].[Month], COALESCE(SUM([p0].[TotalAmount]), 0.0) AS [Amount], COUNT(*) AS [Count]
+      FROM (
+          SELECT [p].[TotalAmount], DATEPART(year, [p].[OrderDate]) AS [Year], DATEPART(month, [p].[OrderDate]) AS [Month]
+          FROM [PurchaseOrders] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit) AND [p].[OrderDate] >= @cutoff AND [p].[Status] <> 6
+      ) AS [p0]
+      GROUP BY [p0].[Year], [p0].[Month]
+      ORDER BY [p0].[Year], [p0].[Month]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p='?' (DbType = Int32), @ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(@p) [p0].[Name], COALESCE(SUM(CAST([s].[Quantity] AS decimal(18,6)) * [s].[UnitPrice]), 0.0) AS [Revenue], COALESCE(SUM([s].[Quantity]), 0) AS [Units]
+      FROM [SalesOrderItems] AS [s]
+      INNER JOIN (
+          SELECT [p].[Id], [p].[Name]
+          FROM [Products] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+      ) AS [p0] ON [s].[ProductId] = [p0].[Id]
+      WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit)
+      GROUP BY [s].[ProductId], [p0].[Name]
+      ORDER BY COALESCE(SUM(CAST([s].[Quantity] AS decimal(18,6)) * [s].[UnitPrice]), 0.0) DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p='?' (DbType = Int32), @ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[ProductId], [s].[Name] AS [ProductName], [s].[SKU], [w0].[Name] AS [WarehouseName], [s].[Quantity] AS [CurrentStock], [s].[ReorderLevel]
+      FROM (
+          SELECT TOP(@p) [i].[ProductId], [i].[Quantity], [i].[WarehouseId], [p0].[Name], [p0].[ReorderLevel], [p0].[SKU]
+          FROM [Inventories] AS [i]
+          INNER JOIN (
+              SELECT [p].[Id], [p].[Name], [p].[ReorderLevel], [p].[SKU]
+              FROM [Products] AS [p]
+              WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+          ) AS [p0] ON [i].[ProductId] = [p0].[Id]
+          WHERE [i].[TenantId] = @ef_filter___tenantId AND [i].[IsDeleted] = CAST(0 AS bit) AND [i].[Quantity] <= [p0].[ReorderLevel] AND [p0].[ReorderLevel] > 0
+          ORDER BY [i].[Quantity]
+      ) AS [s]
+      INNER JOIN (
+          SELECT [w].[Id], [w].[Name]
+          FROM [Warehouses] AS [w]
+          WHERE [w].[TenantId] = @ef_filter___tenantId AND [w].[IsDeleted] = CAST(0 AS bit)
+      ) AS [w0] ON [s].[WarehouseId] = [w0].[Id]
+      ORDER BY [s].[Quantity]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [s].[Status], COUNT(*) AS [Count]
+      FROM [SalesOrders] AS [s]
+      WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit)
+      GROUP BY [s].[Status]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [p].[Status], COUNT(*) AS [Count]
+      FROM [PurchaseOrders] AS [p]
+      WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+      GROUP BY [p].[Status]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p='?' (DbType = Int32), @ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [s0].[Id], [s0].[OrderNumber], [c0].[Name] AS [CustomerName], [s0].[OrderDate], [s0].[TotalAmount], [s0].[Status]
+      FROM (
+          SELECT TOP(@p) [s].[Id], [s].[CustomerId], [s].[OrderDate], [s].[OrderNumber], [s].[Status], [s].[TotalAmount]
+          FROM [SalesOrders] AS [s]
+          WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit)
+          ORDER BY [s].[OrderDate] DESC
+      ) AS [s0]
+      INNER JOIN (
+          SELECT [c].[Id], [c].[Name]
+          FROM [Customers] AS [c]
+          WHERE [c].[TenantId] = @ef_filter___tenantId AND [c].[IsDeleted] = CAST(0 AS bit)
+      ) AS [c0] ON [s0].[CustomerId] = [c0].[Id]
+      ORDER BY [s0].[OrderDate] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p='?' (DbType = Int32), @ef_filter___tenantId='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT [p0].[Id], [p0].[OrderNumber], [s0].[Name] AS [SupplierName], [p0].[OrderDate], [p0].[TotalAmount], [p0].[Status]
+      FROM (
+          SELECT TOP(@p) [p].[Id], [p].[OrderDate], [p].[OrderNumber], [p].[Status], [p].[SupplierId], [p].[TotalAmount]
+          FROM [PurchaseOrders] AS [p]
+          WHERE [p].[TenantId] = @ef_filter___tenantId AND [p].[IsDeleted] = CAST(0 AS bit)
+          ORDER BY [p].[OrderDate] DESC
+      ) AS [p0]
+      INNER JOIN (
+          SELECT [s].[Id], [s].[Name]
+          FROM [Suppliers] AS [s]
+          WHERE [s].[TenantId] = @ef_filter___tenantId AND [s].[IsDeleted] = CAST(0 AS bit)
+      ) AS [s0] ON [p0].[SupplierId] = [s0].[Id]
+      ORDER BY [p0].[OrderDate] DESC

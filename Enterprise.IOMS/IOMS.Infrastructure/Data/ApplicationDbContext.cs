@@ -21,6 +21,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Core
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Brand> Brands => Set<Brand>();
+    public DbSet<Branch> Branches => Set<Branch>();    
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<Inventory> Inventories => Set<Inventory>();

@@ -360,7 +360,7 @@ public static class SeedData
                     items.Add(new SalesOrderItem
                     {
                         ProductId = prod.Id, Quantity = qty, UnitPrice = prod.SellingPrice,
-                        TaxRate = 10m, TaxAmount = lineTotal * 0.10m, LineTotal = lineTotal,
+                        LineTotalPrice = lineTotal,
                         TenantId = tenantId, CreatedBy = cb
                     });
                 }
@@ -372,7 +372,7 @@ public static class SeedData
                     WarehouseId = warehouses[0].Id,
                     OrderDate = DateTime.UtcNow.AddDays(-rng.Next(1, 120)),
                     Status = statuses[i % statuses.Length],
-                    SubTotal = subTotal, TaxAmount = taxAmt, TotalAmount = subTotal + taxAmt,
+                    ItemsTotalPrice = subTotal, TaxAmount = taxAmt, TotalAmount = subTotal + taxAmt,
                     ShippingAddress = customers[i % 20].Address,
                     ExpectedDeliveryDate = DateTime.UtcNow.AddDays(rng.Next(5, 30)),
                     Items = items,

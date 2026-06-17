@@ -401,15 +401,13 @@ public class QuotationService : IQuotationService
                 ProductId = qi.ProductId,
                 Quantity = qi.Quantity,
                 UnitPrice = qi.UnitPrice,
-                DiscountPercent = qi.DiscountPercent,
-                DiscountAmount = qi.DiscountAmount,
-                TaxRate = qi.TaxRate,
-                TaxAmount = qi.TaxAmount,
-                LineTotal = qi.LineTotal
+                DiscountType = qi.DiscountType,
+                DiscountAmount = qi.DiscountAmount,                
+                LineTotalPrice = qi.LineTotal
             });
-        }
+        } 
 
-        order.SubTotal = quote.SubTotal;
+        order.ItemsTotalPrice = quote.SubTotal;
         order.TaxAmount = quote.TaxAmount;
         order.DiscountAmount = quote.DiscountAmount;
         order.TotalAmount = quote.TotalAmount;

@@ -1,3 +1,4 @@
+using IOMS.Domain.Entities;
 using IOMS.Domain.Enums;
 
 namespace IOMS.Application.DTOs;
@@ -170,21 +171,77 @@ public record CreateSupplierDto(string Name, string? Email, string? Phone, strin
     string? PaymentTerms, Guid? DefaultCurrencyId, int LeadTimeDays);
 
 // Sales Orders
+
+//public string OrderNumber { get; set; } = string.Empty;
+//public Guid CustomerId { get; set; }
+//public Customer Customer { get; set; } = null!;
+//public Guid? WarehouseId { get; set; }
+//public Warehouse? Warehouse { get; set; }
+//public Guid? BranchId { get; set; }
+//public Branch? Branch { get; set; }
+//public DateTime OrderDate { get; set; } = DateTime.UtcNow;
+//public OrderStatus Status { get; set; } = OrderStatus.Pending;
+//public string Naration { get; set; } = string.Empty;
+//public string Chalan { get; set; } = string.Empty;
+//public decimal ItemsTotalPrice { get; set; }
+//public decimal LabourCharge { get; set; }
+//public decimal TruckCharge { get; set; }
+//public decimal TaxAmount { get; set; }
+//public DiscountType DiscountType { get; set; }
+//public decimal DiscountAmount { get; set; }
+//public decimal TotalAmount { get; set; }
+//public decimal PaidAmount { get; set; }
+//public decimal DueAmount { get; set; }
+//public Guid? CurrencyId { get; set; }
+//public Currency? Currency { get; set; }
+//public decimal ExchangeRate { get; set; } = 1;
+//public string? Notes { get; set; }
+//public string? ShippingAddress { get; set; }
+//public DateTime? ExpectedDeliveryDate { get; set; }
+//public ICollection<SalesOrderItem> Items { get; set; } = new List<SalesOrderItem>();
+//public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
+//public ICollection<DeliveryNote> DeliveryNotes { get; set; } = new List<DeliveryNote>();
+//public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
+
+//// Order processing enhancements
+//public bool IsBackOrder { get; set; }
+//public string? ShippingCarrier { get; set; }
+//public string? TrackingNumber { get; set; }
+//public DateTime? DeliveredDate { get; set; }
+
 public record SalesOrderDto(Guid Id, string OrderNumber, Guid CustomerId, string CustomerName,
-    DateTime OrderDate, OrderStatus Status, decimal SubTotal, decimal TaxAmount,
-    decimal DiscountAmount, decimal FreightAmount, decimal TotalAmount, string? Notes,
+    DateTime OrderDate, OrderStatus Status, string Naration, string Chalan, decimal ItemsTotalPrice, decimal TruckCharge, decimal LabourCharge, decimal TaxAmount,
+    decimal DiscountAmount, DiscountType DiscountType, decimal TotalAmount, decimal PaidAmount, decimal DueAmount,  string? Notes, decimal ExchangeRate, 
     DateTime? ExpectedDeliveryDate, List<SalesOrderItemDto> Items);
 
+
+
+//public Guid SalesOrderId { get; set; }
+//public SalesOrder SalesOrder { get; set; } = null!;
+//public Guid ProductId { get; set; }
+//public Product Product { get; set; } = null!;
+//public int Quantity { get; set; }
+//public int ShippedQuantity { get; set; }
+//public decimal UnitPrice { get; set; }
+//public decimal DiscountAmount { get; set; }
+//public DiscountType DiscountType { get; set; }
+//public decimal TotalDiscount { get; set; }
+//public decimal LineTotalPrice { get; set; }
+//public Guid? UoMId { get; set; }
+//public UnitOfMeasure? UoM { get; set; }
+
+//// Partial shipment and return support
+//public int ReturnedQuantity { get; set; }
+//public bool IsBackOrdered { get; set; }
+
 public record SalesOrderItemDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU,
-    int Quantity, int ShippedQuantity, decimal UnitPrice, decimal DiscountPercent,
-    decimal TaxRate, decimal TaxAmount, decimal LineTotal);
+    int Quantity, int ShippedQuantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscount, decimal LineTotalPrice);
 
 public record CreateSalesOrderDto(Guid CustomerId, Guid? WarehouseId, string? Notes,
-    string? ShippingAddress, DateTime? ExpectedDeliveryDate, Guid? CurrencyId, OrderStatus? Status,
+    string? ShippingAddress, DateTime? ExpectedDeliveryDate, Guid? CurrencyId, OrderStatus? Status, DateTime? SalesDate,
     List<CreateSalesOrderItemDto> Items);
 
-public record CreateSalesOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice,
-    decimal DiscountPercent, Guid? UoMId);
+public record CreateSalesOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice,decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId);
 
 // Purchase Orders
 public record PurchaseOrderDto(Guid Id, string OrderNumber, Guid SupplierId, string SupplierName,

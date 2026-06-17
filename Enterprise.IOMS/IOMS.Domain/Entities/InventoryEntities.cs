@@ -74,6 +74,16 @@ public class Warehouse : BaseEntity
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 }
 
+public class Branch : BaseEntity
+{
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public string? Location { get; set; }
+    public string? Address { get; set; }
+    public bool IsActive { get; set; } = true;
+    public ICollection<SalesOrder> SalesOrders { get; set; } = new List<SalesOrder>();
+}
+
 public class Inventory : BaseEntity
 {
     public Guid ProductId { get; set; }

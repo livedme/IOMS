@@ -1,10 +1,13 @@
 ﻿using IOMS.Domain.Enums;
 using MudBlazor;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 
 namespace IOMS.Web
 {
     public class CommonUtility
     {
+      
         public static Color GetStatusColor(OrderStatus status) => status switch
         {
             OrderStatus.Pending => Color.Default,
@@ -92,5 +95,27 @@ namespace IOMS.Web
             ShipmentStatus.Returned => Color.Warning,
             _ => Color.Default
         };
+        public static Color GetStatusColor(InvoiceStatus status) => status switch
+        {
+            InvoiceStatus.Draft => Color.Default,
+            InvoiceStatus.Sent => Color.Info,
+            InvoiceStatus.PartiallyPaid => Color.Warning,
+            InvoiceStatus.Paid => Color.Success,
+            InvoiceStatus.Overdue => Color.Error,
+            InvoiceStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+
+
+        public static string GetDisplayName(Enum enumValue)
+        {
+            var member = enumValue.GetType()
+                                  .GetMember(enumValue.ToString())
+                                  .FirstOrDefault();
+
+            var displayAttribute = member?.GetCustomAttribute<DisplayAttribute>();
+
+            return displayAttribute?.Name ?? enumValue.ToString();
+        }
     }
 }

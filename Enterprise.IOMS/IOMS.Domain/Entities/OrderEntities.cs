@@ -9,13 +9,21 @@ public class SalesOrder : BaseEntity
     public Customer Customer { get; set; } = null!;
     public Guid? WarehouseId { get; set; }
     public Warehouse? Warehouse { get; set; }
+    public Guid? BranchId { get; set; }
+    public Branch? Branch { get; set; }
     public DateTime OrderDate { get; set; } = DateTime.UtcNow;
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
-    public decimal SubTotal { get; set; }
+    public string Naration { get; set; } = string.Empty;
+    public string Chalan { get; set; } = string.Empty;    
+    public decimal ItemsTotalPrice { get; set; }
+    public decimal LabourCharge { get; set; }
+    public decimal TruckCharge { get; set;}
     public decimal TaxAmount { get; set; }
-    public decimal DiscountAmount { get; set; }
-    public decimal FreightAmount { get; set; }
+    public DiscountType DiscountType { get; set; }
+    public decimal DiscountAmount { get; set; }    
     public decimal TotalAmount { get; set; }
+    public decimal PaidAmount { get; set; }
+    public decimal DueAmount { get; set; }
     public Guid? CurrencyId { get; set; }
     public Currency? Currency { get; set; }
     public decimal ExchangeRate { get; set; } = 1;
@@ -31,7 +39,7 @@ public class SalesOrder : BaseEntity
     public bool IsBackOrder { get; set; }
     public string? ShippingCarrier { get; set; }
     public string? TrackingNumber { get; set; }
-    public DateTime? DeliveredDate { get; set; }
+    public DateTime? DeliveredDate { get; set; }    
 }
 
 public class SalesOrderItem : BaseEntity
@@ -43,11 +51,10 @@ public class SalesOrderItem : BaseEntity
     public int Quantity { get; set; }
     public int ShippedQuantity { get; set; }
     public decimal UnitPrice { get; set; }
-    public decimal DiscountPercent { get; set; }
     public decimal DiscountAmount { get; set; }
-    public decimal TaxRate { get; set; }
-    public decimal TaxAmount { get; set; }
-    public decimal LineTotal { get; set; }
+    public DiscountType DiscountType { get; set; }
+    public decimal TotalDiscount { get; set; }    
+    public decimal LineTotalPrice { get; set; }
     public Guid? UoMId { get; set; }
     public UnitOfMeasure? UoM { get; set; }
 

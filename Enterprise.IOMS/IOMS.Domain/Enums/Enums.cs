@@ -1,3 +1,6 @@
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+
 namespace IOMS.Domain.Enums;
 
 public enum OrderStatus
@@ -9,7 +12,6 @@ public enum PurchaseOrderStatus
 {
     Draft, Submitted, Approved, PartiallyReceived, Received, Closed, Cancelled
 }
-
 public enum AccountType
 {
     Asset, Liability, Equity, Revenue, Expense
@@ -37,7 +39,11 @@ public enum TaxType
 
 public enum DiscountType
 {
-    Percentage, FixedAmount
+    [Display(Name = "%")]
+    Percentage=0,
+
+    [Display(Name = "Fixed")]
+    Fixed=1
 }
 
 public enum CreditNoteStatus

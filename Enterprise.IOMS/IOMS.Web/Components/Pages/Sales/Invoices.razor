@@ -46,7 +46,7 @@
                     @context.DueDate.ToString("yyyy-MM-dd")
                 </MudText>
             </MudTd>
-            <MudTd><MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
             <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
             <MudTd Style="text-align:right">@context.PaidAmount.ToString("C")</MudTd>
             <MudTd Style="text-align:right">@context.BalanceDue.ToString("C")</MudTd>
@@ -86,14 +86,5 @@
         _loading = false;
     }
 
-    private Color GetStatusColor(InvoiceStatus status) => status switch
-    {
-        InvoiceStatus.Draft => Color.Default,
-        InvoiceStatus.Sent => Color.Info,
-        InvoiceStatus.PartiallyPaid => Color.Warning,
-        InvoiceStatus.Paid => Color.Success,
-        InvoiceStatus.Overdue => Color.Error,
-        InvoiceStatus.Cancelled => Color.Error,
-        _ => Color.Default
-    };
+  
 }
