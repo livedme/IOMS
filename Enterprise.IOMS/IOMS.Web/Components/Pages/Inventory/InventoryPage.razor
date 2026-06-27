@@ -12,7 +12,7 @@
 <MudPaper Elevation="2" Class="pa-4">
     <MudGrid>
         <MudItem xs="12" sm="6">
-            <MudSelect @bind-Value="_selectedWarehouseId" Label="Warehouse" Clearable="true">
+            <MudSelect @bind-Value="_selectedWarehouseId" Label="Warehouse" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var wh in _warehouses)
                 {
                     <MudSelectItem Value="@wh.Id">@wh.Name (@wh.Code)</MudSelectItem>

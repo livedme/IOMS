@@ -6,7 +6,7 @@
         <MudText>Assemble @_quantity unit(s) of this kit at the selected warehouse.</MudText>
         <MudGrid Class="mt-3">
             <MudItem xs="12">
-                <MudSelect @bind-Value="_warehouseId" Label="Warehouse" Required="true">
+                <MudSelect @bind-Value="_warehouseId" Label="Warehouse" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var w in Warehouses)
                     {
                         <MudSelectItem Value="@w.Id">@w.Name</MudSelectItem>
@@ -14,7 +14,7 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12">
-                <MudNumericField @bind-Value="_quantity" Label="Quantity" Min="1" />
+                <MudNumericField @bind-Value="_quantity" Label="Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
         </MudGrid>
     </DialogContent>

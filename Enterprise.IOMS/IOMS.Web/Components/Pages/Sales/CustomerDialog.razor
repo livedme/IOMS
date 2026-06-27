@@ -4,37 +4,37 @@
     <DialogContent>
         <MudGrid>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_name" Label="Name" Required="true" />
+                <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_email" Label="Email" InputType="InputType.Email" />
+                <MudTextField @bind-Value="_email" Label="Email" InputType="InputType.Email" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_phone" Label="Phone" />
+                <MudTextField @bind-Value="_phone" Label="Phone" AdornmentAriaLabel="Phone" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudNumericField @bind-Value="_creditLimit" Label="Credit Limit" Format="N2" Min="0m" />
+                <MudNumericField @bind-Value="_creditLimit" Label="Credit Limit" Format="N2" Min="0m" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12">
-                <MudTextField @bind-Value="_address" Label="Address" />
+                <MudTextField @bind-Value="_address" Label="Address" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="4">
-                <MudTextField @bind-Value="_city" Label="City" />
+                <MudTextField @bind-Value="_city" Label="City" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="4">
-                <MudTextField @bind-Value="_state" Label="State" />
+                <MudTextField @bind-Value="_state" Label="State" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="4">
-                <MudTextField @bind-Value="_country" Label="Country" />
+                <MudTextField @bind-Value="_country" Label="Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_postalCode" Label="Postal Code" />
+                <MudTextField @bind-Value="_postalCode" Label="Postal Code" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_paymentTerms" Label="Payment Terms" />
+                <MudTextField @bind-Value="_paymentTerms" Label="Payment Terms" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12">
-                <MudCheckBox @bind-Value="_isTaxExempt" Label="Tax Exempt" />
+                <MudCheckBox @bind-Value="_isTaxExempt" Label="Tax Exempt" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
             </MudItem>
         </MudGrid>
     </DialogContent>

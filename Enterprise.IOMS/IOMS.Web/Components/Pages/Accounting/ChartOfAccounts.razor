@@ -11,7 +11,7 @@
 <MudPaper Elevation="2" Class="pa-4">
     <MudGrid>
         <MudItem xs="12" sm="8">
-            <MudSelect @bind-Value="_typeFilter" Label="Account Type" Clearable="true">
+            <MudSelect @bind-Value="_typeFilter" Label="Account Type" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var type in Enum.GetValues<AccountType>())
                 {
                     <MudSelectItem Value="@((AccountType?)type)">@type</MudSelectItem>

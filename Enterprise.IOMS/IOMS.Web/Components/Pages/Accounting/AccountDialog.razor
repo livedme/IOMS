@@ -2,9 +2,9 @@
 
 <MudDialog>
     <DialogContent>
-        <MudTextField @bind-Value="_code" Label="Account Code" Required="true" />
-        <MudTextField @bind-Value="_name" Label="Account Name" Required="true" Class="mt-3" />
-        <MudSelect @bind-Value="_type" Label="Account Type" Required="true" Class="mt-3">
+        <MudTextField @bind-Value="_code" Label="Account Code" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        <MudTextField @bind-Value="_name" Label="Account Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        <MudSelect @bind-Value="_type" Label="Account Type" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
             @foreach (var type in Enum.GetValues<AccountType>())
             {
                 <MudSelectItem Value="@type">@type</MudSelectItem>

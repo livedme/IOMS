@@ -16,7 +16,7 @@
         <MudText Typo="Typo.h6" Class="mb-3">Create Archival Policy</MudText>
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudSelect @bind-Value="_entityType" Label="Entity Type">
+                <MudSelect @bind-Value="_entityType" Label="Entity Type" Variant="Variant.Outlined" Margin="Margin.Dense">
                     <MudSelectItem Value="@("SalesOrder")">Sales Order</MudSelectItem>
                     <MudSelectItem Value="@("PurchaseOrder")">Purchase Order</MudSelectItem>
                     <MudSelectItem Value="@("Invoice")">Invoice</MudSelectItem>
@@ -25,7 +25,7 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudNumericField @bind-Value="_retentionDays" Label="Retention Days" Min="30" />
+                <MudNumericField @bind-Value="_retentionDays" Label="Retention Days" Min="30" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
         </MudGrid>
         <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Create" Class="mt-3">Save</MudButton>

@@ -16,7 +16,7 @@
         <MudText Typo="Typo.h6" Class="mb-3">Submit Data Subject Request</MudText>
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudSelect @bind-Value="_requestType" Label="Request Type">
+                <MudSelect @bind-Value="_requestType" Label="Request Type" Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (DataSubjectRequestType t in Enum.GetValues<DataSubjectRequestType>())
                     {
                         <MudSelectItem Value="@t">@t</MudSelectItem>
@@ -24,10 +24,10 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_email" Label="Subject Email" InputType="InputType.Email" />
+                <MudTextField @bind-Value="_email" Label="Subject Email" InputType="InputType.Email" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_notes" Label="Notes" />
+                <MudTextField @bind-Value="_notes" Label="Notes" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
         </MudGrid>
         <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Submit" Class="mt-3">Submit</MudButton>

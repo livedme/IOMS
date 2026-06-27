@@ -16,10 +16,10 @@
         <MudText Typo="Typo.h6" Class="mb-3">Create Template</MudText>
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_name" Label="Name" />
+                <MudTextField @bind-Value="_name" Label="Name" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudSelect @bind-Value="_type" Label="Type">
+                <MudSelect @bind-Value="_type" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense">
                     <MudSelectItem Value="@("Invoice")">Invoice</MudSelectItem>
                     <MudSelectItem Value="@("Quotation")">Quotation</MudSelectItem>
                     <MudSelectItem Value="@("PurchaseOrder")">Purchase Order</MudSelectItem>
@@ -27,12 +27,12 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudCheckBox @bind-Value="_isDefault" Label="Default Template" />
+                <MudCheckBox @bind-Value="_isDefault" Label="Default Template" Class="mt-3" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
             </MudItem>
             <MudItem xs="12">
                 <RichTextField @bind-Value="_htmlContent" Label="HTML Content" Lines="5" />
             </MudItem>
-        </MudGrid>
+        </MudGrid> 
         <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Create" Class="mt-3">Save</MudButton>
         <MudButton Variant="Variant.Text" OnClick="() => _showCreate = false" Class="mt-3 ml-2">Cancel</MudButton>
     </MudPaper>

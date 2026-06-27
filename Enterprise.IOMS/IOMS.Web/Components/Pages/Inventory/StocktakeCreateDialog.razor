@@ -6,7 +6,7 @@
 <MudDialog>
     <TitleContent>New Stocktake</TitleContent>
     <DialogContent>
-        <MudSelect T="Guid" Label="Warehouse" @bind-Value="_warehouseId" Required="true">
+        <MudSelect T="Guid" Label="Warehouse" @bind-Value="_warehouseId" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
             @foreach (var w in Warehouses)
             {
                 <MudSelectItem Value="@w.Id">@w.Name</MudSelectItem>

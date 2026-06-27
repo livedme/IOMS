@@ -14,7 +14,7 @@
         <MudItem xs="12" sm="8">
             <MudTextField @bind-Value="_searchString" Placeholder="Search suppliers..." Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadData" />
+                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadData" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="4" Class="d-flex justify-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
@@ -100,7 +100,7 @@
         if (entity == null) return;
 
         var dto = new SupplierDto(entity.Id, entity.Name, entity.Email, entity.Phone, entity.Address,
-            entity.City, entity.State, entity.Country, entity.PaymentTerms, entity.LeadTimeDays, entity.Rating, entity.IsActive);
+            entity.City, entity.State, entity.Country, entity.PostalCode, entity.PaymentTerms, entity.LeadTimeDays, entity.Rating, entity.IsActive);
 
         var parameters = new DialogParameters<SupplierDialog> { { x => x.Supplier, dto } };
         var dialog = await DialogService.ShowAsync<SupplierDialog>("Edit Supplier", parameters,

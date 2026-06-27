@@ -79,7 +79,7 @@ public static class DependencyInjection
         services.AddScoped<IScheduledReportService, ScheduledReportService>();
         services.AddScoped<IDataPrivacyService, DataPrivacyService>();
         services.AddScoped<IArchivalService, ArchivalService>();
-
+        services.AddScoped<IBranchService, BranchService>();
         // Entity CRUD Services
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<ICustomerSupplierService, CustomerSupplierService>();

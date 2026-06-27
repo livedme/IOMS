@@ -9,7 +9,7 @@
 <MudPaper Elevation="2" Class="pa-4">
     <MudGrid>
         <MudItem xs="12" md="4">
-            <MudSelect @bind-Value="_selectedEntity" Label="Entity Type" Class="mb-3">
+            <MudSelect @bind-Value="_selectedEntity" Label="Entity Type" Class="mb-3" Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem Value="@("Products")">Products</MudSelectItem>
                 <MudSelectItem Value="@("Customers")">Customers</MudSelectItem>
                 <MudSelectItem Value="@("Suppliers")">Suppliers</MudSelectItem>
@@ -20,17 +20,17 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudSelect @bind-Value="_format" Label="Format">
+            <MudSelect @bind-Value="_format" Label="Format" Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem Value="@("CSV")">CSV</MudSelectItem>
                 <MudSelectItem Value="@("Excel")">Excel (.xlsx)</MudSelectItem>
                 <MudSelectItem Value="@("JSON")">JSON</MudSelectItem>
             </MudSelect>
         </MudItem>
         <MudItem xs="12" md="2">
-            <MudDatePicker @bind-Date="_fromDate" Label="From Date" />
+            <MudDatePicker @bind-Date="_fromDate" Label="From Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" md="2">
-            <MudDatePicker @bind-Date="_toDate" Label="To Date" />
+            <MudDatePicker @bind-Date="_toDate" Label="To Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" md="1" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" OnClick="Export">Export</MudButton>

@@ -3,7 +3,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudTextField @bind-Value="_search" Placeholder="Search category" Class="mb-2" />
+        <MudTextField @bind-Value="_search" Placeholder="Search category" Class="mb-2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         <MudGrid>
             <MudItem xs="12" sm="4">
                 <MudList T="CategoryDto">

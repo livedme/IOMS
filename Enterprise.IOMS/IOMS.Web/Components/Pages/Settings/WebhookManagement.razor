@@ -16,7 +16,7 @@
         <MudText Typo="Typo.h6" Class="mb-3">Create Webhook Subscription</MudText>
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudSelect @bind-Value="_eventType" Label="Event Type">
+                <MudSelect @bind-Value="_eventType" Label="Event Type" Variant="Variant.Outlined" Margin="Margin.Dense">
                     <MudSelectItem Value="@("order.created")">Order Created</MudSelectItem>
                     <MudSelectItem Value="@("order.updated")">Order Updated</MudSelectItem>
                     <MudSelectItem Value="@("invoice.created")">Invoice Created</MudSelectItem>
@@ -25,10 +25,10 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_url" Label="URL" Placeholder="https://..." />
+                <MudTextField @bind-Value="_url" Label="URL" Placeholder="https://..." ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_secret" Label="Secret" InputType="InputType.Password" />
+                <MudTextField @bind-Value="_secret" Label="Secret" InputType="InputType.Password" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
         </MudGrid>
         <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Create" Class="mt-3">Save</MudButton>

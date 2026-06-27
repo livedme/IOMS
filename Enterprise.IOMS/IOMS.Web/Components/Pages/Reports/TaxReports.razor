@@ -10,10 +10,10 @@
 
 <MudGrid Class="mb-4">
     <MudItem xs="12" md="3">
-        <MudDatePicker @bind-Date="_fromDate" Label="From Date" />
+        <MudDatePicker @bind-Date="_fromDate" Label="From Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
     </MudItem>
     <MudItem xs="12" md="3">
-        <MudDatePicker @bind-Date="_toDate" Label="To Date" />
+        <MudDatePicker @bind-Date="_toDate" Label="To Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
     </MudItem>
     <MudItem xs="12" md="2">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load" Class="mt-3">Generate</MudButton>

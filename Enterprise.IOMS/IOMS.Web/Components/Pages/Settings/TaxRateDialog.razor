@@ -5,17 +5,17 @@
     <TitleContent><MudText Typo="Typo.h6">@(ExistingRate != null ? "Edit" : "Add") Tax Rate</MudText></TitleContent>
     <DialogContent>
         <MudForm @ref="_form">
-            <MudTextField @bind-Value="_name" Label="Tax Name" Required="true" />
-            <MudTextField @bind-Value="_code" Label="Code" Required="true" Class="mt-3" />
-            <MudNumericField @bind-Value="_rate" Label="Rate (%)" Min="0" Max="100" Format="N2" Required="true" Class="mt-3" />
-            <MudSelect @bind-Value="_taxType" Label="Tax Type" Required="true" Class="mt-3">
+            <MudTextField @bind-Value="_name" Label="Tax Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudTextField @bind-Value="_code" Label="Code" Required="true" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudNumericField @bind-Value="_rate" Label="Rate (%)" Min="0" Max="100" Format="N2" Required="true" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudSelect @bind-Value="_taxType" Label="Tax Type" Required="true" Class="mt-3" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (TaxType t in Enum.GetValues<TaxType>())
                 {
                     <MudSelectItem Value="@t">@t</MudSelectItem>
                 }
             </MudSelect>
-            <MudCheckBox @bind-Value="_isCompound" Label="Compound Tax" Class="mt-3" />
-            <MudCheckBox @bind-Value="_isActive" Label="Active" Class="mt-1" />
+            <MudCheckBox @bind-Value="_isCompound" Label="Compound Tax" Class="mt-3" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
+            <MudCheckBox @bind-Value="_isActive" Label="Active" Class="mt-1" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
         </MudForm>
     </DialogContent>
     <DialogActions>

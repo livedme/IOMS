@@ -179,6 +179,7 @@ public class OrderService : IOrderService
             OrderNumber = NumberGenerator.GenerateOrderNumber("SO"),
             CustomerId = dto.CustomerId,
             WarehouseId = dto.WarehouseId,
+            BranchId = dto.BranchId,
             Notes = dto.Notes,
             ShippingAddress = dto.ShippingAddress,
             ExpectedDeliveryDate = dto.ExpectedDeliveryDate,
@@ -222,6 +223,7 @@ public class OrderService : IOrderService
     {
         var order = await _context.SalesOrders
             .Include(o => o.Items)
+            .Include(o => o.Branch)
             .FirstOrDefaultAsync(o => o.Id == orderId)
             ?? throw new EntityNotFoundException("SalesOrder", orderId);
 
@@ -262,6 +264,7 @@ public class OrderService : IOrderService
     {
         var order = await _context.SalesOrders
             .Include(o => o.Items)
+            .Include(o => o.Branch)
             .FirstOrDefaultAsync(o => o.Id == orderId)
             ?? throw new EntityNotFoundException("SalesOrder", orderId);
 
@@ -301,7 +304,7 @@ public class OrderService : IOrderService
 
     public async Task UpdateOrderStatus(Guid orderId, OrderStatus newStatus)
     {
-        var order = await _context.SalesOrders.FindAsync(orderId)
+        var order = await _context.SalesOrders.FindAsync(orderId)   
             ?? throw new EntityNotFoundException("SalesOrder", orderId);
 
         order.Status = newStatus;
@@ -312,16 +315,21 @@ public class OrderService : IOrderService
     {
         var order = await _context.SalesOrders
             .Include(o => o.Customer)
+            .Include(o => o.Branch)
             .Include(o => o.Items).ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(o => o.Id == id);
 
-        return order == null ? null : _mapper.Map<SalesOrderDto>(order);
+        var model = _mapper.Map<SalesOrderDto>(order);
+        //var customer = _mapper.Map<CustomerDto>(order.Customer);
+
+        return order == null ? null : model;
     }
 
     public async Task<PagedResult<SalesOrderDto>> GetSalesOrders(string? search, List<OrderStatus?> status, int page, int pageSize)
     {
         var query = _context.SalesOrders
             .Include(o => o.Customer)
+            .Include(o => o.Branch)
             .Include(o => o.Items).ThenInclude(i => i.Product)
             .AsQueryable();
 
@@ -490,5 +498,60 @@ public class PurchaseService : IPurchaseService
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
         return new PagedResult<PurchaseOrderDto>(_mapper.Map<List<PurchaseOrderDto>>(items), total, page, pageSize);
+    }
+}
+
+public class BranchService : IBranchService
+{
+    private readonly ApplicationDbContext _context;
+    private readonly IMapper _mapper;
+
+    public BranchService(ApplicationDbContext context, IMapper mapper)
+    {
+        _context = context;
+        _mapper = mapper;
+    }
+    public async Task<Guid> CreateBranch(CreateBranchDto dto)
+    { 
+
+        var branch = new Branch()
+        {
+            Name = dto.Name,
+            Code = dto.Code,
+            Location = dto.Location,
+            Address = dto.Address,      
+            IsActive = dto.IsActive
+        };
+
+        await _context.Branches.AddAsync(branch);
+        await _context.SaveChangesAsync();
+        
+        return branch.Id;
+    }
+
+    public async Task DeleteBranch(Guid id)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<BranchDto?> GetBranchById(Guid id)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<List<BranchDto>> GetBranches()
+    {
+        var query = _context.Branches
+            .Include(o => o.SalesOrders)            
+            .AsQueryable();
+
+        var response = _mapper.Map<List<BranchDto>>(query.ToList());
+
+        return response?? new List<BranchDto>();
+    }
+
+    public async Task UpdateBranch(Guid id, CreateBranchDto dto)
+    {
+        throw new NotImplementedException();
     }
 }

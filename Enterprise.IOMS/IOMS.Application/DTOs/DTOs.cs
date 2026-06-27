@@ -125,6 +125,9 @@ public record CreateCategoryDto(string Name, string? Description, Guid? ParentCa
 public record WarehouseDto(Guid Id, string Name, string Code, string? Location, string? Address, bool IsActive);
 public record CreateWarehouseDto(string Name, string Code, string? Location, string? Address);
 
+public record BranchDto(Guid Id, string? Name, string? Code, string? Location, string? Address, bool IsActive);
+public record CreateBranchDto(string Name, string Code, string? Location, string? Address , bool IsActive);
+
 // Inventory
 public record InventoryDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU,
     Guid WarehouseId, string WarehouseName, int Quantity, int ReservedQuantity,
@@ -153,7 +156,7 @@ public record StockTransferDto(Guid ProductId, Guid SourceWarehouseId, Guid Targ
 
 // Customers
 public record CustomerDto(Guid Id, string Name, string? Email, string? Phone, string? Address,
-    string? City, string? State, string? Country, decimal CreditLimit, string? PaymentTerms,
+    string? City, string? State, string? Country, string? PostalCode, decimal CreditLimit, string? PaymentTerms,
     bool IsActive, bool IsTaxExempt);
 
 public record CreateCustomerDto(string Name, string? Email, string? Phone, string? Address,
@@ -163,81 +166,21 @@ public record CreateCustomerDto(string Name, string? Email, string? Phone, strin
 
 // Suppliers
 public record SupplierDto(Guid Id, string Name, string? Email, string? Phone, string? Address,
-    string? City, string? State, string? Country, string? PaymentTerms,
+    string? City, string? State, string? Country, string? PostalCode, string? PaymentTerms,
     int LeadTimeDays, decimal Rating, bool IsActive);
 
 public record CreateSupplierDto(string Name, string? Email, string? Phone, string? Address,
     string? City, string? State, string? Country, string? PostalCode,
     string? PaymentTerms, Guid? DefaultCurrencyId, int LeadTimeDays);
 
-// Sales Orders
-
-//public string OrderNumber { get; set; } = string.Empty;
-//public Guid CustomerId { get; set; }
-//public Customer Customer { get; set; } = null!;
-//public Guid? WarehouseId { get; set; }
-//public Warehouse? Warehouse { get; set; }
-//public Guid? BranchId { get; set; }
-//public Branch? Branch { get; set; }
-//public DateTime OrderDate { get; set; } = DateTime.UtcNow;
-//public OrderStatus Status { get; set; } = OrderStatus.Pending;
-//public string Naration { get; set; } = string.Empty;
-//public string Chalan { get; set; } = string.Empty;
-//public decimal ItemsTotalPrice { get; set; }
-//public decimal LabourCharge { get; set; }
-//public decimal TruckCharge { get; set; }
-//public decimal TaxAmount { get; set; }
-//public DiscountType DiscountType { get; set; }
-//public decimal DiscountAmount { get; set; }
-//public decimal TotalAmount { get; set; }
-//public decimal PaidAmount { get; set; }
-//public decimal DueAmount { get; set; }
-//public Guid? CurrencyId { get; set; }
-//public Currency? Currency { get; set; }
-//public decimal ExchangeRate { get; set; } = 1;
-//public string? Notes { get; set; }
-//public string? ShippingAddress { get; set; }
-//public DateTime? ExpectedDeliveryDate { get; set; }
-//public ICollection<SalesOrderItem> Items { get; set; } = new List<SalesOrderItem>();
-//public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
-//public ICollection<DeliveryNote> DeliveryNotes { get; set; } = new List<DeliveryNote>();
-//public ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
-
-//// Order processing enhancements
-//public bool IsBackOrder { get; set; }
-//public string? ShippingCarrier { get; set; }
-//public string? TrackingNumber { get; set; }
-//public DateTime? DeliveredDate { get; set; }
-
-public record SalesOrderDto(Guid Id, string OrderNumber, Guid CustomerId, string CustomerName,
+public record SalesOrderDto(Guid Id, string OrderNumber, Guid CustomerId, CustomerDto Customer, Guid? BranchId, BranchDto? Branch,
     DateTime OrderDate, OrderStatus Status, string Naration, string Chalan, decimal ItemsTotalPrice, decimal TruckCharge, decimal LabourCharge, decimal TaxAmount,
     decimal DiscountAmount, DiscountType DiscountType, decimal TotalAmount, decimal PaidAmount, decimal DueAmount,  string? Notes, decimal ExchangeRate, 
     DateTime? ExpectedDeliveryDate, List<SalesOrderItemDto> Items);
-
-
-
-//public Guid SalesOrderId { get; set; }
-//public SalesOrder SalesOrder { get; set; } = null!;
-//public Guid ProductId { get; set; }
-//public Product Product { get; set; } = null!;
-//public int Quantity { get; set; }
-//public int ShippedQuantity { get; set; }
-//public decimal UnitPrice { get; set; }
-//public decimal DiscountAmount { get; set; }
-//public DiscountType DiscountType { get; set; }
-//public decimal TotalDiscount { get; set; }
-//public decimal LineTotalPrice { get; set; }
-//public Guid? UoMId { get; set; }
-//public UnitOfMeasure? UoM { get; set; }
-
-//// Partial shipment and return support
-//public int ReturnedQuantity { get; set; }
-//public bool IsBackOrdered { get; set; }
-
 public record SalesOrderItemDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU,
     int Quantity, int ShippedQuantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscount, decimal LineTotalPrice);
 
-public record CreateSalesOrderDto(Guid CustomerId, Guid? WarehouseId, string? Notes,
+public record CreateSalesOrderDto(Guid CustomerId, Guid? WarehouseId, Guid? BranchId, string? Notes,
     string? ShippingAddress, DateTime? ExpectedDeliveryDate, Guid? CurrencyId, OrderStatus? Status, DateTime? SalesDate,
     List<CreateSalesOrderItemDto> Items);
 

@@ -9,13 +9,13 @@
 <MudPaper Class="pa-4 mb-4" Elevation="2">
     <MudGrid>
         <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_from" Label="From Date" />
+            <MudDatePicker @bind-Date="_from" Label="From Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_to" Label="To Date" />
+            <MudDatePicker @bind-Date="_to" Label="To Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="3">
-            <MudSelect @bind-Value="_reportType" Label="Report Type">
+            <MudSelect @bind-Value="_reportType" Label="Report Type" Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem Value="@("Summary")">Summary</MudSelectItem>
                 <MudSelectItem Value="@("ByCustomer")">By Customer</MudSelectItem>
                 <MudSelectItem Value="@("ByProduct")">By Product</MudSelectItem>

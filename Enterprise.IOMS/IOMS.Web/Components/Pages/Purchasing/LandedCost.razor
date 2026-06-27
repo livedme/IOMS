@@ -18,9 +18,9 @@
             @if (_showAdd)
             {
                 <MudGrid Class="mb-3">
-                    <MudItem xs="4"><MudTextField T="string" Label="Name" @bind-Value="_newName" /></MudItem>
-                    <MudItem xs="3"><MudTextField T="string" Label="Type" @bind-Value="_newType" /></MudItem>
-                    <MudItem xs="3"><MudNumericField T="decimal" Label="Rate" @bind-Value="_newRate" /></MudItem>
+                    <MudItem xs="4"><MudTextField T="string" Label="Name" @bind-Value="_newName" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
+                    <MudItem xs="3"><MudTextField T="string" Label="Type" @bind-Value="_newType" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
+                    <MudItem xs="3"><MudNumericField T="decimal" Label="Rate" @bind-Value="_newRate" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
                     <MudItem xs="2" Class="d-flex align-end">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="AddComponent">Save</MudButton>
                     </MudItem>
@@ -45,8 +45,8 @@
             <MudText Typo="Typo.h6" Class="mb-3">Cost Allocations</MudText>
             <MudGrid Class="mb-3">
                 <MudItem xs="4">
-                    <MudSelect T="Guid?" Label="Filter by PO" Clearable="true" Value="_filterPoId"
-                               ValueChanged="@(v => { _filterPoId = v; _ = LoadAllocations(); })">
+                    <MudSelect T="Guid?" Label="Filter by PO" Clearable="true" Value="_filterPoId" 
+                               ValueChanged="@(v => { _filterPoId = v; _ = LoadAllocations(); })" Variant="Variant.Outlined" Margin="Margin.Dense">
                         @foreach (var po in _purchaseOrders)
                         {
                             <MudSelectItem Value="@((Guid?)po.Id)">@po.OrderNumber</MudSelectItem>

@@ -120,6 +120,10 @@ public enum InvoiceStatus
 {
     Draft, Sent, Paid, PartiallyPaid, Overdue, Cancelled
 }
+public enum ItemStatus
+{
+    Active, Inactive, Discontinued, Paused
+}
 
 public enum PaymentStatus
 {

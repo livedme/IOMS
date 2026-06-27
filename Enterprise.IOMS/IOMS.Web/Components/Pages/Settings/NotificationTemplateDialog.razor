@@ -3,18 +3,18 @@
 <MudDialog>
     <DialogContent>
         <MudTextField @bind-Value="_eventType" Label="Event Type" Required="true" Variant="Variant.Outlined"
-                      Placeholder="e.g. OrderCreated, InvoiceOverdue" Class="mb-3" />
-        <MudSelect @bind-Value="_channel" Label="Channel" Required="true" Variant="Variant.Outlined" Class="mb-3">
+                      Placeholder="e.g. OrderCreated, InvoiceOverdue" Margin="Margin.Dense" Class="mb-3" />
+        <MudSelect @bind-Value="_channel" Label="Channel" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="mb-3">
             @foreach (var ch in Enum.GetValues<NotificationChannel>())
             {
                 <MudSelectItem Value="@ch">@ch</MudSelectItem>
             }
         </MudSelect>
-        <MudTextField @bind-Value="_subject" Label="Subject" Required="true" Variant="Variant.Outlined" Class="mb-3" />
+        <MudTextField @bind-Value="_subject" Label="Subject" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="mb-3" />
         <RichTextField @bind-Value="_bodyTemplate" Label="Body Template" Required="true"
                       Lines="6" Placeholder="Use {{Variable}} placeholders..." />
-    </DialogContent>
-    <DialogActions>
+    </DialogContent> 
+    <DialogActions> 
         <MudButton OnClick="Cancel">Cancel</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@_saving">
             @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }

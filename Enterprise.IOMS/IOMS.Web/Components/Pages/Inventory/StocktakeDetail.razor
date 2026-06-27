@@ -68,7 +68,7 @@ else
                     <MudTd>
                         <MudNumericField T="int" Value="@(_countValues.GetValueOrDefault(context.Id, 0))"
                                          ValueChanged="@(v => _countValues[context.Id] = v)"
-                                         Style="max-width:100px" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                         Style="max-width:100px" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                         <MudIconButton Icon="@Icons.Material.Filled.Save" Color="Color.Primary" Size="Size.Small"
                                        OnClick="() => SaveCount(context.Id)" />
                     </MudTd>

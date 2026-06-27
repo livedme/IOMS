@@ -16,10 +16,10 @@
         <MudItem xs="12" sm="4">
             <MudTextField @bind-Value="_search" Placeholder="Search orders..." Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadOrders" />
+                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadOrders" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true">
+            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var status in Enum.GetValues<OrderStatus>())
                 {
                     <MudSelectItem Value="@((OrderStatus?)status)">@status</MudSelectItem>
@@ -43,7 +43,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.OrderNumber</MudTd>
-            <MudTd>@context.CustomerName</MudTd>
+            <MudTd>@context.Customer.Name</MudTd>
             <MudTd>@context.OrderDate.ToString("yyyy-MM-dd")</MudTd>
             <MudTd>
                 <MudChip T="string" Color="@CommonUtility.GetStatusColor(context.Status)" Size="Size.Small">@context.Status</MudChip>
@@ -123,7 +123,7 @@
 
         var parameters = new DialogParameters<SalesOrderDialog>
         {
-            { x => x.Customers, customers.Select(c => new CustomerDto(c.Id, c.Name,c.Email,c.Phone,c.Address,c.City,c.State,c.Country,c.CreditLimit,c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList() },
+            { x => x.Customers, customers.Select(c => new CustomerDto(c.Id, c.Name,c.Email,c.Phone,c.Address,c.City,c.State,c.Country,c.PostalCode, c.CreditLimit,c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList() },
             { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList() }
         };
 

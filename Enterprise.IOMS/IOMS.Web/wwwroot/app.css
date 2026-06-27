@@ -124,7 +124,11 @@ h1:focus {
     width: 100%;
     overflow-y: auto;
     border: 1px solid #c4c4c4;
-    padding-bottom: 36px;
+    border-bottom: 0px;
+    padding-bottom: 10px;
+}
+.c-border-color {
+    border-color: #c4c4c4;
 }
 
 .DiscountField {
@@ -137,4 +141,8 @@ h1:focus {
 }
 .product-item-list .mud-table-row .mud-table-cell {
     font-weight: bolder;
+}
+
+.mud-table-head .mud-table-row .mud-table-cell {
+    font-weight: bold;
 }

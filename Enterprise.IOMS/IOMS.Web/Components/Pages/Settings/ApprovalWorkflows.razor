@@ -16,7 +16,7 @@
         <MudText Typo="Typo.h6" Class="mb-3">Create Workflow Rule</MudText>
         <MudGrid>
             <MudItem xs="12" md="3">
-                <MudSelect @bind-Value="_docType" Label="Document Type">
+                <MudSelect @bind-Value="_docType" Label="Document Type" Variant="Variant.Outlined" Margin="Margin.Dense">
                     <MudSelectItem Value="@("SalesOrder")">Sales Order</MudSelectItem>
                     <MudSelectItem Value="@("PurchaseOrder")">Purchase Order</MudSelectItem>
                     <MudSelectItem Value="@("Quotation")">Quotation</MudSelectItem>
@@ -25,10 +25,10 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudNumericField @bind-Value="_amountThreshold" Label="Amount Threshold" Format="N2" />
+                <MudNumericField @bind-Value="_amountThreshold" Label="Amount Threshold" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudNumericField @bind-Value="_level" Label="Approval Level" Min="1" />
+                <MudNumericField @bind-Value="_level" Label="Approval Level" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
         </MudGrid>
         <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Create" Class="mt-3">Save</MudButton>

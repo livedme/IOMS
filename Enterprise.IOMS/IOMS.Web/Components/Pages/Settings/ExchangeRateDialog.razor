@@ -2,20 +2,20 @@
 
 <MudDialog>
     <DialogContent>
-        <MudSelect @bind-Value="_fromCurrencyId" Label="From Currency" Required="true" Variant="Variant.Outlined" Class="mb-3">
+        <MudSelect @bind-Value="_fromCurrencyId" Label="From Currency" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="mb-3">
             @foreach (var c in Currencies)
             {
                 <MudSelectItem Value="@c.Id">@c.Code - @c.Name</MudSelectItem>
             }
         </MudSelect>
-        <MudSelect @bind-Value="_toCurrencyId" Label="To Currency" Required="true" Variant="Variant.Outlined" Class="mb-3">
+        <MudSelect @bind-Value="_toCurrencyId" Label="To Currency" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="mb-3">
             @foreach (var c in Currencies)
             {
                 <MudSelectItem Value="@c.Id">@c.Code - @c.Name</MudSelectItem>
             }
         </MudSelect>
-        <MudNumericField @bind-Value="_rate" Label="Rate" Required="true" Variant="Variant.Outlined" Format="F6" Min="0.000001M" Class="mb-3" />
-        <MudDatePicker @bind-Date="_effectiveDate" Label="Effective Date" Required="true" Variant="Variant.Outlined" />
+        <MudNumericField @bind-Value="_rate" Label="Rate" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Format="F6" Min="0.000001M" Class="mb-3" />
+        <MudDatePicker @bind-Date="_effectiveDate" Label="Effective Date" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>

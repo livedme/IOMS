@@ -117,5 +117,24 @@ namespace IOMS.Web
 
             return displayAttribute?.Name ?? enumValue.ToString();
         }
+
+        public static Color GetStatusColor(ItemStatus status) => status switch
+        {
+            ItemStatus.Active => Color.Success,
+            ItemStatus.Inactive => Color.Info,
+            ItemStatus.Discontinued => Color.Warning,
+            ItemStatus.Paused => Color.Default,
+            _ => Color.Default
+        }; 
+        public static Color GetStatusColor(bool status) => status switch
+        {
+            true => Color.Success,
+            false => Color.Error
+        }; 
+        public static string GetStatusText(bool status) => status switch
+        {
+            true => "Active",
+            false => "In-active"
+        };
     }
 }

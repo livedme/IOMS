@@ -5,11 +5,11 @@
     <TitleContent><MudText Typo="Typo.h6">Create Price List</MudText></TitleContent>
     <DialogContent>
         <MudForm @ref="_form">
-            <MudTextField @bind-Value="_name" Label="Name" Required="true" />
-            <MudTextField @bind-Value="_description" Label="Description" Class="mt-3" />
-            <MudDatePicker @bind-Date="_effectiveDate" Label="Effective Date" Required="true" Class="mt-3" />
-            <MudDatePicker @bind-Date="_expiryDate" Label="Expiry Date" Class="mt-3" />
-            <MudCheckBox @bind-Value="_isActive" Label="Active" Class="mt-3" />
+            <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudTextField @bind-Value="_description" Label="Description" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudDatePicker @bind-Date="_effectiveDate" Label="Effective Date" Required="true" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudDatePicker @bind-Date="_expiryDate" Label="Expiry Date" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudCheckBox @bind-Value="_isActive" Label="Active" Class="mt-3" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
         </MudForm>
     </DialogContent>
     <DialogActions>

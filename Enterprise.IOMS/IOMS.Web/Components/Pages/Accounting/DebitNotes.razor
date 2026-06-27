@@ -12,7 +12,7 @@
         <MudItem xs="12" sm="8">
             <MudTextField @bind-Value="_search" Label="Search" Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          OnKeyUp="@(async _ => await LoadData())" />
+                          OnKeyUp="@(async _ => await LoadData())" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="4" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary"

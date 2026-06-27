@@ -1,4 +1,5 @@
 using IOMS.Application.DTOs;
+using IOMS.Domain.Entities;
 using IOMS.Domain.Enums;
 
 namespace IOMS.Application.Interfaces;
@@ -327,3 +328,12 @@ public interface IUserManagementService
     Task CreateRole(string roleName);
     Task DeleteRole(string roleName);
 }
+public interface IBranchService
+{
+    Task<List<BranchDto>> GetBranches();
+    Task<BranchDto?> GetBranchById(Guid id);
+    Task<Guid> CreateBranch(CreateBranchDto dto);
+    Task UpdateBranch(Guid id, CreateBranchDto dto);
+    Task DeleteBranch(Guid id);
+}
+

@@ -5,28 +5,28 @@
     <DialogContent>
         <MudGrid>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_name" Label="Name" Required="true" />
+                <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_brandCode" Label="Brand Code" />
+                <MudTextField @bind-Value="_brandCode" Label="Brand Code" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudSelect T="string" @bind-Value="_status" Label="Status">
+                <MudSelect T="string" @bind-Value="_status" Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense">
                     <MudSelectItem Value=@("Active")>Active</MudSelectItem>
                     <MudSelectItem Value=@("Inactive")>Inactive</MudSelectItem>
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudNumericField T="int?" @bind-Value="_foundedYear" Label="Founded Year" Min="1800" />
+                <MudNumericField T="int?" @bind-Value="_foundedYear" Label="Founded Year" Min="1800" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_originCompany" Label="Origin Company" />
+                <MudTextField @bind-Value="_originCompany" Label="Origin Company" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_originCountry" Label="Origin Country" />
+                <MudTextField @bind-Value="_originCountry" Label="Origin Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12">
-                <MudTextField @bind-Value="_logoUrl" Label="Logo URL" />
+                <MudTextField @bind-Value="_logoUrl" Label="Logo URL" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12">
                 <RichTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />

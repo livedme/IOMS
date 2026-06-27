@@ -10,7 +10,7 @@
 <MudPaper Elevation="2" Class="pa-4 mb-4">
     <MudGrid>
         <MudItem xs="12" sm="4">
-            <MudDatePicker @bind-Date="_asOfDate" Label="As Of Date" />
+            <MudDatePicker @bind-Date="_asOfDate" Label="As Of Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Generate" Class="mt-2">

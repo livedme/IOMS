@@ -9,7 +9,7 @@
 <MudPaper Class="pa-4 mb-4">
     <MudGrid>
         <MudItem xs="12" sm="4">
-            <MudSelect @bind-Value="_warehouseId" Label="Warehouse" Clearable="true">
+            <MudSelect @bind-Value="_warehouseId" Label="Warehouse" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var w in _warehouses)
                 {
                     <MudSelectItem Value="@w.Id">@w.Name</MudSelectItem>
@@ -17,7 +17,7 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudSelect @bind-Value="_reportType" Label="Report Type">
+            <MudSelect @bind-Value="_reportType" Label="Report Type" Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem Value="@("StockLevel")">Current Stock Levels</MudSelectItem>
                 <MudSelectItem Value="@("Movements")">Stock Movements</MudSelectItem>
                 <MudSelectItem Value="@("Valuation")">Inventory Valuation</MudSelectItem>

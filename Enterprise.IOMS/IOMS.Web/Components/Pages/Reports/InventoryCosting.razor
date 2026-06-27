@@ -10,7 +10,7 @@
 <MudPaper Class="pa-4 mb-4">
     <MudGrid>
         <MudItem xs="12" sm="4">
-            <MudSelect @bind-Value="_costingMethod" Label="Costing Method">
+            <MudSelect @bind-Value="_costingMethod" Label="Costing Method" Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem Value="@("WeightedAverage")">Weighted Average</MudSelectItem>
                 <MudSelectItem Value="@("FIFO")">FIFO</MudSelectItem>
                 <MudSelectItem Value="@("StandardCost")">Standard Cost</MudSelectItem>

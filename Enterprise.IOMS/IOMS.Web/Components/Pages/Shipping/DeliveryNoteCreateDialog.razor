@@ -7,19 +7,19 @@
     <DialogContent>
         <MudGrid>
             <MudItem xs="12">
-                <MudSelect @bind-Value="_salesOrderId" Label="Sales Order" Required="true">
+                <MudSelect @bind-Value="_salesOrderId" Label="Sales Order" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var so in _salesOrders)
                     {
-                        <MudSelectItem Value="@so.Id">@so.OrderNumber - @so.CustomerName</MudSelectItem>
+                        <MudSelectItem Value="@so.Id">@so.OrderNumber - @so.Customer.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="_shippedDate" Label="Shipped Date" />
+                <MudDatePicker @bind-Date="_shippedDate" Label="Shipped Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12">
                 <RichTextField @bind-Value="_notes" Label="Notes" Lines="2" />
-            </MudItem>
+            </MudItem> 
         </MudGrid>
     </DialogContent>
     <DialogActions>

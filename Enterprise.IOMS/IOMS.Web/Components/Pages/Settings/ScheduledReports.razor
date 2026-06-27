@@ -16,7 +16,7 @@
         <MudText Typo="Typo.h6" Class="mb-3">Create Scheduled Report</MudText>
         <MudGrid>
             <MudItem xs="12" md="3">
-                <MudSelect @bind-Value="_reportType" Label="Report Type">
+                <MudSelect @bind-Value="_reportType" Label="Report Type" Variant="Variant.Outlined" Margin="Margin.Dense">
                     <MudSelectItem Value="@("TrialBalance")">Trial Balance</MudSelectItem>
                     <MudSelectItem Value="@("ProfitAndLoss")">Profit & Loss</MudSelectItem>
                     <MudSelectItem Value="@("BalanceSheet")">Balance Sheet</MudSelectItem>
@@ -25,13 +25,13 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudTextField @bind-Value="_cron" Label="Cron Expression" Placeholder="0 8 * * MON" />
+                <MudTextField @bind-Value="_cron" Label="Cron Expression" Placeholder="0 8 * * MON" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudTextField @bind-Value="_recipients" Label="Recipients" Placeholder="email@example.com" />
+                <MudTextField @bind-Value="_recipients" Label="Recipients" Placeholder="email@example.com" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudSelect @bind-Value="_format" Label="Format">
+                <MudSelect @bind-Value="_format" Label="Format" Variant="Variant.Outlined" Margin="Margin.Dense">
                     <MudSelectItem Value="@("PDF")">PDF</MudSelectItem>
                     <MudSelectItem Value="@("Excel")">Excel</MudSelectItem>
                     <MudSelectItem Value="@("CSV")">CSV</MudSelectItem>

@@ -13,7 +13,7 @@
         <MudItem xs="12" sm="6">
             <MudTextField @bind-Value="_newRoleName" Label="New Role Name" Variant="Variant.Outlined"
                           Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Add"
-                          OnAdornmentClick="CreateRole" Placeholder="Enter role name..." />
+                          OnAdornmentClick="CreateRole" Placeholder="Enter role name..." Margin="Margin.Dense" />
         </MudItem>
     </MudGrid>
 
@@ -41,10 +41,10 @@
         <MudItem xs="12" sm="4">
             <MudAutocomplete T="UserDto" @bind-Value="_selectedUser" Label="Select User"
                              SearchFunc="SearchUsers" ToStringFunc="@(u => u?.FullName ?? "")"
-                             Variant="Variant.Outlined" Dense="true" />
+                             ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudSelect @bind-Value="_selectedRole" Label="Select Role" Variant="Variant.Outlined" Dense="true">
+            <MudSelect @bind-Value="_selectedRole" Label="Select Role" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var role in _roles)
                 {
                     <MudSelectItem Value="@role">@role</MudSelectItem>

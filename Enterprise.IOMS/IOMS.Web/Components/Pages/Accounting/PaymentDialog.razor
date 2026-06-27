@@ -9,18 +9,18 @@
         <MudForm @ref="_form">
             <MudGrid>
                 <MudItem xs="12" sm="6">
-                    <MudSelect @bind-Value="_paymentType" Label="Payment Type" Required="true">
+                    <MudSelect @bind-Value="_paymentType" Label="Payment Type" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                         <MudSelectItem Value="PaymentType.Receipt">Receipt (from Customer)</MudSelectItem>
                         <MudSelectItem Value="PaymentType.Payment">Payment (to Supplier)</MudSelectItem>
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker @bind-Date="_paymentDate" Label="Payment Date" Required="true" />
+                    <MudDatePicker @bind-Date="_paymentDate" Label="Payment Date" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                 </MudItem>
                 @if (_paymentType == PaymentType.Receipt)
                 {
                     <MudItem xs="12">
-                        <MudSelect @bind-Value="_customerId" Label="Customer" Required="true">
+                        <MudSelect @bind-Value="_customerId" Label="Customer" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (var c in _customers)
                             {
                                 <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
@@ -31,7 +31,7 @@
                 else
                 {
                     <MudItem xs="12">
-                        <MudSelect @bind-Value="_supplierId" Label="Supplier" Required="true">
+                        <MudSelect @bind-Value="_supplierId" Label="Supplier" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (var s in _suppliers)
                             {
                                 <MudSelectItem Value="@s.Id">@s.Name</MudSelectItem>
@@ -40,7 +40,7 @@
                     </MudItem>
                 }
                 <MudItem xs="12" sm="6">
-                    <MudSelect @bind-Value="_paymentMethod" Label="Payment Method" Required="true">
+                    <MudSelect @bind-Value="_paymentMethod" Label="Payment Method" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                         @foreach (PaymentMethod m in Enum.GetValues<PaymentMethod>())
                         {
                             <MudSelectItem Value="@m">@m</MudSelectItem>
@@ -49,10 +49,10 @@
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudNumericField @bind-Value="_amount" Label="Amount" Min="0.01m" Required="true"
-                                     Format="N2" Adornment="Adornment.Start" AdornmentText="$" />
+                                     Format="N2" Adornment="Adornment.Start" AdornmentText="$" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_reference" Label="Reference / Check #" />
+                    <MudTextField @bind-Value="_reference" Label="Reference / Check #" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12">
                     <RichTextField @bind-Value="_notes" Label="Notes" Lines="2" />

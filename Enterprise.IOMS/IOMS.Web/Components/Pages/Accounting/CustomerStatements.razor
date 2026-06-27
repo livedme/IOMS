@@ -9,7 +9,7 @@
 <MudPaper Class="pa-4 mb-4" Elevation="2">
     <MudGrid>
         <MudItem xs="12" sm="4">
-            <MudSelect T="Guid?" @bind-Value="_customerId" Label="Customer" Required="true">
+            <MudSelect T="Guid?" @bind-Value="_customerId" Label="Customer" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var c in _customers)
                 {
                     <MudSelectItem T="Guid?" Value="@((Guid?)c.Id)">@c.Name</MudSelectItem>
@@ -17,10 +17,10 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_from" Label="From Date" />
+            <MudDatePicker @bind-Date="_from" Label="From Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_to" Label="To Date" />
+            <MudDatePicker @bind-Date="_to" Label="To Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="2" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"

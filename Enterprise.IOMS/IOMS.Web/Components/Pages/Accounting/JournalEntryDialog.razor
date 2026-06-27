@@ -2,8 +2,8 @@
 
 <MudDialog>
     <DialogContent>
-        <MudDatePicker @bind-Date="_entryDate" Label="Entry Date" Required="true" />
-        <MudTextField @bind-Value="_description" Label="Description" Class="mt-3" />
+        <MudDatePicker @bind-Date="_entryDate" Label="Entry Date" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        <MudTextField @bind-Value="_description" Label="Description" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="mt-3" />
 
         <MudText Typo="Typo.h6" Class="mt-4 mb-2">Lines</MudText>
 
@@ -29,7 +29,7 @@
 
         <MudGrid Class="mt-3">
             <MudItem xs="12" sm="3">
-                <MudSelect @bind-Value="_newAccountId" Label="Account" Dense="true">
+                <MudSelect @bind-Value="_newAccountId" Label="Account" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var account in Accounts)
                     {
                         <MudSelectItem Value="@account.Id">@account.Code - @account.Name</MudSelectItem>
@@ -37,13 +37,13 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="3">
-                <MudTextField @bind-Value="_newLineDesc" Label="Desc" />
+                <MudTextField @bind-Value="_newLineDesc" Label="Desc" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="2">
-                <MudNumericField @bind-Value="_newDebit" Label="Debit" Format="N2" />
+                <MudNumericField @bind-Value="_newDebit" Label="Debit" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="2">
-                <MudNumericField @bind-Value="_newCredit" Label="Credit" Format="N2" />
+                <MudNumericField @bind-Value="_newCredit" Label="Credit" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="2">
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddLine" Class="mt-2">Add</MudButton>

@@ -25,6 +25,9 @@ public class MappingProfile : Profile
         CreateMap<Brand, BrandDto>()
             .ForMember(d => d.ProductCount, o => o.MapFrom(s => s.Products.Count));
 
+        // Branch
+        CreateMap<Branch, BranchDto>();
+
         // Category
         CreateMap<Category, CategoryDto>()
             .ForMember(d => d.ParentCategoryName, o => o.MapFrom(s => s.ParentCategory != null ? s.ParentCategory.Name : null))
@@ -48,7 +51,7 @@ public class MappingProfile : Profile
 
         // Sales Order
         CreateMap<SalesOrder, SalesOrderDto>()
-            .ForMember(d => d.CustomerName, o => o.MapFrom(s => s.Customer.Name));
+            .ForMember(d => d.Branch, o => o.MapFrom(s => new BranchDto(s.BranchId??Guid.Empty, s.Branch.Name, s.Branch.Code, s.Branch.Location, s.Branch.Address, s.Branch.IsActive)));
 
         CreateMap<SalesOrderItem, SalesOrderItemDto>()
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))

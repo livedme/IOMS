@@ -2,9 +2,9 @@
 
 <MudDialog>
     <DialogContent>
-        <MudTextField @bind-Value="_name" Label="Name" Required="true" />
-        <MudTextField @bind-Value="_code" Label="Code" Required="true" Class="mt-3" />
-        <MudTextField @bind-Value="_location" Label="Location" Class="mt-3" />
+        <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        <MudTextField @bind-Value="_code" Label="Code" Required="true" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        <MudTextField @bind-Value="_location" Label="Location" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         <RichTextField @bind-Value="_address" Label="Address" Lines="2" Class="mt-3" />
     </DialogContent>
     <DialogActions>

@@ -13,7 +13,7 @@
         <MudItem xs="12" sm="8">
             <MudTextField @bind-Value="_search" Placeholder="Search by reference..." Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadEntries" />
+                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadEntries" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="4" Class="d-flex justify-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"

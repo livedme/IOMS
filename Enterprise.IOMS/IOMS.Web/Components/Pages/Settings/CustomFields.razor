@@ -16,7 +16,7 @@
         <MudText Typo="Typo.h6" Class="mb-3">Create Custom Field</MudText>
         <MudGrid>
             <MudItem xs="12" md="3">
-                <MudSelect @bind-Value="_entityType" Label="Entity Type">
+                <MudSelect @bind-Value="_entityType" Label="Entity Type" Variant="Variant.Outlined" Margin="Margin.Dense">
                     <MudSelectItem Value="@("Product")">Product</MudSelectItem>
                     <MudSelectItem Value="@("Customer")">Customer</MudSelectItem>
                     <MudSelectItem Value="@("Supplier")">Supplier</MudSelectItem>
@@ -25,10 +25,10 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudTextField @bind-Value="_fieldName" Label="Field Name" />
+                <MudTextField @bind-Value="_fieldName" Label="Field Name" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudSelect @bind-Value="_fieldType" Label="Field Type">
+                <MudSelect @bind-Value="_fieldType" Label="Field Type" Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (CustomFieldType ft in Enum.GetValues<CustomFieldType>())
                     {
                         <MudSelectItem Value="@ft">@ft</MudSelectItem>
@@ -36,7 +36,7 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudCheckBox @bind-Value="_isRequired" Label="Required" />
+                <MudCheckBox @bind-Value="_isRequired" Label="Required" Class="mt-3" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
             </MudItem>
         </MudGrid>
         <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Create" Class="mt-3">Save</MudButton>

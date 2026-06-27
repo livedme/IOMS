@@ -12,7 +12,7 @@
 <MudPaper Class="pa-4 mb-4">
     <MudGrid>
         <MudItem xs="12" sm="6">
-            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true">
+            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (StocktakeStatus s in Enum.GetValues<StocktakeStatus>())
                 {
                     <MudSelectItem Value="@((StocktakeStatus?)s)">@s</MudSelectItem>

@@ -10,13 +10,13 @@
                 <MudText Typo="Typo.subtitle1" Style="font-weight:700;">Basic Information</MudText>
             </MudItem>
             <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="_name" Label="Name" Required="true" />
+                <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" RequiredError=""/>
             </MudItem>
             <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="_sku" Label="SKU" Required="true" />
+                <MudTextField @bind-Value="_sku" Label="SKU" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" RequiredError="" />
             </MudItem>           
             <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="_barcode" Label="Barcode" Class="pb-5" />
+                <MudTextField @bind-Value="_barcode" Label="Barcode" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" RequiredError="" />
                 <MudAutocomplete T="CategoryDto"
                                  @ref="CategoryDropDownControl"
                                  Label="Category"
@@ -29,7 +29,7 @@
                                  ToStringFunc="@(c => c?.Path ?? c?.Name ?? "")"                                 
                                  ResetValueOnEmptyText="true"
                                  CoerceText="true"
-                                 Clearable="true" Class="pb-5" />
+                                 Clearable="true" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
 
                 <MudAutocomplete T="BrandDto"
                                  Label="Brand"
@@ -42,13 +42,13 @@
                                  ToStringFunc="@(b => b?.Name ?? "")"
                                  ResetValueOnEmptyText="true"
                                  CoerceText="true"
-                                 Clearable="true" Class="pb-5" />
-                <MudTextField @bind-Value="_model" Label="Model" Class="pb-5" />
+                                 Clearable="true" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
+                <MudTextField @bind-Value="_model" Label="Model" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
             </MudItem>          
             <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudNumericField @bind-Value="_costPrice" Label="Cost Price" Format="N2" Min="0m" Class="pb-5" />
-                <MudNumericField @bind-Value="_sellingPrice" Label="Selling Price" Format="N2" Min="0m" Class="pb-5" />
-                <MudNumericField @bind-Value="_wholeSellingPrice" Label="Whole Selling Price" Format="N2" Min="0m" Class="pb-5" />
+                <MudNumericField @bind-Value="_costPrice" Label="Cost Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                <MudNumericField @bind-Value="_sellingPrice" Label="Selling Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                <MudNumericField @bind-Value="_wholeSellingPrice" Label="Whole Selling Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                 @* <MudNumericField @bind-Value="_reorderLevel" Label="Reorder Level" Min="0" Class="pb-5" />
                 <MudNumericField @bind-Value="_moq" Label="Min Order Qty" Min="1" Class="pb-5" /> *@
             </MudItem>

@@ -9,7 +9,7 @@
         <MudForm @ref="_form">
             <MudGrid>
                 <MudItem xs="12" sm="6">
-                    <MudSelect @bind-Value="_customerId" Label="Customer" Required="true">
+                    <MudSelect @bind-Value="_customerId" Label="Customer" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                         @foreach (var c in _customers)
                         {
                             <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
@@ -17,10 +17,10 @@
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudDatePicker @bind-Date="_quoteDate" Label="Quote Date" Required="true" />
+                    <MudDatePicker @bind-Date="_quoteDate" Label="Quote Date" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudDatePicker @bind-Date="_validUntil" Label="Valid Until" Required="true" />
+                    <MudDatePicker @bind-Date="_validUntil" Label="Valid Until" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12">
                     <RichTextField @bind-Value="_notes" Label="Notes" Lines="2" />

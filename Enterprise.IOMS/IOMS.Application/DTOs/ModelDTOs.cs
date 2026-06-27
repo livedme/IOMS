@@ -4,8 +4,9 @@ namespace IOMS.Application.DTOs
 {
 
     public class CreateSalesOrderDtoModels {
-        public string? BrandName { get; set; }
-        public Guid CustomerId { get; set; }
+        public string? BranchName { get; set; }
+        public Guid BranchId { get; set; }
+        public Guid? CustomerId { get; set; }
         public Guid? WarehouseId { get; set; }
         public string? Notes { get; set; }
         public string? ShippingAddress { get; set; }
@@ -27,7 +28,7 @@ namespace IOMS.Application.DTOs
         public decimal GrandTotalAmount { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal DueAmount { get; set; }
-        public FilterItem SelectedCustomer { get; set; } = new FilterItem(Guid.Empty, "", false);
+        public FilterItem SelectedCustomer { get; set; } = new FilterItem(Guid.Empty, "", false);        
         public SalesOrderItemDtoModels SelectedItem { get; set; }=new SalesOrderItemDtoModels();
         public List<CreateSalesOrderItemDto> Items { get; set; } = new();
           

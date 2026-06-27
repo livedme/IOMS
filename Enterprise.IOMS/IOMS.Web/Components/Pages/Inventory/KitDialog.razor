@@ -6,7 +6,7 @@
     <DialogContent>
         <MudGrid>
             <MudItem xs="12">
-                <MudSelect @bind-Value="_productId" Label="Product" Required="true">
+                <MudSelect @bind-Value="_productId" Label="Product" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var p in _products)
                     {
                         <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
@@ -20,7 +20,7 @@
                     var idx = i;
                     <MudGrid Class="mb-2">
                         <MudItem xs="7">
-                            <MudSelect @bind-Value="_components[idx].ComponentProductId" Label="Component Product">
+                            <MudSelect @bind-Value="_components[idx].ComponentProductId" Label="Component Product" Variant="Variant.Outlined" Margin="Margin.Dense">
                                 @foreach (var p in _products.Where(p => p.Id != _productId))
                                 {
                                     <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
@@ -28,7 +28,7 @@
                             </MudSelect>
                         </MudItem>
                         <MudItem xs="3">
-                            <MudNumericField @bind-Value="_components[idx].Quantity" Label="Qty" Min="1" />
+                            <MudNumericField @bind-Value="_components[idx].Quantity" Label="Qty" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="2" Class="d-flex align-end">
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"

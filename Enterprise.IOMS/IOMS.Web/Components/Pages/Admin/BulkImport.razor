@@ -10,14 +10,14 @@
     <MudItem xs="12" md="6">
         <MudPaper Elevation="2" Class="pa-4">
             <MudText Typo="Typo.h6" Class="mb-3">Import Data</MudText>
-            <MudSelect @bind-Value="_selectedEntity" Label="Entity Type" Class="mb-3">
+            <MudSelect @bind-Value="_selectedEntity" Label="Entity Type" Class="mb-3" Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem Value="@("Products")">Products</MudSelectItem>
                 <MudSelectItem Value="@("Customers")">Customers</MudSelectItem>
                 <MudSelectItem Value="@("Suppliers")">Suppliers</MudSelectItem>
                 <MudSelectItem Value="@("Inventory")">Inventory Items</MudSelectItem>
                 <MudSelectItem Value="@("PriceList")">Price List</MudSelectItem>
             </MudSelect>
-            <MudFileUpload T="IBrowserFile" Accept=".csv,.xlsx" FilesChanged="OnFileSelected">
+            <MudFileUpload T="IBrowserFile" Accept=".csv,.xlsx" FilesChanged="OnFileSelected" >
                 <ActivatorContent>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
                         Select File (.csv, .xlsx)

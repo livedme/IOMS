@@ -5,10 +5,24 @@
     <DialogContent>
         <MudGrid>
             <MudItem xs="12" sm="2">
-                <MudDatePicker @bind-Date="dataModel.SalesDate" Label="Sales Date" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudDatePicker @bind-Date="dataModel.SalesDate" Label="Sales Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="3">
-                <MudTextField @bind-Value="dataModel.BrandName" Label="Branch Name" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudSelect T="Guid"
+                           Label="Brannche"
+                           Required="true"
+                           @bind-Value="dataModel.BranchId"
+                           @bind-Text="_branchtext"
+                           Clearable="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    @foreach (var b in _Branches)
+                    {
+                        <MudSelectItem Value="@b.Id">@b.Name (@b.Code)</MudSelectItem>
+                    }
+                </MudSelect>
+
             </MudItem>
             <MudItem xs="12" sm="3" Class="mb-4">
                 <MudAutocomplete T="FilterItem"
@@ -23,32 +37,30 @@
                                  ToStringFunc="@(c => c?.Name ?? "")"
                                  ResetValueOnEmptyText="true"
                                  CoerceText="true"
-                                 Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                 Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="2">
-                <MudTextField @bind-Value="dataModel.Naration" Label="Naration" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="dataModel.Naration" Label="Naration" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="2">
-                <MudTextField @bind-Value="dataModel.Chalan" Label="Chalan" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="dataModel.Chalan" Label="Chalan" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
-        </MudGrid>        
-        
+        </MudGrid>
+
         <MudText Typo="Typo.h6" Class="my-0">Order Items</MudText>
-        <MudTable Items="@dataModel.Items" Dense="true" Elevation="0" Class="product-item-list">
+        
+        <MudTable Items="@dataModel.Items" Dense="true" Elevation="0" Class="product-item-list" ContainerClass="border-bottom-0">
             <HeaderContent>
                 <MudTh Class="col-4">Product</MudTh>
                 <MudTh Class="col-1">Qty</MudTh>
                 <MudTh Class="col-2">Unit Price</MudTh>
                 <MudTh Class="col-2">Discount</MudTh>
-                <MudTh Class="col-2">Line Total</MudTh>
-                <MudTh Class="pe-2 text-end">
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddNewItem" Class="mt-2 add-item-icon"></MudButton>
-                </MudTh>
+                <MudTh Class="col-2">Line Total</MudTh>              
             </HeaderContent>
             <RowTemplate>
-                @if (context.ProductId==Guid.Empty)
+                @if (context.ProductId == Guid.Empty)
                 {
-                     <MudTd Class="col-4">
+                    <MudTd Class="col-4">
                         <MudSelect T=Guid Value="dataModel.SelectedItem.ProductId" ValueChanged="OnProductFilterChanged" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (var p in Products)
                             {
@@ -56,44 +68,29 @@
                             }
                         </MudSelect>
 
-                     </MudTd>
-                    <MudTd Class="col-1 px-2"><MudNumericField @bind-Value="dataModel.SelectedItem.Quantity" Min="1" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
-                    <MudTd Class="col-2"> <MudNumericField @bind-Value="dataModel.SelectedItem.UnitPrice" Format="N2" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
+                    </MudTd>
+                    <MudTd Class="col-1 px-2"><MudNumericField @bind-Value="dataModel.SelectedItem.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudTd>
+                    <MudTd Class="col-2"> <MudNumericField @bind-Value="dataModel.SelectedItem.UnitPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudTd>
                     <MudTd Class="col-2 w-100 d-flex justify-content-between px-0">
-                        <MudNumericField @bind-Value="dataModel.SelectedItem.DiscountAmount" Format="N1" Class="_newDiscount" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                       @* 
-                        <InputSelect id="country" @bind-Value="dataModel.SelectedItem.DiscountType" Class="_discountType">
-                                 @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
-                            {
-                                <option value="@((int)type)">@CommonUtility.GetDisplayName(type)</option>
-                            }    </InputSelect>
-
-                        <select @bind="dataModel.SelectedItem.DiscountType" Class="_discountType">
+                        <MudNumericField @bind-Value="dataModel.SelectedItem.DiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>                      
+                        <MudSelect @bind-Value="dataModel.SelectedItem.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
                             {
-                                <option value="@((int)type)">@CommonUtility.GetDisplayName(type)</option>
-                            }
-                       </select> *@
-
-                        <MudSelect @bind-Value="dataModel.SelectedItem.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense">
-                              @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
-                                {
                                 <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
-                                }
+                            }
                         </MudSelect>
                     </MudTd>
                     <MudTd Class="col-2">
                         @{
                             CalculateLineTotal();
-                            //CalculationBalance();
                         }
-                        <MudNumericField @bind-Value="dataModel.SelectedItem.TotalPrice" Format="C" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudNumericField @bind-Value="dataModel.SelectedItem.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                     </MudTd>
                     <MudTd Class="col-1 pe-2 text-end">
-                        <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Save" Size="Size.Small" Color="Color.Primary" OnClick="AddItem"/>
+                        <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Save" Size="Size.Small" Color="Color.Primary" OnClick="AddItem" />
                         <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => dataModel.Items.Remove(context))" />
                     </MudTd>
-                    }
+                }
                 else
                 {
                     <MudTd>@Products.FirstOrDefault(p => p.Id == context.ProductId).Name</MudTd>
@@ -102,43 +99,45 @@
                     <MudTd>@context.TotalDiscountAmount.ToString("C")</MudTd>
                     <MudTd>@context.TotalPrice.ToString("C")</MudTd>
                     <MudTd Class="text-end">
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"OnClick="@(() => dataModel.Items.Remove(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => dataModel.Items.Remove(context))" />
                     </MudTd>
-                }
-
+                }                
             </RowTemplate>
-        </MudTable>        
+        </MudTable>     
+        <div class="mud-table border-1 border-top-0 c-border-color">
+            <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddNewItem" Class="mt-2 w-100 mb-2">Add Item</MudButton>
+        </div> 
         <MudCard Class="mt-4">
             <MudCardHeader Class="pb-0 pt-2">
-                <MudText>Balance</MudText>             
-                <hr  class="border-1"/>
+                <MudText>Balance</MudText>
+                <hr class="border-1" />
             </MudCardHeader>
             <MudCardContent>
-                <MudGrid Class="pt-0">                    
+                <MudGrid Class="pt-0">
                     <MudItem xs="3" Class="pe-2 pt-2">
-                        <MudTextField @bind-Value="dataModel.DrAmount" Label="Dr" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                        <MudTextField @bind-Value="dataModel.CrAmount" Label="Cr" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                        <MudNumericField @bind-Value="dataModel.StackQty" Label="Stack Qty" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        <MudTextField @bind-Value="dataModel.DrAmount" Label="Dr" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="pb-1" />
+                        <MudTextField @bind-Value="dataModel.CrAmount" Label="Cr" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.StackQty" Label="Stack Qty" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="pb-1" />
                     </MudItem>
                     <MudItem xs="3" Class="pe-2 pt-2">
-                        <MudNumericField @bind-Value="dataModel.ItemAmount" Disabled="true" Label="Item Amount" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                        <MudNumericField @bind-Value="dataModel.LabourCharges" Label="Labour Charges" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                        <MudNumericField @bind-Value="dataModel.TruckCharges" Label="Truck Charges" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.ItemAmount" Disabled="true" Label="Item Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.LabourCharges" Label="Labour Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.TruckCharges" Label="Truck Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="pb-1" />
                     </MudItem>
                     <MudItem xs="3" Class="pe-2 pt-2">
-                        <MudNumericField @bind-Value="dataModel.VATAmount" Label="VAT" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.VATAmount" Label="VAT" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="pb-1" />
                         <div class="d-flex justify-content-between">
-                            <MudNumericField @bind-Value="dataModel.DiscountAmount" Label="Discount" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountField pb-1 col-7" />
-                            <MudSelect @bind-Value="dataModel.DiscountType" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountTypeField pb-1 col-3">
+                            <MudNumericField @bind-Value="dataModel.DiscountAmount" Label="Discount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="DiscountField pb-1 col-7" />
+                            <MudSelect @bind-Value="dataModel.DiscountType" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="DiscountTypeField pb-1 col-3">
                                 <MudSelectItem Value="0">%</MudSelectItem>
                                 <MudSelectItem Value="1">Fixed</MudSelectItem>
                             </MudSelect>
                         </div>
-                        <MudNumericField @bind-Value="dataModel.GrandTotalAmount" Disabled="true" Label="Grand Total" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.GrandTotalAmount" Disabled="true" Label="Grand Total" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="pb-1" />
                     </MudItem>
                     <MudItem xs="3" Class="pe-2 pt-2">
-                        <MudNumericField @bind-Value="dataModel.PaidAmount" Label="Paid Amount" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                        <MudNumericField @bind-Value="dataModel.DueAmount" Label="Due Amount" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.PaidAmount" Label="Paid Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.DueAmount" Label="Due Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="pb-1" />
                     </MudItem>
                 </MudGrid>
                 @{
@@ -160,6 +159,7 @@
 
 @inject ApplicationDbContext DbContext
 @inject IDialogService DialogService
+@inject IBranchService BranchService
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -171,50 +171,30 @@
     private string? _customerText;
     private FilterItem? _lastCustomerSelection;
     private static readonly FilterItem AddNewCustomerOption = new(Guid.Empty, "Add New", false);
+    private List<BranchDto> _Branches = new();
+    private string _branchtext = "";
 
-
-    // private DateTime? SalesDate = DateTime.Today;
-    // private string BrandName ="";
-    // private string Naration ="";
-    // private string Chalan = "";
-    // private FilterItem _selectedCustomer;
-    //private FilterItem? _lastCustomerSelection;
-    // private int _selectedCustomerIndex=0;
-    // private string? _notes;
-    // private List<CreateSalesOrderItemDto> _items = new();
-    // private Guid _newProductId;    
-    // private int _newQty = 1;
-    // private decimal _newPrice;
-    // private decimal _newDiscount;
-    // private decimal _totalDiscount;
-    // private int _discountType=0;    
-    // private decimal _newTotalPrice;
-    // private string DrField = "";
-    // private string CrField = "";
-    // private string StackQtyField = "0";
-    // private decimal? ItemAmountField;
-    // private decimal? DiscountField ;
-    // private int DiscountTypeField=0;
-    // private decimal? TotalAmountField;
-    // private decimal? LabourChargesField;
-    // private decimal? TruckChargesField;
-    // private decimal? GrandTotalField;
-    // private decimal? VATField;
-    // private decimal? PaidAmountField;
-    // private decimal? DueAmountField;
-    // private decimal? GrandTotalWithVATField;
-
-
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        _Branches = await BranchService.GetBranches();
+        dataModel.BranchId = _Branches.FirstOrDefault()?.Id ?? Guid.Empty;
+
         if (Customers.Count > 0) dataModel.SelectedCustomer = Customers.Select(x => new FilterItem(x.Id, x.Name, x.IsActive)).First();
         if (Products.Count > 0) { dataModel.SelectedItem.ProductId = Products.First().Id; dataModel.SelectedItem.UnitPrice = Products.First().Price; }
+    }
+    private void OnBrancheValueChanged(Guid brancheId)
+    {
+        var branche = _Branches.FirstOrDefault(b => b.Id == brancheId);
+        dataModel.BranchName = branche?.Name;
+        _branchtext = branche?.Name;
+        dataModel.BranchId = brancheId;
     }
 
     private void OnProductFilterChanged(Guid productId)
     {
         var p = Products.FirstOrDefault(p => p.Id == productId);
         if (p != default) dataModel.SelectedItem.UnitPrice = p.Price;
+
     }
 
 
@@ -222,7 +202,7 @@
     {
         var item = dataModel.Items.Where(x => x.ProductId == Guid.Empty).FirstOrDefault();
         if (item != null) return;
-     
+
         dataModel.Items.Add(new CreateSalesOrderItemDto(Guid.Empty, 0, 0, 0, DiscountType.Percentage, 0, 0, null));
         dataModel.SelectedItem.Quantity = 1;
         dataModel.SelectedItem.DiscountAmount = 0;
@@ -258,7 +238,7 @@
     }
 
     private void CalculationBalance()
-    {  
+    {
         decimal totalVatAmount = 0;
         decimal vat = dataModel.VATAmount;
         if (vat > 0)
@@ -286,12 +266,12 @@
 
     private void Submit()
     {
-        var dto = new CreateSalesOrderDto(dataModel.SelectedCustomer.Id, null, dataModel.Notes, null, null, null, OrderStatus.Sold, dataModel.SalesDate ?? DateTime.Today, dataModel.Items);
+        var dto = new CreateSalesOrderDto(dataModel.SelectedCustomer.Id, null, dataModel.BranchId, dataModel.Notes, null, null, null, OrderStatus.Sold, dataModel.SalesDate ?? DateTime.Today, dataModel.Items);
         MudDialog.Close(DialogResult.Ok(dto));
     }
     private void SubmitToPrint()
     {
-        var dto = new CreateSalesOrderDto(dataModel.SelectedCustomer.Id, null, dataModel.Notes, null, null, null, OrderStatus.Delivered, dataModel.SalesDate ?? DateTime.Today, dataModel.Items);
+        var dto = new CreateSalesOrderDto(dataModel.SelectedCustomer.Id, null, dataModel.BranchId, dataModel.Notes, null, null, null, OrderStatus.Delivered, dataModel.SalesDate ?? DateTime.Today, dataModel.Items);
         MudDialog.Close(DialogResult.Ok(dto));
     }
 
@@ -304,7 +284,7 @@
             var previousCustomer = _lastCustomerSelection;
             var parameters = new DialogParameters<CustomerDialog>
             {
-                { x => x.Customer, new CustomerDto(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, 0, string.Empty, false, false) }
+                { x => x.Customer, new CustomerDto(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty,  0, string.Empty, false, false) }
                 //{ x => x.Customer, Customers.Where(c => c.Id != Guid.Empty).FirstOrDefault() }
             };
 
@@ -317,28 +297,28 @@
             if (result != null && !result.Canceled && result.Data is CreateCustomerDto dto)
             {
                 var newCustomer = new IOMS.Domain.Entities.Customer
-                    {
-                        Name = dto.Name,
-                        Email = dto.Email,
-                        Phone = dto.Phone,
-                        Address = dto.Address,
-                        City = dto.City,
-                        State = dto.State,
-                        Country = dto.Country,
-                        PostalCode = dto.PostalCode,
-                        CreditLimit = dto.CreditLimit,
-                        PaymentTerms = dto.PaymentTerms,
-                        IsTaxExempt = dto.IsTaxExempt
-                    };
+                {
+                    Name = dto.Name,
+                    Email = dto.Email,
+                    Phone = dto.Phone,
+                    Address = dto.Address,
+                    City = dto.City,
+                    State = dto.State,
+                    Country = dto.Country,
+                    PostalCode = dto.PostalCode,
+                    CreditLimit = dto.CreditLimit,
+                    PaymentTerms = dto.PaymentTerms,
+                    IsTaxExempt = dto.IsTaxExempt
+                };
 
                 // await DbContext.SaveChangesAsync();
                 // Snackbar.Add("Customer updated", Severity.Success);
                 // await LoadData();
 
                 DbContext.Customers.Add(newCustomer);
-                await DbContext.SaveChangesAsync();     
+                await DbContext.SaveChangesAsync();
                 var latestCustomer = await DbContext.Customers.ToListAsync();
-                Customers = latestCustomer.Select(c => new CustomerDto(c.Id, c.Name, c.Email, c.Phone, c.Address, c.City, c.State, c.Country, c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList();
+                Customers = latestCustomer.Select(c => new CustomerDto(c.Id, c.Name, c.Email, c.Phone, c.Address, c.City, c.State, c.Country, c.PostalCode, c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList();
 
                 cust = new FilterItem(newCustomer.Id, newCustomer.Name, false);
 

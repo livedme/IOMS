@@ -8,7 +8,7 @@
 <MudDialog>
     <TitleContent>New RFQ</TitleContent>
     <DialogContent>
-        <MudDatePicker Label="Required Date" @bind-Date="_requiredDate" />
+        <MudDatePicker Label="Required Date" @bind-Date="_requiredDate" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         <RichTextField Label="Notes" @bind-Value="_notes" Lines="2" Class="mt-2" />
         <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Items</MudText>
         @for (int i = 0; i < _items.Count; i++)
@@ -17,7 +17,7 @@
             <MudGrid>
                 <MudItem xs="5">
                     <MudSelect T="Guid" Label="Product" Value="_items[idx].ProductId"
-                               ValueChanged="@(v => _items[idx] = _items[idx] with { ProductId = v })">
+                               ValueChanged="@(v => _items[idx] = _items[idx] with { ProductId = v })" Variant="Variant.Outlined" Margin="Margin.Dense">
                         @foreach (var p in _products)
                         {
                             <MudSelectItem Value="@p.Id">@p.Name</MudSelectItem>
@@ -26,11 +26,11 @@
                 </MudItem>
                 <MudItem xs="3">
                     <MudNumericField T="int" Label="Qty" Value="_items[idx].Quantity"
-                                     ValueChanged="@(v => _items[idx] = _items[idx] with { Quantity = v })" Min="1" />
+                                     ValueChanged="@(v => _items[idx] = _items[idx] with { Quantity = v })" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="3">
                     <MudNumericField T="decimal?" Label="Target Price" Value="_items[idx].TargetUnitPrice"
-                                     ValueChanged="@(v => _items[idx] = _items[idx] with { TargetUnitPrice = v })" />
+                                     ValueChanged="@(v => _items[idx] = _items[idx] with { TargetUnitPrice = v })" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="1" Class="d-flex align-center">
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => _items.RemoveAt(idx)" />

@@ -13,10 +13,10 @@
         <MudItem xs="12" sm="4">
             <MudTextField @bind-Value="_search" Placeholder="Search by product or reference..."
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="Load" />
+                          Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="Load" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="3">
-            <MudSelect Value="_typeFilter" Label="Movement Type" Clearable="true" ValueChanged="@((StockMovementType? v) => { _typeFilter = v; _ = Load(); })">
+            <MudSelect Value="_typeFilter" Label="Movement Type" Clearable="true" ValueChanged="@((StockMovementType? v) => { _typeFilter = v; _ = Load(); })" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (StockMovementType t in Enum.GetValues<StockMovementType>())
                 {
                     <MudSelectItem Value="@((StockMovementType?)t)">@t</MudSelectItem>
@@ -24,7 +24,7 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="12" sm="3">
-            <MudSelect Value="_warehouseFilter" Label="Warehouse" Clearable="true" ValueChanged="@((Guid? v) => { _warehouseFilter = v; _ = Load(); })">
+            <MudSelect Value="_warehouseFilter" Label="Warehouse" Clearable="true" ValueChanged="@((Guid? v) => { _warehouseFilter = v; _ = Load(); })" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var w in _warehouses)
                 {
                     <MudSelectItem Value="@((Guid?)w.Id)">@w.Name</MudSelectItem>

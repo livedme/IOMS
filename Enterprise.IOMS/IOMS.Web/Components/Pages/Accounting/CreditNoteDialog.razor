@@ -4,13 +4,13 @@
 
 <MudDialog>
     <DialogContent>
-        <MudSelect @bind-Value="_invoiceId" Label="Invoice" Required="true">
+        <MudSelect @bind-Value="_invoiceId" Label="Invoice" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
             @foreach (var inv in _invoices)
             {
                 <MudSelectItem Value="@inv.Id">@inv.InvoiceNumber - @inv.TotalAmount.ToString("C")</MudSelectItem>
             }
         </MudSelect>
-        <MudNumericField @bind-Value="_amount" Label="Amount" Min="0.01m" Format="N2" Required="true" />
+        <MudNumericField @bind-Value="_amount" Label="Amount" Min="0.01m" Format="N2" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         <RichTextField @bind-Value="_reason" Label="Reason" Lines="3" Required="true" />
     </DialogContent>
     <DialogActions>

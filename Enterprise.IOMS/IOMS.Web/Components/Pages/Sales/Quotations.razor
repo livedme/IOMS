@@ -19,11 +19,11 @@
         <MudItem xs="12" sm="4">
             <MudTextField @bind-Value="_search" Placeholder="Search quotations..." Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="Load" />
+                          DebounceInterval="300" OnDebounceIntervalElapsed="Load" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="3">
             <MudSelect Value="_statusFilter" Label="Status" Clearable="true"
-                       ValueChanged="@((QuoteStatus? v) => { _statusFilter = v; _ = Load(); })">
+                       ValueChanged="@((QuoteStatus? v) => { _statusFilter = v; _ = Load(); })" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (QuoteStatus s in Enum.GetValues<QuoteStatus>())
                 {
                     <MudSelectItem Value="@((QuoteStatus?)s)">@s</MudSelectItem>

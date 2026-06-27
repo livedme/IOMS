@@ -10,10 +10,10 @@
     <MudGrid>
         <MudItem xs="12" sm="4">
             <MudTextField @bind-Value="_tableName" Label="Table Name" Immediate="true"
-                          OnKeyUp="@(async _ => await LoadData())" />
+                          OnKeyUp="@(async _ => await LoadData())" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudSelect @bind-Value="_action" Label="Action" Clearable="true">
+            <MudSelect @bind-Value="_action" Label="Action" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 <MudSelectItem Value="@("Insert")">Insert</MudSelectItem>
                 <MudSelectItem Value="@("Update")">Update</MudSelectItem>
                 <MudSelectItem Value="@("Delete")">Delete</MudSelectItem>

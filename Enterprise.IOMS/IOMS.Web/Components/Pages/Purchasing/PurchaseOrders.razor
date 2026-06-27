@@ -15,10 +15,10 @@
         <MudItem xs="12" sm="4">
             <MudTextField @bind-Value="_search" Placeholder="Search..." Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadOrders" />
+                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadOrders" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true">
+            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var status in Enum.GetValues<PurchaseOrderStatus>())
                 {
                     <MudSelectItem Value="@((PurchaseOrderStatus?)status)">@status</MudSelectItem>
