@@ -35,6 +35,7 @@ namespace IOMS.Application.DTOs
         //Guid ProductId, int Quantity, decimal UnitPrice,decimal DiscountAmount, DiscountType DiscountType, decimal TotalPrice, Guid? UoMId
         public class SalesOrderItemDtoModels
         {
+            public FilterItem SelectedProduct { get; set; } = new FilterItem(Guid.Empty, "", false);
             public Guid ProductId { get; set; }
             public int Quantity { get; set; }
             public decimal UnitPrice { get; set; }

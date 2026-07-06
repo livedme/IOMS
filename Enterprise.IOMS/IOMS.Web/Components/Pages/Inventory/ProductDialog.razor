@@ -10,13 +10,13 @@
                 <MudText Typo="Typo.subtitle1" Style="font-weight:700;">Basic Information</MudText>
             </MudItem>
             <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" RequiredError=""/>
+                <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="_sku" Label="SKU" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" RequiredError="" />
+                <MudTextField @bind-Value="_sku" Label="SKU" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"  />
             </MudItem>           
             <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="_barcode" Label="Barcode" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" RequiredError="" />
+                <MudTextField @bind-Value="_barcode" Label="Barcode" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"  />
                 <MudAutocomplete T="CategoryDto"
                                  @ref="CategoryDropDownControl"
                                  Label="Category"
@@ -44,13 +44,15 @@
                                  CoerceText="true"
                                  Clearable="true" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
                 <MudTextField @bind-Value="_model" Label="Model" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
+                <MudTextField @bind-Value="_originManufacturer" Label="Origin Manufacturer" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
             </MudItem>          
             <MudItem xs="12" sm="6" Class="p-4 py-3">
                 <MudNumericField @bind-Value="_costPrice" Label="Cost Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                 <MudNumericField @bind-Value="_sellingPrice" Label="Selling Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                 <MudNumericField @bind-Value="_wholeSellingPrice" Label="Whole Selling Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-                @* <MudNumericField @bind-Value="_reorderLevel" Label="Reorder Level" Min="0" Class="pb-5" />
-                <MudNumericField @bind-Value="_moq" Label="Min Order Qty" Min="1" Class="pb-5" /> *@
+                <MudNumericField @bind-Value="_ReorderStockLevel" Label="Reorder Stock Level" Min="0" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_originCountry" Label="Origin Country" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
+
             </MudItem>
             <MudItem xs="12" Class="py-0">
                 <RichTextField @bind-Value="_description" Label="Description" Lines="10" Class="mt-3" />
@@ -95,9 +97,13 @@
     private decimal _costPrice;
     private decimal _sellingPrice;
     private decimal _wholeSellingPrice;
-    private int _reorderLevel = 10;
-    private int _moq = 1;
+    private int _ReorderStockLevel = 10;
+    private int _MinOrderQuantity = 1;
     private string? _model;
+    private string? _originCountry;
+    private string? _originManufacturer;
+
+
     private static readonly CategoryDto AddNewCategoryOption =
         new(Guid.Empty, "Add New", "Create a new category", null, null, 0, "Add New");
     private static readonly BrandDto AddNewBrandOption =
@@ -121,13 +127,15 @@
             _costPrice = details.CostPrice;
             _wholeSellingPrice = details.WholeSellingPrice;
             _sellingPrice = details.SellingPrice;
-            _reorderLevel = details.ReorderLevel;
-            _moq = details.MinimumOrderQuantity;
+            _ReorderStockLevel = details.ReorderStockLevel;
+            _MinOrderQuantity = details.MinOrderQuantity;
             _model = details.Model;
             _brandId = details.BrandId;
             _selectedBrand = GetRealBrandById(details.BrandId);
             _lastBrandSelection = _selectedBrand;
             _brandText = BrandToDisplay(_selectedBrand);
+            _originCountry = details.OriginCountry;
+            _originManufacturer = details.OriginManufacturer;
         }
         else if (Product is ProductDto p)
         {
@@ -146,8 +154,10 @@
             _costPrice = p.CostPrice;
             _wholeSellingPrice = p.WholeSellingPrice;
             _sellingPrice = p.SellingPrice;
-            _reorderLevel = p.ReorderLevel;
-            _moq = p.MinimumOrderQuantity;
+            _ReorderStockLevel = p.ReorderStockLevel;
+            _MinOrderQuantity = p.MinOrderQuantity;
+            _originCountry = p.OriginCountry;
+            _originManufacturer = p.OriginManufacturer;
         }
         else if (Categories.Any(c => c.Id != Guid.Empty))
         {
@@ -369,8 +379,8 @@
             _costPrice,
             _sellingPrice,
             _wholeSellingPrice,
-            _reorderLevel,
-            _moq,
+            _ReorderStockLevel,
+            _MinOrderQuantity,
             _categoryId,
             _brandId,
             null, // BaseUoMId

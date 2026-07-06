@@ -3,7 +3,10 @@
 <MudDialog>
     <DialogContent>
         <MudGrid>
-            <MudItem xs="12" sm="6">
+            <MudItem xs="12" sm="2">
+                <MudDatePicker @bind-Date="_salesDate" Label="Sales Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="5">
                 <MudSelect @bind-Value="_supplierId" Label="Supplier" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var s in Suppliers)
                     {
@@ -11,51 +14,78 @@
                     }
                 </MudSelect>
             </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_notes" Label="Notes" />
+            <MudItem xs="12" sm="5">
+                <MudTextField @bind-Value="_notes" Label="Notes" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
         </MudGrid>
 
-        <MudText Typo="Typo.h6" Class="mt-4 mb-2">Order Items</MudText>
+        <MudText Typo="Typo.h6" Class="mt-4 mb-2">Purchase Items</MudText>
 
-        <MudTable Items="@_items" Dense="true" Elevation="0">
+        <MudTable Items="@_items" Dense="true" Elevation="0" Class="product-item-list" FixedHeader="true" ContainerClass="border-bottom-0 mud-table-container">
             <HeaderContent>
-                <MudTh>Product</MudTh>
-                <MudTh>Qty</MudTh>
-                <MudTh>Unit Price</MudTh>
-                <MudTh>Line Total</MudTh>
-                <MudTh></MudTh>
+                <MudTh Class="col-4">Product</MudTh>
+                <MudTh Class="col-1">Qty</MudTh>
+                <MudTh Class="col-2">Unit Price</MudTh>
+                <MudTh Class="col-2">Discount</MudTh>
+                <MudTh Class="col-2">Line Total</MudTh>
+                <MudTh Class="col-1 text-end">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Primary" OnClick="AddNewItemForm" />
+                </MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd>@Products.FirstOrDefault(p => p.Id == context.ProductId).Name</MudTd>
-                <MudTd>@context.Quantity</MudTd>
-                <MudTd>@context.UnitPrice.ToString("C")</MudTd>
-                <MudTd>@((context.UnitPrice * context.Quantity).ToString("C"))</MudTd>
-                <MudTd>
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                   OnClick="@(() => _items.Remove(context))" />
-                </MudTd>
+                @if (context.ProductId == Guid.Empty)
+                {
+                    <MudTd Class="col-4">
+                        <MudSelect @bind-Value="_newProductId" Label="Product">
+                            @foreach (var p in Products)
+                            {
+                                <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd Class="col-1 px-2">
+                        <MudNumericField @bind-Value="_quantity" Label="Qty" Min="1" />
+                    </MudTd>
+                    <MudTd Class="col-2">
+                        <MudNumericField @bind-Value="_unitPrice" Label="Price" Format="N2" />
+                    </MudTd>
+                    <MudTd Class="col-2 w-100 d-flex justify-content-between px-0">
+                        <MudNumericField @bind-Value="_newDiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudSelect @bind-Value="_newDiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
+                            {
+                                <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd Class="col-2">
+                        @{
+                            CalculateLineTotal();
+                        }
+                        <MudNumericField @bind-Value="_newTotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd Class="col-1 pe-2 text-end mb-5">
+                        <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Color="Color.Primary" OnClick="AddItem" />
+                        <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => _items.Remove(context))" />
+                    </MudTd>
+                }
+                else
+                {
+                    <MudTd>@Products.FirstOrDefault(p => p.Id == context.ProductId).Name</MudTd>
+                    <MudTd>@context.Quantity</MudTd>
+                    <MudTd>@context.UnitPrice.ToString("C")</MudTd>
+                    <MudTd>@context.TotalDiscountAmount.ToString("C")</MudTd>
+                    <MudTd>@context.TotalPrice.ToString("C")</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                        OnClick="@(() => _items.Remove(context))" />
+                    </MudTd>
+                }
             </RowTemplate>
         </MudTable>
 
         <MudGrid Class="mt-3">
-            <MudItem xs="12" sm="4">
-                <MudSelect @bind-Value="_newProductId" Label="Product">
-                    @foreach (var p in Products)
-                    {
-                        <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="3">
-                <MudNumericField @bind-Value="_newQty" Label="Qty" Min="1" />
-            </MudItem>
-            <MudItem xs="12" sm="3">
-                <MudNumericField @bind-Value="_newPrice" Label="Price" Format="N2" />
-            </MudItem>
-            <MudItem xs="12" sm="2">
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddItem" Class="mt-2">Add</MudButton>
-            </MudItem>
+           
         </MudGrid>
 
         <MudText Typo="Typo.h6" Class="mt-4" Align="Align.Right">
@@ -76,26 +106,70 @@
     [Parameter] public List<(Guid Id, string Name)> Suppliers { get; set; } = new();
     [Parameter] public List<(Guid Id, string Name, string SKU, decimal Price)> Products { get; set; } = new();
 
+    private DateTime? _salesDate = DateTime.Today;
     private Guid _supplierId;
     private string? _notes;
     private List<CreatePurchaseOrderItemDto> _items = new();
 
     private Guid _newProductId;
-    private int _newQty = 1;
-    private decimal _newPrice;
+    private int _quantity = 1;
+    private decimal _unitPrice;
+    private decimal _newDiscountAmount;
+    private decimal _totalDiscount;
+    private int _newDiscountType = (int)DiscountType.Percentage;
+    private decimal _newTotalPrice;
 
     protected override void OnInitialized()
     {
         if (Suppliers.Count > 0) _supplierId = Suppliers.First().Id;
-        if (Products.Count > 0) { _newProductId = Products.First().Id; _newPrice = Products.First().Price; }
+        if (Products.Count > 0) { _newProductId = Products.First().Id; _unitPrice = Products.First().Price; }
     }
 
+    private void AddNewItemForm()
+    {
+        var item = _items.Where(x => x.ProductId == Guid.Empty).FirstOrDefault();
+        if (item != null) return;
+
+        // _lastProductSelection = null;
+        // _productText = "";
+        // dataModel.SelectedItem.SelectedProduct = new FilterItem(Guid.Empty, "", false);
+
+        _items.Insert(0, new CreatePurchaseOrderItemDto(Guid.Empty, 0, 0, 0, DiscountType.Percentage, 0, 0, null));
+        //dataModel.SelectedItem.Quantity = 1;
+        //dataModel.SelectedItem.DiscountAmount = 0;
+        //if (Products.Count > 0) { _newProductId = Products.First().Id; _newPrice = Products.First().Price; }
+        
+    }
     private void AddItem()
     {
-        if (_newProductId == Guid.Empty || _newQty <= 0) return;
-        _items.Add(new CreatePurchaseOrderItemDto(_newProductId, _newQty, _newPrice, null));
-        _newQty = 1;
-        if (Products.Count > 0) { _newProductId = Products.First().Id; _newPrice = Products.First().Price; }
+        if (_newProductId == Guid.Empty || _quantity <= 0) return;
+        _items.Add(new CreatePurchaseOrderItemDto(_newProductId, _quantity, _unitPrice, _newDiscountAmount, (DiscountType)_newDiscountType, _totalDiscount, _newTotalPrice,null));
+        _quantity = 1;
+        if (Products.Count > 0) { _newProductId = Products.First().Id; _unitPrice = Products.First().Price; }
+    }
+
+    private void CalculateLineTotal()
+    {
+
+    //      private Guid _newProductId;
+    // private int _quantity = 1;
+    // private decimal _unitPrice;
+    // private decimal _newDiscountAmount;
+    // private int _newDiscountType = (int)DiscountType.Percentage;
+    // private decimal _newTotalPrice;
+
+
+        _totalDiscount = 0; 
+        if (_newDiscountType == (int)DiscountType.Percentage)
+        {
+            _totalDiscount = (_unitPrice * _quantity) * (_newDiscountAmount / 100);
+        }
+        else
+        {
+            _totalDiscount = _newDiscountAmount;
+        }
+
+        _newTotalPrice = ((_unitPrice * _quantity) - _totalDiscount);
     }
 
     private void Cancel() => MudDialog.Cancel();

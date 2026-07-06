@@ -545,7 +545,7 @@ public class DashboardService : IDashboardService
 
         var lowStock = await _context.Inventories
             .Include(i => i.Product)
-            .CountAsync(i => i.Quantity <= i.Product.ReorderLevel && i.Product.ReorderLevel > 0);
+            .CountAsync(i => i.Quantity <= i.Product.ReorderStockLevel && i.Product.ReorderStockLevel > 0);
 
         var arBalance = await _context.Invoices
             .Where(i => i.InvoiceType == InvoiceType.Sales && i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled)
@@ -619,13 +619,13 @@ public class DashboardService : IDashboardService
     {
         var data = await _context.Inventories
             .Include(i => i.Product).Include(i => i.Warehouse)
-            .Where(i => i.Quantity <= i.Product.ReorderLevel && i.Product.ReorderLevel > 0)
+            .Where(i => i.Quantity <= i.Product.ReorderStockLevel && i.Product.ReorderStockLevel > 0)
             .OrderBy(i => i.Quantity)
             .Take(count)
-            .Select(i => new { i.ProductId, ProductName = i.Product.Name, i.Product.SKU, WarehouseName = i.Warehouse.Name, CurrentStock = i.Quantity, i.Product.ReorderLevel })
+            .Select(i => new { i.ProductId, ProductName = i.Product.Name, i.Product.SKU, WarehouseName = i.Warehouse.Name, CurrentStock = i.Quantity, i.Product.ReorderStockLevel })
             .ToListAsync();
 
-        return data.Select(d => new LowStockAlertDto(d.ProductId, d.ProductName, d.SKU, d.WarehouseName, d.CurrentStock, d.ReorderLevel)).ToList();
+        return data.Select(d => new LowStockAlertDto(d.ProductId, d.ProductName, d.SKU, d.WarehouseName, d.CurrentStock, d.ReorderStockLevel)).ToList();
     }
 
     public async Task<List<OrderStatusBreakdownDto>> GetSalesOrderStatusBreakdown()

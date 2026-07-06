@@ -1,4 +1,5 @@
 using AutoMapper;
+using Humanizer;
 using IOMS.Application.DTOs;
 using IOMS.Application.Interfaces;
 using IOMS.Domain.Entities;
@@ -135,10 +136,10 @@ public class InventoryService : IInventoryService
         return await _context.Inventories
             .Include(i => i.Product)
             .Include(i => i.Warehouse)
-            .Where(i => i.Quantity <= i.Product.ReorderLevel && i.Product.ReorderLevel > 0)
+            .Where(i => i.Quantity <= i.Product.ReorderStockLevel && i.Product.ReorderStockLevel > 0)
             .Select(i => new LowStockAlertDto(
                 i.ProductId, i.Product.Name, i.Product.SKU,
-                i.Warehouse.Name, i.Quantity, i.Product.ReorderLevel))
+                i.Warehouse.Name, i.Quantity, i.Product.ReorderStockLevel))
             .ToListAsync();
     }
 
@@ -531,12 +532,22 @@ public class BranchService : IBranchService
 
     public async Task DeleteBranch(Guid id)
     {
-        throw new NotImplementedException();
+        var entity = await _context.Branches.FindAsync(id) ?? throw new EntityNotFoundException("Branches", id);
+        if (entity != null)
+        {
+            _context.Branches.Remove(entity);
+            await _context.SaveChangesAsync();
+        }   
     }
 
     public async Task<BranchDto?> GetBranchById(Guid id)
     {
-        throw new NotImplementedException();
+        var query = await _context.Branches
+           .Include(o => o.SalesOrders).FirstOrDefaultAsync(o => o.Id == id) ?? throw new EntityNotFoundException("Branches", id);
+
+        var response = _mapper.Map<BranchDto>(query);
+
+        return response;
     }
 
     public async Task<List<BranchDto>> GetBranches()
@@ -552,6 +563,15 @@ public class BranchService : IBranchService
 
     public async Task UpdateBranch(Guid id, CreateBranchDto dto)
     {
-        throw new NotImplementedException();
+        var entity = await _context.Branches.FindAsync(id) ?? throw new EntityNotFoundException("Branches", id);
+        if (entity != null)
+        {   
+            entity.Name = dto.Name;
+            entity.Code = dto.Code;
+            entity.Location = dto.Location;
+            entity.Address = dto.Address;
+            entity.IsActive = dto.IsActive;
+            await _context.SaveChangesAsync();
+        }
     }
 }

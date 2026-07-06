@@ -14,7 +14,7 @@
 <MudPaper Elevation="2" Class="pa-4">
     <MudGrid Class="mb-3">
         <MudItem xs="12" sm="4">
-            <MudTextField @bind-Value="_search" Placeholder="Search orders..." Adornment="Adornment.Start"
+            <MudTextField @bind-Value="_search" Placeholder="Search sales..." Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
                           DebounceInterval="300" OnDebounceIntervalElapsed="LoadOrders" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
         </MudItem>
@@ -30,7 +30,7 @@
         </MudItem>
         <MudItem xs="12" sm="4" Class="d-flex justify-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreate">New Sales Order</MudButton>
+                       OnClick="OpenCreate">New Sale</MudButton>
         </MudItem>
     </MudGrid>
 
@@ -130,13 +130,13 @@
 
     private async Task Cancel(Guid id)
     {
-        var confirm = await DialogService.ShowMessageBoxAsync("Cancel Order", "Are you sure?", "Yes, Cancel", "No");
+        var confirm = await DialogService.ShowMessageBoxAsync("Cancel Sales", "Are you sure?", "Yes, Cancel", "No");
         if (confirm == true)
         {
             try
-            {
+            { 
                 await OrderService.CancelOrder(id, "Cancelled by user");
-                Snackbar.Add("Order cancelled", Severity.Warning);
+                Snackbar.Add("Sales cancelled", Severity.Warning);
                 await LoadOrders();
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
@@ -156,7 +156,7 @@
             { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList() }
         };
 
-        var dialog = await DialogService.ShowAsync<SalesOrderDialog>("New Sales Order", parameters,
+        var dialog = await DialogService.ShowAsync<SalesOrderDialog>("New Sales", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
         var result = await dialog.Result;
 
@@ -165,7 +165,7 @@
             try
             {
                 var orderId = await OrderService.CreateSalesOrder(dto);
-                Snackbar.Add("Sales order created successfully", Severity.Success);
+                Snackbar.Add("Sales created successfully", Severity.Success);
                 await LoadOrders();
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

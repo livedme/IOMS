@@ -1,4 +1,5 @@
 using IOMS.Domain.Enums;
+using System.Collections;
 
 namespace IOMS.Domain.Entities;
 
@@ -11,13 +12,12 @@ public class Product : BaseEntity
     public decimal CostPrice { get; set; }
     public decimal SellingPrice { get; set; }
     public decimal WholeSellingPrice { get; set; }
-    public int ReorderLevel { get; set; }
-    public int MinimumOrderQuantity { get; set; } = 1;
+    public int ReorderStockLevel { get; set; }
+    public int MinOrderQuantity { get; set; }
     public Guid CategoryId { get; set; }
     public Category Category { get; set; } = null!;
     public Guid? BaseUoMId { get; set; }
     public UnitOfMeasure? BaseUoM { get; set; }
-
     public Guid? BrandId { get; set; }
     public Brand? Brand { get; set; }
     public string? Model { get; set; }
@@ -27,6 +27,7 @@ public class Product : BaseEntity
     public bool IsKit { get; set; }
     public bool IsTaxExempt { get; set; }
     public string? ImageUrl { get; set; }
+
     public decimal Weight { get; set; }
     public decimal Volume { get; set; }
     public ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();

@@ -164,10 +164,10 @@ else
                                         <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.WholeSellingPrice</MudText>
                                         <MudDivider />
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">Reorder Level</MudText>
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.ReorderLevel</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.ReorderStockLevel</MudText>
                                         <MudDivider />
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Reorder Quantity</MudText>
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.MinimumOrderQuantity</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Minimum Order Quantity</MudText>
+                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.MinOrderQuantity</MudText>
                                         <MudDivider />
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">Lead Time</MudText>
                                         <MudText Typo="Typo.body1" Style="font-weight:600;">
@@ -394,7 +394,7 @@ else
                             <MudIconButton Icon="@Icons.Material.Outlined.MoreHoriz" Size="Size.Small" />
                         </MudStack>
 
-                        @if (_totalAvailable <= _product.ReorderLevel)
+                        @if (_totalAvailable <= _product.ReorderStockLevel)
                         {
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
                                 <MudIcon Icon="@Icons.Material.Outlined.Warning"

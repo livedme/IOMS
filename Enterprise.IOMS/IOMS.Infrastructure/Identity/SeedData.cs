@@ -226,10 +226,10 @@ public static class SeedData
                     Name = prodData[i][0], SKU = prodData[i][1], Barcode = prodData[i][2],
                     Description = $"High quality {prodData[i][0].ToLower()}",
                     CostPrice = costs[i], SellingPrice = sells[i],
-                    ReorderLevel = rng.Next(5, 25), MinimumOrderQuantity = rng.Next(1, 5),
+                    ReorderStockLevel = rng.Next(5, 25), MinOrderQuantity = rng.Next(1, 10),
                     CategoryId = categories[i % categories.Count].Id,
-                    Weight = Math.Round((decimal)(rng.NextDouble() * 10 + 0.1), 2),
-                    Volume = Math.Round((decimal)(rng.NextDouble() * 5 + 0.1), 2),
+                    //Weight = Math.Round((decimal)(rng.NextDouble() * 10 + 0.1), 2),
+                    //Volume = Math.Round((decimal)(rng.NextDouble() * 5 + 0.1), 2),
                     TenantId = tenantId, CreatedBy = cb
                 });
             }

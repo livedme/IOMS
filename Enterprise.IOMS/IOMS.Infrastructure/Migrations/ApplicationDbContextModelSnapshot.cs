@@ -4,7 +4,6 @@ using IOMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -12,11 +11,9 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260617203644_updatetables")]
-    partial class updatetables
+    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2231,7 +2228,7 @@ namespace IOMS.Infrastructure.Migrations
                     b.Property<bool>("IsTaxExempt")
                         .HasColumnType("bit");
 
-                    b.Property<int>("MinimumOrderQuantity")
+                    b.Property<int>("MinOrderQuantity")
                         .HasColumnType("int");
 
                     b.Property<string>("Model")
@@ -2247,7 +2244,7 @@ namespace IOMS.Infrastructure.Migrations
                     b.Property<string>("OriginManufacturer")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ReorderLevel")
+                    b.Property<int>("ReorderStockLevel")
                         .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")

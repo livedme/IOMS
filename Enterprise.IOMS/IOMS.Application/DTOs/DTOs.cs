@@ -5,8 +5,9 @@ namespace IOMS.Application.DTOs;
 
 // Products
 public record ProductDto(Guid Id, string Name, string SKU, string? Barcode, string? Description,
-    decimal CostPrice, decimal SellingPrice, decimal WholeSellingPrice, int ReorderLevel, int MinimumOrderQuantity,
-    Guid CategoryId, string? CategoryName, Guid? BrandId, string? BrandName, string? ImageUrl, int TotalStock, bool IsKit);
+    decimal CostPrice, decimal SellingPrice, decimal WholeSellingPrice, int ReorderStockLevel, int MinOrderQuantity,
+    Guid CategoryId, string? CategoryName, Guid? BrandId, string? BrandName, string? ImageUrl, int TotalStock, 
+    bool IsKit, string OriginCountry,string OriginManufacturer);
 
 // Extended Product DTO with additional product fields
 public record ProductDetailsDto(
@@ -18,8 +19,8 @@ public record ProductDetailsDto(
     decimal CostPrice,
     decimal SellingPrice,
     decimal WholeSellingPrice,
-    int ReorderLevel,
-    int MinimumOrderQuantity,
+    int ReorderStockLevel,
+    int MinOrderQuantity,
     Guid CategoryId,
     string? CategoryName,
     Guid? BrandId,
@@ -27,11 +28,13 @@ public record ProductDetailsDto(
     string? ImageUrl,
     int TotalStock,
     bool IsKit,
-    string? Model
-) : ProductDto(Id, Name, SKU, Barcode, Description, CostPrice, SellingPrice, WholeSellingPrice, ReorderLevel, MinimumOrderQuantity, CategoryId, CategoryName, BrandId, BrandName, ImageUrl, TotalStock, IsKit);
+    string? Model,
+    string OriginCountry,
+    string OriginManufacturer
+) : ProductDto(Id, Name, SKU, Barcode, Description, CostPrice, SellingPrice, WholeSellingPrice, ReorderStockLevel, MinOrderQuantity, CategoryId, CategoryName, BrandId, BrandName, ImageUrl, TotalStock, IsKit, OriginCountry, OriginManufacturer);
 
 public record CreateProductDto(string Name, string SKU, string? Barcode, string? Description,
-    decimal CostPrice, decimal SellingPrice, decimal WholeSellingPrice, int ReorderLevel, int MinimumOrderQuantity,
+    decimal CostPrice, decimal SellingPrice, decimal WholeSellingPrice, int ReorderStockLevel, int MinOrderQuantity,
     Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl);
 
 // Extended CreateProductDto
@@ -43,8 +46,8 @@ public record CreateProductDetailsDto(
     decimal CostPrice,
     decimal SellingPrice,
     decimal WholeSellingPrice,    
-    int ReorderLevel,
-    int MinimumOrderQuantity,
+    int ReorderStockLevel,
+    int MinOrderQuantity,
     Guid CategoryId,
     Guid? BrandId,
     Guid? BaseUoMId,
@@ -53,7 +56,7 @@ public record CreateProductDetailsDto(
 );
 
 public record UpdateProductDto(Guid Id, string Name, string SKU, string? Barcode, string? Description,
-    decimal CostPrice, decimal SellingPrice, int ReorderLevel, int MinimumOrderQuantity,
+    decimal CostPrice, decimal SellingPrice, int ReorderStockLevel, int MinOrderQuantity,
     Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl);
 
 // Extended UpdateProductDto
@@ -65,8 +68,8 @@ public record UpdateProductDetailsDto(
     string? Description,
     decimal CostPrice,
     decimal SellingPrice,
-    int ReorderLevel,
-    int MinimumOrderQuantity,
+    int ReorderStockLevel,
+    int MinOrderQuantity,
     Guid CategoryId,
     Guid? BrandId,
     Guid? BaseUoMId,
@@ -200,7 +203,11 @@ public record CreatePurchaseOrderDto(Guid SupplierId, Guid? WarehouseId, string?
     DateTime? ExpectedDeliveryDate, Guid? CurrencyId,
     List<CreatePurchaseOrderItemDto> Items);
 
-public record CreatePurchaseOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, Guid? UoMId);
+
+public record CreatePurchaseOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId);
+
+//
+//public record CreatePurchaseOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, Guid? UoMId);
 
 public record GoodsReceivedLineDto(Guid PurchaseOrderItemId, Guid ProductId, int ReceivedQuantity);
 
@@ -382,7 +389,7 @@ public record MonthlySalesDto(string Period, decimal Amount, int OrderCount);
 public record MonthlyPurchaseDto(string Period, decimal Amount, int OrderCount);
 public record TopProductDto(string ProductName, decimal Revenue, int UnitsSold);
 public record LowStockAlertDto(Guid ProductId, string ProductName, string SKU,
-    string WarehouseName, int CurrentStock, int ReorderLevel);
+    string WarehouseName, int CurrentStock, int ReorderStockLevel);
 public record OrderStatusBreakdownDto(string Status, int Count);
 public record RecentOrderDto(Guid Id, string OrderNumber, string CustomerOrSupplier,
     DateTime Date, decimal TotalAmount, string Status);

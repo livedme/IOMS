@@ -36,14 +36,15 @@
             <MudTh Style="text-align:right">Reorder Level</MudTh>
             <MudTh>Actions</MudTh>
         </HeaderContent>
-        <RowTemplate>
+        <RowTemplate> 
             <MudTd DataLabel="SKU">@context.SKU</MudTd>
             <MudTd DataLabel="Name">@context.Name</MudTd>
             <MudTd DataLabel="Category">@context.CategoryName</MudTd>
             <MudTd DataLabel="Brand">@context.BrandName</MudTd>
             <MudTd DataLabel="Cost" Style="text-align:right">@context.CostPrice.ToString("C")</MudTd>
             <MudTd DataLabel="Price" Style="text-align:right">@context.SellingPrice.ToString("C")</MudTd>
-            <MudTd DataLabel="Reorder" Style="text-align:right">@context.ReorderLevel</MudTd>
+            <MudTd DataLabel="Reorder Level" Style="text-align:right">@context.ReorderStockLevel</MudTd>
+            <MudTd DataLabel="Minimum Order Quantity" Style="text-align:right">@context.MinOrderQuantity</MudTd>
             <MudTd>
                 <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small" Color="Color.Default"
                                Title="View Detail" OnClick="@(() => NavigateToDetail(context.Id))" />
@@ -84,9 +85,8 @@
             var products = await query.OrderBy(p => p.Name).Take(100).ToListAsync();
             _products = products.Select(p => new ProductDto(
                 p.Id, p.Name, p.SKU, p.Barcode, p.Description,
-                p.CostPrice, p.SellingPrice, p.WholeSellingPrice, p.ReorderLevel, p.MinimumOrderQuantity,
-                p.CategoryId, p.Category?.Name, p.BrandId, p.Brand?.Name, p.ImageUrl, 0, p.IsKit
-            )).ToList();
+                p.CostPrice, p.SellingPrice, p.WholeSellingPrice, p.ReorderStockLevel, p.MinOrderQuantity,
+                p.CategoryId, p.Category?.Name, p.BrandId, p.Brand?.Name, p.ImageUrl, 0, p.IsKit, p.OriginCountry, p.OriginManufacturer)).ToList();
         }
         catch (Exception ex)
         {
@@ -115,8 +115,8 @@
             {
                 Name = dto.Name, SKU = dto.SKU, Barcode = dto.Barcode,
                 Description = dto.Description, CostPrice = dto.CostPrice,
-                SellingPrice = dto.SellingPrice, ReorderLevel = dto.ReorderLevel,
-                MinimumOrderQuantity = dto.MinimumOrderQuantity, CategoryId = dto.CategoryId,
+                SellingPrice = dto.SellingPrice, ReorderStockLevel = dto.ReorderStockLevel,
+                MinOrderQuantity = dto.MinOrderQuantity, CategoryId = dto.CategoryId,
                 BrandId = dto.BrandId,
                 ImageUrl = dto.ImageUrl,
                 Model = dto.Model
@@ -138,10 +138,9 @@
         {
             detailsDto = new ProductDetailsDto(
                 fullProduct.Id, fullProduct.Name, fullProduct.SKU, fullProduct.Barcode, fullProduct.Description,
-                fullProduct.CostPrice, fullProduct.SellingPrice, fullProduct.WholeSellingPrice, fullProduct.ReorderLevel, fullProduct.MinimumOrderQuantity,
+                fullProduct.CostPrice, fullProduct.SellingPrice, fullProduct.WholeSellingPrice, fullProduct.ReorderStockLevel, fullProduct.MinOrderQuantity,
                 fullProduct.CategoryId, product.CategoryName, fullProduct.BrandId, fullProduct.Brand?.Name, fullProduct.ImageUrl, 0, fullProduct.IsKit,
-                fullProduct.Model
-            );
+                fullProduct.Model, fullProduct.OriginCountry, fullProduct.OriginManufacturer);
         }
 
         var parameters = new DialogParameters<ProductDialog>
@@ -162,8 +161,8 @@
             {
                 entity.Name = dto.Name; entity.SKU = dto.SKU; entity.Barcode = dto.Barcode;
                 entity.Description = dto.Description; entity.CostPrice = dto.CostPrice;
-                entity.SellingPrice = dto.SellingPrice; entity.ReorderLevel = dto.ReorderLevel;
-                entity.MinimumOrderQuantity = dto.MinimumOrderQuantity; entity.CategoryId = dto.CategoryId;
+                entity.SellingPrice = dto.SellingPrice; entity.ReorderStockLevel = dto.ReorderStockLevel;
+                entity.MinOrderQuantity = dto.MinOrderQuantity; entity.ReorderStockLevel = dto.ReorderStockLevel; entity.CategoryId = dto.CategoryId;
                 entity.BrandId = dto.BrandId;
                 entity.ImageUrl = dto.ImageUrl;
                 entity.Model = dto.Model;

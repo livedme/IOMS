@@ -50,8 +50,8 @@ public class ProductService : IProductService
         var product = new Product
         {
             Name = dto.Name, SKU = dto.SKU, Barcode = dto.Barcode, Description = dto.Description,
-            CostPrice = dto.CostPrice, SellingPrice = dto.SellingPrice, ReorderLevel = dto.ReorderLevel,
-            MinimumOrderQuantity = dto.MinimumOrderQuantity, CategoryId = dto.CategoryId,
+            CostPrice = dto.CostPrice, SellingPrice = dto.SellingPrice, ReorderStockLevel = dto.ReorderStockLevel,
+            MinOrderQuantity = dto.MinOrderQuantity, CategoryId = dto.CategoryId,
             BrandId = dto.BrandId,
             BaseUoMId = dto.BaseUoMId, ImageUrl = dto.ImageUrl
         };
@@ -65,8 +65,8 @@ public class ProductService : IProductService
         var product = new Product
         {
             Name = dto.Name, SKU = dto.SKU, Barcode = dto.Barcode, Description = dto.Description,
-            CostPrice = dto.CostPrice, SellingPrice = dto.SellingPrice, ReorderLevel = dto.ReorderLevel,
-            MinimumOrderQuantity = dto.MinimumOrderQuantity, CategoryId = dto.CategoryId,
+            CostPrice = dto.CostPrice, SellingPrice = dto.SellingPrice, ReorderStockLevel = dto.ReorderStockLevel,
+            MinOrderQuantity = dto.MinOrderQuantity, CategoryId = dto.CategoryId,
             BrandId = dto.BrandId,
             BaseUoMId = dto.BaseUoMId, ImageUrl = dto.ImageUrl,
             Model = dto.Model
@@ -81,8 +81,8 @@ public class ProductService : IProductService
         var product = await _db.Products.FindAsync(dto.Id) ?? throw new KeyNotFoundException("Product not found");
         product.Name = dto.Name; product.SKU = dto.SKU; product.Barcode = dto.Barcode;
         product.Description = dto.Description; product.CostPrice = dto.CostPrice;
-        product.SellingPrice = dto.SellingPrice; product.ReorderLevel = dto.ReorderLevel;
-        product.MinimumOrderQuantity = dto.MinimumOrderQuantity; product.CategoryId = dto.CategoryId;
+        product.SellingPrice = dto.SellingPrice; product.ReorderStockLevel = dto.ReorderStockLevel;
+        product.MinOrderQuantity = dto.MinOrderQuantity; product.CategoryId = dto.CategoryId;
         product.BrandId = dto.BrandId;
         product.BaseUoMId = dto.BaseUoMId; product.ImageUrl = dto.ImageUrl;
         await _db.SaveChangesAsync();
@@ -93,8 +93,8 @@ public class ProductService : IProductService
         var product = await _db.Products.FindAsync(dto.Id) ?? throw new KeyNotFoundException("Product not found");
         product.Name = dto.Name; product.SKU = dto.SKU; product.Barcode = dto.Barcode;
         product.Description = dto.Description; product.CostPrice = dto.CostPrice;
-        product.SellingPrice = dto.SellingPrice; product.ReorderLevel = dto.ReorderLevel;
-        product.MinimumOrderQuantity = dto.MinimumOrderQuantity; product.CategoryId = dto.CategoryId;
+        product.SellingPrice = dto.SellingPrice; product.ReorderStockLevel = dto.ReorderStockLevel;
+        product.MinOrderQuantity = dto.MinOrderQuantity; product.CategoryId = dto.CategoryId;
         product.BrandId = dto.BrandId;
         product.BaseUoMId = dto.BaseUoMId; product.ImageUrl = dto.ImageUrl;
         product.Model = dto.Model;
