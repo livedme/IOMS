@@ -26,8 +26,9 @@
                 <MudTh Class="col-4">Product</MudTh>
                 <MudTh Class="col-1">Qty</MudTh>
                 <MudTh Class="col-2">Unit Price</MudTh>
-                <MudTh Class="col-2">Discount</MudTh>
-                <MudTh Class="col-2">Line Total</MudTh>
+                <MudTh Class="col-1">Discount</MudTh>
+                <MudTh Class="col-1">Line Total</MudTh>
+                <MudTh Class="col-2">Serial Numbers</MudTh>
                 <MudTh Class="col-1 text-end">
                     <MudIconButton Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Primary" OnClick="AddNewItemForm" />
                 </MudTh>
@@ -64,6 +65,14 @@
                         }
                         <MudNumericField @bind-Value="_newTotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudTd>
+                    <MudTd Class="col-2">
+                        <MudTextField @bind-Value="_newSerialNumbers"
+                                      Label="Serials (comma separated)"
+                                      ShrinkLabel="true"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Placeholder="SN001, SN002" />
+                    </MudTd>
                     <MudTd Class="col-1 pe-2 text-end mb-5">
                         <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Color="Color.Primary" OnClick="AddItem" />
                         <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => _items.Remove(context))" />
@@ -76,6 +85,7 @@
                     <MudTd>@context.UnitPrice.ToString("C")</MudTd>
                     <MudTd>@context.TotalDiscountAmount.ToString("C")</MudTd>
                     <MudTd>@context.TotalPrice.ToString("C")</MudTd>
+                    <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Default">@(context.SerialNumbers?.Count > 0 ? $"{context.SerialNumbers.Count} serial(s)" : "-")</MudChip></MudTd>
                     <MudTd>
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                         OnClick="@(() => _items.Remove(context))" />
@@ -118,6 +128,7 @@
     private decimal _totalDiscount;
     private int _newDiscountType = (int)DiscountType.Percentage;
     private decimal _newTotalPrice;
+    private string _newSerialNumbers = string.Empty;
 
     protected override void OnInitialized()
     {
@@ -143,8 +154,17 @@
     private void AddItem()
     {
         if (_newProductId == Guid.Empty || _quantity <= 0) return;
-        _items.Add(new CreatePurchaseOrderItemDto(_newProductId, _quantity, _unitPrice, _newDiscountAmount, (DiscountType)_newDiscountType, _totalDiscount, _newTotalPrice,null));
+
+        var serialList = string.IsNullOrWhiteSpace(_newSerialNumbers)
+            ? null
+            : _newSerialNumbers.Split(new[] { ',', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
+                .ToList();
+
+        _items.Add(new CreatePurchaseOrderItemDto(_newProductId, _quantity, _unitPrice, _newDiscountAmount, (DiscountType)_newDiscountType, _totalDiscount, _newTotalPrice, null, serialList));
         _quantity = 1;
+        _newSerialNumbers = string.Empty;
         if (Products.Count > 0) { _newProductId = Products.First().Id; _unitPrice = Products.First().Price; }
     }
 

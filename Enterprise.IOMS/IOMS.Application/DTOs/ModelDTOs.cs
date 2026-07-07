@@ -3,7 +3,8 @@ using IOMS.Domain.Enums;
 namespace IOMS.Application.DTOs
 {
 
-    public class CreateSalesOrderDtoModels {
+    public class CreateSalesOrderDtoModels
+    {
         public string? BranchName { get; set; }
         public Guid BranchId { get; set; }
         public Guid? CustomerId { get; set; }
@@ -21,17 +22,17 @@ namespace IOMS.Application.DTOs
         public int StackQty { get; set; }
         public decimal ItemAmount { get; set; }
         public decimal LabourCharges { get; set; }
-        public decimal TruckCharges{ get; set; }
+        public decimal TruckCharges { get; set; }
         public decimal VATAmount { get; set; }
         public decimal DiscountAmount { get; set; }
         public int DiscountType { get; set; }
         public decimal GrandTotalAmount { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal DueAmount { get; set; }
-        public FilterItem SelectedCustomer { get; set; } = new FilterItem(Guid.Empty, "", false);        
-        public SalesOrderItemDtoModels SelectedItem { get; set; }=new SalesOrderItemDtoModels();
+        public FilterItem SelectedCustomer { get; set; } = new FilterItem(Guid.Empty, "", false);
+        public SalesOrderItemDtoModels SelectedItem { get; set; } = new SalesOrderItemDtoModels();
         public List<CreateSalesOrderItemDto> Items { get; set; } = new();
-          
+
         //Guid ProductId, int Quantity, decimal UnitPrice,decimal DiscountAmount, DiscountType DiscountType, decimal TotalPrice, Guid? UoMId
         public class SalesOrderItemDtoModels
         {
@@ -43,6 +44,7 @@ namespace IOMS.Application.DTOs
             public int DiscountType { get; set; }
             public decimal TotalDiscount { get; set; }
             public decimal TotalPrice { get; set; }
-        }       
+            public List<Guid> SelectedSerialIds { get; set; } = new();
+        }
     }
 }

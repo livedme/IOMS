@@ -51,7 +51,7 @@ public class MappingProfile : Profile
 
         // Sales Order
         CreateMap<SalesOrder, SalesOrderDto>()
-            .ForMember(d => d.Branch, o => o.MapFrom(s => new BranchDto(s.BranchId??Guid.Empty, s.Branch.Name, s.Branch.Code, s.Branch.Location, s.Branch.Address, s.Branch.IsActive)));
+            .ForMember(d => d.Branch, o => o.MapFrom(s => new BranchDto(s.BranchId ?? Guid.Empty, s.Branch.Name, s.Branch.Code, s.Branch.Location, s.Branch.Address, s.Branch.IsActive)));
 
         CreateMap<SalesOrderItem, SalesOrderItemDto>()
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
@@ -216,5 +216,12 @@ public class MappingProfile : Profile
 
         // Notification Template
         CreateMap<NotificationTemplate, NotificationTemplateDto>();
+
+        // Product Serial
+        CreateMap<ProductSerial, ProductSerialDto>()
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Name : null))
+            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier != null ? s.Supplier.Name : null))
+            .ForMember(d => d.CreatedAt, o => o.MapFrom(s => s.CreatedAt));
     }
 }

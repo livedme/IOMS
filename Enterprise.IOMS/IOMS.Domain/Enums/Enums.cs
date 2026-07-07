@@ -40,10 +40,10 @@ public enum TaxType
 public enum DiscountType
 {
     [Display(Name = "%")]
-    Percentage=0,
+    Percentage = 0,
 
     [Display(Name = "Fixed")]
-    Fixed=1
+    Fixed = 1
 }
 
 public enum CreditNoteStatus
@@ -133,4 +133,15 @@ public enum PaymentStatus
 public enum PaymentType
 {
     Receipt, Payment
+}
+
+public enum ProductSerialStatus
+{
+    Available,
+    Reserved,
+    Sold,
+    InRepair,
+    Returned,
+    Damaged,
+    Disposed
 }

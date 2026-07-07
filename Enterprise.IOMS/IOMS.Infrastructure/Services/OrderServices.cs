@@ -115,16 +115,22 @@ public class InventoryService : IInventoryService
         var reference = $"Transfer: {sourceWarehouseId} → {targetWarehouseId}";
         _context.StockMovements.Add(new StockMovement
         {
-            ProductId = productId, WarehouseId = sourceWarehouseId,
-            Type = StockMovementType.Transfer, Quantity = -quantity,
-            Reference = reference, SourceWarehouseId = sourceWarehouseId,
+            ProductId = productId,
+            WarehouseId = sourceWarehouseId,
+            Type = StockMovementType.Transfer,
+            Quantity = -quantity,
+            Reference = reference,
+            SourceWarehouseId = sourceWarehouseId,
             DestinationWarehouseId = targetWarehouseId
         });
         _context.StockMovements.Add(new StockMovement
         {
-            ProductId = productId, WarehouseId = targetWarehouseId,
-            Type = StockMovementType.Transfer, Quantity = quantity,
-            Reference = reference, SourceWarehouseId = sourceWarehouseId,
+            ProductId = productId,
+            WarehouseId = targetWarehouseId,
+            Type = StockMovementType.Transfer,
+            Quantity = quantity,
+            Reference = reference,
+            SourceWarehouseId = sourceWarehouseId,
             DestinationWarehouseId = targetWarehouseId
         });
 
@@ -204,7 +210,7 @@ public class OrderService : IOrderService
                 UnitPrice = item.UnitPrice,
                 DiscountType = item.DiscountType,
                 DiscountAmount = discountAmt,
-                
+
                 LineTotalPrice = lineTotal,
                 UoMId = item.UoMId
             });
@@ -217,6 +223,18 @@ public class OrderService : IOrderService
 
         _context.SalesOrders.Add(order);
         await _context.SaveChangesAsync();
+
+        // Mark selected serials as Sold
+        foreach (var item in dto.Items.Where(i => i.SerialIds != null && i.SerialIds.Count > 0))
+        {
+            var serials = await _context.ProductSerials
+                .Where(ps => item.SerialIds!.Contains(ps.Id))
+                .ToListAsync();
+            foreach (var serial in serials)
+                serial.Status = ProductSerialStatus.Sold;
+        }
+        await _context.SaveChangesAsync();
+
         return order.Id;
     }
 
@@ -305,7 +323,7 @@ public class OrderService : IOrderService
 
     public async Task UpdateOrderStatus(Guid orderId, OrderStatus newStatus)
     {
-        var order = await _context.SalesOrders.FindAsync(orderId)   
+        var order = await _context.SalesOrders.FindAsync(orderId)
             ?? throw new EntityNotFoundException("SalesOrder", orderId);
 
         order.Status = newStatus;
@@ -343,7 +361,7 @@ public class OrderService : IOrderService
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
         return new PagedResult<SalesOrderDto>(_mapper.Map<List<SalesOrderDto>>(items), total, page, pageSize);
-    }    
+    }
 
     private async Task<TaxCalculationResult> CalculateItemTax(Guid productId, Guid customerId, decimal amount)
     {
@@ -409,6 +427,26 @@ public class PurchaseService : IPurchaseService
 
         _context.PurchaseOrders.Add(po);
         await _context.SaveChangesAsync();
+
+        // Create ProductSerial records for items that have serial numbers
+        foreach (var item in dto.Items.Where(i => i.SerialNumbers != null && i.SerialNumbers.Count > 0))
+        {
+            var poItem = po.Items.First(i => i.ProductId == item.ProductId);
+            foreach (var sn in item.SerialNumbers!)
+            {
+                _context.ProductSerials.Add(new ProductSerial
+                {
+                    ProductId = item.ProductId,
+                    SerialNumber = sn,
+                    Status = ProductSerialStatus.Available,
+                    WarehouseId = dto.WarehouseId,
+                    SupplierId = dto.SupplierId,
+                    PurchaseDate = DateTime.UtcNow
+                });
+            }
+        }
+        await _context.SaveChangesAsync();
+
         return po.Id;
     }
 
@@ -513,20 +551,20 @@ public class BranchService : IBranchService
         _mapper = mapper;
     }
     public async Task<Guid> CreateBranch(CreateBranchDto dto)
-    { 
+    {
 
         var branch = new Branch()
         {
             Name = dto.Name,
             Code = dto.Code,
             Location = dto.Location,
-            Address = dto.Address,      
+            Address = dto.Address,
             IsActive = dto.IsActive
         };
 
         await _context.Branches.AddAsync(branch);
         await _context.SaveChangesAsync();
-        
+
         return branch.Id;
     }
 
@@ -537,7 +575,7 @@ public class BranchService : IBranchService
         {
             _context.Branches.Remove(entity);
             await _context.SaveChangesAsync();
-        }   
+        }
     }
 
     public async Task<BranchDto?> GetBranchById(Guid id)
@@ -553,19 +591,19 @@ public class BranchService : IBranchService
     public async Task<List<BranchDto>> GetBranches()
     {
         var query = _context.Branches
-            .Include(o => o.SalesOrders)            
+            .Include(o => o.SalesOrders)
             .AsQueryable();
 
         var response = _mapper.Map<List<BranchDto>>(query.ToList());
 
-        return response?? new List<BranchDto>();
+        return response ?? new List<BranchDto>();
     }
 
     public async Task UpdateBranch(Guid id, CreateBranchDto dto)
     {
         var entity = await _context.Branches.FindAsync(id) ?? throw new EntityNotFoundException("Branches", id);
         if (entity != null)
-        {   
+        {
             entity.Name = dto.Name;
             entity.Code = dto.Code;
             entity.Location = dto.Location;

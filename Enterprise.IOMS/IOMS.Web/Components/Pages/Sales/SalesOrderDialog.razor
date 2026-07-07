@@ -60,7 +60,8 @@
                 <MudTh Class="col-1">Qty</MudTh>
                 <MudTh Class="col-2">Unit Price</MudTh>
                 <MudTh Class="col-2">Discount</MudTh>
-                <MudTh Class="col-2">Line Total</MudTh>  
+                <MudTh Class="col-1">Line Total</MudTh>
+                <MudTh Class="col-2">Serials</MudTh>
                 <MudTh Class="col-1 text-end">
                     <MudIconButton Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Primary" OnClick="AddNewItem" />
                 </MudTh>
@@ -101,6 +102,24 @@
                         }
                         <MudNumericField @bind-Value="dataModel.SelectedItem.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                     </MudTd>
+                    <MudTd Class="col-2">
+                        @if (_availableSerials.Any())
+                        {
+                            <div style="max-height:80px;overflow-y:auto">
+                                @foreach (var serial in _availableSerials)
+                                {
+                                    <MudCheckBox T="bool" Dense="true" Size="Size.Small"
+                                                 Value="_selectedSerialSet.Contains(serial.Id)"
+                                                 ValueChanged="@(v => ToggleSerial(serial.Id, v))"
+                                                 Label="@serial.SerialNumber" />
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption">No serials</MudText>
+                        }
+                    </MudTd>
                     <MudTd Class="col-1 pe-2 text-end mb-5">
                         <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Color="Color.Primary" OnClick="AddItem" />
                         <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => dataModel.Items.Remove(context))" />
@@ -113,6 +132,7 @@
                     <MudTd>@context.UnitPrice.ToString("C")</MudTd>
                     <MudTd>@context.TotalDiscountAmount.ToString("C")</MudTd>
                     <MudTd>@context.TotalPrice.ToString("C")</MudTd>
+                    <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Default">@(context.SerialIds?.Count > 0 ? $"{context.SerialIds.Count} serial(s)" : "-")</MudChip></MudTd>
                     <MudTd Class="text-end">
                         <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => dataModel.Items.Remove(context))" />                        
                     </MudTd>
@@ -193,7 +213,8 @@
     private FilterItem? _lastProductSelection;
     private static readonly FilterItem AddNewProductOption = new(Guid.Empty, "Add New", false);
 
-
+    private List<ProductSerial> _availableSerials = new();
+    private HashSet<Guid> _selectedSerialSet = new();
 
 
     protected override async Task OnInitializedAsync()
@@ -331,12 +352,14 @@
 
         _lastProductSelection = null;
         _productText = "";
+        _availableSerials = new();
+        _selectedSerialSet = new();
         dataModel.SelectedItem.SelectedProduct = new FilterItem(Guid.Empty, "", false);
+        dataModel.SelectedItem.SelectedSerialIds = new();
 
         dataModel.Items.Insert(0, new CreateSalesOrderItemDto(Guid.Empty, 0, 0, 0, DiscountType.Percentage, 0, 0, null));
         dataModel.SelectedItem.Quantity = 1;
         dataModel.SelectedItem.DiscountAmount = 0;
-        //if (Products.Count > 0) { _newProductId = Products.First().Id; _newPrice = Products.First().Price; }
     }
 
     private void AddItem()
@@ -344,10 +367,13 @@
 
         if (dataModel.SelectedItem.ProductId == Guid.Empty || dataModel.SelectedItem.Quantity <= 0) return;
 
-        dataModel.Items.Insert(dataModel.Items.Count, new CreateSalesOrderItemDto(dataModel.SelectedItem.ProductId, dataModel.SelectedItem.Quantity, dataModel.SelectedItem.UnitPrice, dataModel.SelectedItem.DiscountAmount, (DiscountType)dataModel.SelectedItem.DiscountType, dataModel.SelectedItem.TotalDiscount, dataModel.SelectedItem.TotalPrice, null));
+        dataModel.Items.Insert(dataModel.Items.Count, new CreateSalesOrderItemDto(dataModel.SelectedItem.ProductId, dataModel.SelectedItem.Quantity, dataModel.SelectedItem.UnitPrice, dataModel.SelectedItem.DiscountAmount, (DiscountType)dataModel.SelectedItem.DiscountType, dataModel.SelectedItem.TotalDiscount, dataModel.SelectedItem.TotalPrice, null, _selectedSerialSet.Count > 0 ? _selectedSerialSet.ToList() : null));
         dataModel.SelectedItem.Quantity = 1;
         dataModel.SelectedItem.DiscountAmount = 0;
+        dataModel.SelectedItem.SelectedSerialIds = new();
         dataModel.ItemAmount = dataModel.Items.Sum(i => i.TotalPrice);
+        _availableSerials = new();
+        _selectedSerialSet = new();
 
         if (Products.Count > 0) { dataModel.SelectedItem.ProductId = Products.First().Id; dataModel.SelectedItem.UnitPrice = Products.First().Price; }
 
@@ -521,6 +547,12 @@
                     dataModel.SelectedItem.DiscountType = (int)DiscountType.Percentage;
                     dataModel.SelectedItem.DiscountAmount = 0m;
                     dataModel.SelectedItem.TotalDiscount = 0m;
+
+                // Load available serials for this product
+                _selectedSerialSet = new();
+                _availableSerials = await DbContext.ProductSerials
+                    .Where(ps => ps.ProductId == p.Id && ps.Status == ProductSerialStatus.Available)
+                    .ToListAsync();
                 }
             _lastProductSelection = prod;
             _productText = prod?.Name;
@@ -550,6 +582,12 @@
     }
 
     
+    private void ToggleSerial(Guid id, bool selected)
+    {
+        if (selected) _selectedSerialSet.Add(id);
+        else _selectedSerialSet.Remove(id);
+    }
+
     private void CalculateLineTotal()
     {
         dataModel.SelectedItem.TotalDiscount = 0;

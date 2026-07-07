@@ -6,8 +6,8 @@ namespace IOMS.Application.DTOs;
 // Products
 public record ProductDto(Guid Id, string Name, string SKU, string? Barcode, string? Description,
     decimal CostPrice, decimal SellingPrice, decimal WholeSellingPrice, int ReorderStockLevel, int MinOrderQuantity,
-    Guid CategoryId, string? CategoryName, Guid? BrandId, string? BrandName, string? ImageUrl, int TotalStock, 
-    bool IsKit, string OriginCountry,string OriginManufacturer);
+    Guid CategoryId, string? CategoryName, Guid? BrandId, string? BrandName, string? ImageUrl, int TotalStock,
+    bool IsKit, string OriginCountry, string OriginManufacturer);
 
 // Extended Product DTO with additional product fields
 public record ProductDetailsDto(
@@ -45,7 +45,7 @@ public record CreateProductDetailsDto(
     string? Description,
     decimal CostPrice,
     decimal SellingPrice,
-    decimal WholeSellingPrice,    
+    decimal WholeSellingPrice,
     int ReorderStockLevel,
     int MinOrderQuantity,
     Guid CategoryId,
@@ -120,7 +120,7 @@ public class CreateBrandDto
 
 // Categories
 public record CategoryDto(Guid Id, string Name, string? Description, Guid? ParentCategoryId,
-    string? ParentCategoryName, int? ProductCount , string? Path);
+    string? ParentCategoryName, int? ProductCount, string? Path);
 
 public record CreateCategoryDto(string Name, string? Description, Guid? ParentCategoryId);
 
@@ -129,7 +129,7 @@ public record WarehouseDto(Guid Id, string Name, string Code, string? Location, 
 public record CreateWarehouseDto(string Name, string Code, string? Location, string? Address);
 
 public record BranchDto(Guid Id, string? Name, string? Code, string? Location, string? Address, bool IsActive);
-public record CreateBranchDto(string Name, string Code, string? Location, string? Address , bool IsActive);
+public record CreateBranchDto(string Name, string Code, string? Location, string? Address, bool IsActive);
 
 // Inventory
 public record InventoryDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU,
@@ -178,7 +178,7 @@ public record CreateSupplierDto(string Name, string? Email, string? Phone, strin
 
 public record SalesOrderDto(Guid Id, string OrderNumber, Guid CustomerId, CustomerDto Customer, Guid? BranchId, BranchDto? Branch,
     DateTime OrderDate, OrderStatus Status, string Naration, string Chalan, decimal ItemsTotalPrice, decimal TruckCharge, decimal LabourCharge, decimal TaxAmount,
-    decimal DiscountAmount, DiscountType DiscountType, decimal TotalAmount, decimal PaidAmount, decimal DueAmount,  string? Notes, decimal ExchangeRate, 
+    decimal DiscountAmount, DiscountType DiscountType, decimal TotalAmount, decimal PaidAmount, decimal DueAmount, string? Notes, decimal ExchangeRate,
     DateTime? ExpectedDeliveryDate, List<SalesOrderItemDto> Items);
 public record SalesOrderItemDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU,
     int Quantity, int ShippedQuantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscount, decimal LineTotalPrice);
@@ -187,7 +187,7 @@ public record CreateSalesOrderDto(Guid CustomerId, Guid? WarehouseId, Guid? Bran
     string? ShippingAddress, DateTime? ExpectedDeliveryDate, Guid? CurrencyId, OrderStatus? Status, DateTime? SalesDate,
     List<CreateSalesOrderItemDto> Items);
 
-public record CreateSalesOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice,decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId);
+public record CreateSalesOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId, List<Guid>? SerialIds = null);
 
 // Purchase Orders
 public record PurchaseOrderDto(Guid Id, string OrderNumber, Guid SupplierId, string SupplierName,
@@ -204,7 +204,7 @@ public record CreatePurchaseOrderDto(Guid SupplierId, Guid? WarehouseId, string?
     List<CreatePurchaseOrderItemDto> Items);
 
 
-public record CreatePurchaseOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId);
+public record CreatePurchaseOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId, List<string>? SerialNumbers = null);
 
 //
 //public record CreatePurchaseOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, Guid? UoMId);
@@ -541,5 +541,36 @@ public record UserDto(string Id, string FullName, string? Email, string? Departm
     bool IsActive, DateTime CreatedAt, DateTime? LastLoginAt, List<string> Roles);
 
 public record FilterItem(Guid Id, string Name, bool IsSelect);
+
+// Product Serials
+public record ProductSerialDto(
+    Guid Id,
+    Guid ProductId,
+    string ProductName,
+    string SerialNumber,
+    string? Barcode,
+    string? QRCode,
+    DateTime? PurchaseDate,
+    DateTime? WarrantyStartDate,
+    DateTime? WarrantyEndDate,
+    ProductSerialStatus Status,
+    Guid? WarehouseId,
+    string? WarehouseName,
+    string? BinLocation,
+    Guid? SupplierId,
+    string? SupplierName,
+    DateTime CreatedAt);
+
+public record CreateProductSerialDto(
+    Guid ProductId,
+    string SerialNumber,
+    string? Barcode,
+    string? QRCode,
+    DateTime? PurchaseDate,
+    DateTime? WarrantyStartDate,
+    DateTime? WarrantyEndDate,
+    Guid? WarehouseId,
+    string? BinLocation,
+    Guid? SupplierId);
 
 

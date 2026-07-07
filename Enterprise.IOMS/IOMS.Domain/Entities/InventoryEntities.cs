@@ -38,6 +38,7 @@ public class Product : BaseEntity
 
     // --- General/Extensible attributes ---
     public string? Specifications { get; set; }         // Additional specs (JSON or delimited)
+    public ICollection<ProductSerial> Serials { get; set; } = new List<ProductSerial>();
 }
 
 public class Brand : BaseEntity
@@ -57,7 +58,7 @@ public class Category : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public string? Path { get; set; }    
+    public string? Path { get; set; }
     public Guid? ParentCategoryId { get; set; }
     public Category? ParentCategory { get; set; }
     public ICollection<Category> SubCategories { get; set; } = new List<Category>();
@@ -135,4 +136,22 @@ public class UoMConversion : BaseEntity
     public Guid ToUoMId { get; set; }
     public UnitOfMeasure ToUoM { get; set; } = null!;
     public decimal ConversionFactor { get; set; }
+}
+
+public class ProductSerial : BaseEntity
+{
+    public Guid ProductId { get; set; }
+    public Product Product { get; set; } = null!;
+    public string SerialNumber { get; set; } = string.Empty;
+    public string? Barcode { get; set; }
+    public string? QRCode { get; set; }
+    public DateTime? PurchaseDate { get; set; }
+    public DateTime? WarrantyStartDate { get; set; }
+    public DateTime? WarrantyEndDate { get; set; }
+    public ProductSerialStatus Status { get; set; } = ProductSerialStatus.Available;
+    public Guid? WarehouseId { get; set; }
+    public Warehouse? Warehouse { get; set; }
+    public string? BinLocation { get; set; }
+    public Guid? SupplierId { get; set; }
+    public Supplier? Supplier { get; set; }
 }

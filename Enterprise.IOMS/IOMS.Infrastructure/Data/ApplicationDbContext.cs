@@ -21,13 +21,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Core
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Brand> Brands => Set<Brand>();
-    public DbSet<Branch> Branches => Set<Branch>();    
+    public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<Inventory> Inventories => Set<Inventory>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<UnitOfMeasure> UnitsOfMeasure => Set<UnitOfMeasure>();
     public DbSet<UoMConversion> UoMConversions => Set<UoMConversion>();
+    public DbSet<ProductSerial> ProductSerials => Set<ProductSerial>();
 
     // Orders
     public DbSet<Customer> Customers => Set<Customer>();
@@ -397,6 +398,25 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .WithMany(c => c.Allocations)
             .HasForeignKey(a => a.ComponentId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Product Serials
+        builder.Entity<ProductSerial>()
+            .HasOne(ps => ps.Product)
+            .WithMany(p => p.Serials)
+            .HasForeignKey(ps => ps.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<ProductSerial>()
+            .HasOne(ps => ps.Warehouse)
+            .WithMany()
+            .HasForeignKey(ps => ps.WarehouseId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.Entity<ProductSerial>()
+            .HasOne(ps => ps.Supplier)
+            .WithMany()
+            .HasForeignKey(ps => ps.SupplierId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 
     private static void ConfigureIndexes(ModelBuilder builder)
@@ -442,6 +462,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<Warehouse>().HasIndex(w => new { w.TenantId, w.Code }).IsUnique();
 
         builder.Entity<Currency>().HasIndex(c => new { c.TenantId, c.Code }).IsUnique();
+
+        builder.Entity<ProductSerial>().HasIndex(ps => new { ps.TenantId, ps.SerialNumber }).IsUnique();
+        builder.Entity<ProductSerial>().HasIndex(ps => ps.ProductId);
+        builder.Entity<ProductSerial>().HasIndex(ps => ps.Status);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
