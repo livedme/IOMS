@@ -159,7 +159,7 @@
             { x => x.Suppliers, suppliers.Select(c => new SupplierDto(c.Id, c.Name, c.Email, c.Phone, c.Address, c.City, c.Zila, c.State, c.Country, c.PostalCode, null, 10, 1, false)).ToList() },
             { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.CostPrice)).ToList() },
             { x => x.WareHouses, wareHouse.Select(p => (p.Id, p.Name)).ToList() },
-            {x=>x.dataModel, new PurchaseOrderDtoModels() }            
+            {x=>x.dataModel, dataModel }
         };
 
         var dialog = await DialogService.ShowAsync<PurchaseOrderDialog>("New Purchase Order", parameters,

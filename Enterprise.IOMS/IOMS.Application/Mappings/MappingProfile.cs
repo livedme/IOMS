@@ -59,11 +59,43 @@ public class MappingProfile : Profile
 
         // Purchase Order
         CreateMap<PurchaseOrder, PurchaseOrderDto>()
-            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier.Name));
+            .ConstructUsing((s, ctx) => new PurchaseOrderDto(
+                s.Id,
+                s.OrderNumber,
+                s.SupplierId,
+                s.Supplier != null ? s.Supplier.Name : string.Empty,
+                s.WarehouseId ?? Guid.Empty,
+                s.Warehouse != null ? s.Warehouse.Name : string.Empty,
+                s.PurchaseDate,
+                s.Status,
+                s.SubTotal,
+                s.LabourCharge,
+                s.TruckCharge,
+                s.DiscountAmount,
+                s.DiscountType,
+                s.TotalAmount,
+                s.TaxAmount,
+                s.PaidAmount,
+                s.DueAmount,
+                s.Notes,
+                s.ExpectedDeliveryDate,
+                ctx.Mapper.Map<List<PurchaseOrderItemDto>>(s.Items)
+            ));
 
         CreateMap<PurchaseOrderItem, PurchaseOrderItemDto>()
-            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
-            .ForMember(d => d.ProductSKU, o => o.MapFrom(s => s.Product.SKU));
+            .ConstructUsing(s => new PurchaseOrderItemDto(
+                s.Id,
+                s.ProductId,
+                s.Product != null ? s.Product.Name : string.Empty,
+                s.Product != null ? s.Product.SKU : string.Empty,
+                s.Quantity,
+                s.ReceivedQuantity,
+                s.UnitPrice,
+                s.DiscountAmount,
+                s.DiscountType,
+                s.TotalDiscount,
+                s.LineTotal
+            ));
 
         // Account
         CreateMap<Account, AccountDto>()

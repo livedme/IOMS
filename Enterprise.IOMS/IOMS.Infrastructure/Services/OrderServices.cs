@@ -518,6 +518,7 @@ public class PurchaseService : IPurchaseService
     {
         var po = await _context.PurchaseOrders
             .Include(p => p.Supplier)
+            .Include(p => p.Warehouse)
             .Include(p => p.Items).ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(p => p.Id == id);
 
@@ -528,6 +529,7 @@ public class PurchaseService : IPurchaseService
     {
         var query = _context.PurchaseOrders
             .Include(p => p.Supplier)
+            .Include(p => p.Warehouse)
             .Include(p => p.Items).ThenInclude(i => i.Product)
             .AsQueryable();
 

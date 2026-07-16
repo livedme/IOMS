@@ -190,6 +190,27 @@ public record CreateSalesOrderDto(Guid CustomerId, Guid? WarehouseId, Guid? Bran
 public record CreateSalesOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId, List<Guid>? SerialIds = null);
 
 // Purchase Orders
+
+//,[PurchaseOrderId]
+//      ,[ProductId]
+//      ,[Quantity]
+//      ,[ReceivedQuantity]
+//      ,[UnitPrice]
+//      ,[TaxRate]
+//      ,[TaxAmount]
+//      ,[LineTotal]
+//      ,[UoMId]
+//      ,[TenantId]
+//      ,[CreatedAt]
+//      ,[CreatedBy]
+//      ,[UpdatedAt]
+//      ,[UpdatedBy]
+//      ,[IsDeleted]
+//      ,[RowVersion]
+//      ,[DiscountAmount]
+//      ,[DiscountType]
+//      ,[TotalDiscount]
+
 public record PurchaseOrderDto(Guid Id, string OrderNumber, Guid SupplierId, string SupplierName, Guid WarehouseId, string WarehouseName,
     DateTime PurchaseDate, PurchaseOrderStatus Status, decimal SubTotal, decimal LabourCharge, 
     decimal TruckCharge, decimal DiscountAmount, DiscountType DiscountType, decimal TotalAmount, 
