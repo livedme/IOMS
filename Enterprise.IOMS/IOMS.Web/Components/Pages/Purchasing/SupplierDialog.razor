@@ -8,10 +8,11 @@
             <MudItem xs="12" sm="6"><MudTextField @bind-Value="_phone" Label="Phone" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
             <MudItem xs="12" sm="6"><MudNumericField @bind-Value="_leadTime" Label="Lead Time (days)" Min="0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
             <MudItem xs="12"><MudTextField @bind-Value="_address" Label="Address" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
-            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_city" Label="City" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
+            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_city" Label="Upozila" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
+            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_zila" Label="Zila" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>             
             <MudItem xs="12" sm="4"><MudTextField @bind-Value="_state" Label="State" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
-            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_country" Label="Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
-            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_postalCode" Label="Postal Code" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
+            @* <MudItem xs="12" sm="4"><MudTextField @bind-Value="_country" Label="Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_postalCode" Label="Postal Code" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem> *@
             <MudItem xs="12" sm="6"><MudTextField @bind-Value="_paymentTerms" Label="Payment Terms" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
         </MudGrid>
     </DialogContent>
@@ -26,7 +27,7 @@
     [Parameter] public SupplierDto? Supplier { get; set; }
 
     private string _name = "";
-    private string? _email, _phone, _address, _city, _state, _country, _postalCode, _paymentTerms;
+    private string? _email, _phone, _address, _city,_zila, _state, _country, _postalCode, _paymentTerms;
     private int _leadTime;
 
     protected override void OnInitialized()
@@ -34,12 +35,12 @@
         if (Supplier != null)
         {
             _name = Supplier.Name; _email = Supplier.Email; _phone = Supplier.Phone;
-            _address = Supplier.Address; _city = Supplier.City; _state = Supplier.State;
+            _address = Supplier.Address; _city = Supplier.City; _zila = Supplier.Zila; _state = Supplier.State;
             _country = Supplier.Country; _paymentTerms = Supplier.PaymentTerms; _leadTime = Supplier.LeadTimeDays;
         }
     }
 
     private void Cancel() => MudDialog.Cancel();
     private void Submit() => MudDialog.Close(DialogResult.Ok(
-        new CreateSupplierDto(_name, _email, _phone, _address, _city, _state, _country, _postalCode, _paymentTerms, null, _leadTime)));
+        new CreateSupplierDto(_name, _email, _phone, _address, _city, _zila, _state, _country, _postalCode, _paymentTerms, null, _leadTime)));
 }

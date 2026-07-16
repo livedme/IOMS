@@ -4,6 +4,7 @@ using IOMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260709112729_morefields")]
+    partial class morefields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2406,17 +2409,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Property<Guid?>("CurrencyId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("DiscountAmount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<int>("DiscountType")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("DueAmount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
                     b.Property<decimal>("ExchangeRate")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
@@ -2427,23 +2419,15 @@ namespace IOMS.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("LabourCharge")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("OrderNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<decimal>("PaidAmount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<DateTime>("PurchaseDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -2469,10 +2453,6 @@ namespace IOMS.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<decimal>("TruckCharge")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
 
@@ -2514,13 +2494,6 @@ namespace IOMS.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("DiscountAmount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<int>("DiscountType")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -2556,10 +2529,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("TotalDiscount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
 
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 6)

@@ -100,7 +100,7 @@
         if (entity == null) return;
 
         var dto = new SupplierDto(entity.Id, entity.Name, entity.Email, entity.Phone, entity.Address,
-            entity.City, entity.State, entity.Country, entity.PostalCode, entity.PaymentTerms, entity.LeadTimeDays, entity.Rating, entity.IsActive);
+            entity.City, entity.Zila, entity.State, entity.Country, entity.PostalCode, entity.PaymentTerms, entity.LeadTimeDays, entity.Rating, entity.IsActive);
 
         var parameters = new DialogParameters<SupplierDialog> { { x => x.Supplier, dto } };
         var dialog = await DialogService.ShowAsync<SupplierDialog>("Edit Supplier", parameters,

@@ -108,7 +108,7 @@
         if (entity == null) return;
 
         var dto = new CustomerDto(entity.Id, entity.Name, entity.Email, entity.Phone, entity.Address,
-            entity.City, entity.State, entity.Country, entity.PostalCode, entity.CreditLimit, entity.PaymentTerms, entity.IsActive, entity.IsTaxExempt);
+            entity.City, entity.Zila, entity.State, entity.Country, entity.PostalCode, entity.CreditLimit, entity.PaymentTerms, entity.IsActive, entity.IsTaxExempt);
 
         var parameters = new DialogParameters<CustomerDialog> { { x => x.Customer, dto } };
         var dialog = await DialogService.ShowAsync<CustomerDialog>("Edit Customer", parameters,

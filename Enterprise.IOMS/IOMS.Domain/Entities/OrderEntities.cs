@@ -70,11 +70,18 @@ public class PurchaseOrder : BaseEntity
     public Supplier Supplier { get; set; } = null!;
     public Guid? WarehouseId { get; set; }
     public Warehouse? Warehouse { get; set; }
-    public DateTime OrderDate { get; set; } = DateTime.UtcNow;
+    public DateTime PurchaseDate { get; set; } = DateTime.UtcNow;
     public PurchaseOrderStatus Status { get; set; } = PurchaseOrderStatus.Draft;
     public decimal SubTotal { get; set; }
-    public decimal TaxAmount { get; set; }
+    public decimal LabourCharge { get; set; }
+    public decimal TruckCharge { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public DiscountType DiscountType { get; set; }
     public decimal TotalAmount { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal PaidAmount { get; set; }
+    public decimal DueAmount { get; set; }
+
     public Guid? CurrencyId { get; set; }
     public Currency? Currency { get; set; }
     public decimal ExchangeRate { get; set; } = 1;
@@ -95,6 +102,9 @@ public class PurchaseOrderItem : BaseEntity
     public int ReceivedQuantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal TaxRate { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public DiscountType DiscountType { get; set; }
+    public decimal TotalDiscount { get; set; }    
     public decimal TaxAmount { get; set; }
     public decimal LineTotal { get; set; }
     public Guid? UoMId { get; set; }

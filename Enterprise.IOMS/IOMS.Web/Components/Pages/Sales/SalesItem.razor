@@ -152,7 +152,7 @@
 
         var parameters = new DialogParameters<SalesOrderDialog>
         {
-            { x => x.Customers, customers.Select(c => new CustomerDto(c.Id, c.Name,c.Email,c.Phone,c.Address,c.City,c.State,c.Country,c.PostalCode,c.CreditLimit,c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList() },
+            { x => x.Customers, customers.Select(c => new CustomerDto(c.Id, c.Name,c.Email,c.Phone,c.Address,c.City,c.Zila, c.State,c.Country,c.PostalCode,c.CreditLimit,c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList() },
             { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList() }
         };
 

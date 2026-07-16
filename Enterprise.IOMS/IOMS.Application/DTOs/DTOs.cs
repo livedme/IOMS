@@ -159,21 +159,21 @@ public record StockTransferDto(Guid ProductId, Guid SourceWarehouseId, Guid Targ
 
 // Customers
 public record CustomerDto(Guid Id, string Name, string? Email, string? Phone, string? Address,
-    string? City, string? State, string? Country, string? PostalCode, decimal CreditLimit, string? PaymentTerms,
+    string? City, string? Zila, string? State, string? Country, string? PostalCode, decimal CreditLimit, string? PaymentTerms,
     bool IsActive, bool IsTaxExempt);
 
 public record CreateCustomerDto(string Name, string? Email, string? Phone, string? Address,
-    string? City, string? State, string? Country, string? PostalCode,
+    string? City, string? Zila, string? State, string? Country, string? PostalCode,
     decimal CreditLimit, string? PaymentTerms, Guid? TaxJurisdictionId,
     Guid? DefaultPriceListId, Guid? DefaultCurrencyId, bool IsTaxExempt);
 
 // Suppliers
 public record SupplierDto(Guid Id, string Name, string? Email, string? Phone, string? Address,
-    string? City, string? State, string? Country, string? PostalCode, string? PaymentTerms,
+    string? City, string? Zila, string? State, string? Country, string? PostalCode, string? PaymentTerms,
     int LeadTimeDays, decimal Rating, bool IsActive);
 
 public record CreateSupplierDto(string Name, string? Email, string? Phone, string? Address,
-    string? City, string? State, string? Country, string? PostalCode,
+    string? City, string? Zila, string? State, string? Country, string? PostalCode,
     string? PaymentTerms, Guid? DefaultCurrencyId, int LeadTimeDays);
 
 public record SalesOrderDto(Guid Id, string OrderNumber, Guid CustomerId, CustomerDto Customer, Guid? BranchId, BranchDto? Branch,
@@ -190,21 +190,29 @@ public record CreateSalesOrderDto(Guid CustomerId, Guid? WarehouseId, Guid? Bran
 public record CreateSalesOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId, List<Guid>? SerialIds = null);
 
 // Purchase Orders
-public record PurchaseOrderDto(Guid Id, string OrderNumber, Guid SupplierId, string SupplierName,
-    DateTime OrderDate, PurchaseOrderStatus Status, decimal SubTotal, decimal TaxAmount,
-    decimal TotalAmount, string? Notes, DateTime? ExpectedDeliveryDate,
-    List<PurchaseOrderItemDto> Items);
+public record PurchaseOrderDto(Guid Id, string OrderNumber, Guid SupplierId, string SupplierName, Guid WarehouseId, string WarehouseName,
+    DateTime PurchaseDate, PurchaseOrderStatus Status, decimal SubTotal, decimal LabourCharge, 
+    decimal TruckCharge, decimal DiscountAmount, DiscountType DiscountType, decimal TotalAmount, 
+    decimal TaxAmount, decimal PaidAmount, decimal DueAmount, string? Notes, 
+    DateTime? ExpectedDeliveryDate, List<PurchaseOrderItemDto> Items);
+
 
 public record PurchaseOrderItemDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU,
-    int Quantity, int ReceivedQuantity, decimal UnitPrice, decimal TaxRate,
-    decimal TaxAmount, decimal LineTotal);
+    int Quantity, int ReceivedQuantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal LineTotalPrice);
 
 public record CreatePurchaseOrderDto(Guid SupplierId, Guid? WarehouseId, string? Notes,
     DateTime? ExpectedDeliveryDate, Guid? CurrencyId,
     List<CreatePurchaseOrderItemDto> Items);
 
 
-public record CreatePurchaseOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId, List<string>? SerialNumbers = null);
+public record PurchaseSerialEntryDto(
+    string SerialNumber,
+    string? Barcode = null,
+    DateTime? WarrantyStartDate = null,
+    DateTime? WarrantyEndDate = null,
+    string? BinLocation = null);
+
+public record CreatePurchaseOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId, List<PurchaseSerialEntryDto>? Serials = null);
 
 //
 //public record CreatePurchaseOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, Guid? UoMId);

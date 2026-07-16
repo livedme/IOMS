@@ -19,17 +19,20 @@
                 <MudTextField @bind-Value="_address" Label="Address" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="4">
-                <MudTextField @bind-Value="_city" Label="City" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                <MudTextField @bind-Value="_city" Label="Upozila" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="4">
-                <MudTextField @bind-Value="_state" Label="State" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                <MudTextField @bind-Value="_zila" Label="Zila" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_state" Label="Division" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            @* <MudItem xs="12" sm="4">
                 <MudTextField @bind-Value="_country" Label="Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="_postalCode" Label="Postal Code" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
+            </MudItem> *@
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="_paymentTerms" Label="Payment Terms" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
@@ -49,7 +52,7 @@
     [Parameter] public CustomerDto? Customer { get; set; }
 
     private string _name = "";
-    private string? _email, _phone, _address, _city, _state, _country, _postalCode, _paymentTerms;
+    private string? _email, _phone, _address, _city, _zila, _state, _country, _postalCode, _paymentTerms;
     private decimal _creditLimit;
     private bool _isTaxExempt;
 
@@ -62,7 +65,8 @@
             _phone = Customer.Phone;
             _address = Customer.Address;
             _city = Customer.City;
-            _state = Customer.State;
+            _zila = Customer.Zila;
+            _state = Customer.State;            
             _country = Customer.Country;
             _creditLimit = Customer.CreditLimit;
             _paymentTerms = Customer.PaymentTerms;
@@ -72,6 +76,6 @@
 
     private void Cancel() => MudDialog.Cancel();
     private void Submit() => MudDialog.Close(DialogResult.Ok(
-        new CreateCustomerDto(_name, _email, _phone, _address, _city, _state, _country, _postalCode,
+        new CreateCustomerDto(_name, _email, _phone, _address, _city, _zila, _state, _country, _postalCode,
             _creditLimit, _paymentTerms, null, null, null, _isTaxExempt)));
 }

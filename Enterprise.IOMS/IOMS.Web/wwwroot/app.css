@@ -114,11 +114,11 @@ h1:focus {
     margin:0px;
 }
 ._newDiscount {
-    width: 100% !important;
+    width: 85px !important;
     margin-right: 10px !important;
 }
 ._discountType {
-    width: 80px !important;
+    width: 85px !important;
 }
 .product-item-list .mud-table-container {
     width: 100%;

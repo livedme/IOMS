@@ -120,7 +120,7 @@
             .SumAsync(i => i.TaxAmount);
 
         _inputTax = await DbContext.Set<IOMS.Domain.Entities.PurchaseOrder>()
-            .Where(p => !p.IsDeleted && p.OrderDate >= from && p.OrderDate <= to)
+            .Where(p => !p.IsDeleted && p.PurchaseDate >= from && p.PurchaseDate <= to)
             .SumAsync(p => p.TaxAmount);
 
         _netTax = _outputTax - _inputTax;
@@ -153,7 +153,7 @@
             .Where(i => !i.IsDeleted && i.InvoiceDate >= from && i.InvoiceDate <= to)
             .ToListAsync();
         var purchases = await DbContext.Set<IOMS.Domain.Entities.PurchaseOrder>()
-            .Where(p => !p.IsDeleted && p.OrderDate >= from && p.OrderDate <= to)
+            .Where(p => !p.IsDeleted && p.PurchaseDate >= from && p.PurchaseDate <= to)
             .ToListAsync();
 
         var months = Enumerable.Range(0, (int)((to - from).TotalDays / 30) + 1)
@@ -171,7 +171,7 @@
                 new() { Name = "Output Tax", Data = months.Select(m =>
                     (double)invoices.Where(i => i.InvoiceDate.Year == m.Year && i.InvoiceDate.Month == m.Month).Sum(i => i.TaxAmount)).ToArray() },
                 new() { Name = "Input Tax", Data = months.Select(m =>
-                    (double)purchases.Where(p => p.OrderDate.Year == m.Year && p.OrderDate.Month == m.Month).Sum(p => p.TaxAmount)).ToArray() }
+                    (double)purchases.Where(p => p.PurchaseDate.Year == m.Year && p.PurchaseDate.Month == m.Month).Sum(p => p.TaxAmount)).ToArray() }
             };
         }
 

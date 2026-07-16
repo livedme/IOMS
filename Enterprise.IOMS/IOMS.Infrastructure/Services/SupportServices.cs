@@ -537,7 +537,7 @@ public class DashboardService : IDashboardService
             .SumAsync(o => o.TotalAmount);
 
         var purchasesThisMonth = await _context.PurchaseOrders
-            .Where(p => p.OrderDate >= startOfMonth && p.Status != PurchaseOrderStatus.Cancelled)
+            .Where(p => p.PurchaseDate >= startOfMonth && p.Status != PurchaseOrderStatus.Cancelled)
             .SumAsync(p => p.TotalAmount);
 
         var pendingSO = await _context.SalesOrders.CountAsync(o => o.Status == OrderStatus.Pending);
@@ -593,8 +593,8 @@ public class DashboardService : IDashboardService
     {
         var cutoff = DateTime.UtcNow.AddMonths(-months);
         var data = await _context.PurchaseOrders
-            .Where(p => p.OrderDate >= cutoff && p.Status != PurchaseOrderStatus.Cancelled)
-            .GroupBy(p => new { p.OrderDate.Year, p.OrderDate.Month })
+            .Where(p => p.PurchaseDate >= cutoff && p.Status != PurchaseOrderStatus.Cancelled)
+            .GroupBy(p => new { p.PurchaseDate.Year, p.PurchaseDate.Month })
             .Select(g => new { g.Key.Year, g.Key.Month, Amount = g.Sum(p => p.TotalAmount), Count = g.Count() })
             .OrderBy(x => x.Year).ThenBy(x => x.Month)
             .ToListAsync();
@@ -664,12 +664,12 @@ public class DashboardService : IDashboardService
     {
         var data = await _context.PurchaseOrders
             .Include(p => p.Supplier)
-            .OrderByDescending(p => p.OrderDate)
+            .OrderByDescending(p => p.PurchaseDate)
             .Take(count)
-            .Select(p => new { p.Id, p.OrderNumber, SupplierName = p.Supplier.Name, p.OrderDate, p.TotalAmount, p.Status })
+            .Select(p => new { p.Id, p.OrderNumber, SupplierName = p.Supplier.Name, p.PurchaseDate, p.TotalAmount, p.Status })
             .ToListAsync();
 
-        return data.Select(d => new RecentOrderDto(d.Id, d.OrderNumber, d.SupplierName, d.OrderDate, d.TotalAmount, d.Status.ToString())).ToList();
+        return data.Select(d => new RecentOrderDto(d.Id, d.OrderNumber, d.SupplierName, d.PurchaseDate, d.TotalAmount, d.Status.ToString())).ToList();
     }
 }
 

@@ -428,20 +428,23 @@ public class PurchaseService : IPurchaseService
         _context.PurchaseOrders.Add(po);
         await _context.SaveChangesAsync();
 
-        // Create ProductSerial records for items that have serial numbers
-        foreach (var item in dto.Items.Where(i => i.SerialNumbers != null && i.SerialNumbers.Count > 0))
+        // Create ProductSerial records for items that have serial entries
+        foreach (var item in dto.Items.Where(i => i.Serials != null && i.Serials.Count > 0))
         {
-            var poItem = po.Items.First(i => i.ProductId == item.ProductId);
-            foreach (var sn in item.SerialNumbers!)
+            foreach (var entry in item.Serials!)
             {
                 _context.ProductSerials.Add(new ProductSerial
                 {
                     ProductId = item.ProductId,
-                    SerialNumber = sn,
+                    SerialNumber = entry.SerialNumber,
+                    Barcode = entry.Barcode ?? entry.SerialNumber,
                     Status = ProductSerialStatus.Available,
                     WarehouseId = dto.WarehouseId,
                     SupplierId = dto.SupplierId,
-                    PurchaseDate = DateTime.UtcNow
+                    PurchaseDate = DateTime.UtcNow,
+                    WarrantyStartDate = entry.WarrantyStartDate,
+                    WarrantyEndDate = entry.WarrantyEndDate,
+                    BinLocation = entry.BinLocation
                 });
             }
         }
@@ -533,7 +536,7 @@ public class PurchaseService : IPurchaseService
             query = query.Where(p => p.OrderNumber.Contains(search) || p.Supplier.Name.Contains(search));
 
         var total = await query.CountAsync();
-        var items = await query.OrderByDescending(p => p.OrderDate)
+        var items = await query.OrderByDescending(p => p.PurchaseDate)
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
         return new PagedResult<PurchaseOrderDto>(_mapper.Map<List<PurchaseOrderDto>>(items), total, page, pageSize);

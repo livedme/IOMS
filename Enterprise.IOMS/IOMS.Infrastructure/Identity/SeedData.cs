@@ -418,7 +418,7 @@ public static class SeedData
                     OrderNumber = $"PO-{2026}{i + 1:D4}",
                     SupplierId = suppliers[i % 20].Id,
                     WarehouseId = warehouses[0].Id,
-                    OrderDate = DateTime.UtcNow.AddDays(-rng.Next(1, 120)),
+                    PurchaseDate = DateTime.UtcNow.AddDays(-rng.Next(1, 120)),
                     Status = statuses[i % statuses.Length],
                     SubTotal = subTotal, TaxAmount = taxAmt, TotalAmount = subTotal + taxAmt,
                     ExpectedDeliveryDate = DateTime.UtcNow.AddDays(rng.Next(7, 45)),

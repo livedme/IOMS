@@ -58,7 +58,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _purchaseOrders = await DbContext.PurchaseOrders.OrderByDescending(p => p.OrderDate).Take(50).ToListAsync();
+        _purchaseOrders = await DbContext.PurchaseOrders.OrderByDescending(p => p.PurchaseDate).Take(50).ToListAsync();
         _products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
     }
 

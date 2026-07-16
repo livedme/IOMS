@@ -521,7 +521,7 @@ else
                 // Preferred supplier (most recent PO)
                 var latestSupplierId = await DbContext.PurchaseOrderItems
                     .Where(x => x.ProductId == Id)
-                    .OrderByDescending(x => x.PurchaseOrder.OrderDate)
+                    .OrderByDescending(x => x.PurchaseOrder)
                     .Select(x => (Guid?)x.PurchaseOrder.SupplierId)
                     .FirstOrDefaultAsync();
 
@@ -550,13 +550,13 @@ else
                     .Include(x => x.PurchaseOrder)
                         .ThenInclude(o => o.Supplier)
                     .Where(x => x.ProductId == Id)
-                    .OrderByDescending(x => x.PurchaseOrder.OrderDate)
+                    .OrderByDescending(x => x.PurchaseOrder.PurchaseDate)
                     .Take(50)
                     .Select(x => new PurchaseOrderLineView(
                         x.PurchaseOrder.Id,
                         x.PurchaseOrder.OrderNumber,
                         x.PurchaseOrder.Supplier.Name,
-                        x.PurchaseOrder.OrderDate,
+                        x.PurchaseOrder.PurchaseDate,
                         x.PurchaseOrder.Status.ToString(),
                         x.Quantity,
                         x.UnitPrice))
