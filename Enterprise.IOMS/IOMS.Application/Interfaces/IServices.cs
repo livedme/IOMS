@@ -20,6 +20,7 @@ public interface IInventoryService
 public interface IOrderService
 {
     Task<Guid> CreateSalesOrder(CreateSalesOrderDto dto);
+    Task UpdateSalesOrder(Guid id, CreateSalesOrderDto dto);
     Task ApproveOrder(Guid orderId);
     Task CancelOrder(Guid orderId, string reason);
     Task UpdateOrderStatus(Guid orderId, OrderStatus newStatus);

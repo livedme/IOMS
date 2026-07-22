@@ -192,8 +192,8 @@ public class OrderService : IOrderService
             Notes = dto.Notes,
             ShippingAddress = dto.ShippingAddress,
             ExpectedDeliveryDate = dto.ExpectedDeliveryDate,
-            CurrencyId = dto.CurrencyId,           
-            OrderDate = dto.SalesDate,                     
+            CurrencyId = dto.CurrencyId,
+            OrderDate = dto.SalesDate,
             SubTotal = dto.SubTotal,
             LabourCharge = dto.LabourCharge,
             TruckCharge = dto.TruckCharge,
@@ -221,7 +221,7 @@ public class OrderService : IOrderService
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice,
                 DiscountType = item.DiscountType,
-                DiscountAmount = discountAmt,                
+                DiscountAmount = discountAmt,
                 LineTotalPrice = lineTotal,
                 UoMId = item.UoMId
             });
@@ -247,6 +247,48 @@ public class OrderService : IOrderService
         await _context.SaveChangesAsync();
 
         return order.Id;
+    }
+
+    public async Task UpdateSalesOrder(Guid id, CreateSalesOrderDto dto)
+    {
+        var order = await _context.SalesOrders
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.Id == id)
+            ?? throw new EntityNotFoundException("SalesOrder", id);
+
+        order.CustomerId = dto.CustomerId;
+        order.BranchId = dto.BranchId;
+        order.Notes = dto.Notes;
+        order.OrderDate = dto.SalesDate;
+        order.SubTotal = dto.SubTotal;
+        order.LabourCharge = dto.LabourCharge;
+        order.TruckCharge = dto.TruckCharge;
+        order.TaxAmount = dto.TaxAmount;
+        order.DiscountType = dto.DiscountType;
+        order.DiscountAmount = dto.DiscountAmount;
+        order.TotalAmount = dto.TotalAmount;
+        order.PaidAmount = dto.PaidAmount;
+        order.DueAmount = dto.DueAmount;
+
+        _context.SalesOrderItems.RemoveRange(order.Items);
+        order.Items.Clear();
+
+        foreach (var item in dto.Items)
+        {
+            order.Items.Add(new SalesOrderItem
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                DiscountType = item.DiscountType,
+                DiscountAmount = item.DiscountAmount,
+                TotalDiscount = item.TotalDiscountAmount,
+                LineTotalPrice = item.TotalPrice,
+                UoMId = item.UoMId
+            });
+        }
+
+        await _context.SaveChangesAsync();
     }
 
     public async Task ApproveOrder(Guid orderId)

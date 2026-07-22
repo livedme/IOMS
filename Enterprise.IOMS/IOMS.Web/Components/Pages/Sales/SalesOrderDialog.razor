@@ -132,20 +132,62 @@
                 }
                 else
                 {
-                    <MudTd>
-                        @Products.FirstOrDefault(p => p.Id == context.ProductId).Name
-                        @if (context.SerialIds?.Count > 0)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default">@(context.SerialIds?.Count > 0 ? $"{context.SerialIds.Count} serial(s)" : "-")</MudChip>
-                        }
-                    </MudTd>
-                    <MudTd Style="width:auto;">@context.Quantity</MudTd>
-                    <MudTd Style="width:auto;">@context.UnitPrice.ToString("C")</MudTd>
-                    <MudTd Style="width:auto;">@context.TotalDiscountAmount.ToString("C")</MudTd>
-                    <MudTd Style="width:auto;">@context.TotalPrice.ToString("C")</MudTd>
-                    <MudTd Style="width:auto;" class="text-end">
-                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => dataModel.Items.Remove(context))" />
-                    </MudTd>
+                     var itemIndex = dataModel.Items.IndexOf(context); 
+                    @if (_editingItemIndex == itemIndex)
+                    {
+                        <MudTd Class="d-flex justify-content-between" Style="width:auto;">
+                            <MudAutocomplete T="FilterItem"
+                                             @ref="_editProductDropDownControl"
+                                             Label=""
+                                             Required="true"
+                                             @key="_editLastProductSelection"
+                                             @bind-Value="dataModel.SelectedItem.SelectedProduct"
+                                             @bind-Text="_editProductText"
+                                             @bind-Value:after="OnEditProductChanged"
+                                             SearchFunc="SearchProducts"
+                                             ToStringFunc="@(c => c?.Name ?? "")"
+                                             ResetValueOnEmptyText="true"
+                                             CoerceText="true"
+                                             Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudTd>
+                        <MudTd Class="px-0" Style="width:auto;"><MudNumericField @bind-Value="dataModel.SelectedItem.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
+                        <MudTd Style="width:auto;"><MudNumericField @bind-Value="dataModel.SelectedItem.UnitPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
+                        <MudTd Style="width:auto;" class="d-flex justify-content-between px-0">
+                            <MudNumericField @bind-Value="dataModel.SelectedItem.DiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudSelect @bind-Value="dataModel.SelectedItem.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
+                                {
+                                    <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd Class="pe-0" Style="width:auto;">
+                            @{ CalculateLineTotal(); }
+                            <MudNumericField @bind-Value="dataModel.SelectedItem.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudTd>
+                        <MudTd Style="width:auto;" class="pe-2 text-end mb-5 px-0">
+                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Color="Color.Primary" OnClick="@(() => SaveEditItem(itemIndex))" />
+                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Color="Color.Secondary" OnClick="CancelEditItem" />
+                        </MudTd>
+                    }
+                    else
+                    {
+                        <MudTd>
+                            @Products.FirstOrDefault(p => p.Id == context.ProductId).Name
+                            @if (context.SerialIds?.Count > 0)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default">@(context.SerialIds?.Count > 0 ? $"{context.SerialIds.Count} serial(s)" : "-")</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd Style="width:auto;">@context.Quantity</MudTd>
+                        <MudTd Style="width:auto;">@context.UnitPrice.ToString("C")</MudTd>
+                        <MudTd Style="width:auto;">@context.TotalDiscountAmount.ToString("C")</MudTd>
+                        <MudTd Style="width:auto;">@context.TotalPrice.ToString("C")</MudTd>
+                        <MudTd Style="width:auto;" class="text-end d-inline-flex justify-content-between">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Info" OnClick="@(() => StartEditItem(itemIndex, context))" />
+                            <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => dataModel.Items.Remove(context))" />
+                        </MudTd>
+                    }
                 }
             </RowTemplate>
         </MudTable>
@@ -210,7 +252,7 @@
     [Parameter] public List<CustomerDto> Customers { get; set; } = new();
     [Parameter] public List<(Guid Id, string Name, string SKU, decimal Price)> Products { get; set; } = new();
 
-    private CreateSalesOrderDtoModels dataModel = new CreateSalesOrderDtoModels();
+    [Parameter] public CreateSalesOrderDtoModels dataModel { get; set; } = new CreateSalesOrderDtoModels();
     private MudAutocomplete<FilterItem> CustomerDropDownControl = default!;
     private string? _customerText;
     private FilterItem? _lastCustomerSelection;
@@ -224,6 +266,12 @@
     private FilterItem? _lastProductSelection;
     private static readonly FilterItem AddNewProductOption = new(Guid.Empty, "Add New", false);
 
+    // Edit item fields
+    private int _editingItemIndex = -1;
+    private MudAutocomplete<FilterItem>? _editProductDropDownControl;
+    private string? _editProductText;
+    private FilterItem? _editLastProductSelection;
+
     private List<ProductSerial> _availableSerials = new();
     private IReadOnlyCollection<Guid> _selectedSerialSet = Array.Empty<Guid>();
 
@@ -231,10 +279,24 @@
     protected override async Task OnInitializedAsync()
     {
         _Branches = await BranchService.GetBranches();
-        dataModel.BranchId = _Branches.FirstOrDefault()?.Id ?? Guid.Empty;
 
-        if (Customers.Count > 0) dataModel.SelectedCustomer = Customers.Select(x => new FilterItem(x.Id, x.Name, x.IsActive)).First();
-        if (Products.Count > 0) { dataModel.SelectedItem.ProductId = Products.First().Id; dataModel.SelectedItem.UnitPrice = Products.First().Price; }
+        if (dataModel.BranchId == Guid.Empty)
+            dataModel.BranchId = _Branches.FirstOrDefault()?.Id ?? Guid.Empty;
+
+        if (dataModel.SelectedCustomer.Id == Guid.Empty && Customers.Count > 0)
+            dataModel.SelectedCustomer = Customers.Select(x => new FilterItem(x.Id, x.Name, x.IsActive)).First();
+
+        if (dataModel.SelectedCustomer.Id != Guid.Empty)
+        {
+            _customerText = dataModel.SelectedCustomer.Name;
+            _lastCustomerSelection = dataModel.SelectedCustomer;
+        }
+
+        if (dataModel.SelectedItem.ProductId == Guid.Empty && Products.Count > 0)
+        { 
+            dataModel.SelectedItem.ProductId = Products.First().Id; 
+            dataModel.SelectedItem.UnitPrice = Products.First().Price; 
+        }
     }
 
     private void OnBrancheValueChanged(Guid brancheId)
@@ -357,10 +419,75 @@
         }
     }
 
+    private void StartEditItem(int index, CreateSalesOrderItemDto item)
+    {
+        if (dataModel.Items.Any(x => x.ProductId == Guid.Empty)) return;
+
+        _editingItemIndex = index;
+        var product = Products.FirstOrDefault(p => p.Id == item.ProductId);
+        dataModel.SelectedItem.ProductId = item.ProductId;
+        dataModel.SelectedItem.SelectedProduct = product != default
+            ? new FilterItem(product.Id, product.Name, false)
+            : new FilterItem(Guid.Empty, "", false);
+        dataModel.SelectedItem.Quantity = item.Quantity;
+        dataModel.SelectedItem.UnitPrice = item.UnitPrice;
+        dataModel.SelectedItem.DiscountAmount = item.DiscountAmount;
+        dataModel.SelectedItem.DiscountType = (int)item.DiscountType;
+        dataModel.SelectedItem.TotalDiscount = item.TotalDiscountAmount;
+        dataModel.SelectedItem.TotalPrice = item.TotalPrice;
+        _editProductText = product != default ? product.Name : "";
+        _editLastProductSelection = dataModel.SelectedItem.SelectedProduct;
+    }
+
+    private void SaveEditItem(int index)
+    {
+        if (dataModel.SelectedItem.ProductId == Guid.Empty || dataModel.SelectedItem.Quantity <= 0) return;
+
+        CalculateLineTotal();
+        var updated = new CreateSalesOrderItemDto(
+            dataModel.SelectedItem.ProductId,
+            dataModel.SelectedItem.Quantity,
+            dataModel.SelectedItem.UnitPrice,
+            dataModel.SelectedItem.DiscountAmount,
+            (DiscountType)dataModel.SelectedItem.DiscountType,
+            dataModel.SelectedItem.TotalDiscount,
+            dataModel.SelectedItem.TotalPrice,
+            null,
+            dataModel.Items[index].SerialIds);
+
+        dataModel.Items[index] = updated;
+        dataModel.SubTotal = dataModel.Items.Sum(i => i.TotalPrice);
+        _editingItemIndex = -1;
+    }
+
+    private void CancelEditItem()
+    {
+        _editingItemIndex = -1;
+    }
+
+    private void OnEditProductChanged()
+    {
+        var prod = dataModel.SelectedItem.SelectedProduct;
+        if (prod == null) return;
+
+        var p = Products.FirstOrDefault(p => p.Id == prod.Id);
+        if (p != default)
+        {
+            dataModel.SelectedItem.ProductId = p.Id;
+            dataModel.SelectedItem.UnitPrice = p.Price;
+            dataModel.SelectedItem.DiscountType = (int)DiscountType.Percentage;
+            dataModel.SelectedItem.DiscountAmount = 0m;
+            dataModel.SelectedItem.TotalDiscount = 0m;
+        }
+        _editLastProductSelection = prod;
+        _editProductText = prod?.Name;
+    }
+
     private void AddNewItem()
     {
         var item = dataModel.Items.Where(x => x.ProductId == Guid.Empty).FirstOrDefault();
         if (item != null) return;
+        if (_editingItemIndex >= 0) return;
 
         _lastProductSelection = null;
         _productText = "";
