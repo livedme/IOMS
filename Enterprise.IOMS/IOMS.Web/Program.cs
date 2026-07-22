@@ -70,10 +70,10 @@ builder.Services.AddAuthorization(options =>
 var app = builder.Build();
 
 // Seed data
-using (var scope = app.Services.CreateScope())
-{
-    await SeedData.InitializeAsync(scope.ServiceProvider);
-}
+//using (var scope = app.Services.CreateScope())
+//{
+//    await SeedData.InitializeAsync(scope.ServiceProvider);
+//}
 
 
 // Configure the HTTP request pipeline.

@@ -70,6 +70,11 @@
                         <MudIconButton Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" Color="Color.Error"
                                        OnClick="@(() => Cancel(context.Id))" />
                     }
+                    @if (context.Status == OrderStatus.Cancelled)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Title="Delete"
+                                       OnClick="@(() => DeleteOrder(context.Id))" />
+                    }
                 </MudTd>
             </RowTemplate>
             <PagerContent>
@@ -224,6 +229,22 @@ c.State,c.Country,c.PostalCode,c.CreditLimit,c.PaymentTerms, c.IsActive, c.IsTax
             {
                 var orderId = await OrderService.CreateSalesOrder(dto);
                 Snackbar.Add("Sales created successfully", Severity.Success);
+                await LoadOrders();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private async Task DeleteOrder(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync("Delete Sales Order",
+            "This will permanently delete the sales order. Continue?", "Yes, Delete", "No");
+        if (confirm == true)
+        {
+            try
+            {
+                await OrderService.DeleteSalesOrder(id);
+                Snackbar.Add("Sales order deleted", Severity.Success);
                 await LoadOrders();
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

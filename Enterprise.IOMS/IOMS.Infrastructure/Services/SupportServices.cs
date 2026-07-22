@@ -308,6 +308,7 @@ public class QuotationService : IQuotationService
     public async Task<PagedResult<SalesQuoteDto>> GetSalesQuotes(string? search, QuoteStatus? status, int page, int pageSize)
     {
         var query = _context.SalesQuotes
+            .AsSplitQuery()
             .Include(q => q.Customer)
             .Include(q => q.Items).ThenInclude(i => i.Product)
             .AsQueryable();
@@ -326,6 +327,7 @@ public class QuotationService : IQuotationService
     public async Task<SalesQuoteDto> GetSalesQuoteById(Guid id)
     {
         var quote = await _context.SalesQuotes
+            .AsSplitQuery()
             .Include(q => q.Customer)
             .Include(q => q.Items).ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(q => q.Id == id)
@@ -402,10 +404,10 @@ public class QuotationService : IQuotationService
                 Quantity = qi.Quantity,
                 UnitPrice = qi.UnitPrice,
                 DiscountType = qi.DiscountType,
-                DiscountAmount = qi.DiscountAmount,                
+                DiscountAmount = qi.DiscountAmount,
                 LineTotalPrice = qi.LineTotal
             });
-        } 
+        }
 
         order.SubTotal = quote.SubTotal;
         order.TaxAmount = quote.TaxAmount;

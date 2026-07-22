@@ -80,6 +80,7 @@ namespace IOMS.Application.DTOs
 
         public class PurchaseOrderItemDtoModels
         {
+            public Guid Id { get; set; }
             public FilterItem SelectedProduct { get; set; } = new FilterItem(Guid.Empty, "", false);
             public Guid ProductId { get; set; }
             public int Quantity { get; set; }

@@ -268,7 +268,7 @@ public record PurchaseSerialEntryDto(
     DateTime? WarrantyEndDate = null,
     string? BinLocation = null);
 
-public record CreatePurchaseOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId, List<PurchaseSerialEntryDto>? Serials = null);
+public record CreatePurchaseOrderItemDto(Guid Id,  Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId, List<PurchaseSerialEntryDto>? Serials = null);
 
 //
 //public record CreatePurchaseOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, Guid? UoMId);

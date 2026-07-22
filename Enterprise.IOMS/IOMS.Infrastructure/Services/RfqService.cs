@@ -24,6 +24,7 @@ public class RfqService : IRfqService
     public async Task<PagedResult<RfqRequestDto>> GetRfqRequests(string? search, RfqStatus? status, int page, int pageSize)
     {
         var query = _context.RfqRequests
+            .AsSplitQuery()
             .Include(r => r.Items).ThenInclude(i => i.Product)
             .Include(r => r.SupplierResponses).ThenInclude(sr => sr.Supplier)
             .AsQueryable();
@@ -42,6 +43,7 @@ public class RfqService : IRfqService
     public async Task<RfqRequestDto> GetRfqRequestById(Guid id)
     {
         var rfq = await _context.RfqRequests
+            .AsSplitQuery()
             .Include(r => r.Items).ThenInclude(i => i.Product)
             .Include(r => r.SupplierResponses).ThenInclude(sr => sr.Supplier)
             .FirstOrDefaultAsync(r => r.Id == id)

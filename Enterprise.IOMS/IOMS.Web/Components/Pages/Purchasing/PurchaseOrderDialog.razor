@@ -85,7 +85,6 @@
                     <MudTd Class="d-flex justify-content-between" Style="width:auto;">
                         <MudAutocomplete T="FilterItem"
                                          @ref="ProductDropDownControl"
-                                         Label="Product"
                                          Required="true"
                                          @key="_lastProductSelection"
                                          @bind-Value="dataModel.SelectedItem.SelectedProduct"
@@ -182,13 +181,13 @@
                                 @(context.Serials?.Count > 0 ? $"{context.Serials.Count} serial(s)" : "-")
                                 <MudIconButton Icon="@Icons.Material.Filled.AddBox" Size="Size.Small" Color="Color.Error"
                                                OnClick="@(() => dataModel.Items.Remove(context))" />
-                            </MudChip>                       
+                            </MudChip> 
                         </MudTd>
                         <MudTd Style="width:auto;">@context.Quantity</MudTd>
                         <MudTd Style="width:auto;">@context.UnitPrice.ToString("C")</MudTd>
                         <MudTd Style="width:auto;">@context.TotalDiscountAmount.ToString("C")</MudTd>
                         <MudTd Style="width:auto;">@context.TotalPrice.ToString("C")</MudTd>
-                        <MudTd Style="width:auto;" class="text-end">
+                        <MudTd Style="width:auto;" class="text-end d-inline-flex justify-content-between">
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Info"
                                            OnClick="@(() => StartEditItem(itemIndex, context))" />
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
@@ -242,7 +241,7 @@
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!dataModel.Items.Any(i => i.ProductId != Guid.Empty))">
-            Create PO
+            Save
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -302,9 +301,23 @@
 
     protected override void OnInitialized()
     {
-        if (Suppliers.Count > 0) dataModel.SelectedSupplier = Suppliers.Select(x => new FilterItem(x.Id, x.Name, false)).First();
-        if (Products.Count > 0) { dataModel.SelectedItem.ProductId = Products.First().Id; dataModel.SelectedItem.UnitPrice = Products.First().Price; }
-        if (WareHouses.Count > 0) dataModel.WarehouseId = WareHouses.First().Id;
+        if (dataModel.SelectedSupplier.Id == Guid.Empty && Suppliers.Count > 0)
+            dataModel.SelectedSupplier = Suppliers.Select(x => new FilterItem(x.Id, x.Name, false)).First();
+
+        if (dataModel.SelectedSupplier.Id != Guid.Empty)
+        {
+            dataModel.SupplierText = dataModel.SelectedSupplier.Name;
+            dataModel.LastSupplierSelection = dataModel.SelectedSupplier;
+        }
+
+        if (dataModel.SelectedItem.ProductId == Guid.Empty && Products.Count > 0)
+        { 
+            dataModel.SelectedItem.ProductId = Products.First().Id; 
+            dataModel.SelectedItem.UnitPrice = Products.First().Price; 
+        }
+
+        if (dataModel.WarehouseId == Guid.Empty && WareHouses.Count > 0)
+            dataModel.WarehouseId = WareHouses.First().Id;
     }
 
     private void OnScanKeyDown(KeyboardEventArgs e)
@@ -578,6 +591,7 @@
 
         CalculateLineTotal();
         var updated = new CreatePurchaseOrderItemDto(
+            dataModel.SelectedItem.Id,
             dataModel.SelectedItem.ProductId,
             dataModel.SelectedItem.Quantity,
             dataModel.SelectedItem.UnitPrice,
@@ -628,14 +642,14 @@
         _warrantyEnd = null;
         _binLocation = null;
 
-        dataModel.Items.Insert(0, new CreatePurchaseOrderItemDto(Guid.Empty, 0, 0, 0, DiscountType.Percentage, 0, 0, null));
+        dataModel.Items.Insert(0, new CreatePurchaseOrderItemDto(Guid.NewGuid(), Guid.Empty, 0, 0, 0, DiscountType.Percentage, 0, 0, null));
     }
 
     private void AddItem()
     {
         if (dataModel.SelectedItem.ProductId == Guid.Empty || dataModel.SelectedItem.Quantity <= 0) return;
         
-        dataModel.Items.Insert(dataModel.Items.Count, new CreatePurchaseOrderItemDto(dataModel.SelectedItem.ProductId, dataModel.SelectedItem.Quantity, dataModel.SelectedItem.UnitPrice, dataModel.SelectedItem.DiscountAmount, (DiscountType)dataModel.SelectedItem.DiscountType, dataModel.SelectedItem.TotalDiscount, dataModel.SelectedItem.TotalPrice, null,null));
+        dataModel.Items.Insert(dataModel.Items.Count, new CreatePurchaseOrderItemDto(Guid.NewGuid(), dataModel.SelectedItem.ProductId, dataModel.SelectedItem.Quantity, dataModel.SelectedItem.UnitPrice, dataModel.SelectedItem.DiscountAmount, (DiscountType)dataModel.SelectedItem.DiscountType, dataModel.SelectedItem.TotalDiscount, dataModel.SelectedItem.TotalPrice, null,null));
         dataModel.SelectedItem.Quantity = 1;
         dataModel.SelectedItem.DiscountAmount = 0;
         dataModel.SelectedItem.SelectedSerialIds = new();

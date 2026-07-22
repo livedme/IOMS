@@ -39,6 +39,7 @@ public class StocktakeService : IStocktakeService
     public async Task<StocktakeDto> GetStocktakeById(Guid id)
     {
         var st = await _context.Stocktakes
+            .AsSplitQuery()
             .Include(s => s.Warehouse)
             .Include(s => s.Items).ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(s => s.Id == id)
@@ -49,6 +50,7 @@ public class StocktakeService : IStocktakeService
     public async Task<StocktakeVarianceDto> GetVarianceReport(Guid stocktakeId)
     {
         var st = await _context.Stocktakes
+            .AsSplitQuery()
             .Include(s => s.Warehouse)
             .Include(s => s.Items).ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(s => s.Id == stocktakeId)

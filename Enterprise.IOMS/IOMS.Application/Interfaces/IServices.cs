@@ -21,6 +21,7 @@ public interface IOrderService
 {
     Task<Guid> CreateSalesOrder(CreateSalesOrderDto dto);
     Task UpdateSalesOrder(Guid id, CreateSalesOrderDto dto);
+    Task DeleteSalesOrder(Guid id);
     Task ApproveOrder(Guid orderId);
     Task CancelOrder(Guid orderId, string reason);
     Task UpdateOrderStatus(Guid orderId, OrderStatus newStatus);
@@ -31,6 +32,9 @@ public interface IOrderService
 public interface IPurchaseService
 {
     Task<Guid> CreatePurchaseOrder(CreatePurchaseOrderDto dto);
+    Task UpdatePurchaseOrder(Guid id, CreatePurchaseOrderDto dto);
+    Task CancelPurchaseOrder(Guid id);
+    Task DeletePurchaseOrder(Guid id);
     Task ApprovePurchaseOrder(Guid poId);
     Task ReceiveGoods(Guid poId, List<GoodsReceivedLineDto> lines);
     Task<PurchaseOrderDto?> GetPurchaseOrderById(Guid id);

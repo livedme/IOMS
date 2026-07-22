@@ -24,6 +24,7 @@ public class PurchaseReturnService : IPurchaseReturnService
     public async Task<PagedResult<PurchaseReturnDto>> GetPurchaseReturns(string? search, PurchaseReturnStatus? status, int page, int pageSize)
     {
         var query = _context.PurchaseReturns
+            .AsSplitQuery()
             .Include(r => r.PurchaseOrder)
             .Include(r => r.Items).ThenInclude(i => i.Product)
             .AsQueryable();
@@ -42,6 +43,7 @@ public class PurchaseReturnService : IPurchaseReturnService
     public async Task<PurchaseReturnDto> GetPurchaseReturnById(Guid id)
     {
         var ret = await _context.PurchaseReturns
+            .AsSplitQuery()
             .Include(r => r.PurchaseOrder)
             .Include(r => r.Items).ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(r => r.Id == id)

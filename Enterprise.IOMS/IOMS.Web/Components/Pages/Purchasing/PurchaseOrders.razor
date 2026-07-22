@@ -6,19 +6,21 @@
 @using IOMS.Infrastructure.Data
 @inject ApplicationDbContext DbContext
 
-<PageTitle>Purchase Orders - IOMS</PageTitle>
+<PageTitle>Purchase Order - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Purchase</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Purchase Order</MudText>
 
 <MudPaper Elevation="2" Class="pa-4">
     <MudGrid>
         <MudItem xs="12" sm="4">
             <MudTextField @bind-Value="_search" Placeholder="Search..." Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadOrders" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" DebounceInterval="300"
+                          OnDebounceIntervalElapsed="LoadOrders" ShrinkLabel="true" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" />
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true" Variant="Variant.Outlined"
+                       Margin="Margin.Dense">
                 @foreach (var status in Enum.GetValues<PurchaseOrderStatus>())
                 {
                     <MudSelectItem Value="@((PurchaseOrderStatus?)status)">@status</MudSelectItem>
@@ -31,7 +33,8 @@
         </MudItem>
     </MudGrid>
 
-    <MudTable Items="@_orders.Items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+    <MudTable Items="@_orders.Items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4"
+              Elevation="0">
         <HeaderContent>
             <MudTh>PO #</MudTh>
             <MudTh>Supplier</MudTh>
@@ -45,31 +48,44 @@
             <MudTd>@context.SupplierName</MudTd>
             <MudTd>@context.PurchaseDate.ToString("yyyy-MM-dd")</MudTd>
             <MudTd>
-                <MudChip T="string" Color="@CommonUtility.GetStatusColor(context.Status)" Size="Size.Small">@context.Status</MudChip>
-            </MudTd>
-            <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
-            <MudTd>
-                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
-                               OnClick="@(() => OpenCreateEdit(context.Id))" />
-
-                @if (context.Status == PurchaseOrderStatus.Draft)
-                {
-                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success"
-                                   OnClick="@(() => Approve(context.Id))" />
-                }
-                @if (context.Status == PurchaseOrderStatus.Approved || context.Status == PurchaseOrderStatus.PartiallyReceived)
-                {
-                    <MudIconButton Icon="@Icons.Material.Filled.Inventory" Size="Size.Small" Color="Color.Primary"
-                                   OnClick="@(() => ReceiveGoods(context))" />
-                }
-               
-            </MudTd>
-        </RowTemplate>
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
-    </MudTable>
-</MudPaper>
+                <MudChip T="string" Color="@CommonUtility.GetStatusColor(context.Status)" Size="Size.Small">
+                    @context.Status</MudChip>
+                </MudTd>
+                <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
+                <MudTd>
+                    @* @if (context.Status == PurchaseOrderStatus.Draft || context.Status == PurchaseOrderStatus.Submitted)
+                    { *@
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                       OnClick="@(() => OpenCreateEdit(context.Id))" />
+                   @*  }
+                    @if (context.Status == PurchaseOrderStatus.Draft)
+                    { *@
+                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success"
+                                       OnClick="@(() => Approve(context.Id))" />
+                   @*  }
+                    @if (context.Status == PurchaseOrderStatus.Approved || context.Status ==
+                    PurchaseOrderStatus.PartiallyReceived)
+                    { *@
+                        <MudIconButton Icon="@Icons.Material.Filled.Inventory" Size="Size.Small" Color="Color.Primary"
+                                       OnClick="@(() => ReceiveGoods(context))" />
+                   @*  }
+                    @if (context.Status == PurchaseOrderStatus.Draft || context.Status == PurchaseOrderStatus.Submitted)
+                    { *@
+                        <MudIconButton Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" Color="Color.Warning"
+                                       Title="Cancel PO" OnClick="@(() => CancelPO(context.Id))" />
+                   @*  }
+                    @if (context.Status == PurchaseOrderStatus.Draft || context.Status == PurchaseOrderStatus.Cancelled)
+                    { *@
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       Title="Delete PO" OnClick="@(() => DeletePO(context.Id))" />
+                    @* } *@
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
 
 @code {
     private PagedResult<PurchaseOrderDto> _orders = new(new(), 0, 1, 25);
@@ -130,39 +146,51 @@
         var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
         var wareHouse = await DbContext.Warehouses.OrderBy(p => p.Name).ToListAsync();
         var dataModel = new PurchaseOrderDtoModels();
+        string dialogTitle = "New Purchase Order";
+
         if (orderId.HasValue)
         {
             var order = await PurchaseService.GetPurchaseOrderById(orderId.Value);
             if (order == null) { Snackbar.Add("Purchase order not found", Severity.Error); return; }
 
+            dialogTitle = $"Edit PO #{order.OrderNumber}";
+            var supplierItem = suppliers.Where(s => s.Id == order.SupplierId)
+                .Select(s => new FilterItem(s.Id, s.Name, false))
+                .FirstOrDefault() ?? new FilterItem(order.SupplierId, order.SupplierName, false);
+
             dataModel = new PurchaseOrderDtoModels()
-                {
-                    PurchaseDate = order.PurchaseDate,
-                    SupplierId = order.SupplierId,
-                    WarehouseId = order.WarehouseId,
-                    DiscountAmount = order.DiscountAmount,
-                    TaxAmount = order.TaxAmount,
-                    DiscountType = order.DiscountType,
-                    DueAmount = order.DueAmount,
-                    TotalAmount = order.TotalAmount,
-                    LabourCharge = order.LabourCharge,
-                    TruckCharge = order.TruckCharge,
-                    SubTotal = order.SubTotal,
-                    PaidAmount = order.PaidAmount,
-                    Notes = order.Notes,
-                    Items = order.Items.Select(i => new CreatePurchaseOrderItemDto(i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount, (DiscountType)i.DiscountType, i.TotalDiscountAmount, i.LineTotalPrice, null, null)).ToList()
-                };
+            {
+                PurchaseDate = order.PurchaseDate,
+                SupplierId = order.SupplierId,
+                SelectedSupplier = supplierItem,
+                SupplierText = supplierItem.Name,
+                LastSupplierSelection = supplierItem,
+                WarehouseId = order.WarehouseId,
+                DiscountAmount = order.DiscountAmount,
+                TaxAmount = order.TaxAmount,
+                DiscountType = order.DiscountType,
+                DueAmount = order.DueAmount,
+                TotalAmount = order.TotalAmount,
+                LabourCharge = order.LabourCharge,
+                TruckCharge = order.TruckCharge,
+                SubTotal = order.SubTotal,
+                PaidAmount = order.PaidAmount,
+                Notes = order.Notes,
+                Items = order.Items.Select(i => new CreatePurchaseOrderItemDto(i.Id, i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount,
+(DiscountType)i.DiscountType, i.TotalDiscountAmount, i.LineTotalPrice, null, null)).ToList()
+            };
         }
 
         var parameters = new DialogParameters<PurchaseOrderDialog>
         {
-            { x => x.Suppliers, suppliers.Select(c => new SupplierDto(c.Id, c.Name, c.Email, c.Phone, c.Address, c.City, c.Zila, c.State, c.Country, c.PostalCode, null, 10, 1, false)).ToList() },
+            { x => x.Suppliers, suppliers.Select(c => new SupplierDto(c.Id, c.Name, c.Email, c.Phone, c.Address, c.City, c.Zila,
+c.State, c.Country, c.PostalCode, null, 10, 1, false)).ToList() },
             { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.CostPrice)).ToList() },
             { x => x.WareHouses, wareHouse.Select(p => (p.Id, p.Name)).ToList() },
             {x=>x.dataModel, dataModel }
         };
 
-        var dialog = await DialogService.ShowAsync<PurchaseOrderDialog>("New Purchase Order", parameters,
+        var dialog = await DialogService.ShowAsync<PurchaseOrderDialog>(dialogTitle, parameters,
             new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
         var result = await dialog.Result;
 
@@ -170,13 +198,52 @@
         {
             try
             {
-                await PurchaseService.CreatePurchaseOrder(dto);
-                Snackbar.Add("Purchase order created", Severity.Success);
+                if (orderId.HasValue)
+                {
+                    await PurchaseService.UpdatePurchaseOrder(orderId.Value, dto);
+                    Snackbar.Add("Purchase order updated", Severity.Success);
+                }
+                else
+                {
+                    await PurchaseService.CreatePurchaseOrder(dto);
+                    Snackbar.Add("Purchase order created", Severity.Success);
+                }
                 await LoadOrders();
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
     }
 
-   
+    private async Task CancelPO(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync("Cancel Purchase Order",
+            "Are you sure you want to cancel this purchase order?", "Yes, Cancel", "No");
+        if (confirm == true)
+        {
+            try
+            {
+                await PurchaseService.CancelPurchaseOrder(id);
+                Snackbar.Add("Purchase order cancelled", Severity.Warning);
+                await LoadOrders();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private async Task DeletePO(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync("Delete Purchase Order",
+            "This will permanently delete the purchase order. Continue?", "Yes, Delete", "No");
+        if (confirm == true)
+        {
+            try
+            {
+                await PurchaseService.DeletePurchaseOrder(id);
+                Snackbar.Add("Purchase order deleted", Severity.Success);
+                await LoadOrders();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
 }

@@ -251,8 +251,10 @@ public class OrderService : IOrderService
 
     public async Task UpdateSalesOrder(Guid id, CreateSalesOrderDto dto)
     {
+        // Clear stale tracked entities from previous operations in the same Blazor circuit scope
+        _context.ChangeTracker.Clear();
+
         var order = await _context.SalesOrders
-            .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == id)
             ?? throw new EntityNotFoundException("SalesOrder", id);
 
@@ -270,13 +272,19 @@ public class OrderService : IOrderService
         order.PaidAmount = dto.PaidAmount;
         order.DueAmount = dto.DueAmount;
 
-        _context.SalesOrderItems.RemoveRange(order.Items);
-        order.Items.Clear();
+        // Load old items (IgnoreQueryFilters bypasses TenantId/IsDeleted global filter)
+        // then RemoveRange so EF Core tracks them as Deleted with correct RowVersion
+        var oldItems = await _context.SalesOrderItems
+            .IgnoreQueryFilters()
+            .Where(i => i.SalesOrderId == id)
+            .ToListAsync();
+        _context.SalesOrderItems.RemoveRange(oldItems);
 
         foreach (var item in dto.Items)
         {
-            order.Items.Add(new SalesOrderItem
+            _context.SalesOrderItems.Add(new SalesOrderItem
             {
+                SalesOrderId = id,
                 ProductId = item.ProductId,
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice,
@@ -383,9 +391,20 @@ public class OrderService : IOrderService
         await _context.SaveChangesAsync();
     }
 
+    public async Task DeleteSalesOrder(Guid id)
+    {
+        var order = await _context.SalesOrders.FindAsync(id)
+            ?? throw new EntityNotFoundException("SalesOrder", id);
+        if (order.Status != OrderStatus.Cancelled)
+            throw new DomainException("Only cancelled sales orders can be deleted.");
+        order.IsDeleted = true;
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<SalesOrderDto?> GetSalesOrderById(Guid id)
     {
         var order = await _context.SalesOrders
+            .AsSplitQuery()
             .Include(o => o.Customer)
             .Include(o => o.Branch)
             .Include(o => o.Items).ThenInclude(i => i.Product)
@@ -400,6 +419,7 @@ public class OrderService : IOrderService
     public async Task<PagedResult<SalesOrderDto>> GetSalesOrders(string? search, List<OrderStatus?> status, int page, int pageSize)
     {
         var query = _context.SalesOrders
+            .AsSplitQuery()
             .Include(o => o.Customer)
             .Include(o => o.Branch)
             .Include(o => o.Items).ThenInclude(i => i.Product)
@@ -506,6 +526,50 @@ public class PurchaseService : IPurchaseService
         return po.Id;
     }
 
+    public async Task UpdatePurchaseOrder(Guid id, CreatePurchaseOrderDto dto)
+    {
+        // Clear stale tracked entities from previous operations in the same Blazor circuit scope
+        _context.ChangeTracker.Clear();
+
+        var po = await _context.PurchaseOrders
+            .FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new EntityNotFoundException("PurchaseOrder", id);
+
+        po.SupplierId = dto.SupplierId;
+        po.WarehouseId = dto.WarehouseId;
+        po.Notes = dto.Notes;
+        po.ExpectedDeliveryDate = dto.ExpectedDeliveryDate;
+
+        // Load old items (IgnoreQueryFilters bypasses TenantId/IsDeleted global filter)
+        // then RemoveRange so EF Core tracks them as Deleted with correct RowVersion
+        var oldItems = await _context.PurchaseOrderItems
+            .IgnoreQueryFilters()
+            .Where(i => i.PurchaseOrderId == id)
+            .ToListAsync();
+        _context.PurchaseOrderItems.RemoveRange(oldItems);
+
+        foreach (var item in dto.Items)
+        {
+            _context.PurchaseOrderItems.Add(new PurchaseOrderItem
+            {
+                PurchaseOrderId = id,
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                DiscountAmount = item.DiscountAmount,
+                DiscountType = item.DiscountType,
+                TotalDiscount = item.TotalDiscountAmount,
+                LineTotal = item.TotalPrice,
+                UoMId = item.UoMId
+            });
+        }
+
+        po.SubTotal = dto.Items.Sum(i => i.TotalPrice);
+        po.TotalAmount = po.SubTotal + po.TaxAmount;
+
+        await _context.SaveChangesAsync();
+    }
+
     public async Task ApprovePurchaseOrder(Guid poId)
     {
         var po = await _context.PurchaseOrders.FindAsync(poId)
@@ -515,6 +579,26 @@ public class PurchaseService : IPurchaseService
             throw new DomainException($"PO cannot be approved. Current status: {po.Status}");
 
         po.Status = PurchaseOrderStatus.Approved;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task CancelPurchaseOrder(Guid id)
+    {
+        var po = await _context.PurchaseOrders.FindAsync(id)
+            ?? throw new EntityNotFoundException("PurchaseOrder", id);
+        if (po.Status != PurchaseOrderStatus.Draft && po.Status != PurchaseOrderStatus.Submitted)
+            throw new DomainException($"Cannot cancel a purchase order with status {po.Status}.");
+        po.Status = PurchaseOrderStatus.Cancelled;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeletePurchaseOrder(Guid id)
+    {
+        var po = await _context.PurchaseOrders.FindAsync(id)
+            ?? throw new EntityNotFoundException("PurchaseOrder", id);
+        if (po.Status != PurchaseOrderStatus.Draft && po.Status != PurchaseOrderStatus.Cancelled)
+            throw new DomainException("Only draft or cancelled purchase orders can be deleted.");
+        po.IsDeleted = true;
         await _context.SaveChangesAsync();
     }
 
@@ -570,6 +654,7 @@ public class PurchaseService : IPurchaseService
     public async Task<PurchaseOrderDto?> GetPurchaseOrderById(Guid id)
     {
         var po = await _context.PurchaseOrders
+            .AsSplitQuery()
             .Include(p => p.Supplier)
             .Include(p => p.Warehouse)
             .Include(p => p.Items).ThenInclude(i => i.Product)
@@ -581,6 +666,7 @@ public class PurchaseService : IPurchaseService
     public async Task<PagedResult<PurchaseOrderDto>> GetPurchaseOrders(string? search, PurchaseOrderStatus? status, int page, int pageSize)
     {
         var query = _context.PurchaseOrders
+            .AsSplitQuery()
             .Include(p => p.Supplier)
             .Include(p => p.Warehouse)
             .Include(p => p.Items).ThenInclude(i => i.Product)
