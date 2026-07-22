@@ -15,7 +15,7 @@ public class SalesOrder : BaseEntity
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public string Naration { get; set; } = string.Empty;
     public string Chalan { get; set; } = string.Empty;    
-    public decimal ItemsTotalPrice { get; set; }
+    public decimal SubTotal { get; set; }
     public decimal LabourCharge { get; set; }
     public decimal TruckCharge { get; set;}
     public decimal TaxAmount { get; set; }

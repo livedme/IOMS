@@ -372,7 +372,7 @@ public static class SeedData
                     WarehouseId = warehouses[0].Id,
                     OrderDate = DateTime.UtcNow.AddDays(-rng.Next(1, 120)),
                     Status = statuses[i % statuses.Length],
-                    ItemsTotalPrice = subTotal, TaxAmount = taxAmt, TotalAmount = subTotal + taxAmt,
+                    SubTotal = subTotal, TaxAmount = taxAmt, TotalAmount = subTotal + taxAmt,
                     ShippingAddress = customers[i % 20].Address,
                     ExpectedDeliveryDate = DateTime.UtcNow.AddDays(rng.Next(5, 30)),
                     Items = items,

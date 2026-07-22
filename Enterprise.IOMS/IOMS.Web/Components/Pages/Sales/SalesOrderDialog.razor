@@ -63,10 +63,10 @@
         <MudTable Items="@dataModel.Items" Dense="true" Elevation="0" Class="product-item-list" FixedHeader="true" ContainerClass="border-bottom-0 mud-table-container">
             <HeaderContent>
                 <MudTh Style="width:auto;">Product</MudTh>
-                <MudTh Style="width:100px;">Qty</MudTh>
-                <MudTh Style="width:140px;">Unit Price</MudTh>
-                <MudTh Style="width:170px;">Discount</MudTh>
-                <MudTh Class="pe-0" Style="width:150px;">Total</MudTh>
+                <MudTh Style="width:80px;">Qty</MudTh>
+                <MudTh Style="width:130px;">Unit Price</MudTh>
+                <MudTh Style="width:165px;">Discount</MudTh>
+                <MudTh Class="pe-0" Style="width:150px;">Line Total</MudTh>
                 <MudTh Style="width:70px;" class="text-end">
                     <MudIconButton Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Primary" OnClick="AddNewItem" />
                 </MudTh>
@@ -77,7 +77,7 @@
                     <MudTd Class="d-flex justify-content-between" Style="width:auto;">
                         <MudAutocomplete T="FilterItem"
                                          @ref="ProductDropDownControl"
-                                         Label="Product"
+                                         Label=""
                                          Required="true"
                                          @key="_lastProductSelection"
                                          @bind-Value="dataModel.SelectedItem.SelectedProduct"
@@ -91,8 +91,8 @@
 
                         @if (_availableSerials.Any())
                         {
-                            <div style="max-height:80px;overflow-y:auto ;width:50%;    padding-left: 15px;">
-                                <MudSelect T="Guid" Label="Serials" @bind-Value="dataModel.SelectedItem.Serial" MultiSelectionTextFunc="@(new Func<IReadOnlyList<string>, string>(GetMultiSelectionText))" Class="form-control" MultiSelection="true" @bind-SelectedValues="_selectedSerialSet" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <div style="max-height:80px;overflow-y:auto ;width:50%;padding-left: 15px;">
+                                <MudSelect T="Guid" @bind-Value="dataModel.SelectedItem.Serial" MultiSelectionTextFunc="@(new Func<IReadOnlyList<string>, string>(GetMultiSelectionText))" Class="form-control" MultiSelection="true" @bind-SelectedValues="_selectedSerialSet" Variant="Variant.Outlined" Margin="Margin.Dense">
                                     @foreach (var serial in _availableSerials)
                                     {
                                         <MudSelectItem Value="@serial.Id">@serial.SerialNumber</MudSelectItem>
@@ -163,12 +163,12 @@
                         <MudNumericField @bind-Value="dataModel.StackQty" Label="Stack Qty" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                     </MudItem>
                     <MudItem xs="3" Class="pe-2 pt-2">
-                        <MudNumericField @bind-Value="dataModel.ItemAmount" Disabled="true" Label="Item Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                        <MudNumericField @bind-Value="dataModel.LabourCharges" Label="Labour Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                        <MudNumericField @bind-Value="dataModel.TruckCharges" Label="Truck Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.SubTotal" Disabled="true" Label="Item Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.LabourCharge" Label="Labour Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.TruckCharge" Label="Truck Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                     </MudItem>
                     <MudItem xs="3" Class="pe-2 pt-2">
-                        <MudNumericField @bind-Value="dataModel.VATAmount" Label="VAT" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.TaxAmount" Label="Tax" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         <div class="d-flex justify-content-between">
                             <MudNumericField @bind-Value="dataModel.DiscountAmount" Label="Discount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountField pb-1 col-7" />
                             <MudSelect @bind-Value="dataModel.DiscountType" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountTypeField pb-1 col-3">
@@ -176,7 +176,7 @@
                                 <MudSelectItem Value="1">Fixed</MudSelectItem>
                             </MudSelect>
                         </div>
-                        <MudNumericField @bind-Value="dataModel.GrandTotalAmount" Disabled="true" Label="Grand Total" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.TotalAmount" Disabled="true" Label="Grand Total" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                     </MudItem>
                     <MudItem xs="3" Class="pe-2 pt-2">
                         <MudNumericField @bind-Value="dataModel.PaidAmount" Label="Paid Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
@@ -383,7 +383,7 @@
         dataModel.SelectedItem.Quantity = 1;
         dataModel.SelectedItem.DiscountAmount = 0;
         dataModel.SelectedItem.SelectedSerialIds = new();
-        dataModel.ItemAmount = dataModel.Items.Sum(i => i.TotalPrice);
+        dataModel.SubTotal = dataModel.Items.Sum(i => i.TotalPrice);
         _availableSerials = new();
         _selectedSerialSet = Array.Empty<Guid>();
 
@@ -618,39 +618,44 @@
     private void CalculationBalance()
     {
         decimal totalVatAmount = 0;
-        decimal vat = dataModel.VATAmount;
+        decimal vat = dataModel.TaxAmount;
         if (vat > 0)
-            totalVatAmount = (dataModel.ItemAmount) * ((dataModel.VATAmount) / 100); ;
+            totalVatAmount = (dataModel.SubTotal) * ((dataModel.TaxAmount) / 100); ;
 
-        dataModel.GrandTotalAmount = (dataModel.ItemAmount) + totalVatAmount + (dataModel.LabourCharges) + (dataModel.TruckCharges);
+        dataModel.TotalAmount = (dataModel.SubTotal) + totalVatAmount + (dataModel.LabourCharge) + (dataModel.TruckCharge);
 
         decimal? discountAmt = 0m;
 
         if (dataModel.DiscountType == (int)DiscountType.Percentage)
         {
-            discountAmt = (dataModel.ItemAmount) * (dataModel.DiscountAmount / 100);
+            discountAmt = (dataModel.SubTotal) * (dataModel.DiscountAmount / 100);
         }
         else
         {
             discountAmt = dataModel.DiscountAmount;
         }
 
-        dataModel.GrandTotalAmount = dataModel.GrandTotalAmount - (discountAmt ?? 0);
+        dataModel.TotalAmount = dataModel.TotalAmount - (discountAmt ?? 0);
 
-        dataModel.DueAmount = (dataModel.GrandTotalAmount) - (dataModel.PaidAmount);
+        dataModel.DueAmount = (dataModel.TotalAmount) - (dataModel.PaidAmount);
     }
 
     private void Cancel() => MudDialog.Cancel();
 
     private void Submit()
     {
-        var dto = new CreateSalesOrderDto(dataModel.SelectedCustomer.Id, null, dataModel.BranchId, dataModel.Notes, null, null, null, OrderStatus.Sold, dataModel.SalesDate ?? DateTime.Today, dataModel.Items);
+        var dto = new CreateSalesOrderDto(dataModel.SelectedCustomer.Id, null, dataModel.BranchId, dataModel.Notes, null, null, null,
+            OrderStatus.Sold, dataModel.SalesDate ?? DateTime.Today, dataModel.SubTotal, dataModel.LabourCharge, dataModel.TruckCharge,
+            dataModel.TaxAmount, dataModel.DiscountType, dataModel.DiscountAmount, dataModel.TotalAmount, dataModel.PaidAmount, dataModel.DueAmount,dataModel.Items);
+
         MudDialog.Close(DialogResult.Ok(dto));
     }
 
     private void SubmitToPrint()
     {
-        var dto = new CreateSalesOrderDto(dataModel.SelectedCustomer.Id, null, dataModel.BranchId, dataModel.Notes, null, null, null, OrderStatus.Delivered, dataModel.SalesDate ?? DateTime.Today, dataModel.Items);
+        var dto = new CreateSalesOrderDto(dataModel.SelectedCustomer.Id, null, dataModel.BranchId, dataModel.Notes, null, null, null, 
+            OrderStatus.Delivered, dataModel.SalesDate ?? DateTime.Today, dataModel.SubTotal, dataModel.LabourCharge, dataModel.TruckCharge,
+            dataModel.TaxAmount, dataModel.DiscountType, dataModel.DiscountAmount, dataModel.TotalAmount, dataModel.PaidAmount, dataModel.DueAmount, dataModel.Items);
         MudDialog.Close(DialogResult.Ok(dto));
     }
 

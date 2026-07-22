@@ -42,7 +42,7 @@ public enum DiscountType
     [Display(Name = "%")]
     Percentage = 0,
 
-    [Display(Name = "Fixed")]
+    [Display(Name = "Fxd")]
     Fixed = 1
 }
 

@@ -407,7 +407,7 @@ public class QuotationService : IQuotationService
             });
         } 
 
-        order.ItemsTotalPrice = quote.SubTotal;
+        order.SubTotal = quote.SubTotal;
         order.TaxAmount = quote.TaxAmount;
         order.DiscountAmount = quote.DiscountAmount;
         order.TotalAmount = quote.TotalAmount;

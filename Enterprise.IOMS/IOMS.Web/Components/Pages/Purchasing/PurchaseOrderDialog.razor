@@ -71,9 +71,9 @@
         <MudTable Items="@dataModel.Items" Dense="true" Elevation="0" Class="product-item-list" FixedHeader="true" ContainerClass="border-bottom-0 mud-table-container">
             <HeaderContent>
                 <MudTh Style="width:auto;">Product</MudTh>
-                <MudTh Style="width:75px;">Qty</MudTh>
+                <MudTh Style="width:80px;">Qty</MudTh>
                 <MudTh Style="width:130px;">Unit Price</MudTh>
-                <MudTh Style="width:130px;">Discount</MudTh>
+                <MudTh Style="width:165px;">Discount</MudTh>
                 <MudTh Class="pe-0" Style="width:150px;">Line Total</MudTh>
                 <MudTh Style="width:70px;" class="text-end">
                     <MudIconButton Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Primary" OnClick="AddNewItemForm" />
@@ -99,10 +99,10 @@
 
                     </MudTd>
                     <MudTd Class="px-0" Style="width:auto;">
-                        <MudNumericField @bind-Value="dataModel.SelectedItem.Quantity" Label="Qty" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudNumericField @bind-Value="dataModel.SelectedItem.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudTd>
                     <MudTd Style="width:auto;">
-                        <MudNumericField @bind-Value="dataModel.SelectedItem.UnitPrice" Label="Price" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudNumericField @bind-Value="dataModel.SelectedItem.UnitPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudTd>
                     <MudTd Style="width:auto;" class="d-flex justify-content-between px-0">
                          <MudNumericField @bind-Value="dataModel.SelectedItem.DiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />

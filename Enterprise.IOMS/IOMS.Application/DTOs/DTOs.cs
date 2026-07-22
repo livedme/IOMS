@@ -177,14 +177,49 @@ public record CreateSupplierDto(string Name, string? Email, string? Phone, strin
     string? PaymentTerms, Guid? DefaultCurrencyId, int LeadTimeDays);
 
 public record SalesOrderDto(Guid Id, string OrderNumber, Guid CustomerId, CustomerDto Customer, Guid? BranchId, BranchDto? Branch,
-    DateTime OrderDate, OrderStatus Status, string Naration, string Chalan, decimal ItemsTotalPrice, decimal TruckCharge, decimal LabourCharge, decimal TaxAmount,
+    DateTime OrderDate, OrderStatus Status, string Naration, string Chalan, decimal SubTotal, decimal TruckCharge, decimal LabourCharge, decimal TaxAmount,
     decimal DiscountAmount, DiscountType DiscountType, decimal TotalAmount, decimal PaidAmount, decimal DueAmount, string? Notes, decimal ExchangeRate,
     DateTime? ExpectedDeliveryDate, List<SalesOrderItemDto> Items);
 public record SalesOrderItemDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU,
     int Quantity, int ShippedQuantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscount, decimal LineTotalPrice);
 
+//[OrderNumber]
+//      ,[CustomerId]
+//      ,[WarehouseId]
+//      ,[BranchId]
+//      ,[OrderDate]
+//      ,[Status]
+//      ,[Naration]
+//      ,[Chalan]
+//      ,[SubTotal]
+//      ,[LabourCharge]
+//      ,[TruckCharge]
+//      ,[TaxAmount]
+//      ,[DiscountType]
+//      ,[DiscountAmount]
+//      ,[TotalAmount]
+//      ,[PaidAmount]
+//      ,[DueAmount]
+//      ,[CurrencyId]
+//      ,[ExchangeRate]
+//      ,[Notes]
+//      ,[ShippingAddress]
+//      ,[ExpectedDeliveryDate]
+//      ,[IsBackOrder]
+//      ,[ShippingCarrier]
+//      ,[TrackingNumber]
+//      ,[DeliveredDate]
+//      ,[TenantId]
+//      ,[CreatedAt]
+//      ,[CreatedBy]
+//      ,[UpdatedAt]
+//      ,[UpdatedBy]
+//      ,[IsDeleted]
+//      ,[RowVersion]
+
 public record CreateSalesOrderDto(Guid CustomerId, Guid? WarehouseId, Guid? BranchId, string? Notes,
-    string? ShippingAddress, DateTime? ExpectedDeliveryDate, Guid? CurrencyId, OrderStatus? Status, DateTime? SalesDate,
+    string? ShippingAddress, DateTime? ExpectedDeliveryDate, Guid? CurrencyId, OrderStatus Status, DateTime SalesDate,
+    decimal SubTotal, decimal LabourCharge, decimal TruckCharge, decimal TaxAmount, DiscountType DiscountType, decimal DiscountAmount,  decimal TotalAmount, decimal PaidAmount, decimal DueAmount,
     List<CreateSalesOrderItemDto> Items);
 
 public record CreateSalesOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId, List<Guid>? SerialIds = null);

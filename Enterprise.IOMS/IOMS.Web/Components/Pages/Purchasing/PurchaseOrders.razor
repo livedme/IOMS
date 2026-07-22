@@ -8,7 +8,7 @@
 
 <PageTitle>Purchase Orders - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Purchase Orders</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Purchase</MudText>
 
 <MudPaper Elevation="2" Class="pa-4">
     <MudGrid>
@@ -142,7 +142,7 @@
                     WarehouseId = order.WarehouseId,
                     DiscountAmount = order.DiscountAmount,
                     TaxAmount = order.TaxAmount,
-                    DiscountType = (int)order.DiscountType,
+                    DiscountType = order.DiscountType,
                     DueAmount = order.DueAmount,
                     TotalAmount = order.TotalAmount,
                     LabourCharge = order.LabourCharge,

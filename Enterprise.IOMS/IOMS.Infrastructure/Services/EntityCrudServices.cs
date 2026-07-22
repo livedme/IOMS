@@ -404,7 +404,7 @@ public class InvoiceService : IInvoiceService
         if (dto.SalesOrderId.HasValue)
         {
             var so = await _db.SalesOrders.FindAsync(dto.SalesOrderId.Value);
-            if (so != null) { invoice.SubTotal = so.ItemsTotalPrice; invoice.TaxAmount = so.TaxAmount; invoice.TotalAmount = so.TotalAmount; invoice.CustomerId = so.CustomerId; }
+            if (so != null) { invoice.SubTotal = so.SubTotal; invoice.TaxAmount = so.TaxAmount; invoice.TotalAmount = so.TotalAmount; invoice.CustomerId = so.CustomerId; }
         }
         else if (dto.PurchaseOrderId.HasValue)
         {

@@ -20,13 +20,13 @@ namespace IOMS.Application.DTOs
         public decimal DrAmount { get; set; }
         public decimal CrAmount { get; set; }
         public int StackQty { get; set; }
-        public decimal ItemAmount { get; set; }
-        public decimal LabourCharges { get; set; }
-        public decimal TruckCharges { get; set; }
-        public decimal VATAmount { get; set; }
+        public decimal SubTotal { get; set; }
+        public decimal LabourCharge { get; set; }
+        public decimal TruckCharge { get; set; }
+        public decimal TaxAmount { get; set; }
         public decimal DiscountAmount { get; set; }
-        public int DiscountType { get; set; }
-        public decimal GrandTotalAmount { get; set; }
+        public DiscountType DiscountType { get; set; }
+        public decimal TotalAmount { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal DueAmount { get; set; }
         public FilterItem SelectedCustomer { get; set; } = new FilterItem(Guid.Empty, "", false);
@@ -69,7 +69,7 @@ namespace IOMS.Application.DTOs
         public decimal TruckCharge { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal DiscountAmount { get; set; }
-        public int DiscountType { get; set; }
+        public DiscountType DiscountType { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal DueAmount { get; set; }

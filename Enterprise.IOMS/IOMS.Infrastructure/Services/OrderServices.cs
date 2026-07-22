@@ -7,6 +7,8 @@ using IOMS.Domain.Enums;
 using IOMS.Domain.Exceptions;
 using IOMS.Infrastructure.Data;
 using IOMS.Shared.Helpers;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.CodeAnalysis.Operations;
 using Microsoft.EntityFrameworkCore;
 
 namespace IOMS.Infrastructure.Services;
@@ -190,8 +192,18 @@ public class OrderService : IOrderService
             Notes = dto.Notes,
             ShippingAddress = dto.ShippingAddress,
             ExpectedDeliveryDate = dto.ExpectedDeliveryDate,
-            CurrencyId = dto.CurrencyId,
-            Status = dto.Status == null ? OrderStatus.Pending : dto.Status.Value
+            CurrencyId = dto.CurrencyId,           
+            OrderDate = dto.SalesDate,                     
+            SubTotal = dto.SubTotal,
+            LabourCharge = dto.LabourCharge,
+            TruckCharge = dto.TruckCharge,
+            TaxAmount = dto.TaxAmount,
+            DiscountType = dto.DiscountType,
+            DiscountAmount = dto.DiscountAmount,
+            TotalAmount = dto.TotalAmount,
+            PaidAmount = dto.PaidAmount,
+            DueAmount = dto.DueAmount,
+            Status = dto.Status == null ? OrderStatus.Pending : dto.Status
         };
 
         foreach (var item in dto.Items)
@@ -209,17 +221,16 @@ public class OrderService : IOrderService
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice,
                 DiscountType = item.DiscountType,
-                DiscountAmount = discountAmt,
-
+                DiscountAmount = discountAmt,                
                 LineTotalPrice = lineTotal,
                 UoMId = item.UoMId
             });
         }
 
-        order.ItemsTotalPrice = order.Items.Sum(i => i.LineTotalPrice);
-        order.DiscountAmount = order.Items.Sum(i => i.DiscountAmount);
-        order.TaxAmount = order.TaxAmount;
-        order.TotalAmount = order.ItemsTotalPrice - order.DiscountAmount + order.TaxAmount + order.TruckCharge + order.LabourCharge;
+        //order.SubTotal = order.Items.Sum(i => i.LineTotalPrice);
+        //order.DiscountAmount = order.Items.Sum(i => i.DiscountAmount);
+        //order.TaxAmount = order.TaxAmount;
+        //order.TotalAmount = order.SubTotal - order.DiscountAmount + order.TaxAmount + order.TruckCharge + order.LabourCharge;
 
         _context.SalesOrders.Add(order);
         await _context.SaveChangesAsync();
