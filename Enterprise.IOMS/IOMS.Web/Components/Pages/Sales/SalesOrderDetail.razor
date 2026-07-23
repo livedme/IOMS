@@ -13,78 +13,6 @@
 }
 else
 {
-
-    @* 
-    <MudGrid>
-        <MudItem xs="12">
-            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
-                       OnClick="@(() => Nav.NavigateTo("/orders/sales"))">Back to Orders</MudButton>
-        </MudItem>
-        <MudItem xs="12">
-            <MudText Typo="Typo.h4">@_order.OrderNumber</MudText>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="3">
-            <MudField Label="Customer">@_order.Customer.Name</MudField>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudField Label="Date">@_order.OrderDate.ToString("yyyy-MM-dd")</MudField>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudField Label="Status">
-                <MudChip T="string" Color="Color.Info" Size="Size.Small">@_order.Status</MudChip>
-            </MudField>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudField Label="Total">@_order.TotalAmount.ToString("C")</MudField>
-        </MudItem>
-
-        <MudItem xs="12">
-            <MudTable Items="@_order.Items" Dense="true" Hover="true" Elevation="2">
-                <HeaderContent>
-                    <MudTh>Product</MudTh>
-                    <MudTh>SKU</MudTh>
-                    <MudTh Style="text-align:right">Qty</MudTh>
-                    <MudTh Style="text-align:right">Shipped</MudTh>
-                    <MudTh Style="text-align:right">Unit Price</MudTh>
-                    <MudTh Style="text-align:right">Discount</MudTh>
-                    <MudTh Style="text-align:right">Total Discount</MudTh>
-                    <MudTh Style="text-align:right">Line Total</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>@context.ProductName</MudTd>
-                    <MudTd>@context.ProductSKU</MudTd>
-                    <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                    <MudTd Style="text-align:right">@context.ShippedQuantity</MudTd>
-                    <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
-                    <MudTd Style="text-align:right">@context.DiscountAmount.ToString("C")</MudTd>
-                    <MudTd Style="text-align:right">@context.TotalDiscount.ToString("C")</MudTd>
-                    <MudTd Style="text-align:right">@context.LineTotalPrice.ToString("C")</MudTd>
-                </RowTemplate>
-            </MudTable>
-        </MudItem>
-
-        <MudItem xs="12">
-            <MudGrid>
-                <MudItem xs="12" sm="6" md="3">
-                    <MudField Label="Subtotal">@_order.ItemsTotalPrice.ToString("C")</MudField>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                    <MudField Label="Tax">@_order.TaxAmount.ToString("C")</MudField>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                    <MudField Label="Discount">@_order.DiscountAmount.ToString("C")</MudField>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                    <MudField Label="Truck Charge">@_order.TruckCharge.ToString("C")</MudField>
-                </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                    <MudField Label="Labour Charge">@_order.LabourCharge.ToString("C")</MudField>
-                </MudItem>
-            </MudGrid>
-        </MudItem>
-    </MudGrid> *@
-
     <div class="p-4">
         <MudItem xs="12">
             <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/orders/sales"))">Back to Orders</MudButton>
@@ -102,11 +30,11 @@ else
                         <div class="icon-circle"><i class="fa fa-building"></i></div>
                         <div>
                             <div class="text-muted">Customer</div>
-                            <h5>@_order.Customer.Name</h5>
-                            @_order.Customer.Address<br>
-                            @_order.Customer.City, @_order.Customer.State @_order.Customer.PostalCode<br>
-                            @_order.Customer.Email<br>
-                            Phone: @_order.Customer.Phone
+                            <h5>@_order.Customer?.Name</h5>
+                            @_order.Customer?.Address<br>
+                            @_order.Customer?.City, @_order.Customer?.State @_order.Customer?.PostalCode<br>
+                            @_order.Customer?.Email<br>
+                            Phone: @_order.Customer?.Phone
                         </div>
                     </div>
                 </div>
@@ -138,9 +66,9 @@ else
                         <div class="icon-circle"><i class="fa fa-tag"></i></div>
                         <div>
                             <div class="text-muted">Branch</div>
-                            <h5>@_order.Branch.Name</h5>
-                            @_order.Branch.Location<br>
-                            @_order.Branch.Address<br>
+                            <h5>@_order.Branch?.Name</h5>
+                            @_order.Branch?.Location<br>
+                            @_order.Branch?.Address<br>
                         </div>
                     </div>
                 </div>
