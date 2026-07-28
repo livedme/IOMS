@@ -10,7 +10,7 @@
                 <MudSelect @bind-Value="_salesOrderId" Label="Sales Order" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var so in _salesOrders)
                     {
-                        <MudSelectItem Value="@so.Id">@so.OrderNumber - @so.Customer.Name</MudSelectItem>
+                        <MudSelectItem Value="@so.Id">@so.OrderNumber - @so.Customer.CustomerName</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>

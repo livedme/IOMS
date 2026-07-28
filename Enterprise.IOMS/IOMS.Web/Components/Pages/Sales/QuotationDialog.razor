@@ -12,7 +12,7 @@
                     <MudSelect @bind-Value="_customerId" Label="Customer" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                         @foreach (var c in _customers)
                         {
-                            <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
+                            <MudSelectItem Value="@c.Id">@c.CustomerName</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -82,7 +82,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+        _customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToListAsync();
         _products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
     }
 

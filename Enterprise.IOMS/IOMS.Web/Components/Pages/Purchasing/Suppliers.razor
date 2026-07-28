@@ -67,10 +67,10 @@
         _loading = true;
         var query = DbContext.Suppliers.AsQueryable();
         if (!string.IsNullOrWhiteSpace(_searchString))
-            query = query.Where(s => s.Name.Contains(_searchString) || (s.Email != null && s.Email.Contains(_searchString)));
+            query = query.Where(s => s.SupplierName.Contains(_searchString) || (s.SupplierEmail != null && s.SupplierEmail.Contains(_searchString)));
 
-        var data = await query.OrderBy(s => s.Name).Take(100).ToListAsync();
-        _items = data.Select(s => new SupplierListItem(s.Id, s.Name, s.Email, s.Phone, s.LeadTimeDays, s.Rating, s.IsActive)).ToList();
+        var data = await query.OrderBy(s => s.SupplierName).Take(100).ToListAsync();
+        _items = data.Select(s => new SupplierListItem(s.Id, s.SupplierName, s.SupplierEmail, s.SupplierPhone, s.LeadTimeDays, s.Rating, s.IsActive)).ToList();
         _loading = false;
     }
 
@@ -83,7 +83,9 @@
         {
             DbContext.Suppliers.Add(new IOMS.Domain.Entities.Supplier
             {
-                Name = dto.Name, Email = dto.Email, Phone = dto.Phone,
+                SupplierName = dto.SupplierName,
+                SupplierEmail = dto.SupplierEmail,
+                SupplierPhone = dto.SupplierPhone,
                 Address = dto.Address, City = dto.City, State = dto.State,
                 Country = dto.Country, PostalCode = dto.PostalCode,
                 PaymentTerms = dto.PaymentTerms, LeadTimeDays = dto.LeadTimeDays
@@ -99,7 +101,7 @@
         var entity = await DbContext.Suppliers.FindAsync(item.Id);
         if (entity == null) return;
 
-        var dto = new SupplierDto(entity.Id, entity.Name, entity.Email, entity.Phone, entity.Address,
+        var dto = new SupplierDto(entity.Id, entity.SupplierName, entity.SupplierEmail, entity.SupplierPhone,"","","", entity.Address,
             entity.City, entity.Zila, entity.State, entity.Country, entity.PostalCode, entity.PaymentTerms, entity.LeadTimeDays, entity.Rating, entity.IsActive);
 
         var parameters = new DialogParameters<SupplierDialog> { { x => x.Supplier, dto } };
@@ -108,7 +110,7 @@
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateSupplierDto updated)
         {
-            entity.Name = updated.Name; entity.Email = updated.Email; entity.Phone = updated.Phone;
+            entity.SupplierName = updated.SupplierName; entity.SupplierEmail = updated.SupplierEmail; entity.SupplierPhone = updated.SupplierPhone;
             entity.Address = updated.Address; entity.City = updated.City; entity.State = updated.State;
             entity.Country = updated.Country; entity.PostalCode = updated.PostalCode;
             entity.PaymentTerms = updated.PaymentTerms; entity.LeadTimeDays = updated.LeadTimeDays;

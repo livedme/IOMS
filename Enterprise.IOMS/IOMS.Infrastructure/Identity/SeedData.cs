@@ -250,9 +250,9 @@ public static class SeedData
             {
                 customers.Add(new Customer
                 {
-                    Name = custNames[i],
-                    Email = $"contact@{custNames[i].ToLower().Replace(" ", "").Replace(".", "").Replace("'", "")}.com",
-                    Phone = $"+1-555-{1000 + i:D4}",
+                    CustomerName = custNames[i],
+                    CustomerEmail = $"contact@{custNames[i].ToLower().Replace(" ", "").Replace(".", "").Replace("'", "")}.com",
+                    CustomerPhone = $"+1-555-{1000 + i:D4}",
                     Address = $"{100 + i * 5} Commerce St",
                     City = new[] { "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "Austin", "Jacksonville", "Fort Worth", "Columbus", "Charlotte", "Indianapolis", "San Francisco", "Seattle", "Denver", "Nashville", "Portland" }[i],
                     State = new[] { "NY", "CA", "IL", "TX", "AZ", "PA", "TX", "CA", "TX", "TX", "FL", "TX", "OH", "NC", "IN", "CA", "WA", "CO", "TN", "OR" }[i],
@@ -268,7 +268,7 @@ public static class SeedData
         }
         else
         {
-            customers = await context.Customers.IgnoreQueryFilters().Where(c => c.TenantId == tenantId).OrderBy(c => c.Name).Take(20).ToListAsync();
+            customers = await context.Customers.IgnoreQueryFilters().Where(c => c.TenantId == tenantId).OrderBy(c => c.CustomerName).Take(20).ToListAsync();
         }
 
         // --- Suppliers (20) ---
@@ -280,9 +280,9 @@ public static class SeedData
             {
                 suppliers.Add(new Supplier
                 {
-                    Name = suppNames[i],
-                    Email = $"sales@{suppNames[i].ToLower().Replace(" ", "").Replace(".", "").Replace("'", "")}.com",
-                    Phone = $"+1-555-{2000 + i:D4}",
+                    SupplierName = suppNames[i],
+                    SupplierEmail = $"sales@{suppNames[i].ToLower().Replace(" ", "").Replace(".", "").Replace("'", "")}.com",
+                    SupplierPhone = $"+1-555-{2000 + i:D4}",
                     Address = $"{200 + i * 10} Supplier Blvd",
                     City = "Industry City",
                     State = "CA", Country = "US", PostalCode = $"{90001 + i * 10}",
@@ -297,7 +297,7 @@ public static class SeedData
         }
         else
         {
-            suppliers = await context.Suppliers.IgnoreQueryFilters().Where(s => s.TenantId == tenantId).OrderBy(s => s.Name).Take(20).ToListAsync();
+            suppliers = await context.Suppliers.IgnoreQueryFilters().Where(s => s.TenantId == tenantId).OrderBy(s => s.SupplierName).Take(20).ToListAsync();
         }
 
         // --- Inventory (20 records - one per product in main warehouse) ---

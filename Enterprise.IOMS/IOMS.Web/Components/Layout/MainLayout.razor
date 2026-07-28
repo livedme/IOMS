@@ -50,7 +50,9 @@
     </MudDrawer> *@
 
     <MudAppBar Style="border-bottom:1px solid var(--mud-palette-lines-default); backdrop-filter:blur(12px); background:rgba(255,255,255,0.85);height: 54px;">
-        <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Default" Edge="Edge.Start" Class="me-2 icon-toggle" Style="color:#e5e7eb;" OnClick="@ToggleDrawer" />
+        <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Default" Edge="Edge.Start" Class="me-2 icon-toggle" Style="color:#e5e7eb;" OnClick="@ToggleDrawer" />        
+        <MudNavLink Href="/orders/sales" Icon="@Icons.Material.Outlined.ShoppingBag">Sales</MudNavLink>
+        <MudNavLink Href="/orders/purchase" Icon="@Icons.Material.Outlined.ShoppingBag">Purchase</MudNavLink>
         <MudSpacer />
         <MudTooltip Text="@(_isDarkMode ? "Light Mode" : "Dark Mode")">
             <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"

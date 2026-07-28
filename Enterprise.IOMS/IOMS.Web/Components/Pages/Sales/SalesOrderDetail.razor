@@ -30,11 +30,11 @@ else
                         <div class="icon-circle"><i class="fa fa-building"></i></div>
                         <div>
                             <div class="text-muted">Customer</div>
-                            <h5>@_order.Customer?.Name</h5>
+                            <h5>@_order.Customer?.CustomerName</h5>
                             @_order.Customer?.Address<br>
                             @_order.Customer?.City, @_order.Customer?.State @_order.Customer?.PostalCode<br>
-                            @_order.Customer?.Email<br>
-                            Phone: @_order.Customer?.Phone
+                            @_order.Customer?.CustomerEmail<br>
+                            Phone: @_order.Customer?.CustomerPhone
                         </div>
                     </div>
                 </div>

@@ -63,7 +63,7 @@
                 PaymentMethod = p.PaymentMethod,
                 Amount = p.Amount,
                 Reference = p.Reference ?? "",
-                EntityName = p.Customer?.Name ?? p.Supplier?.Name ?? ""
+                EntityName = p.Customer?.CustomerName ?? p.Supplier?.SupplierName ?? ""
             }).ToList();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

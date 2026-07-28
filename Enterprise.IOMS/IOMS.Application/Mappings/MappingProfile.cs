@@ -63,7 +63,7 @@ public class MappingProfile : Profile
                 s.Id,
                 s.OrderNumber,
                 s.SupplierId,
-                s.Supplier != null ? s.Supplier.Name : string.Empty,
+                s.Supplier != null ? s.Supplier.SupplierName : string.Empty,
                 s.WarehouseId ?? Guid.Empty,
                 s.Warehouse != null ? s.Warehouse.Name : string.Empty,
                 s.PurchaseDate,
@@ -113,8 +113,8 @@ public class MappingProfile : Profile
 
         // Invoice
         CreateMap<Invoice, InvoiceDto>()
-            .ForMember(d => d.CustomerName, o => o.MapFrom(s => s.Customer != null ? s.Customer.Name : null))
-            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier != null ? s.Supplier.Name : null))
+            .ForMember(d => d.CustomerName, o => o.MapFrom(s => s.Customer != null ? s.Customer.CustomerName : null))
+            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier != null ? s.Supplier.SupplierName : null))
             .ForMember(d => d.BalanceDue, o => o.MapFrom(s => s.TotalAmount - s.PaidAmount));
 
         // Payment
@@ -123,7 +123,7 @@ public class MappingProfile : Profile
 
         // Sales Quote
         CreateMap<SalesQuote, SalesQuoteDto>()
-            .ForMember(d => d.CustomerName, o => o.MapFrom(s => s.Customer.Name));
+            .ForMember(d => d.CustomerName, o => o.MapFrom(s => s.Customer.CustomerName));
 
         CreateMap<SalesQuoteItem, SalesQuoteItemDto>()
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
@@ -179,7 +179,7 @@ public class MappingProfile : Profile
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name));
 
         CreateMap<RfqSupplierResponse, RfqSupplierResponseDto>()
-            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier.Name));
+            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier != null ? s.Supplier.SupplierName : null));
 
         // Credit/Debit Notes
         CreateMap<CreditNote, CreditNoteDto>()
@@ -253,7 +253,7 @@ public class MappingProfile : Profile
         CreateMap<ProductSerial, ProductSerialDto>()
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
             .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Name : null))
-            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier != null ? s.Supplier.Name : null))
+            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier != null ? s.Supplier.SupplierName : null))
             .ForMember(d => d.CreatedAt, o => o.MapFrom(s => s.CreatedAt));
     }
 }

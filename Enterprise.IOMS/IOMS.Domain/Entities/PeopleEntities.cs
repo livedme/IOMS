@@ -2,9 +2,12 @@ namespace IOMS.Domain.Entities;
 
 public class Customer : BaseEntity
 {
-    public string Name { get; set; } = string.Empty;
-    public string? Email { get; set; }
-    public string? Phone { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerEmail { get; set; }
+    public string? CustomerPhone { get; set; }
+    public string ContactPersonName { get; set; } = string.Empty;
+    public string? ContactPersonEmail { get; set; }
+    public string? ContactPersonPhone { get; set; }
     public string? Address { get; set; }
     public string? City { get; set; }
     public string? Zila { get; set; }    
@@ -29,9 +32,12 @@ public class Customer : BaseEntity
 
 public class Supplier : BaseEntity
 {
-    public string Name { get; set; } = string.Empty;
-    public string? Email { get; set; }
-    public string? Phone { get; set; }
+    public string SupplierName { get; set; } = string.Empty;
+    public string? SupplierEmail { get; set; }
+    public string? SupplierPhone { get; set; }
+    public string ContactPersonName { get; set; } = string.Empty;
+    public string? ContactPersonEmail { get; set; }
+    public string? ContactPersonPhone { get; set; }
     public string? Address { get; set; }
     public string? City { get; set; }
     public string? Zila { get; set; }

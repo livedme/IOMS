@@ -79,7 +79,7 @@
 
             var data = await query.OrderByDescending(i => i.InvoiceDate).Take(100).ToListAsync();
             _items = data.Select(i => new InvoiceDto(i.Id, i.InvoiceNumber, i.InvoiceType, i.Status,
-                i.CustomerId, i.Customer?.Name, i.SupplierId, i.Supplier?.Name,
+                i.CustomerId, i.Customer?.CustomerName, i.SupplierId, i.Supplier?.SupplierName,
                 i.InvoiceDate, i.DueDate, i.SubTotal, i.TaxAmount, i.TotalAmount, i.PaidAmount, i.BalanceDue)).ToList();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

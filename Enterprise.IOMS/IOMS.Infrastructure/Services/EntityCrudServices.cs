@@ -246,9 +246,9 @@ public class CustomerSupplierService : ICustomerSupplierService
     {
         var query = _db.Customers.AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(c => c.Name.Contains(search) || (c.Email != null && c.Email.Contains(search)));
+            query = query.Where(c => c.CustomerName.Contains(search) || (c.CustomerEmail != null && c.CustomerEmail.Contains(search)));
         var total = await query.CountAsync();
-        var items = await query.OrderBy(c => c.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+        var items = await query.OrderBy(c => c.CustomerName).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
         return new PagedResult<CustomerDto>(_mapper.Map<List<CustomerDto>>(items), total, page, pageSize);
     }
 
@@ -262,9 +262,12 @@ public class CustomerSupplierService : ICustomerSupplierService
     {
         var customer = new Customer
         {
-            Name = dto.Name,
-            Email = dto.Email,
-            Phone = dto.Phone,
+            CustomerName = dto.CustomerName,
+            CustomerEmail = dto.CustomerEmail,
+            CustomerPhone = dto.CustomerPhone,
+            ContactPersonEmail = dto.ContactPersonEmail,
+            ContactPersonPhone = dto.ContactPersonPhone,
+            ContactPersonName = dto.ContactPersonName,
             Address = dto.Address,
             City = dto.City,
             State = dto.State,
@@ -285,7 +288,8 @@ public class CustomerSupplierService : ICustomerSupplierService
     public async Task UpdateCustomer(Guid id, CreateCustomerDto dto)
     {
         var customer = await _db.Customers.FindAsync(id) ?? throw new KeyNotFoundException("Customer not found");
-        customer.Name = dto.Name; customer.Email = dto.Email; customer.Phone = dto.Phone;
+        customer.CustomerName = dto.CustomerName; customer.CustomerEmail = dto.CustomerEmail; customer.CustomerPhone = dto.CustomerPhone;
+        customer.ContactPersonName = dto.ContactPersonName; customer.ContactPersonEmail = dto.ContactPersonEmail; customer.ContactPersonPhone = dto.ContactPersonPhone;        
         customer.Address = dto.Address; customer.City = dto.City; customer.State = dto.State;
         customer.Country = dto.Country; customer.PostalCode = dto.PostalCode;
         customer.CreditLimit = dto.CreditLimit; customer.PaymentTerms = dto.PaymentTerms;
@@ -304,9 +308,9 @@ public class CustomerSupplierService : ICustomerSupplierService
     {
         var query = _db.Suppliers.AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(s => s.Name.Contains(search) || (s.Email != null && s.Email.Contains(search)));
+            query = query.Where(s => s.SupplierName.Contains(search) || (s.SupplierEmail != null && s.SupplierEmail.Contains(search)));
         var total = await query.CountAsync();
-        var items = await query.OrderBy(s => s.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+        var items = await query.OrderBy(s => s.SupplierName).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
         return new PagedResult<SupplierDto>(_mapper.Map<List<SupplierDto>>(items), total, page, pageSize);
     }
 
@@ -320,9 +324,9 @@ public class CustomerSupplierService : ICustomerSupplierService
     {
         var supplier = new Supplier
         {
-            Name = dto.Name,
-            Email = dto.Email,
-            Phone = dto.Phone,
+            SupplierName = dto.SupplierName,
+            SupplierEmail = dto.SupplierEmail,
+            SupplierPhone = dto.SupplierPhone,
             Address = dto.Address,
             City = dto.City,
             State = dto.State,
@@ -340,7 +344,7 @@ public class CustomerSupplierService : ICustomerSupplierService
     public async Task UpdateSupplier(Guid id, CreateSupplierDto dto)
     {
         var supplier = await _db.Suppliers.FindAsync(id) ?? throw new KeyNotFoundException("Supplier not found");
-        supplier.Name = dto.Name; supplier.Email = dto.Email; supplier.Phone = dto.Phone;
+        supplier.SupplierName = dto.SupplierName; supplier.SupplierEmail = dto.SupplierEmail; supplier.SupplierPhone = dto.SupplierPhone;
         supplier.Address = dto.Address; supplier.City = dto.City; supplier.State = dto.State;
         supplier.Country = dto.Country; supplier.PostalCode = dto.PostalCode;
         supplier.PaymentTerms = dto.PaymentTerms; supplier.LeadTimeDays = dto.LeadTimeDays;

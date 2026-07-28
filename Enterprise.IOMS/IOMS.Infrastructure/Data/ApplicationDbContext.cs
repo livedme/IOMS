@@ -431,10 +431,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<Inventory>().HasIndex(i => new { i.ProductId, i.WarehouseId }).IsUnique();
 
-        builder.Entity<Customer>().HasIndex(c => new { c.TenantId, c.Email });
-        builder.Entity<Customer>().HasIndex(c => c.Name);
+        builder.Entity<Customer>().HasIndex(c => new { c.TenantId, c.CustomerEmail });
+        builder.Entity<Customer>().HasIndex(c => c.CustomerName);
 
-        builder.Entity<Supplier>().HasIndex(s => new { s.TenantId, s.Email });
+        builder.Entity<Supplier>().HasIndex(s => new { s.TenantId, s.SupplierEmail });
 
         builder.Entity<SalesOrder>().HasIndex(o => new { o.TenantId, o.OrderNumber }).IsUnique();
         builder.Entity<SalesOrder>().HasIndex(o => o.Status);

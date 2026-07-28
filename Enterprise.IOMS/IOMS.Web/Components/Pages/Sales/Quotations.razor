@@ -92,14 +92,14 @@
 
             if (_statusFilter.HasValue) query = query.Where(q => q.Status == _statusFilter.Value);
             if (!string.IsNullOrWhiteSpace(_search))
-                query = query.Where(q => q.QuoteNumber.Contains(_search) || q.Customer.Name.Contains(_search));
+                query = query.Where(q => q.QuoteNumber.Contains(_search) || q.Customer.CustomerName.Contains(_search));
 
             var data = await query.OrderByDescending(q => q.QuoteDate).Take(100).ToListAsync();
             _quotes = data.Select(q => new QuoteDisplayDto
             {
                 Id = q.Id,
                 QuoteNumber = q.QuoteNumber,
-                CustomerName = q.Customer?.Name ?? "",
+                CustomerName = q.Customer?.CustomerName ?? "",
                 QuoteDate = q.QuoteDate,
                 ValidUntil = q.ValidUntil,
                 Status = q.Status,

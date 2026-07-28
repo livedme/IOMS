@@ -344,7 +344,7 @@ else if (_summaryLoaded)
 
             // ── Customer breakdown (orders + invoices + payments) ──
             var invByCustomer = invoices.Where(i => i.CustomerId.HasValue)
-                .GroupBy(i => i.Customer?.Name ?? "Unknown")
+                .GroupBy(i => i.Customer?.CustomerName ?? "Unknown")
                 .ToDictionary(g => g.Key, g => g.Sum(i => i.TotalAmount));
 
             var paidByCustomer = payments.Where(p => p.CustomerId.HasValue)
@@ -353,11 +353,11 @@ else if (_summaryLoaded)
 
             // Build a customer-name-to-id lookup from invoices
             var custNameIdMap = invoices.Where(i => i.CustomerId.HasValue && i.Customer != null)
-                .Select(i => new { i.Customer!.Name, i.CustomerId!.Value })
-                .DistinctBy(x => x.Name)
-                .ToDictionary(x => x.Name, x => x.Value);
+                .Select(i => new { i.Customer!.CustomerName, i.CustomerId!.Value })
+                .DistinctBy(x => x.CustomerName)
+                .ToDictionary(x => x.CustomerName, x => x.Value);
 
-            _customerData = orders.GroupBy(o => o.Customer.Name)
+            _customerData = orders.GroupBy(o => o.Customer.CustomerName)
                 .Select(g =>
                 {
                     var custName = g.Key;
@@ -378,7 +378,7 @@ else if (_summaryLoaded)
 
             // ── Recent orders ──
             _recentOrders = orders.OrderByDescending(o => o.OrderDate).Take(20)
-                .Select(o => new RecentOrderRow(o.OrderNumber, o.OrderDate, o.Customer.Name, o.Status.ToString(), o.TotalAmount))
+                .Select(o => new RecentOrderRow(o.OrderNumber, o.OrderDate, o.Customer.CustomerName, o.Status.ToString(), o.TotalAmount))
                 .ToList();
 
             BuildChartData(orders, invoices, payments);

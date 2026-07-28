@@ -420,7 +420,7 @@ public class AccountingService : IAccountingService
             .ToListAsync();
 
         return invoices.Where(i => i.Customer != null)
-            .GroupBy(i => new { i.CustomerId, i.Customer!.Name })
+            .GroupBy(i => new { i.CustomerId, i.Customer!.CustomerName })
             .Select(g =>
             {
                 var current = g.Where(i => i.DueDate >= DateTime.UtcNow).Sum(i => i.BalanceDue);
@@ -428,7 +428,7 @@ public class AccountingService : IAccountingService
                 var d31to60 = g.Where(i => i.DueDate < DateTime.UtcNow.AddDays(-30) && i.DueDate >= DateTime.UtcNow.AddDays(-60)).Sum(i => i.BalanceDue);
                 var d61to90 = g.Where(i => i.DueDate < DateTime.UtcNow.AddDays(-60) && i.DueDate >= DateTime.UtcNow.AddDays(-90)).Sum(i => i.BalanceDue);
                 var d90plus = g.Where(i => i.DueDate < DateTime.UtcNow.AddDays(-90)).Sum(i => i.BalanceDue);
-                return new AgingReportDto(g.Key.Name, g.Key.CustomerId!.Value, current, d1to30, d31to60, d61to90, d90plus, current + d1to30 + d31to60 + d61to90 + d90plus);
+                return new AgingReportDto(g.Key.CustomerName, g.Key.CustomerId!.Value, current, d1to30, d31to60, d61to90, d90plus, current + d1to30 + d31to60 + d61to90 + d90plus);
             }).ToList();
     }
 
@@ -440,7 +440,7 @@ public class AccountingService : IAccountingService
             .ToListAsync();
 
         return invoices.Where(i => i.Supplier != null)
-            .GroupBy(i => new { i.SupplierId, i.Supplier!.Name })
+            .GroupBy(i => new { i.SupplierId, i.Supplier!.SupplierName })
             .Select(g =>
             {
                 var current = g.Where(i => i.DueDate >= DateTime.UtcNow).Sum(i => i.BalanceDue);
@@ -448,7 +448,7 @@ public class AccountingService : IAccountingService
                 var d31to60 = g.Where(i => i.DueDate < DateTime.UtcNow.AddDays(-30) && i.DueDate >= DateTime.UtcNow.AddDays(-60)).Sum(i => i.BalanceDue);
                 var d61to90 = g.Where(i => i.DueDate < DateTime.UtcNow.AddDays(-60) && i.DueDate >= DateTime.UtcNow.AddDays(-90)).Sum(i => i.BalanceDue);
                 var d90plus = g.Where(i => i.DueDate < DateTime.UtcNow.AddDays(-90)).Sum(i => i.BalanceDue);
-                return new AgingReportDto(g.Key.Name, g.Key.SupplierId!.Value, current, d1to30, d31to60, d61to90, d90plus, current + d1to30 + d31to60 + d61to90 + d90plus);
+                return new AgingReportDto(g.Key.SupplierName, g.Key.SupplierId!.Value, current, d1to30, d31to60, d61to90, d90plus, current + d1to30 + d31to60 + d61to90 + d90plus);
             }).ToList();
     }
 

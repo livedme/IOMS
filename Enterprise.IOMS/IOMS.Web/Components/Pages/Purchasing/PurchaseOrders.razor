@@ -142,7 +142,7 @@
 
     private async Task OpenCreateEdit(Guid? orderId)
     {
-        var suppliers = await DbContext.Suppliers.Where(s => s.IsActive).OrderBy(s => s.Name).ToListAsync();
+        var suppliers = await DbContext.Suppliers.Where(s => s.IsActive).OrderBy(s => s.SupplierName).ToListAsync();
         var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
         var wareHouse = await DbContext.Warehouses.OrderBy(p => p.Name).ToListAsync();
         var dataModel = new PurchaseOrderDtoModels();
@@ -155,7 +155,7 @@
 
             dialogTitle = $"Edit PO #{order.OrderNumber}";
             var supplierItem = suppliers.Where(s => s.Id == order.SupplierId)
-                .Select(s => new FilterItem(s.Id, s.Name, false))
+                .Select(s => new FilterItem(s.Id, s.SupplierName, false))
                 .FirstOrDefault() ?? new FilterItem(order.SupplierId, order.SupplierName, false);
 
             dataModel = new PurchaseOrderDtoModels()
@@ -168,11 +168,11 @@
                 WarehouseId = order.WarehouseId,
                 DiscountAmount = order.DiscountAmount,
                 TaxAmount = order.TaxAmount,
-                DiscountType = order.DiscountType,
+                DiscountType = (int)order.DiscountType,
                 DueAmount = order.DueAmount,
                 TotalAmount = order.TotalAmount,
-                LabourCharge = order.LabourCharge,
-                TruckCharge = order.TruckCharge,
+                //LabourCharge = order.LabourCharge,
+                //TruckCharge = order.TruckCharge,
                 SubTotal = order.SubTotal,
                 PaidAmount = order.PaidAmount,
                 Notes = order.Notes,
@@ -183,7 +183,7 @@
 
         var parameters = new DialogParameters<PurchaseOrderDialog>
         {
-            { x => x.Suppliers, suppliers.Select(c => new SupplierDto(c.Id, c.Name, c.Email, c.Phone, c.Address, c.City, c.Zila,
+            { x => x.Suppliers, suppliers.Select(c => new SupplierDto(c.Id, c.SupplierName, c.SupplierEmail, c.SupplierPhone, c.ContactPersonName, c.ContactPersonPhone, c.ContactPersonEmail, c.Address, c.City, c.Zila,
 c.State, c.Country, c.PostalCode, null, 10, 1, false)).ToList() },
             { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.CostPrice)).ToList() },
             { x => x.WareHouses, wareHouse.Select(p => (p.Id, p.Name)).ToList() },

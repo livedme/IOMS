@@ -315,7 +315,7 @@ public class QuotationService : IQuotationService
 
         if (status.HasValue) query = query.Where(q => q.Status == status.Value);
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(q => q.QuoteNumber.Contains(search) || q.Customer.Name.Contains(search));
+            query = query.Where(q => q.QuoteNumber.Contains(search) || q.Customer.CustomerName.Contains(search));
 
         var total = await query.CountAsync();
         var items = await query.OrderByDescending(q => q.QuoteDate)
@@ -656,7 +656,7 @@ public class DashboardService : IDashboardService
             .Include(o => o.Customer)
             .OrderByDescending(o => o.OrderDate)
             .Take(count)
-            .Select(o => new { o.Id, o.OrderNumber, CustomerName = o.Customer.Name, o.OrderDate, o.TotalAmount, o.Status })
+            .Select(o => new { o.Id, o.OrderNumber, CustomerName = o.Customer.CustomerName, o.OrderDate, o.TotalAmount, o.Status })
             .ToListAsync();
 
         return data.Select(d => new RecentOrderDto(d.Id, d.OrderNumber, d.CustomerName, d.OrderDate, d.TotalAmount, d.Status.ToString())).ToList();
@@ -668,7 +668,7 @@ public class DashboardService : IDashboardService
             .Include(p => p.Supplier)
             .OrderByDescending(p => p.PurchaseDate)
             .Take(count)
-            .Select(p => new { p.Id, p.OrderNumber, SupplierName = p.Supplier.Name, p.PurchaseDate, p.TotalAmount, p.Status })
+            .Select(p => new { p.Id, p.OrderNumber, SupplierName = p.Supplier.SupplierName, p.PurchaseDate, p.TotalAmount, p.Status })
             .ToListAsync();
 
         return data.Select(d => new RecentOrderDto(d.Id, d.OrderNumber, d.SupplierName, d.PurchaseDate, d.TotalAmount, d.Status.ToString())).ToList();
@@ -696,32 +696,32 @@ public class SearchService : ISearchService
         results.AddRange(products);
 
         var customers = await _context.Customers
-            .Where(c => c.Name.ToLower().Contains(q) || (c.Email != null && c.Email.ToLower().Contains(q)))
+            .Where(c => c.CustomerName.ToLower().Contains(q) || (c.CustomerEmail != null && c.CustomerEmail.ToLower().Contains(q)))
             .Take(perType)
-            .Select(c => new GlobalSearchResultDto("Customer", c.Id, c.Name, c.Email ?? "", $"/customers"))
+            .Select(c => new GlobalSearchResultDto("Customer", c.Id, c.CustomerName, c.CustomerEmail ?? "", $"/customers"))
             .ToListAsync();
         results.AddRange(customers);
 
         var suppliers = await _context.Suppliers
-            .Where(s => s.Name.ToLower().Contains(q) || (s.Email != null && s.Email.ToLower().Contains(q)))
+            .Where(s => s.SupplierName.ToLower().Contains(q) || (s.SupplierEmail != null && s.SupplierEmail.ToLower().Contains(q)))
             .Take(perType)
-            .Select(s => new GlobalSearchResultDto("Supplier", s.Id, s.Name, s.Email ?? "", $"/suppliers"))
+            .Select(s => new GlobalSearchResultDto("Supplier", s.Id, s.SupplierName, s.SupplierEmail ?? "", $"/suppliers"))
             .ToListAsync();
         results.AddRange(suppliers);
 
         var salesOrders = await _context.SalesOrders
             .Include(o => o.Customer)
-            .Where(o => o.OrderNumber.ToLower().Contains(q) || o.Customer.Name.ToLower().Contains(q))
+            .Where(o => o.OrderNumber.ToLower().Contains(q) || o.Customer.CustomerName.ToLower().Contains(q))
             .Take(perType)
-            .Select(o => new GlobalSearchResultDto("Sales Order", o.Id, o.OrderNumber, o.Customer.Name, $"/orders/sales"))
+            .Select(o => new GlobalSearchResultDto("Sales Order", o.Id, o.OrderNumber, o.Customer.CustomerName, $"/orders/sales"))
             .ToListAsync();
         results.AddRange(salesOrders);
 
         var purchaseOrders = await _context.PurchaseOrders
             .Include(p => p.Supplier)
-            .Where(p => p.OrderNumber.ToLower().Contains(q) || p.Supplier.Name.ToLower().Contains(q))
+            .Where(p => p.OrderNumber.ToLower().Contains(q) || p.Supplier.SupplierName.ToLower().Contains(q))
             .Take(perType)
-            .Select(p => new GlobalSearchResultDto("Purchase Order", p.Id, p.OrderNumber, p.Supplier.Name, $"/orders/purchase"))
+            .Select(p => new GlobalSearchResultDto("Purchase Order", p.Id, p.OrderNumber, p.Supplier.SupplierName, $"/orders/purchase"))
             .ToListAsync();
         results.AddRange(purchaseOrders);
 

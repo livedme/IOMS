@@ -59,17 +59,11 @@ namespace IOMS.Application.DTOs
         public FilterItem? LastSupplierSelection { get; set; }
         public Guid WarehouseId { get; set; }
         public string? WarehouseText { get; set; }
-
-        public string? Notes { get; set; }
-        public decimal DrAmount { get; set; }
-        public decimal CrAmount { get; set; }
-        public int StackQty { get; set; }
-        public decimal SubTotal { get; set; }
-        public decimal LabourCharge { get; set; }
-        public decimal TruckCharge { get; set; }
+        public string? Notes { get; set; }        
+        public decimal SubTotal { get; set; }        
         public decimal TaxAmount { get; set; }
         public decimal DiscountAmount { get; set; }
-        public DiscountType DiscountType { get; set; }
+        public int DiscountType { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal DueAmount { get; set; }

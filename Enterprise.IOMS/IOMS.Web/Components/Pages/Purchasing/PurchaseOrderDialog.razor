@@ -205,28 +205,30 @@
             </MudCardHeader>
             <MudCardContent>
                 <MudGrid Class="pt-0">
-                    <MudItem xs="3" Class="pe-2 pt-2">
+                    @* <MudItem xs="3" Class="pe-2 pt-2">
                         <MudTextField @bind-Value="dataModel.DrAmount" Label="Dr" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         <MudTextField @bind-Value="dataModel.CrAmount" Label="Cr" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         <MudNumericField @bind-Value="dataModel.StackQty" Label="Stack Qty" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                    </MudItem>
-                    <MudItem xs="3" Class="pe-2 pt-2">
+                    </MudItem>  *@
+                    <MudItem xs="4" Class="pe-2 pt-2">
                         <MudNumericField @bind-Value="dataModel.SubTotal" Disabled="true" Label="Item Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                        <MudNumericField @bind-Value="dataModel.LabourCharge" Label="Labour Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                        <MudNumericField @bind-Value="dataModel.TruckCharge" Label="Truck Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                    </MudItem>
-                    <MudItem xs="3" Class="pe-2 pt-2">
                         <MudNumericField @bind-Value="dataModel.TaxAmount" Label="VAT" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        @* <MudNumericField @bind-Value="dataModel.LabourCharge" Label="Labour Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        <MudNumericField @bind-Value="dataModel.TruckCharge" Label="Truck Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" /> *@
+                    </MudItem>
+                    <MudItem xs="4" Class="pe-2 pt-2">                        
                         <div class="d-flex justify-content-between">
                             <MudNumericField @bind-Value="dataModel.DiscountAmount" Label="Discount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountField pb-1 col-7" />
                             <MudSelect @bind-Value="dataModel.DiscountType" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountTypeField pb-1 col-3">
-                                <MudSelectItem Value="0">%</MudSelectItem>
-                                <MudSelectItem Value="1">Fixed</MudSelectItem>
+                                @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
+                                {
+                                    <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
+                                }
                             </MudSelect>
                         </div>
                         <MudNumericField @bind-Value="dataModel.TotalAmount" Disabled="true" Label="Grand Total" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                     </MudItem>
-                    <MudItem xs="3" Class="pe-2 pt-2">
+                    <MudItem xs="4" Class="pe-2 pt-2">
                         <MudNumericField @bind-Value="dataModel.PaidAmount" Label="Paid Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         <MudNumericField @bind-Value="dataModel.DueAmount" Label="Due Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                     </MudItem>
@@ -302,7 +304,7 @@
     protected override void OnInitialized()
     {
         if (dataModel.SelectedSupplier.Id == Guid.Empty && Suppliers.Count > 0)
-            dataModel.SelectedSupplier = Suppliers.Select(x => new FilterItem(x.Id, x.Name, false)).First();
+            dataModel.SelectedSupplier = Suppliers.Select(x => new FilterItem(x.Id, x.SupplierName, false)).First();
 
         if (dataModel.SelectedSupplier.Id != Guid.Empty)
         {
@@ -358,13 +360,16 @@
 
             await SupplierDropDownControl.ResetAsync();
 
-            if (result != null && !result.Canceled && result.Data is CreateCustomerDto dto)
+            if (result != null && !result.Canceled && result.Data is CreateSupplierDto dto)
             {
                 var newCustomer = new IOMS.Domain.Entities.Supplier
                 {
-                    Name = dto.Name,
-                    Email = dto.Email,
-                    Phone = dto.Phone,
+                    SupplierName = dto.SupplierName,
+                    SupplierEmail = dto.SupplierEmail,
+                    SupplierPhone = dto.SupplierPhone,
+                    ContactPersonName = dto.ContactPersonName,
+                    ContactPersonPhone = dto.ContactPersonPhone,
+                    ContactPersonEmail = dto.ContactPersonEmail,
                     Address = dto.Address,
                     City = dto.City,
                     State = dto.State,
@@ -380,13 +385,13 @@
                 DbContext.Suppliers.Add(newCustomer);
                 await DbContext.SaveChangesAsync();
                 var latestSuppliers = await DbContext.Suppliers.ToListAsync();
-                Suppliers = latestSuppliers.Select(c => new SupplierDto(c.Id, c.Name, c.Email, c.Phone, c.Address, c.City, c.Zila, c.State, c.Country, c.PostalCode, null, 10, 1, false)).ToList();
+                Suppliers = latestSuppliers.Select(c => new SupplierDto(c.Id, c.SupplierName, c.SupplierEmail, c.SupplierPhone, c.ContactPersonName, c.ContactPersonPhone, c.ContactPersonEmail, c.Address, c.City, c.Zila, c.State, c.Country, c.PostalCode, null, 10, 1, false)).ToList();
 
-                cust = new FilterItem(newCustomer.Id, newCustomer.Name, false);
+                cust = new FilterItem(newCustomer.Id, newCustomer.SupplierName, false);
 
                 //var latestCustomers = await DbContext.Customers.ToListAsync();
 
-                dataModel.SelectedSupplier = Suppliers.Where(x => x.Id == newCustomer.Id).Select(c => new FilterItem(c.Id, c.Name, false)).FirstOrDefault();
+                dataModel.SelectedSupplier = Suppliers.Where(x => x.Id == newCustomer.Id).Select(c => new FilterItem(c.Id, c.SupplierName, false)).FirstOrDefault();
                 //_selectedCustomer = Customers.FirstOrDefault();
                 dataModel.LastSupplierSelection = dataModel.SelectedSupplier;
                 //_customerId = _selectedCustomer?.Id ?? Guid.Empty;
@@ -418,14 +423,14 @@
 
         if (string.IsNullOrWhiteSpace(text))
         {
-            baseResults = Suppliers.Where(c => c.Id != Guid.Empty).Select(c => new FilterItem(c.Id, c.Name, false));
+            baseResults = Suppliers.Where(c => c.Id != Guid.Empty).Select(c => new FilterItem(c.Id, c.SupplierName, false));
         }
         else
         {
             baseResults = Suppliers.Where(c =>
                 c.Id != Guid.Empty &&
-                (c.Name.Contains(text, StringComparison.OrdinalIgnoreCase)))
-                .Select(c => new FilterItem(c.Id, c.Name, false));
+                (c.SupplierName.Contains(text, StringComparison.OrdinalIgnoreCase)))
+                .Select(c => new FilterItem(c.Id, c.SupplierName, false));
         }
 
         //var results = new[] { AddNewCustomerOption }.Concat(baseResults).DistinctBy(c => c.Id);
@@ -738,7 +743,7 @@
         if (vat > 0)
             totalVatAmount = (dataModel.SubTotal) * ((dataModel.TaxAmount) / 100); ;
 
-        dataModel.TotalAmount = (dataModel.SubTotal) + totalVatAmount + (dataModel.LabourCharge) + (dataModel.TruckCharge);
+        dataModel.TotalAmount = (dataModel.SubTotal) + totalVatAmount;
 
         decimal? discountAmt = 0m;
 

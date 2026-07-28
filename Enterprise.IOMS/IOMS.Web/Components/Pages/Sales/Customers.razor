@@ -68,10 +68,10 @@
         _loading = true;
         var query = DbContext.Customers.AsQueryable();
         if (!string.IsNullOrWhiteSpace(_searchString))
-            query = query.Where(c => c.Name.Contains(_searchString) || c.Email!.Contains(_searchString));
+            query = query.Where(c => c.CustomerName.Contains(_searchString) || c.CustomerEmail!.Contains(_searchString));
 
-        var data = await query.OrderBy(c => c.Name).Take(100).ToListAsync();
-        _items = data.Select(c => new CustomerListItem(c.Id, c.Name, c.Email, c.Phone, c.City, c.CreditLimit, c.IsActive)).ToList();
+        var data = await query.OrderBy(c => c.CustomerName).Take(100).ToListAsync();
+        _items = data.Select(c => new CustomerListItem(c.Id, c.CustomerName, c.CustomerEmail, c.CustomerPhone, c.City, c.CreditLimit, c.IsActive)).ToList();
         _loading = false;
     }
 
@@ -84,11 +84,15 @@
         {
             DbContext.Customers.Add(new IOMS.Domain.Entities.Customer
             {
-                Name = dto.Name,
-                Email = dto.Email,
-                Phone = dto.Phone,
+                CustomerName = dto.CustomerName,
+                CustomerEmail = dto.CustomerEmail,
+                CustomerPhone = dto.CustomerPhone,
+                ContactPersonName = dto.ContactPersonName,
+                ContactPersonEmail = dto.ContactPersonEmail,
+                ContactPersonPhone = dto.ContactPersonPhone,
                 Address = dto.Address,
                 City = dto.City,
+                Zila = dto.Zila,
                 State = dto.State,
                 Country = dto.Country,
                 PostalCode = dto.PostalCode,
@@ -107,8 +111,8 @@
         var entity = await DbContext.Customers.FindAsync(item.Id);
         if (entity == null) return;
 
-        var dto = new CustomerDto(entity.Id, entity.Name, entity.Email, entity.Phone, entity.Address,
-            entity.City, entity.Zila, entity.State, entity.Country, entity.PostalCode, entity.CreditLimit, entity.PaymentTerms, entity.IsActive, entity.IsTaxExempt);
+        var dto = new CustomerDto(entity.Id, entity.CustomerName, entity.CustomerEmail, entity.CustomerPhone, entity.ContactPersonName, entity.ContactPersonEmail, entity.ContactPersonPhone, 
+            entity.Address, entity.City, entity.Zila, entity.State, entity.Country, entity.PostalCode, entity.CreditLimit, entity.PaymentTerms, entity.IsActive, entity.IsTaxExempt);
 
         var parameters = new DialogParameters<CustomerDialog> { { x => x.Customer, dto } };
         var dialog = await DialogService.ShowAsync<CustomerDialog>("Edit Customer", parameters,
@@ -116,11 +120,15 @@
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateCustomerDto updated)
         {
-            entity.Name = updated.Name;
-            entity.Email = updated.Email;
-            entity.Phone = updated.Phone;
+            entity.CustomerName = updated.CustomerName;
+            entity.CustomerEmail = updated.CustomerEmail;
+            entity.CustomerPhone = updated.CustomerPhone;
+            entity.ContactPersonName = updated.ContactPersonName;
+            entity.ContactPersonEmail = updated.ContactPersonEmail;
+            entity.ContactPersonPhone = updated.ContactPersonPhone;
             entity.Address = updated.Address;
             entity.City = updated.City;
+            entity.Zila = updated.Zila;
             entity.State = updated.State;
             entity.Country = updated.Country;
             entity.PostalCode = updated.PostalCode;

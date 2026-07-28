@@ -3,9 +3,17 @@
 <MudDialog>
     <DialogContent>
         <MudGrid>
-            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
-            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_email" Label="Email" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
-            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_phone" Label="Phone" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
+            <MudItem xs="12" sm="6" class="d-flex flex-column">
+                <MudTextField @bind-Value="_Suppliername" Label="Supplier Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5" />
+                <MudTextField @bind-Value="_Supplieremail" Label="Supplier Email" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5" />
+                <MudTextField @bind-Value="_Supplierphone" Label="Supplier Phone" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>            
+            <MudItem xs="12" sm="6" class="d-flex flex-column">
+                <MudTextField @bind-Value="_ContactPersonName" Label="Contact Person Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5" />
+                <MudTextField @bind-Value="_ContactPersonEmail" Label="Contact Person Email" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5" />
+                <MudTextField @bind-Value="_ContactPersonPhone" Label="Contact Person Phone" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
             <MudItem xs="12" sm="6"><MudNumericField @bind-Value="_leadTime" Label="Lead Time (days)" Min="0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
             <MudItem xs="12"><MudTextField @bind-Value="_address" Label="Address" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
             <MudItem xs="12" sm="4"><MudTextField @bind-Value="_city" Label="Upozila" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
@@ -26,15 +34,16 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public SupplierDto? Supplier { get; set; }
 
-    private string _name = "";
-    private string? _email, _phone, _address, _city,_zila, _state, _country, _postalCode, _paymentTerms;
+    private string _Suppliername = "", _ContactPersonName = "";
+    private string? _Supplieremail, _Supplierphone, _ContactPersonEmail, _ContactPersonPhone, _address, _city, _zila, _state, _country, _postalCode, _paymentTerms;
     private int _leadTime;
 
     protected override void OnInitialized()
     {
         if (Supplier != null)
         {
-            _name = Supplier.Name; _email = Supplier.Email; _phone = Supplier.Phone;
+            _Suppliername = Supplier.SupplierName; _Supplieremail = Supplier.SupplierEmail; _Supplierphone = Supplier.SupplierPhone;
+            _ContactPersonName = Supplier.ContactPersonName; _ContactPersonEmail = Supplier.ContactPersonEmail; _ContactPersonPhone = Supplier.ContactPersonPhone;
             _address = Supplier.Address; _city = Supplier.City; _zila = Supplier.Zila; _state = Supplier.State;
             _country = Supplier.Country; _paymentTerms = Supplier.PaymentTerms; _leadTime = Supplier.LeadTimeDays;
         }
@@ -42,5 +51,5 @@
 
     private void Cancel() => MudDialog.Cancel();
     private void Submit() => MudDialog.Close(DialogResult.Ok(
-        new CreateSupplierDto(_name, _email, _phone, _address, _city, _zila, _state, _country, _postalCode, _paymentTerms, null, _leadTime)));
+        new CreateSupplierDto(_Suppliername, _Supplieremail, _Supplierphone, _ContactPersonName, _ContactPersonEmail, _ContactPersonPhone, _address, _city, _zila, _state, _country, _postalCode, _paymentTerms, null, _leadTime)));
 }

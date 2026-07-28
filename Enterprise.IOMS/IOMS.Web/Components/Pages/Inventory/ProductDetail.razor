@@ -186,7 +186,7 @@ else
                                         {
                                             <MudLink Href="@($"/suppliers/{_preferredSupplier.Id}")"
                                                      Style="font-weight:600;color:#4361EE;">
-                                                @_preferredSupplier.Name
+                                                @_preferredSupplier.SupplierName
                                             </MudLink>
                                         }
                                         else
@@ -538,7 +538,7 @@ else
                     .Select(x => new SalesOrderLineView(
                         x.SalesOrder.Id,
                         x.SalesOrder.OrderNumber,
-                        x.SalesOrder.Customer.Name,
+                        x.SalesOrder.Customer.CustomerName,
                         x.SalesOrder.OrderDate,
                         x.SalesOrder.Status.ToString(),
                         x.Quantity,
@@ -555,7 +555,7 @@ else
                     .Select(x => new PurchaseOrderLineView(
                         x.PurchaseOrder.Id,
                         x.PurchaseOrder.OrderNumber,
-                        x.PurchaseOrder.Supplier.Name,
+                        x.PurchaseOrder.Supplier.SupplierName,
                         x.PurchaseOrder.PurchaseDate,
                         x.PurchaseOrder.Status.ToString(),
                         x.Quantity,

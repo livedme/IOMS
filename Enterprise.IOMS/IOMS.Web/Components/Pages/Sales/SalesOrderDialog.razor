@@ -12,8 +12,7 @@
         padding-inline-end: 15px;
     }
 </style>
-<MudDialog Class="bg-dialog-sales">
-    <DialogContent>
+<div class="sales-order-form">
         <MudGrid>
             <MudItem xs="12" sm="2">
                 <MudDatePicker @bind-Date="dataModel.SalesDate" Label="Sales Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -230,8 +229,7 @@
                 }
             </MudCardContent>
         </MudCard>
-    </DialogContent>
-    <DialogActions>
+    <div class="d-flex gap-2 justify-end mt-4 pb-2">
         <MudButton OnClick="Cancel">Cancel</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!dataModel.Items.Any())">
             Sale
@@ -239,8 +237,8 @@
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitToPrint" Disabled="@(!dataModel.Items.Any())">
             Sale & Print
         </MudButton>
-    </DialogActions>
-</MudDialog>
+    </div>
+</div>
 
 @inject ApplicationDbContext DbContext
 @inject IDialogService DialogService
@@ -248,11 +246,12 @@
 @inject ISnackbar Snackbar
 
 @code {
-    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public List<CustomerDto> Customers { get; set; } = new();
     [Parameter] public List<(Guid Id, string Name, string SKU, decimal Price)> Products { get; set; } = new();
-
     [Parameter] public CreateSalesOrderDtoModels dataModel { get; set; } = new CreateSalesOrderDtoModels();
+    [Parameter] public EventCallback<CreateSalesOrderDto> OnSubmit { get; set; }
+    [Parameter] public EventCallback<CreateSalesOrderDto> OnSubmitAndPrint { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
     private MudAutocomplete<FilterItem> CustomerDropDownControl = default!;
     private string? _customerText;
     private FilterItem? _lastCustomerSelection;
@@ -284,7 +283,7 @@
             dataModel.BranchId = _Branches.FirstOrDefault()?.Id ?? Guid.Empty;
 
         if (dataModel.SelectedCustomer.Id == Guid.Empty && Customers.Count > 0)
-            dataModel.SelectedCustomer = Customers.Select(x => new FilterItem(x.Id, x.Name, x.IsActive)).First();
+            dataModel.SelectedCustomer = Customers.Select(x => new FilterItem(x.Id, x.CustomerName, x.IsActive)).First();
 
         if (dataModel.SelectedCustomer.Id != Guid.Empty)
         {
@@ -317,7 +316,7 @@
             var previousCustomer = _lastCustomerSelection;
             var parameters = new DialogParameters<CustomerDialog>
             {
-                { x => x.Customer, new CustomerDto(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty,  0, string.Empty, false, false) }
+                { x => x.Customer, new CustomerDto(Guid.Empty, string.Empty, string.Empty, string.Empty,string.Empty,string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty,  0, string.Empty, false, false) }
                 //{ x => x.Customer, Customers.Where(c => c.Id != Guid.Empty).FirstOrDefault() }
             };
 
@@ -331,9 +330,12 @@
             {
                 var newCustomer = new IOMS.Domain.Entities.Customer
                 {
-                    Name = dto.Name,
-                    Email = dto.Email,
-                    Phone = dto.Phone,
+                    CustomerName = dto.CustomerName,
+                    CustomerEmail = dto.CustomerEmail,
+                    CustomerPhone = dto.CustomerPhone,
+                    ContactPersonName = dto.ContactPersonName,
+                    ContactPersonPhone = dto.ContactPersonPhone,
+                    ContactPersonEmail = dto.ContactPersonEmail,
                     Address = dto.Address,
                     City = dto.City,
                     State = dto.State,
@@ -351,13 +353,13 @@
                 DbContext.Customers.Add(newCustomer);
                 await DbContext.SaveChangesAsync();
                 var latestCustomer = await DbContext.Customers.ToListAsync();
-                Customers = latestCustomer.Select(c => new CustomerDto(c.Id, c.Name, c.Email, c.Phone, c.Address, c.City, c.Zila, c.State, c.Country, c.PostalCode, c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList();
+                Customers = latestCustomer.Select(c => new CustomerDto(c.Id, c.CustomerName, c.CustomerEmail, c.CustomerPhone,c.ContactPersonName, c.ContactPersonPhone, c.ContactPersonEmail, c.Address, c.City, c.Zila, c.State, c.Country, c.PostalCode, c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList();
 
-                cust = new FilterItem(newCustomer.Id, newCustomer.Name, false);
+                cust = new FilterItem(newCustomer.Id, newCustomer.CustomerName, false);
 
                 //var latestCustomers = await DbContext.Customers.ToListAsync();
 
-                dataModel.SelectedCustomer = Customers.Where(x => x.Id == newCustomer.Id).Select(c => new FilterItem(c.Id, c.Name, false)).FirstOrDefault();
+                dataModel.SelectedCustomer = Customers.Where(x => x.Id == newCustomer.Id).Select(c => new FilterItem(c.Id, c.CustomerName, false)).FirstOrDefault();
                 //_selectedCustomer = Customers.FirstOrDefault();
                 _lastCustomerSelection = dataModel.SelectedCustomer;
                 //_customerId = _selectedCustomer?.Id ?? Guid.Empty;
@@ -389,14 +391,14 @@
 
         if (string.IsNullOrWhiteSpace(text))
         {
-            baseResults = Customers.Where(c => c.Id != Guid.Empty).Select(c => new FilterItem(c.Id, c.Name, false));
+            baseResults = Customers.Where(c => c.Id != Guid.Empty).Select(c => new FilterItem(c.Id, c.CustomerName, false));
         }
         else
         {
             baseResults = Customers.Where(c =>
                 c.Id != Guid.Empty &&
-                (c.Name.Contains(text, StringComparison.OrdinalIgnoreCase)))
-                .Select(c => new FilterItem(c.Id, c.Name, false));
+                (c.CustomerName.Contains(text, StringComparison.OrdinalIgnoreCase)))
+                .Select(c => new FilterItem(c.Id, c.CustomerName, false));
         }
 
         //var results = new[] { AddNewCustomerOption }.Concat(baseResults).DistinctBy(c => c.Id);
@@ -767,23 +769,22 @@
         dataModel.DueAmount = (dataModel.TotalAmount) - (dataModel.PaidAmount);
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    private async Task Cancel() => await OnCancel.InvokeAsync();
 
-    private void Submit()
+    private async Task Submit()
     {
         var dto = new CreateSalesOrderDto(dataModel.SelectedCustomer.Id, null, dataModel.BranchId, dataModel.Notes, null, null, null,
             OrderStatus.Sold, dataModel.SalesDate ?? DateTime.Today, dataModel.SubTotal, dataModel.LabourCharge, dataModel.TruckCharge,
-            dataModel.TaxAmount, dataModel.DiscountType, dataModel.DiscountAmount, dataModel.TotalAmount, dataModel.PaidAmount, dataModel.DueAmount,dataModel.Items);
-
-        MudDialog.Close(DialogResult.Ok(dto));
+            dataModel.TaxAmount, dataModel.DiscountType, dataModel.DiscountAmount, dataModel.TotalAmount, dataModel.PaidAmount, dataModel.DueAmount, dataModel.Items);
+        await OnSubmit.InvokeAsync(dto);
     }
 
-    private void SubmitToPrint()
+    private async Task SubmitToPrint()
     {
-        var dto = new CreateSalesOrderDto(dataModel.SelectedCustomer.Id, null, dataModel.BranchId, dataModel.Notes, null, null, null, 
+        var dto = new CreateSalesOrderDto(dataModel.SelectedCustomer.Id, null, dataModel.BranchId, dataModel.Notes, null, null, null,
             OrderStatus.Delivered, dataModel.SalesDate ?? DateTime.Today, dataModel.SubTotal, dataModel.LabourCharge, dataModel.TruckCharge,
             dataModel.TaxAmount, dataModel.DiscountType, dataModel.DiscountAmount, dataModel.TotalAmount, dataModel.PaidAmount, dataModel.DueAmount, dataModel.Items);
-        MudDialog.Close(DialogResult.Ok(dto));
+        await OnSubmitAndPrint.InvokeAsync(dto);
     }
 
     private string GetMultiSelectionText(IReadOnlyList<string> selectedValues)

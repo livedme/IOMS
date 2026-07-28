@@ -3,22 +3,20 @@
 <MudDialog>
     <DialogContent>
         <MudGrid>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudItem xs="12" sm="6" class="d-flex flex-column">
+                <MudTextField @bind-Value="_customerName" Label="Customer Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5"/>            
+                <MudTextField @bind-Value="_customerEmail" Label="Customer Email" InputType="InputType.Email" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5" />
+                <MudTextField @bind-Value="_customerPhone" Label="Customer Phone" AdornmentAriaLabel="Phone" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_email" Label="Email" InputType="InputType.Email" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_phone" Label="Phone" AdornmentAriaLabel="Phone" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudNumericField @bind-Value="_creditLimit" Label="Credit Limit" Format="N2" Min="0m" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
+            <MudItem xs="12" sm="6" class="d-flex column-gap-3 flex-column">
+                <MudTextField @bind-Value="_contactPersonName" Label="Contact Person Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5"/>
+                <MudTextField @bind-Value="_contactPersonEmail" Label="Contact Person Email" InputType="InputType.Email" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5"/>
+                <MudTextField @bind-Value="_contactPersonPhone" Label="Contact Person Phone" AdornmentAriaLabel="Phone" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>            
             <MudItem xs="12">
                 <MudTextField @bind-Value="_address" Label="Address" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             </MudItem>
-            <MudItem xs="12" sm="4">
+            <MudItem xs="12" sm="4"> 
                 <MudTextField @bind-Value="_city" Label="Upozila" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="4">
@@ -51,8 +49,9 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public CustomerDto? Customer { get; set; }
 
-    private string _name = "";
-    private string? _email, _phone, _address, _city, _zila, _state, _country, _postalCode, _paymentTerms;
+    private string _customerName = "", _contactPersonName = "";
+
+    private string? _customerEmail, _customerPhone, _address, _city, _zila, _state, _country, _postalCode, _paymentTerms, _contactPersonEmail, _contactPersonPhone;
     private decimal _creditLimit;
     private bool _isTaxExempt;
 
@@ -60,9 +59,12 @@
     {
         if (Customer != null)
         {
-            _name = Customer.Name;
-            _email = Customer.Email;
-            _phone = Customer.Phone;
+            _customerName = Customer.CustomerName;
+            _customerEmail = Customer.CustomerEmail;
+            _customerPhone = Customer.CustomerPhone;
+            _contactPersonName = Customer.ContactPersonName;
+            _contactPersonEmail = Customer.ContactPersonEmail;
+            _contactPersonPhone = Customer.ContactPersonPhone;
             _address = Customer.Address;
             _city = Customer.City;
             _zila = Customer.Zila;
@@ -76,6 +78,5 @@
 
     private void Cancel() => MudDialog.Cancel();
     private void Submit() => MudDialog.Close(DialogResult.Ok(
-        new CreateCustomerDto(_name, _email, _phone, _address, _city, _zila, _state, _country, _postalCode,
-            _creditLimit, _paymentTerms, null, null, null, _isTaxExempt)));
+        new CreateCustomerDto(_customerName, _customerEmail, _customerPhone, _contactPersonName, _contactPersonEmail, _contactPersonPhone, _address, _city, _zila, _state, _country, _postalCode,_creditLimit, _paymentTerms,null,null,null, _isTaxExempt)));
 }

@@ -427,7 +427,7 @@ public class OrderService : IOrderService
 
         if (status != null && status.Any()) query = query.Where(o => status.Contains(o.Status));
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(o => o.OrderNumber.Contains(search) || o.Customer.Name.Contains(search));
+            query = query.Where(o => o.OrderNumber.Contains(search) || o.Customer.CustomerName.Contains(search));
 
         var total = await query.CountAsync();
         var items = await query.OrderByDescending(o => o.OrderDate)
@@ -674,7 +674,7 @@ public class PurchaseService : IPurchaseService
 
         if (status.HasValue) query = query.Where(p => p.Status == status.Value);
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(p => p.OrderNumber.Contains(search) || p.Supplier.Name.Contains(search));
+            query = query.Where(p => p.OrderNumber.Contains(search) || p.Supplier.SupplierName.Contains(search));
 
         var total = await query.CountAsync();
         var items = await query.OrderByDescending(p => p.PurchaseDate)

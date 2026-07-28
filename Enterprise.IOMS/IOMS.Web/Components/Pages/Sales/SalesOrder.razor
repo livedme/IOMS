@@ -48,7 +48,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.OrderNumber</MudTd>
-            <MudTd>@context.Customer.Name</MudTd>
+            <MudTd>@context.Customer.CustomerName</MudTd>
             <MudTd>@context.OrderDate.ToString("yyyy-MM-dd")</MudTd>
             <MudTd>
                 <MudChip T="string" Color="@CommonUtility.GetStatusColor(context.Status)" Size="Size.Small">
@@ -83,19 +83,184 @@
         </MudTable>
     </MudPaper>
 
+    @* ─── Right-side Slider Drawer ─── *@
+<MudDrawer @bind-Open="_drawerOpen" Anchor="Anchor.End" Elevation="16" Variant="DrawerVariant.Temporary" Width="1150px" CloseOnOverlayClick="true" Class="bg-light-subtle text-black">
+
+        <div class="d-flex align-center justify-space-between px-4"
+             style="min-height:56px;border-bottom:1px solid #e0e0e0;">
+            <MudText Typo="Typo.h6">@_drawerTitle</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="CloseDrawer" />
+        </div>
+
+        <div style="overflow-y:auto;height:calc(100vh - 56px);padding:16px;">
+
+            @* ── VIEW mode ── *@
+            @if (_drawerMode == SliderMode.View)
+            {
+                @if (_viewOrder == null)
+                {
+                    <MudProgressCircular Indeterminate="true" />
+                }
+                else
+                {
+                    <div class="info-card mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="text-muted small">Customer</div>
+                                <strong>@_viewOrder.Customer?.CustomerName</strong><br />
+                                <span class="small">@_viewOrder.Customer?.CustomerPhone</span><br />
+                                <span class="small">@_viewOrder.Customer?.CustomerEmail</span>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-muted small">Order Date</div>
+                                <strong>@_viewOrder.OrderDate.ToString("dd-MMM-yyyy")</strong>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-muted small">Status</div>
+                                <MudChip T="string" Color="@CommonUtility.GetStatusColor(_viewOrder.Status)" Size="Size.Small">
+                                    @_viewOrder.Status
+                                </MudChip>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-muted small">Branch</div>
+                                <strong>@_viewOrder.Branch?.Name</strong><br />
+                                <span class="small">@_viewOrder.Branch?.Location</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-lg-8">
+                            <MudTable Items="@_viewOrder.Items" Dense="true" Hover="true" Elevation="2">
+                                <HeaderContent>
+                                    <MudTh>#</MudTh>
+                                    <MudTh>Product</MudTh>
+                                    <MudTh>SKU</MudTh>
+                                    <MudTh Style="text-align:right">Qty</MudTh>
+                                    <MudTh Style="text-align:right">Unit Price</MudTh>
+                                    <MudTh Style="text-align:right">Discount</MudTh>
+                                    <MudTh Style="text-align:right">Total</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd>@(_viewOrder.Items.IndexOf(context) + 1)</MudTd>
+                                    <MudTd>@context.ProductName</MudTd>
+                                    <MudTd>@context.ProductSKU</MudTd>
+                                    <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                                    <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
+                                    <MudTd Style="text-align:right">@context.TotalDiscount.ToString("C")</MudTd>
+                                    <MudTd Style="text-align:right">@context.LineTotalPrice.ToString("C")</MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="summary-card">
+                                <h6 class="text-primary mb-3">ORDER SUMMARY</h6>
+                                <div class="summary-item"><span>Subtotal</span><strong>@_viewOrder.SubTotal.ToString("C")</strong>
+                                </div>
+                                <div class="summary-item">
+                                    <span>Discount</span><strong>@_viewOrder.DiscountAmount.ToString("C")</strong></div>
+                                    <div class="summary-item"><span>Tax</span><strong>@_viewOrder.TaxAmount.ToString("C")</strong></div>
+                                    <div class="summary-item"><span>Labour</span><strong>@_viewOrder.LabourCharge.ToString("C")</strong>
+                                    </div>
+                                    <div class="summary-item"><span>Truck</span><strong>@_viewOrder.TruckCharge.ToString("C")</strong>
+                                    </div>
+                                    <div class="pt-3 border-top mt-2">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>TOTAL</strong>
+                                            <span class="text-primary fw-bold fs-5">@_viewOrder.TotalAmount.ToString("C")</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-1">
+                                            <span class="text-muted">Paid</span>
+                                            <span class="text-success fw-semibold">@_viewOrder.PaidAmount.ToString("C")</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-1">
+                                            <span class="text-muted">Due</span>
+                                            <span class="text-danger fw-semibold">@_viewOrder.DueAmount.ToString("C")</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(_viewOrder.Notes))
+                        {
+                            <MudField Label="Notes" Class="mt-3">@_viewOrder.Notes</MudField>
+                        }
+
+                        <div class="d-flex gap-2 mt-4">
+                            @if (_viewOrder.Status == OrderStatus.Pending)
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle"
+                                           OnClick="@(() => ApproveAndRefresh(_viewOrder.Id))">Approve</MudButton>
+                            }
+                            @if (_viewOrder.Status != OrderStatus.Cancelled && _viewOrder.Status != OrderStatus.Delivered)
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                                           OnClick="@(() => SwitchToEdit(_viewOrder))">Edit</MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel"
+                                           OnClick="@(() => CancelFromDrawer(_viewOrder.Id))">Cancel Order</MudButton>
+                            }
+                        </div>
+                    }
+                }
+
+                @* ── EDIT / CREATE mode ── *@
+                @if (_drawerMode == SliderMode.Edit || _drawerMode == SliderMode.Create)
+                {
+                    <SalesOrderDialog @key="_drawerKey" Customers="_drawerCustomers" Products="_drawerProducts"
+                                      dataModel="_editModel" OnSubmit="HandleFormSubmit" OnSubmitAndPrint="HandleFormSubmitAndPrint"
+                                      OnCancel="CloseDrawer" />
+                }
+
+            </div>
+        </MudDrawer>
+
+        <style>
+            .info-card {
+                border: 1px solid #dee2e6;
+                border-radius: 12px;
+                padding: 20px;
+                background: #fff;
+            }
+
+            .summary-card {
+                border: 1px solid #dee2e6;
+                border-radius: 12px;
+                padding: 20px;
+                background: #fff;
+            }
+
+            .summary-item {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 0;
+                border-bottom: 1px solid #e9ecef;
+                font-size: .9rem;
+            }
+        </style>
+
 @code {
+    // ─── List state ───
     private PagedResult<SalesOrderDto> _orders = new(new(), 0, 1, 25);
     private string _search = "";
     private List<OrderStatus?> _statusFilters = new() {
-        OrderStatus.Sold,
-                OrderStatus.Packed,
-                OrderStatus.Shipped,
-                OrderStatus.PartiallyShipped,
-                OrderStatus.Delivered,
-                OrderStatus.Cancelled };
+        OrderStatus.Sold, OrderStatus.Packed, OrderStatus.Shipped,
+        OrderStatus.PartiallyShipped, OrderStatus.Delivered, OrderStatus.Cancelled };
     private OrderStatus? _statusFilter;
     private bool _loading = true;
     private int _page = 1;
+
+    // ─── Drawer state ───
+    private enum SliderMode { View, Edit, Create }
+    private bool _drawerOpen;
+    private SliderMode _drawerMode = SliderMode.View;
+    private string _drawerTitle = "";
+    private SalesOrderDto? _viewOrder;
+    private SalesOrderDto? _editingOrder;
+    private CreateSalesOrderDtoModels _editModel = new();
+    private List<CustomerDto> _drawerCustomers = new();
+    private List<(Guid Id, string Name, string SKU, decimal Price)> _drawerProducts = new();
+    private int _drawerKey;
 
     protected override async Task OnInitializedAsync() => await LoadOrders();
 
@@ -117,12 +282,8 @@
         else
         {
             _statusFilters = new() {
-                OrderStatus.Sold,
-                OrderStatus.Packed,
-                OrderStatus.Shipped,
-                OrderStatus.PartiallyShipped,
-                OrderStatus.Delivered,
-                OrderStatus.Cancelled
+                OrderStatus.Sold, OrderStatus.Packed, OrderStatus.Shipped,
+                OrderStatus.PartiallyShipped, OrderStatus.Delivered, OrderStatus.Cancelled
             };
         }
         await LoadOrders();
@@ -137,6 +298,12 @@
             await LoadOrders();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task ApproveAndRefresh(Guid id)
+    {
+        await Approve(id);
+        CloseDrawer();
     }
 
     private async Task Cancel(Guid id)
@@ -154,14 +321,51 @@
         }
     }
 
-    private async Task ViewOrder(Guid id) => Nav.NavigateTo($"/orders/sales/{id}");
+    private async Task CancelFromDrawer(Guid id)
+    {
+        await Cancel(id);
+        if (_drawerOpen && _viewOrder?.Id == id)
+            _viewOrder = await OrderService.GetSalesOrderById(id);
+    }
+
+    // ─── Drawer helpers ───
+    private void CloseDrawer() => _drawerOpen = false;
+
+    private async Task ViewOrder(Guid id)
+    {
+        _viewOrder = null;
+        _drawerTitle = "Loading\u2026";
+        _drawerMode = SliderMode.View;
+        _drawerOpen = true;
+        try
+        {
+            _viewOrder = await OrderService.GetSalesOrderById(id);
+            _drawerTitle = $"Sale #{_viewOrder?.OrderNumber}";
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task SwitchToEdit(SalesOrderDto order)
+    {
+        await LoadDrawerFormData(order);
+    }
 
     private async Task OpenEdit(SalesOrderDto order)
     {
-        var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+        await LoadDrawerFormData(order);
+        _drawerOpen = true;
+    }
+
+    private async Task LoadDrawerFormData(SalesOrderDto order)
+    {
+        var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToListAsync();
         var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
 
-        var editModel = new CreateSalesOrderDtoModels
+        _drawerCustomers = customers.Select(c => new CustomerDto(c.Id, c.CustomerName, c.CustomerEmail, c.CustomerPhone,"","","", c.Address,
+            c.City, c.Zila, c.State, c.Country, c.PostalCode, c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList();
+        _drawerProducts = products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
+
+        _editModel = new CreateSalesOrderDtoModels
         {
             BranchId = order.BranchId ?? Guid.Empty,
             SalesDate = order.OrderDate,
@@ -177,62 +381,59 @@
             TotalAmount = order.TotalAmount,
             PaidAmount = order.PaidAmount,
             DueAmount = order.DueAmount,
-            SelectedCustomer = new FilterItem(order.CustomerId, order.Customer.Name, false),
+            SelectedCustomer = new FilterItem(order.CustomerId, order.Customer.CustomerName, false),
             Items = order.Items.Select(i => new CreateSalesOrderItemDto(
-                i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount, i.DiscountType, i.TotalDiscount, i.LineTotalPrice, null, null
-            )).ToList()
+                i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount, i.DiscountType,
+                i.TotalDiscount, i.LineTotalPrice, null, null)).ToList()
         };
 
-        var parameters = new DialogParameters<SalesOrderDialog>
-        {
-            { x => x.Customers, customers.Select(c => new CustomerDto(c.Id, c.Name, c.Email, c.Phone, c.Address, c.City, c.Zila,
-c.State, c.Country, c.PostalCode, c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList() },
-            { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList() },
-            { x => x.dataModel, editModel }
-        };
-
-        var dialog = await DialogService.ShowAsync<SalesOrderDialog>($"Edit Sale #{order.OrderNumber}", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled && result.Data is CreateSalesOrderDto dto)
-        {
-            try
-            {
-                await OrderService.UpdateSalesOrder(order.Id, dto);
-                Snackbar.Add("Sales order updated", Severity.Success);
-                await LoadOrders();
-            }
-            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        }
+        _editingOrder = order;
+        _drawerTitle = $"Edit Sale #{order.OrderNumber}";
+        _drawerMode = SliderMode.Edit;
+        _drawerKey++;
     }
 
     private async Task OpenCreate()
     {
-        var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+        var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToListAsync();
         var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
 
-        var parameters = new DialogParameters<SalesOrderDialog>
-        {
-            { x => x.Customers, customers.Select(c => new CustomerDto(c.Id, c.Name,c.Email,c.Phone,c.Address,c.City,c.Zila,
-c.State,c.Country,c.PostalCode,c.CreditLimit,c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList() },
-            { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList() }
-        };
+        _drawerCustomers = customers.Select(c => new CustomerDto(c.Id, c.CustomerName, c.CustomerEmail, c.CustomerPhone,"","","", c.Address,
+            c.City, c.Zila, c.State, c.Country, c.PostalCode, c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList();
+        _drawerProducts = products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
 
-        var dialog = await DialogService.ShowAsync<SalesOrderDialog>("New Sales", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
-        var result = await dialog.Result;
+        _editModel = new CreateSalesOrderDtoModels();
+        _editingOrder = null;
+        _drawerTitle = "New Sale";
+        _drawerMode = SliderMode.Create;
+        _drawerKey++;
+        _drawerOpen = true;
+    }
 
-        if (result != null && !result.Canceled && result.Data is CreateSalesOrderDto dto)
+    private async Task HandleFormSubmit(CreateSalesOrderDto dto)
+    {
+        try
         {
-            try
+            if (_drawerMode == SliderMode.Edit && _editingOrder != null)
             {
-                var orderId = await OrderService.CreateSalesOrder(dto);
-                Snackbar.Add("Sales created successfully", Severity.Success);
-                await LoadOrders();
+                await OrderService.UpdateSalesOrder(_editingOrder.Id, dto);
+                Snackbar.Add("Sales order updated", Severity.Success);
             }
-            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+            else
+            {
+                await OrderService.CreateSalesOrder(dto);
+                Snackbar.Add("Sales created successfully", Severity.Success);
+            }
+            CloseDrawer();
+            await LoadOrders();
         }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task HandleFormSubmitAndPrint(CreateSalesOrderDto dto)
+    {
+        await HandleFormSubmit(dto);
+        // Print support can be added here
     }
 
     private async Task DeleteOrder(Guid id)
@@ -250,5 +451,5 @@ c.State,c.Country,c.PostalCode,c.CreditLimit,c.PaymentTerms, c.IsActive, c.IsTax
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
     }
-
 }
+

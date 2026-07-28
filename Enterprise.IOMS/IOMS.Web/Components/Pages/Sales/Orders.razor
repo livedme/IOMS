@@ -43,7 +43,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.OrderNumber</MudTd>
-            <MudTd>@context.Customer.Name</MudTd>
+            <MudTd>@context.Customer.CustomerName</MudTd>
             <MudTd>@context.OrderDate.ToString("yyyy-MM-dd")</MudTd>
             <MudTd>
                 <MudChip T="string" Color="@CommonUtility.GetStatusColor(context.Status)" Size="Size.Small">@context.Status</MudChip>
@@ -70,6 +70,8 @@
     </MudTable>
 </MudPaper>
 
+<SalesOrderViewPanel @ref="_orderPanel" OnOrderUpdated="LoadOrders" />
+
 @code {
     private PagedResult<SalesOrderDto> _orders = new(new(), 0, 1, 25);
     private string _search = "";
@@ -77,6 +79,7 @@
     private OrderStatus? _statusFilter;
     private bool _loading = true;
     private int _page = 1;
+    private SalesOrderViewPanel _orderPanel = default!;
 
     protected override async Task OnInitializedAsync() => await LoadOrders();
 
@@ -114,16 +117,16 @@
         }
     }
 
-    private async Task ViewOrder(Guid id) => Nav.NavigateTo($"/orders/sales/{id}");
+    private async Task ViewOrder(Guid id) => await _orderPanel.OpenAsync(id);
 
     private async Task OpenCreate()
     {
-        var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+        var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToListAsync();
         var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
 
         var parameters = new DialogParameters<SalesOrderDialog>
         {
-            { x => x.Customers, customers.Select(c => new CustomerDto(c.Id, c.Name,c.Email,c.Phone,c.Address,c.City,c.Zila, c.State,c.Country,c.PostalCode, c.CreditLimit,c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList() },
+            { x => x.Customers, customers.Select(c => new CustomerDto(c.Id, c.CustomerName,c.CustomerEmail,c.CustomerPhone,"","","",c.Address,c.City,c.Zila, c.State,c.Country,c.PostalCode, c.CreditLimit,c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList() },
             { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList() }
         };
 

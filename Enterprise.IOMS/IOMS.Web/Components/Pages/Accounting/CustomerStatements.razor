@@ -12,7 +12,7 @@
             <MudSelect T="Guid?" @bind-Value="_customerId" Label="Customer" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var c in _customers)
                 {
-                    <MudSelectItem T="Guid?" Value="@((Guid?)c.Id)">@c.Name</MudSelectItem>
+                    <MudSelectItem T="Guid?" Value="@((Guid?)c.Id)">@c.CustomerName</MudSelectItem>
                 }
             </MudSelect>
         </MudItem>
@@ -37,7 +37,7 @@
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-primary);">
                 <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Customer</MudText>
-                <MudText Typo="Typo.h6"><strong>@_selectedCustomer.Name</strong></MudText></div>
+                <MudText Typo="Typo.h6"><strong>@_selectedCustomer.CustomerName</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="3">
@@ -143,7 +143,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.Name).AsNoTracking().ToListAsync();
+        _customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).AsNoTracking().ToListAsync();
     }
 
     private async Task LoadData()
