@@ -6,6 +6,7 @@ using IOMS.Domain.Enums;
 using IOMS.Domain.Exceptions;
 using IOMS.Infrastructure.Data;
 using IOMS.Shared.Helpers;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.EntityFrameworkCore;
 
 namespace IOMS.Infrastructure.Services;
@@ -522,11 +523,20 @@ public class ShippingService : IShippingService
 public class DashboardService : IDashboardService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ITenantCache _cache;
 
-    public DashboardService(ApplicationDbContext context) => _context = context;
+    public DashboardService(ApplicationDbContext context, ITenantCache cache)
+    {
+        _context = context;
+        _cache = cache;
+    }
 
     public async Task<DashboardKpiDto> GetDashboardKPIs()
     {
+        var cached = await _cache.GetAsync<DashboardKpiDto>("dashboard:kpis");
+        if (cached is not null)
+            return cached;
+
         var now = DateTime.UtcNow;
         var startOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
@@ -564,11 +574,14 @@ public class DashboardService : IDashboardService
             .Include(i => i.Product)
             .SumAsync(i => i.Quantity * i.Product.CostPrice);
 
-        return new DashboardKpiDto(
+        var result = new DashboardKpiDto(
             totalProducts, activeCustomers, activeSuppliers,
             salesThisMonth, purchasesThisMonth,
             pendingSO, pendingPO, lowStock,
             arBalance, apBalance, overdueInvoices, inventoryValue);
+
+        await _cache.SetAsync("dashboard:kpis", result, TimeSpan.FromSeconds(30));
+        return result;
     }
 
     public async Task<List<MonthlySalesDto>> GetMonthlySalesData(int months)

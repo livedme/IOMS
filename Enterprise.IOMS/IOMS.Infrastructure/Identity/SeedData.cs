@@ -10,6 +10,13 @@ namespace IOMS.Infrastructure.Identity;
 
 public static class SeedData
 {
+    private const int TenantTarget = 20;
+    private const int ProductTarget = 5000;
+    private const int CategoryTarget = 400;
+    private const int BrandTarget = 200;
+    private const int SalesOrderTarget = 20000;
+    private const int PurchaseOrderTarget = 10000;
+
     public static async Task InitializeAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
@@ -71,8 +78,13 @@ public static class SeedData
         {
             context.Currencies.Add(new Currency
             {
-                Code = "USD", Name = "US Dollar", Symbol = "$", DecimalPlaces = 2,
-                IsBaseCurrency = true, TenantId = tenantId, CreatedBy = "system"
+                Code = "USD",
+                Name = "US Dollar",
+                Symbol = "$",
+                DecimalPlaces = 2,
+                IsBaseCurrency = true,
+                TenantId = tenantId,
+                CreatedBy = "system"
             });
         }
 
@@ -81,8 +93,11 @@ public static class SeedData
         {
             context.Warehouses.Add(new Warehouse
             {
-                Name = "Main Warehouse", Code = "WH-001", Location = "Default Location",
-                TenantId = tenantId, CreatedBy = "system"
+                Name = "Main Warehouse",
+                Code = "WH-001",
+                Location = "Default Location",
+                TenantId = tenantId,
+                CreatedBy = "system"
             });
         }
 
@@ -91,8 +106,10 @@ public static class SeedData
         {
             context.Categories.Add(new Category
             {
-                Name = "General", Description = "Default product category",
-                TenantId = tenantId, CreatedBy = "system"
+                Name = "General",
+                Description = "Default product category",
+                TenantId = tenantId,
+                CreatedBy = "system"
             });
         }
 
@@ -113,25 +130,271 @@ public static class SeedData
         {
             var jurisdiction = new TaxJurisdiction
             {
-                Name = "Default", Code = "DEF", Country = "US",
-                TenantId = tenantId, CreatedBy = "system"
+                Name = "Default",
+                Code = "DEF",
+                Country = "US",
+                TenantId = tenantId,
+                CreatedBy = "system"
             };
             context.TaxJurisdictions.Add(jurisdiction);
             await context.SaveChangesAsync();
 
             context.TaxRates.Add(new TaxRate
             {
-                Name = "Standard VAT", Rate = 10m, TaxType = TaxType.VAT,
+                Name = "Standard VAT",
+                Rate = 10m,
+                TaxType = TaxType.VAT,
                 TaxJurisdictionId = jurisdiction.Id,
                 EffectiveFrom = new DateTime(2024, 1, 1),
-                TenantId = tenantId, CreatedBy = "system"
+                TenantId = tenantId,
+                CreatedBy = "system"
             });
         }
 
         await context.SaveChangesAsync();
 
-        // Seed 20 dummy records in all major tables
+        // Seed dummy records in all major tables
         await SeedDummyDataAsync(context, tenantId);
+    }
+
+    public static async Task InitializeLoadTestDataAsync(IServiceProvider serviceProvider)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await context.Database.MigrateAsync();
+
+        var tenantId = Guid.Parse(AppConstants.DefaultTenantId);
+        context.DisableAuditLogging = true;
+        try
+        {
+            var tenants = await EnsureLoadTestTenantsAsync(context);
+            foreach (var tenant in tenants)
+            {
+                await EnsureLoadTestPrerequisitesAsync(context, tenant.Id);
+                await SeedLoadTestDataAsync(context, tenant.Id);
+            }
+        }
+        finally
+        {
+            context.DisableAuditLogging = false;
+        }
+    }
+
+    private static async Task<List<Tenant>> EnsureLoadTestTenantsAsync(ApplicationDbContext context)
+    {
+        var tenants = await context.Tenants
+            .OrderBy(tenant => tenant.CompanyCode)
+            .ToListAsync();
+        var newTenants = new List<Tenant>();
+
+        for (var index = tenants.Count; index < TenantTarget; index++)
+        {
+            newTenants.Add(new Tenant
+            {
+                Id = index == 0 ? Guid.Parse(AppConstants.DefaultTenantId) : Guid.NewGuid(),
+                CompanyCode = $"load-{index + 1:D2}",
+                CompanyName = $"Load Test Tenant {index + 1:D2}",
+                TenantStatus = TenantStatus.Active,
+                CreatedBy = "load-test-seed"
+            });
+        }
+
+        if (newTenants.Count > 0)
+            await AddInBatchesAsync(context, newTenants);
+
+        return await context.Tenants
+            .OrderBy(tenant => tenant.CompanyCode)
+            .Take(TenantTarget)
+            .ToListAsync();
+    }
+
+    private static async Task EnsureLoadTestPrerequisitesAsync(ApplicationDbContext context, Guid tenantId)
+    {
+        const string createdBy = "load-test-seed";
+
+        if (!await context.Warehouses.IgnoreQueryFilters().AnyAsync(warehouse => warehouse.TenantId == tenantId))
+        {
+            context.Warehouses.Add(new Warehouse
+            {
+                Name = "Load Test Warehouse",
+                Code = $"LT-WH-{tenantId:N}"[..20],
+                Location = "Load Test Location",
+                TenantId = tenantId,
+                CreatedBy = createdBy
+            });
+        }
+
+        if (!await context.Customers.IgnoreQueryFilters().AnyAsync(customer => customer.TenantId == tenantId))
+        {
+            context.Customers.Add(new Customer
+            {
+                CustomerName = "Load Test Customer",
+                ContactPersonName = "Load Test Contact",
+                TenantId = tenantId,
+                CreatedBy = createdBy
+            });
+        }
+
+        if (!await context.Suppliers.IgnoreQueryFilters().AnyAsync(supplier => supplier.TenantId == tenantId))
+        {
+            context.Suppliers.Add(new Supplier
+            {
+                SupplierName = "Load Test Supplier",
+                ContactPersonName = "Load Test Contact",
+                TenantId = tenantId,
+                CreatedBy = createdBy
+            });
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedLoadTestDataAsync(ApplicationDbContext context, Guid tenantId)
+    {
+        const string createdBy = "load-test-seed";
+        var random = new Random(20260903);
+
+        var categories = await context.Categories.IgnoreQueryFilters()
+            .Where(c => c.TenantId == tenantId).OrderBy(c => c.Name).ToListAsync();
+        var newCategories = new List<Category>();
+        for (var index = categories.Count; index < CategoryTarget; index++)
+        {
+            newCategories.Add(new Category
+            {
+                Name = $"Load Category {index + 1:D4}",
+                Description = "Synthetic load-test category",
+                TenantId = tenantId,
+                CreatedBy = createdBy
+            });
+        }
+        await AddInBatchesAsync(context, newCategories);
+        categories.AddRange(newCategories);
+        categories = await context.Categories.IgnoreQueryFilters()
+            .Where(c => c.TenantId == tenantId).OrderBy(c => c.Name).Take(CategoryTarget).ToListAsync();
+
+        var brands = await context.Brands.IgnoreQueryFilters()
+            .Where(b => b.TenantId == tenantId).OrderBy(b => b.BrandCode).ToListAsync();
+        var newBrands = new List<Brand>();
+        for (var index = brands.Count; index < BrandTarget; index++)
+        {
+            newBrands.Add(new Brand
+            {
+                Name = $"Load Brand {index + 1:D4}",
+                BrandCode = $"LB-{index + 1:D5}",
+                Description = "Synthetic load-test brand",
+                Status = "Active",
+                TenantId = tenantId,
+                CreatedBy = createdBy
+            });
+        }
+        await AddInBatchesAsync(context, newBrands);
+        brands.AddRange(newBrands);
+
+        var products = await context.Products.IgnoreQueryFilters()
+            .Where(p => p.TenantId == tenantId).OrderBy(p => p.SKU).ToListAsync();
+        var newProducts = new List<Product>();
+        for (var index = products.Count; index < ProductTarget; index++)
+        {
+            var cost = Math.Round((decimal)(random.NextDouble() * 490 + 10), 2);
+            newProducts.Add(new Product
+            {
+                Name = $"Load Product {index + 1:D5}",
+                SKU = $"LOAD-{index + 1:D6}",
+                Barcode = $"990{index + 1:D10}",
+                Description = "Synthetic load-test product",
+                CostPrice = cost,
+                SellingPrice = Math.Round(cost * 1.35m, 2),
+                WholeSellingPrice = Math.Round(cost * 1.2m, 2),
+                ReorderStockLevel = random.Next(5, 50),
+                MinOrderQuantity = random.Next(1, 10),
+                CategoryId = categories[index % categories.Count].Id,
+                BrandId = brands[index % brands.Count].Id,
+                Unit = "Each",
+                TenantId = tenantId,
+                CreatedBy = createdBy
+            });
+        }
+        await AddInBatchesAsync(context, newProducts);
+        products.AddRange(newProducts);
+
+        var warehouses = await context.Warehouses.IgnoreQueryFilters()
+            .Where(w => w.TenantId == tenantId).OrderBy(w => w.Code).ToListAsync();
+        var customers = await context.Customers.IgnoreQueryFilters()
+            .Where(c => c.TenantId == tenantId).OrderBy(c => c.CustomerName).ToListAsync();
+        var suppliers = await context.Suppliers.IgnoreQueryFilters()
+            .Where(s => s.TenantId == tenantId).OrderBy(s => s.SupplierName).ToListAsync();
+        if (warehouses.Count == 0 || customers.Count == 0 || suppliers.Count == 0 || products.Count == 0)
+            throw new InvalidOperationException("Load-test data requires a seeded warehouse, customer, supplier, and product.");
+
+        var salesOrders = await context.SalesOrders.IgnoreQueryFilters()
+            .Where(o => o.TenantId == tenantId).CountAsync();
+        var newSalesOrders = new List<SalesOrder>();
+        for (var index = salesOrders; index < SalesOrderTarget; index++)
+        {
+            var subtotal = Math.Round((decimal)(random.NextDouble() * 4900 + 100), 2);
+            newSalesOrders.Add(new SalesOrder
+            {
+                OrderNumber = $"LOAD-SO-{index + 1:D6}",
+                CustomerId = customers[index % customers.Count].Id,
+                WarehouseId = warehouses[index % warehouses.Count].Id,
+                OrderDate = DateTime.UtcNow.AddDays(-random.Next(0, 730)),
+                Status = (OrderStatus)(index % 5),
+                SubTotal = subtotal,
+                TaxAmount = Math.Round(subtotal * 0.1m, 2),
+                TotalAmount = Math.Round(subtotal * 1.1m, 2),
+                PaidAmount = 0,
+                DueAmount = Math.Round(subtotal * 1.1m, 2),
+                TenantId = tenantId,
+                CreatedBy = createdBy
+            });
+        }
+        await AddInBatchesAsync(context, newSalesOrders);
+
+        var purchaseOrders = await context.PurchaseOrders.IgnoreQueryFilters()
+            .Where(o => o.TenantId == tenantId).CountAsync();
+        var newPurchaseOrders = new List<PurchaseOrder>();
+        for (var index = purchaseOrders; index < PurchaseOrderTarget; index++)
+        {
+            var subtotal = Math.Round((decimal)(random.NextDouble() * 9800 + 200), 2);
+            newPurchaseOrders.Add(new PurchaseOrder
+            {
+                OrderNumber = $"LOAD-PO-{index + 1:D6}",
+                SupplierId = suppliers[index % suppliers.Count].Id,
+                WarehouseId = warehouses[index % warehouses.Count].Id,
+                PurchaseDate = DateTime.UtcNow.AddDays(-random.Next(0, 730)),
+                Status = (PurchaseOrderStatus)(index % 5),
+                SubTotal = subtotal,
+                TaxAmount = Math.Round(subtotal * 0.1m, 2),
+                TotalAmount = Math.Round(subtotal * 1.1m, 2),
+                PaidAmount = 0,
+                DueAmount = Math.Round(subtotal * 1.1m, 2),
+                TenantId = tenantId,
+                CreatedBy = createdBy
+            });
+        }
+        await AddInBatchesAsync(context, newPurchaseOrders);
+    }
+
+    private static async Task AddInBatchesAsync<TEntity>(ApplicationDbContext context, IEnumerable<TEntity> entities, int batchSize = 500)
+        where TEntity : class
+    {
+        var batch = new List<TEntity>(batchSize);
+        foreach (var entity in entities)
+        {
+            batch.Add(entity);
+            if (batch.Count < batchSize)
+                continue;
+
+            context.AddRange(batch);
+            await context.SaveChangesAsync();
+            batch.Clear();
+        }
+
+        if (batch.Count > 0)
+        {
+            context.AddRange(batch);
+            await context.SaveChangesAsync();
+        }
     }
 
     private static async Task SeedDummyDataAsync(ApplicationDbContext context, Guid tenantId)
@@ -142,7 +405,7 @@ public static class SeedData
         // --- Currencies (add more beyond default USD) ---
         var usd = await context.Currencies.IgnoreQueryFilters().FirstAsync(c => c.TenantId == tenantId && c.Code == "USD");
         var extraCurrencies = new List<Currency>();
-        string[][] currData = [["EUR","Euro","€"],["GBP","British Pound","£"],["JPY","Japanese Yen","¥"],["CAD","Canadian Dollar","C$"],["AUD","Australian Dollar","A$"],["CHF","Swiss Franc","Fr"],["INR","Indian Rupee","₹"],["CNY","Chinese Yuan","¥"],["BRL","Brazilian Real","R$"],["KRW","South Korean Won","₩"],["SGD","Singapore Dollar","S$"],["MXN","Mexican Peso","$"],["NZD","New Zealand Dollar","NZ$"],["SEK","Swedish Krona","kr"],["NOK","Norwegian Krone","kr"],["DKK","Danish Krone","kr"],["HKD","Hong Kong Dollar","HK$"],["ZAR","South African Rand","R"],["AED","UAE Dirham","د.إ"]];
+        string[][] currData = [["EUR", "Euro", "€"], ["GBP", "British Pound", "£"], ["JPY", "Japanese Yen", "¥"], ["CAD", "Canadian Dollar", "C$"], ["AUD", "Australian Dollar", "A$"], ["CHF", "Swiss Franc", "Fr"], ["INR", "Indian Rupee", "₹"], ["CNY", "Chinese Yuan", "¥"], ["BRL", "Brazilian Real", "R$"], ["KRW", "South Korean Won", "₩"], ["SGD", "Singapore Dollar", "S$"], ["MXN", "Mexican Peso", "$"], ["NZD", "New Zealand Dollar", "NZ$"], ["SEK", "Swedish Krona", "kr"], ["NOK", "Norwegian Krone", "kr"], ["DKK", "Danish Krone", "kr"], ["HKD", "Hong Kong Dollar", "HK$"], ["ZAR", "South African Rand", "R"], ["AED", "UAE Dirham", "د.إ"]];
         if (!await context.Currencies.IgnoreQueryFilters().AnyAsync(c => c.TenantId == tenantId && c.Code == "EUR"))
         {
             foreach (var cd in currData)
@@ -217,20 +480,25 @@ public static class SeedData
                 ["Power Strip 6-Outlet","SKU-0016","8901234560016"],["Desk Organizer","SKU-0017","8901234560017"],["Anti-Fatigue Mat","SKU-0018","8901234560018"],
                 ["Document Scanner","SKU-0019","8901234560019"],["Label Printer","SKU-0020","8901234560020"]
             ];
-            decimal[] costs = [12.50m,35.00m,18.00m,180.00m,15.00m,220.00m,350.00m,25.00m,95.00m,20.00m,3.50m,5.00m,8.00m,55.00m,12.00m,10.00m,7.50m,22.00m,120.00m,65.00m];
-            decimal[] sells = [24.99m,69.99m,34.99m,349.99m,29.99m,449.99m,699.99m,49.99m,199.99m,39.99m,7.99m,12.99m,16.99m,109.99m,24.99m,19.99m,14.99m,44.99m,249.99m,129.99m];
+            decimal[] costs = [12.50m, 35.00m, 18.00m, 180.00m, 15.00m, 220.00m, 350.00m, 25.00m, 95.00m, 20.00m, 3.50m, 5.00m, 8.00m, 55.00m, 12.00m, 10.00m, 7.50m, 22.00m, 120.00m, 65.00m];
+            decimal[] sells = [24.99m, 69.99m, 34.99m, 349.99m, 29.99m, 449.99m, 699.99m, 49.99m, 199.99m, 39.99m, 7.99m, 12.99m, 16.99m, 109.99m, 24.99m, 19.99m, 14.99m, 44.99m, 249.99m, 129.99m];
             for (int i = 0; i < 20; i++)
             {
                 products.Add(new Product
                 {
-                    Name = prodData[i][0], SKU = prodData[i][1], Barcode = prodData[i][2],
+                    Name = prodData[i][0],
+                    SKU = prodData[i][1],
+                    Barcode = prodData[i][2],
                     Description = $"High quality {prodData[i][0].ToLower()}",
-                    CostPrice = costs[i], SellingPrice = sells[i],
-                    ReorderStockLevel = rng.Next(5, 25), MinOrderQuantity = rng.Next(1, 10),
+                    CostPrice = costs[i],
+                    SellingPrice = sells[i],
+                    ReorderStockLevel = rng.Next(5, 25),
+                    MinOrderQuantity = rng.Next(1, 10),
                     CategoryId = categories[i % categories.Count].Id,
                     //Weight = Math.Round((decimal)(rng.NextDouble() * 10 + 0.1), 2),
                     //Volume = Math.Round((decimal)(rng.NextDouble() * 5 + 0.1), 2),
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
             }
             context.Products.AddRange(products);
@@ -245,7 +513,7 @@ public static class SeedData
         var customers = new List<Customer>();
         if (await context.Customers.IgnoreQueryFilters().CountAsync(c => c.TenantId == tenantId) < 20)
         {
-            string[] custNames = ["Acme Corp","Global Industries","TechStart LLC","Prime Solutions","Nexus Trading","Blue Sky Imports","Green Valley Co","Summit Enterprises","Pacific Rim Ltd","Atlas Distributors","Metro Supplies Inc","Horizon Group","Phoenix Materials","Silverline Corp","Diamond Services","Quantum Retail","Edge Computing Co","Pinnacle Foods","Coastal Shipping","Harbor Logistics"];
+            string[] custNames = ["Acme Corp", "Global Industries", "TechStart LLC", "Prime Solutions", "Nexus Trading", "Blue Sky Imports", "Green Valley Co", "Summit Enterprises", "Pacific Rim Ltd", "Atlas Distributors", "Metro Supplies Inc", "Horizon Group", "Phoenix Materials", "Silverline Corp", "Diamond Services", "Quantum Retail", "Edge Computing Co", "Pinnacle Foods", "Coastal Shipping", "Harbor Logistics"];
             for (int i = 0; i < 20; i++)
             {
                 customers.Add(new Customer
@@ -260,7 +528,8 @@ public static class SeedData
                     PostalCode = $"{10001 + i * 100}",
                     CreditLimit = (i + 1) * 5000m,
                     PaymentTerms = new[] { "Net 30", "Net 15", "Net 60", "Net 45", "COD" }[i % 5],
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
             }
             context.Customers.AddRange(customers);
@@ -275,7 +544,7 @@ public static class SeedData
         var suppliers = new List<Supplier>();
         if (await context.Suppliers.IgnoreQueryFilters().CountAsync(s => s.TenantId == tenantId) < 20)
         {
-            string[] suppNames = ["TechParts Intl","OfficePlus Co","FurniPro Mfg","RawMat Supply","PackRight Inc","ToolMaster Ltd","SafeGuard Corp","CleanPro Supplies","AutoParts Direct","MedEquip Wholesale","Gourmet Dist","TextileCraft","ChemSource Ltd","HeavyDuty Mfg","PlumbWorks Co","ElectroParts Inc","BuildRight Supply","GreenGarden Co","SportsGear Mfg","TechVault Supply"];
+            string[] suppNames = ["TechParts Intl", "OfficePlus Co", "FurniPro Mfg", "RawMat Supply", "PackRight Inc", "ToolMaster Ltd", "SafeGuard Corp", "CleanPro Supplies", "AutoParts Direct", "MedEquip Wholesale", "Gourmet Dist", "TextileCraft", "ChemSource Ltd", "HeavyDuty Mfg", "PlumbWorks Co", "ElectroParts Inc", "BuildRight Supply", "GreenGarden Co", "SportsGear Mfg", "TechVault Supply"];
             for (int i = 0; i < 20; i++)
             {
                 suppliers.Add(new Supplier
@@ -285,11 +554,14 @@ public static class SeedData
                     SupplierPhone = $"+1-555-{2000 + i:D4}",
                     Address = $"{200 + i * 10} Supplier Blvd",
                     City = "Industry City",
-                    State = "CA", Country = "US", PostalCode = $"{90001 + i * 10}",
+                    State = "CA",
+                    Country = "US",
+                    PostalCode = $"{90001 + i * 10}",
                     PaymentTerms = new[] { "Net 30", "Net 45", "Net 60", "Net 15", "COD" }[i % 5],
                     LeadTimeDays = rng.Next(3, 21),
                     Rating = Math.Round(3.0m + (decimal)(rng.NextDouble() * 2), 1),
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
             }
             context.Suppliers.AddRange(suppliers);
@@ -314,7 +586,8 @@ public static class SeedData
                     ReservedQuantity = rng.Next(0, 10),
                     LastStockDate = DateTime.UtcNow.AddDays(-rng.Next(1, 60)),
                     BinLocation = $"A{i / 5 + 1}-R{i % 5 + 1}-S{rng.Next(1, 10)}",
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
             }
             await context.SaveChangesAsync();
@@ -335,7 +608,8 @@ public static class SeedData
                     Reference = $"SM-{2026}{i + 1:D4}",
                     Notes = $"Stock movement #{i + 1}",
                     MovementDate = DateTime.UtcNow.AddDays(-rng.Next(1, 90)),
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
             }
             await context.SaveChangesAsync();
@@ -359,9 +633,12 @@ public static class SeedData
                     subTotal += lineTotal;
                     items.Add(new SalesOrderItem
                     {
-                        ProductId = prod.Id, Quantity = qty, UnitPrice = prod.SellingPrice,
+                        ProductId = prod.Id,
+                        Quantity = qty,
+                        UnitPrice = prod.SellingPrice,
                         LineTotalPrice = lineTotal,
-                        TenantId = tenantId, CreatedBy = cb
+                        TenantId = tenantId,
+                        CreatedBy = cb
                     });
                 }
                 var taxAmt = subTotal * 0.10m;
@@ -372,11 +649,14 @@ public static class SeedData
                     WarehouseId = warehouses[0].Id,
                     OrderDate = DateTime.UtcNow.AddDays(-rng.Next(1, 120)),
                     Status = statuses[i % statuses.Length],
-                    SubTotal = subTotal, TaxAmount = taxAmt, TotalAmount = subTotal + taxAmt,
+                    SubTotal = subTotal,
+                    TaxAmount = taxAmt,
+                    TotalAmount = subTotal + taxAmt,
                     ShippingAddress = customers[i % 20].Address,
                     ExpectedDeliveryDate = DateTime.UtcNow.AddDays(rng.Next(5, 30)),
                     Items = items,
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 };
                 salesOrders.Add(so);
             }
@@ -406,10 +686,15 @@ public static class SeedData
                     subTotal += lineTotal;
                     items.Add(new PurchaseOrderItem
                     {
-                        ProductId = prod.Id, Quantity = qty, UnitPrice = prod.CostPrice,
+                        ProductId = prod.Id,
+                        Quantity = qty,
+                        UnitPrice = prod.CostPrice,
                         ReceivedQuantity = statuses[i % statuses.Length] == PurchaseOrderStatus.Received ? qty : 0,
-                        TaxRate = 10m, TaxAmount = lineTotal * 0.10m, LineTotal = lineTotal,
-                        TenantId = tenantId, CreatedBy = cb
+                        TaxRate = 10m,
+                        TaxAmount = lineTotal * 0.10m,
+                        LineTotal = lineTotal,
+                        TenantId = tenantId,
+                        CreatedBy = cb
                     });
                 }
                 var taxAmt = subTotal * 0.10m;
@@ -420,10 +705,13 @@ public static class SeedData
                     WarehouseId = warehouses[0].Id,
                     PurchaseDate = DateTime.UtcNow.AddDays(-rng.Next(1, 120)),
                     Status = statuses[i % statuses.Length],
-                    SubTotal = subTotal, TaxAmount = taxAmt, TotalAmount = subTotal + taxAmt,
+                    SubTotal = subTotal,
+                    TaxAmount = taxAmt,
+                    TotalAmount = subTotal + taxAmt,
                     ExpectedDeliveryDate = DateTime.UtcNow.AddDays(rng.Next(7, 45)),
                     Items = items,
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 };
                 purchaseOrders.Add(po);
             }
@@ -447,9 +735,14 @@ public static class SeedData
                 var lineTotal = prod.SellingPrice * qty;
                 items.Add(new SalesQuoteItem
                 {
-                    ProductId = prod.Id, Quantity = qty, UnitPrice = prod.SellingPrice,
-                    TaxRate = 10m, TaxAmount = lineTotal * 0.10m, LineTotal = lineTotal,
-                    TenantId = tenantId, CreatedBy = cb
+                    ProductId = prod.Id,
+                    Quantity = qty,
+                    UnitPrice = prod.SellingPrice,
+                    TaxRate = 10m,
+                    TaxAmount = lineTotal * 0.10m,
+                    LineTotal = lineTotal,
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
                 context.SalesQuotes.Add(new SalesQuote
                 {
@@ -458,9 +751,12 @@ public static class SeedData
                     Status = statuses[i % statuses.Length],
                     QuoteDate = DateTime.UtcNow.AddDays(-rng.Next(1, 60)),
                     ValidUntil = DateTime.UtcNow.AddDays(rng.Next(15, 60)),
-                    SubTotal = lineTotal, TaxAmount = lineTotal * 0.10m, TotalAmount = lineTotal * 1.10m,
+                    SubTotal = lineTotal,
+                    TaxAmount = lineTotal * 0.10m,
+                    TotalAmount = lineTotal * 1.10m,
                     Items = items,
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
             }
             await context.SaveChangesAsync();
@@ -488,9 +784,12 @@ public static class SeedData
                     SupplierId = !isSales ? suppliers[i - 10].Id : null,
                     InvoiceDate = DateTime.UtcNow.AddDays(-rng.Next(1, 90)),
                     DueDate = DateTime.UtcNow.AddDays(rng.Next(-15, 45)),
-                    SubTotal = subTotal, TaxAmount = taxAmt, TotalAmount = totalAmt,
+                    SubTotal = subTotal,
+                    TaxAmount = taxAmt,
+                    TotalAmount = totalAmt,
                     PaidAmount = invStatuses[i % invStatuses.Length] == InvoiceStatus.Paid ? totalAmt : invStatuses[i % invStatuses.Length] == InvoiceStatus.PartiallyPaid ? totalAmt * 0.5m : 0m,
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 };
                 invoices.Add(inv);
             }
@@ -520,7 +819,8 @@ public static class SeedData
                     PaymentDate = DateTime.UtcNow.AddDays(-rng.Next(1, 60)),
                     PaymentMethod = methods[i % methods.Length],
                     Reference = $"REF-{rng.Next(10000, 99999)}",
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
             }
             await context.SaveChangesAsync();
@@ -557,7 +857,8 @@ public static class SeedData
                         new() { AccountId = debitAcctId, Debit = amount, Credit = 0, Description = desc, TenantId = tenantId, CreatedBy = cb },
                         new() { AccountId = creditAcctId, Debit = 0, Credit = amount, Description = desc, TenantId = tenantId, CreatedBy = cb }
                     },
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
             }
             await context.SaveChangesAsync();
@@ -574,7 +875,8 @@ public static class SeedData
                     IsDefault = i == 0,
                     EffectiveFrom = DateTime.UtcNow.AddDays(-90),
                     EffectiveTo = DateTime.UtcNow.AddDays(270),
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 };
                 context.PriceLists.Add(pl);
             }
@@ -593,7 +895,8 @@ public static class SeedData
                     Date = DateTime.UtcNow.AddDays(-rng.Next(1, 60)),
                     ShippedBy = new[] { "FedEx", "UPS", "DHL", "USPS", "Local Courier" }[i % 5],
                     TrackingNumber = $"TRK{rng.Next(100000000, 999999999)}",
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
             }
             await context.SaveChangesAsync();
@@ -614,7 +917,8 @@ public static class SeedData
                     EstimatedDelivery = DateTime.UtcNow.AddDays(rng.Next(1, 15)),
                     Status = shipStatuses[i % shipStatuses.Length],
                     FreightCost = Math.Round(15m + (decimal)(rng.NextDouble() * 200), 2),
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
             }
             await context.SaveChangesAsync();
@@ -624,14 +928,17 @@ public static class SeedData
         var jurisdictions = await context.TaxJurisdictions.IgnoreQueryFilters().Where(t => t.TenantId == tenantId).ToListAsync();
         if (jurisdictions.Count < 20)
         {
-            string[][] jurisdData = [["Federal","FED","US",""],["New York State","NYS","US","NY"],["California","CAS","US","CA"],["Texas","TXS","US","TX"],["Florida","FLS","US","FL"],["Illinois","ILS","US","IL"],["Pennsylvania","PAS","US","PA"],["Ohio","OHS","US","OH"],["Georgia","GAS","US","GA"],["Michigan","MIS","US","MI"],["Canada Federal","CAN","CA",""],["UK VAT","GBV","GB",""],["EU Standard","EUS","EU",""],["Japan CT","JPT","JP",""],["Australia GST","AUG","AU",""],["India GST","ING","IN",""],["Singapore GST","SGG","SG",""],["Brazil ISS","BRI","BR",""],["Mexico IVA","MXI","MX",""]];
+            string[][] jurisdData = [["Federal", "FED", "US", ""], ["New York State", "NYS", "US", "NY"], ["California", "CAS", "US", "CA"], ["Texas", "TXS", "US", "TX"], ["Florida", "FLS", "US", "FL"], ["Illinois", "ILS", "US", "IL"], ["Pennsylvania", "PAS", "US", "PA"], ["Ohio", "OHS", "US", "OH"], ["Georgia", "GAS", "US", "GA"], ["Michigan", "MIS", "US", "MI"], ["Canada Federal", "CAN", "CA", ""], ["UK VAT", "GBV", "GB", ""], ["EU Standard", "EUS", "EU", ""], ["Japan CT", "JPT", "JP", ""], ["Australia GST", "AUG", "AU", ""], ["India GST", "ING", "IN", ""], ["Singapore GST", "SGG", "SG", ""], ["Brazil ISS", "BRI", "BR", ""], ["Mexico IVA", "MXI", "MX", ""]];
             for (int i = 0; i < jurisdData.Length; i++)
             {
                 var tj = new TaxJurisdiction
                 {
-                    Name = jurisdData[i][0], Code = jurisdData[i][1],
-                    Country = jurisdData[i][2], State = string.IsNullOrEmpty(jurisdData[i][3]) ? null : jurisdData[i][3],
-                    TenantId = tenantId, CreatedBy = cb
+                    Name = jurisdData[i][0],
+                    Code = jurisdData[i][1],
+                    Country = jurisdData[i][2],
+                    State = string.IsNullOrEmpty(jurisdData[i][3]) ? null : jurisdData[i][3],
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 };
                 jurisdictions.Add(tj);
                 context.TaxJurisdictions.Add(tj);
@@ -650,7 +957,8 @@ public static class SeedData
                     TaxType = taxTypes[i % taxTypes.Length],
                     TaxJurisdictionId = jurisdictions[i + 1].Id, // skip the "Default" one
                     EffectiveFrom = new DateTime(2024, 1, 1),
-                    TenantId = tenantId, CreatedBy = cb
+                    TenantId = tenantId,
+                    CreatedBy = cb
                 });
             }
             await context.SaveChangesAsync();

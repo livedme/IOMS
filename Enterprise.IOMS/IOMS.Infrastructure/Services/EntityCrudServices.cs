@@ -289,7 +289,7 @@ public class CustomerSupplierService : ICustomerSupplierService
     {
         var customer = await _db.Customers.FindAsync(id) ?? throw new KeyNotFoundException("Customer not found");
         customer.CustomerName = dto.CustomerName; customer.CustomerEmail = dto.CustomerEmail; customer.CustomerPhone = dto.CustomerPhone;
-        customer.ContactPersonName = dto.ContactPersonName; customer.ContactPersonEmail = dto.ContactPersonEmail; customer.ContactPersonPhone = dto.ContactPersonPhone;        
+        customer.ContactPersonName = dto.ContactPersonName; customer.ContactPersonEmail = dto.ContactPersonEmail; customer.ContactPersonPhone = dto.ContactPersonPhone;
         customer.Address = dto.Address; customer.City = dto.City; customer.State = dto.State;
         customer.Country = dto.Country; customer.PostalCode = dto.PostalCode;
         customer.CreditLimit = dto.CreditLimit; customer.PaymentTerms = dto.PaymentTerms;
@@ -557,16 +557,19 @@ public class UserManagementService : IUserManagementService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly ITenantProvider _tenantProvider;
 
-    public UserManagementService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+    public UserManagementService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ITenantProvider tenantProvider)
     {
         _userManager = userManager;
         _roleManager = roleManager;
+        _tenantProvider = tenantProvider;
     }
 
     public async Task<List<UserDto>> GetUsers(string? search)
     {
-        var query = _userManager.Users.AsQueryable();
+        var tenantId = _tenantProvider.GetTenantId();
+        var query = _userManager.Users.Where(u => u.TenantId == tenantId).AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(u => u.FullName.Contains(search) || u.Email!.Contains(search));
 
@@ -582,7 +585,8 @@ public class UserManagementService : IUserManagementService
 
     public async Task<UserDto?> GetUserById(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        var user = await _userManager.Users
+            .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId());
         if (user == null) return null;
         var roles = await _userManager.GetRolesAsync(user);
         return new UserDto(user.Id, user.FullName, user.Email, user.Department, user.IsActive, user.CreatedAt, user.LastLoginAt, roles.ToList());
@@ -590,7 +594,9 @@ public class UserManagementService : IUserManagementService
 
     public async Task ToggleUserActive(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId) ?? throw new KeyNotFoundException("User not found");
+        var user = await _userManager.Users
+            .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId())
+            ?? throw new KeyNotFoundException("User not found");
         user.IsActive = !user.IsActive;
         await _userManager.UpdateAsync(user);
     }
@@ -599,13 +605,17 @@ public class UserManagementService : IUserManagementService
 
     public async Task<List<string>> GetUserRoles(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId) ?? throw new KeyNotFoundException("User not found");
+        var user = await _userManager.Users
+            .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId())
+            ?? throw new KeyNotFoundException("User not found");
         return (await _userManager.GetRolesAsync(user)).ToList();
     }
 
     public async Task AssignRole(string userId, string role)
     {
-        var user = await _userManager.FindByIdAsync(userId) ?? throw new KeyNotFoundException("User not found");
+        var user = await _userManager.Users
+            .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId())
+            ?? throw new KeyNotFoundException("User not found");
         if (!await _roleManager.RoleExistsAsync(role)) throw new InvalidOperationException($"Role '{role}' does not exist");
         await _userManager.AddToRoleAsync(user, role);
     }

@@ -4,6 +4,7 @@ using IOMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260902195737_AddTenantOwnership")]
+    partial class AddTenantOwnership
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3650,102 +3653,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.ToTable("StocktakeItems");
                 });
 
-            modelBuilder.Entity("IOMS.Domain.Entities.SubscriptionPlan", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("AccountingModuleEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("AiEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("DriverAppEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EPODEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("FuelModuleEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("GpsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("InventoryModuleEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IoTEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsPopular")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("MaintenanceModuleEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("MaxBranches")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaxDrivers")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaxStorageGB")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaxTrucks")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaxUsers")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MinDrivers")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MinUsers")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("MonthlyPrice")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<string>("PlanName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("PlanType")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("YearlyPrice")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SubscriptionPlan");
-                });
-
             modelBuilder.Entity("IOMS.Domain.Entities.Supplier", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4025,31 +3932,25 @@ namespace IOMS.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("CompanyCode")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("CompanyName")
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TenantStatus")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyCode")
+                    b.HasIndex("Key")
                         .IsUnique();
 
                     b.ToTable("Tenants");
@@ -4058,114 +3959,11 @@ namespace IOMS.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000001"),
-                            CompanyCode = "default",
-                            CompanyName = "Default Tenant",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TenantStatus = 1
+                            IsActive = true,
+                            Key = "default",
+                            Name = "Default Tenant"
                         });
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.TenantSetting", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsSystem")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("TenantSetting");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.TenantSubscription", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<bool>("AutoRenew")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("BillingCycle")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SubscriptionPlanId")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SubscriptionPlanId");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("TenantSubscription");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.UnitOfMeasure", b =>
@@ -5767,36 +5565,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("IOMS.Domain.Entities.TenantSetting", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany("TenantSettings")
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.TenantSubscription", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.SubscriptionPlan", "SubscriptionPlan")
-                        .WithMany("Tenants")
-                        .HasForeignKey("SubscriptionPlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany("TenantSubscriptions")
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("SubscriptionPlan");
-
-                    b.Navigation("Tenant");
-                });
-
             modelBuilder.Entity("IOMS.Domain.Entities.UnitOfMeasure", b =>
                 {
                     b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
@@ -6068,11 +5836,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("IOMS.Domain.Entities.SubscriptionPlan", b =>
-                {
-                    b.Navigation("Tenants");
-                });
-
             modelBuilder.Entity("IOMS.Domain.Entities.Supplier", b =>
                 {
                     b.Navigation("PurchaseOrders");
@@ -6087,10 +5850,6 @@ namespace IOMS.Infrastructure.Migrations
 
             modelBuilder.Entity("IOMS.Domain.Entities.Tenant", b =>
                 {
-                    b.Navigation("TenantSettings");
-
-                    b.Navigation("TenantSubscriptions");
-
                     b.Navigation("Users");
                 });
 

@@ -4,6 +4,7 @@ using IOMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,13 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IOMS.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260902192332_OptimizeTenantIndexes")]
+    partial class OptimizeTenantIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.11")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -220,8 +223,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("ApprovalRequests");
                 });
 
@@ -279,8 +280,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("ApprovalRequestId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("ApprovalRequestSteps");
                 });
 
@@ -337,8 +336,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("ApprovalWorkflowRules");
                 });
 
@@ -387,8 +384,6 @@ namespace IOMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("ArchivalPolicies");
                 });
@@ -483,8 +478,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("BankStatements");
                 });
 
@@ -547,8 +540,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("MatchedPaymentId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("BankStatementLines");
                 });
 
@@ -601,8 +592,6 @@ namespace IOMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("Branches");
                 });
@@ -788,8 +777,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("CreditNotes");
                 });
 
@@ -906,8 +893,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("CustomFieldDefinitions");
                 });
 
@@ -954,8 +939,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DefinitionId");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("CustomFieldValues");
                 });
@@ -1118,8 +1101,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("DataSubjectRequests");
                 });
 
@@ -1178,8 +1159,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("DebitNotes");
                 });
 
@@ -1236,8 +1215,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("SalesOrderId");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("DeliveryNotes");
                 });
@@ -1323,8 +1300,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("Discounts");
                 });
 
@@ -1376,8 +1351,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("DocumentTemplates");
                 });
 
@@ -1428,8 +1401,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("FromCurrencyId");
-
-                    b.HasIndex("TenantId");
 
                     b.HasIndex("ToCurrencyId");
 
@@ -1729,8 +1700,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("JournalEntryId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("JournalEntryLines");
                 });
 
@@ -1774,8 +1743,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("Kits");
                 });
@@ -1825,8 +1792,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.HasIndex("ComponentProductId");
 
                     b.HasIndex("KitId");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("KitComponents");
                 });
@@ -1881,8 +1846,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("LandedCostAllocations");
                 });
 
@@ -1929,8 +1892,6 @@ namespace IOMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("LandedCostComponents");
                 });
@@ -1988,8 +1949,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("NotificationLogs");
                 });
 
@@ -2040,8 +1999,6 @@ namespace IOMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("NotificationTemplates");
                 });
@@ -2136,8 +2093,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("Payments");
                 });
 
@@ -2195,8 +2150,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("CurrencyId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("PriceLists");
                 });
 
@@ -2249,8 +2202,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.HasIndex("PriceListId");
 
                     b.HasIndex("ProductId");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("PriceListItems");
                 });
@@ -2650,8 +2601,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.HasIndex("TenantId");
-
                     b.HasIndex("UoMId");
 
                     b.ToTable("PurchaseOrderItems");
@@ -2712,8 +2661,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("PurchaseReturns");
                 });
 
@@ -2771,8 +2718,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("PurchaseReturnId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("PurchaseReturnItems");
                 });
 
@@ -2826,8 +2771,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("RfqRequestId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("RfqItems");
                 });
 
@@ -2876,8 +2819,6 @@ namespace IOMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("RfqRequests");
                 });
@@ -2940,8 +2881,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.HasIndex("RfqRequestId");
 
                     b.HasIndex("SupplierId");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("RfqSupplierResponses");
                 });
@@ -3164,8 +3103,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("SalesOrderId");
 
-                    b.HasIndex("TenantId");
-
                     b.HasIndex("UoMId");
 
                     b.ToTable("SalesOrderItems");
@@ -3334,8 +3271,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("SalesQuoteId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("SalesQuoteItems");
                 });
 
@@ -3393,8 +3328,6 @@ namespace IOMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("ScheduledReports");
                 });
@@ -3461,8 +3394,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("SalesOrderId");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("Shipments");
                 });
@@ -3586,8 +3517,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
-
                     b.HasIndex("WarehouseId");
 
                     b.ToTable("Stocktakes");
@@ -3645,105 +3574,7 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("StocktakeId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("StocktakeItems");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.SubscriptionPlan", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("AccountingModuleEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("AiEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("DriverAppEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EPODEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("FuelModuleEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("GpsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("InventoryModuleEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IoTEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsPopular")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("MaintenanceModuleEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("MaxBranches")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaxDrivers")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaxStorageGB")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaxTrucks")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaxUsers")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MinDrivers")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MinUsers")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("MonthlyPrice")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<string>("PlanName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("PlanType")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("YearlyPrice")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SubscriptionPlan");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.Supplier", b =>
@@ -3893,8 +3724,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("TaxExemptions");
                 });
 
@@ -3947,8 +3776,6 @@ namespace IOMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("TaxJurisdictions");
                 });
@@ -4014,158 +3841,7 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("TaxJurisdictionId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("TaxRates");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.Tenant", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CompanyCode")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("CompanyName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TenantStatus")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyCode")
-                        .IsUnique();
-
-                    b.ToTable("Tenants");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0000-000000000001"),
-                            CompanyCode = "default",
-                            CompanyName = "Default Tenant",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TenantStatus = 1
-                        });
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.TenantSetting", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsSystem")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("TenantSetting");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.TenantSubscription", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<bool>("AutoRenew")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("BillingCycle")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SubscriptionPlanId")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SubscriptionPlanId");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("TenantSubscription");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.UnitOfMeasure", b =>
@@ -4211,8 +3887,6 @@ namespace IOMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("UnitsOfMeasure");
                 });
@@ -4261,8 +3935,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("FromUoMId");
-
-                    b.HasIndex("TenantId");
 
                     b.HasIndex("ToUoMId");
 
@@ -4382,8 +4054,6 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.HasIndex("SubscriptionId");
 
-                    b.HasIndex("TenantId");
-
                     b.ToTable("WebhookDeliveryLogs");
                 });
 
@@ -4434,8 +4104,6 @@ namespace IOMS.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("WebhookSubscriptions");
                 });
@@ -4580,37 +4248,7 @@ namespace IOMS.Infrastructure.Migrations
                         .HasForeignKey("ParentAccountId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("ParentAccount");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.ApplicationUser", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany("Users")
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.ApprovalRequest", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.ApprovalRequestStep", b =>
@@ -4621,48 +4259,7 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("ApprovalRequest");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.ApprovalWorkflowRule", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.ArchivalPolicy", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.BankStatement", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.BankStatementLine", b =>
@@ -4677,39 +4274,9 @@ namespace IOMS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("MatchedPaymentId");
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("BankStatement");
 
                     b.Navigation("MatchedPayment");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.Branch", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.Brand", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.Category", b =>
@@ -4719,15 +4286,7 @@ namespace IOMS.Infrastructure.Migrations
                         .HasForeignKey("ParentCategoryId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("ParentCategory");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.CreditNote", b =>
@@ -4738,37 +4297,7 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Invoice");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.Currency", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.CustomFieldDefinition", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.CustomFieldValue", b =>
@@ -4779,15 +4308,7 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Definition");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.Customer", b =>
@@ -4804,30 +4325,11 @@ namespace IOMS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("TaxJurisdictionId");
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("DefaultCurrency");
 
                     b.Navigation("DefaultPriceList");
 
                     b.Navigation("TaxJurisdiction");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.DataSubjectRequest", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.DebitNote", b =>
@@ -4838,15 +4340,7 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Invoice");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.DeliveryNote", b =>
@@ -4857,15 +4351,7 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("SalesOrder");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.Discount", b =>
@@ -4882,30 +4368,11 @@ namespace IOMS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("ProductId");
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Category");
 
                     b.Navigation("Customer");
 
                     b.Navigation("Product");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.DocumentTemplate", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.ExchangeRate", b =>
@@ -4916,12 +4383,6 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("IOMS.Domain.Entities.Currency", "ToCurrency")
                         .WithMany("ToExchangeRates")
                         .HasForeignKey("ToCurrencyId")
@@ -4929,8 +4390,6 @@ namespace IOMS.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("FromCurrency");
-
-                    b.Navigation("Tenant");
 
                     b.Navigation("ToCurrency");
                 });
@@ -4943,12 +4402,6 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("IOMS.Domain.Entities.Warehouse", "Warehouse")
                         .WithMany("Inventories")
                         .HasForeignKey("WarehouseId")
@@ -4956,8 +4409,6 @@ namespace IOMS.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
-
-                    b.Navigation("Tenant");
 
                     b.Navigation("Warehouse");
                 });
@@ -4987,12 +4438,6 @@ namespace IOMS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("SupplierId");
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Currency");
 
                     b.Navigation("Customer");
@@ -5002,8 +4447,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Navigation("SalesOrder");
 
                     b.Navigation("Supplier");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.JournalEntry", b =>
@@ -5012,15 +4455,7 @@ namespace IOMS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("ReversalOfId");
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("ReversalOf");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.JournalEntryLine", b =>
@@ -5037,17 +4472,9 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Account");
 
                     b.Navigation("JournalEntry");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.Kit", b =>
@@ -5058,15 +4485,7 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Product");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.KitComponent", b =>
@@ -5083,17 +4502,9 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("ComponentProduct");
 
                     b.Navigation("Kit");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.LandedCostAllocation", b =>
@@ -5108,50 +4519,9 @@ namespace IOMS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("PurchaseOrderId");
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Component");
 
                     b.Navigation("PurchaseOrder");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.LandedCostComponent", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.NotificationLog", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.NotificationTemplate", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.Payment", b =>
@@ -5172,12 +4542,6 @@ namespace IOMS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("SupplierId");
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Currency");
 
                     b.Navigation("Customer");
@@ -5185,8 +4549,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Navigation("Invoice");
 
                     b.Navigation("Supplier");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.PriceList", b =>
@@ -5195,15 +4557,7 @@ namespace IOMS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("CurrencyId");
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Currency");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.PriceListItem", b =>
@@ -5220,17 +4574,9 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("PriceList");
 
                     b.Navigation("Product");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.Product", b =>
@@ -5250,19 +4596,11 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("BaseUoM");
 
                     b.Navigation("Brand");
 
                     b.Navigation("Category");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.ProductSerial", b =>
@@ -5278,12 +4616,6 @@ namespace IOMS.Infrastructure.Migrations
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("IOMS.Domain.Entities.Warehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId")
@@ -5292,8 +4624,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Supplier");
-
-                    b.Navigation("Tenant");
 
                     b.Navigation("Warehouse");
                 });
@@ -5310,12 +4640,6 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("IOMS.Domain.Entities.Warehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId");
@@ -5323,8 +4647,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Navigation("Currency");
 
                     b.Navigation("Supplier");
-
-                    b.Navigation("Tenant");
 
                     b.Navigation("Warehouse");
                 });
@@ -5343,12 +4665,6 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("IOMS.Domain.Entities.UnitOfMeasure", "UoM")
                         .WithMany()
                         .HasForeignKey("UoMId");
@@ -5356,8 +4672,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("PurchaseOrder");
-
-                    b.Navigation("Tenant");
 
                     b.Navigation("UoM");
                 });
@@ -5370,15 +4684,7 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("PurchaseOrder");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.PurchaseReturnItem", b =>
@@ -5395,17 +4701,9 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Product");
 
                     b.Navigation("PurchaseReturn");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.RfqItem", b =>
@@ -5422,28 +4720,9 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Product");
 
                     b.Navigation("RfqRequest");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.RfqRequest", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.RfqSupplierResponse", b =>
@@ -5460,17 +4739,9 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("RfqRequest");
 
                     b.Navigation("Supplier");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.SalesOrder", b =>
@@ -5489,12 +4760,6 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("IOMS.Domain.Entities.Warehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId");
@@ -5504,8 +4769,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Navigation("Currency");
 
                     b.Navigation("Customer");
-
-                    b.Navigation("Tenant");
 
                     b.Navigation("Warehouse");
                 });
@@ -5524,12 +4787,6 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("IOMS.Domain.Entities.UnitOfMeasure", "UoM")
                         .WithMany()
                         .HasForeignKey("UoMId");
@@ -5537,8 +4794,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("SalesOrder");
-
-                    b.Navigation("Tenant");
 
                     b.Navigation("UoM");
                 });
@@ -5555,17 +4810,9 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Currency");
 
                     b.Navigation("Customer");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.SalesQuoteItem", b =>
@@ -5582,28 +4829,9 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Product");
 
                     b.Navigation("SalesQuote");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.ScheduledReport", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.Shipment", b =>
@@ -5614,15 +4842,7 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("SalesOrder");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.StockMovement", b =>
@@ -5633,12 +4853,6 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("IOMS.Domain.Entities.Warehouse", "Warehouse")
                         .WithMany("StockMovements")
                         .HasForeignKey("WarehouseId")
@@ -5647,26 +4861,16 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.Navigation("Product");
 
-                    b.Navigation("Tenant");
-
                     b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.Stocktake", b =>
                 {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("IOMS.Domain.Entities.Warehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Tenant");
 
                     b.Navigation("Warehouse");
                 });
@@ -5685,17 +4889,9 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Product");
 
                     b.Navigation("Stocktake");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.Supplier", b =>
@@ -5704,15 +4900,7 @@ namespace IOMS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("DefaultCurrencyId");
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("DefaultCurrency");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.TaxExemption", b =>
@@ -5725,28 +4913,9 @@ namespace IOMS.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("ProductId");
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Customer");
 
                     b.Navigation("Product");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.TaxJurisdiction", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.TaxRate", b =>
@@ -5756,56 +4925,7 @@ namespace IOMS.Infrastructure.Migrations
                         .HasForeignKey("TaxJurisdictionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("TaxJurisdiction");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.TenantSetting", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany("TenantSettings")
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.TenantSubscription", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.SubscriptionPlan", "SubscriptionPlan")
-                        .WithMany("Tenants")
-                        .HasForeignKey("SubscriptionPlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany("TenantSubscriptions")
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("SubscriptionPlan");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.UnitOfMeasure", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.UoMConversion", b =>
@@ -5813,12 +4933,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.HasOne("IOMS.Domain.Entities.UnitOfMeasure", "FromUoM")
                         .WithMany("FromConversions")
                         .HasForeignKey("FromUoMId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -5830,20 +4944,7 @@ namespace IOMS.Infrastructure.Migrations
 
                     b.Navigation("FromUoM");
 
-                    b.Navigation("Tenant");
-
                     b.Navigation("ToUoM");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.Warehouse", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.WebhookDeliveryLog", b =>
@@ -5854,26 +4955,7 @@ namespace IOMS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Subscription");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.WebhookSubscription", b =>
-                {
-                    b.HasOne("IOMS.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -6068,11 +5150,6 @@ namespace IOMS.Infrastructure.Migrations
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("IOMS.Domain.Entities.SubscriptionPlan", b =>
-                {
-                    b.Navigation("Tenants");
-                });
-
             modelBuilder.Entity("IOMS.Domain.Entities.Supplier", b =>
                 {
                     b.Navigation("PurchaseOrders");
@@ -6083,15 +5160,6 @@ namespace IOMS.Infrastructure.Migrations
             modelBuilder.Entity("IOMS.Domain.Entities.TaxJurisdiction", b =>
                 {
                     b.Navigation("TaxRates");
-                });
-
-            modelBuilder.Entity("IOMS.Domain.Entities.Tenant", b =>
-                {
-                    b.Navigation("TenantSettings");
-
-                    b.Navigation("TenantSubscriptions");
-
-                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("IOMS.Domain.Entities.UnitOfMeasure", b =>

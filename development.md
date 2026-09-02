@@ -243,6 +243,7 @@ Enterprise.IOMS/
 | Expiry management          | P2       | FIFO/FEFO picking enforcement for perishable goods             |
 
 **Acceptance Criteria:**
+
 - Stock quantities update within 1 second of order/receipt events.
 - Stock transfer creates paired debit/credit movement records.
 - Low stock alerts fire when quantity drops below configured threshold.
@@ -264,6 +265,7 @@ Enterprise.IOMS/
 | Order approval chain   | P2       | Manager approval required above configurable threshold    |
 
 **Acceptance Criteria:**
+
 - Order cannot be approved if insufficient stock exists.
 - Cancellation restores reserved stock and reverses journal entries.
 - Partial fulfillment updates order status to "Partially Shipped."
@@ -284,6 +286,7 @@ Enterprise.IOMS/
 | Supplier performance       | P2       | Track delivery times, defect rates, reliability      |
 
 **Acceptance Criteria:**
+
 - GRN automatically increases warehouse stock for received items.
 - PO total must match sum of line items.
 - Supplier invoice cannot exceed PO amount.
@@ -347,6 +350,7 @@ Enterprise.IOMS/
 | 5100 | Operating Expenses  | Expense   |
 
 **Acceptance Criteria:**
+
 - Every journal entry must balance (total debits = total credits).
 - Trial Balance must always balance; imbalance blocks report generation.
 - Auto-posted entries are immutable; corrections require reversal entries.
@@ -397,6 +401,7 @@ Enterprise.IOMS/
 | Tax audit trail             | P1       | Immutable record of tax applied on every transaction        |
 
 **Acceptance Criteria:**
+
 - Every sales/purchase order line item has a computed tax amount.
 - Tax reports reconcile exactly with journal entries.
 - Changing a tax rate does not retroactively affect closed transactions.
@@ -419,6 +424,7 @@ Enterprise.IOMS/
 | Line-level & order-level disc | P1       | Support discounts on individual items and on order totals     |
 
 **Acceptance Criteria:**
+
 - Price list hierarchy resolves correctly (contract > customer-specific > promotional > default).
 - Expired promotions are automatically excluded from price calculations.
 - Discount approval blocks order confirmation until approved.
@@ -439,6 +445,7 @@ Enterprise.IOMS/
 | Quote PDF generation        | P1       | Generate branded PDF quotes for email/download               |
 
 **Acceptance Criteria:**
+
 - Converting a quote to an order pre-fills all line items and pricing.
 - Expired quotes cannot be converted to orders.
 - Quote revisions maintain full version history.
@@ -460,6 +467,7 @@ Enterprise.IOMS/
 | Proof of delivery             | P2       | Record delivery confirmation with signature/photo capture    |
 
 **Acceptance Criteria:**
+
 - Delivery note is auto-generated when order status changes to Shipped.
 - Freight costs are included in order total and reflected in journal entries.
 - Tracking information is visible to the user on the order detail screen.
@@ -481,6 +489,7 @@ Enterprise.IOMS/
 | Blind count mode              | P2       | Hide expected quantities during counting to avoid bias       |
 
 **Acceptance Criteria:**
+
 - Stocktake adjustments create corresponding StockMovement records (Type: Adjustment).
 - Variance approval posts journal entries (DR/CR Inventory Adjustment account).
 - In-progress stocktakes do not block normal warehouse operations.
@@ -500,6 +509,7 @@ Enterprise.IOMS/
 | UoM on order line items       | P1       | Select UoM per line item; system converts to stock UoM       |
 
 **Acceptance Criteria:**
+
 - Stock quantities always stored in base UoM.
 - Order line items display in the selected UoM but deduct/add stock in base UoM.
 - UoM conversion is applied consistently across purchase, sales, and inventory.
@@ -522,6 +532,7 @@ Enterprise.IOMS/
 | Email template customization  | P1       | Customizable email body templates per notification type      |
 
 **Acceptance Criteria:**
+
 - All generated PDFs include tenant branding (logo, company details, footer).
 - Email delivery failures are logged and retryable.
 - Users can opt out of non-critical notifications.
@@ -541,6 +552,7 @@ Enterprise.IOMS/
 | Credit/debit note journal     | P0       | Auto-post reversal journal entries for credit/debit notes    |
 
 **Acceptance Criteria:**
+
 - Credit notes reduce AR balance; debit notes reduce AP balance.
 - Credit note total cannot exceed the original invoice total.
 - Auto-posted journal entries are immutable.
@@ -560,6 +572,7 @@ Enterprise.IOMS/
 | Reconciliation approval       | P2       | Approve reconciliation to lock the period                     |
 
 **Acceptance Criteria:**
+
 - All matched entries are marked as reconciled in the payment ledger.
 - Unmatched items are highlighted for manual resolution.
 - Reconciled periods cannot be modified without admin override.
@@ -581,6 +594,7 @@ Enterprise.IOMS/
 | Multi-currency reports        | P1       | Display reports in base currency with original currency reference |
 
 **Acceptance Criteria:**
+
 - All GL entries are recorded in base currency with the original transaction currency preserved.
 - Exchange gain/loss is auto-posted to the designated GL account.
 - Changing exchange rates does not retroactively affect closed transactions.
@@ -602,6 +616,7 @@ Enterprise.IOMS/
 | Import rollback               | P1       | Undo a bulk import if errors are discovered post-import      |
 
 **Acceptance Criteria:**
+
 - Import validates all rows before committing any records.
 - Duplicate detection (by SKU, email, etc.) prevents accidental duplicates.
 - Import audit log records who imported what and when.
@@ -622,6 +637,7 @@ Enterprise.IOMS/
 | Escalation rules              | P2       | Auto-escalate to next approver if no response within SLA    |
 
 **Acceptance Criteria:**
+
 - Documents requiring approval are blocked from progressing until all approvals are obtained.
 - Approval rules are evaluated dynamically at submission time.
 - Delegation expires automatically at the configured end date.
@@ -642,6 +658,7 @@ Enterprise.IOMS/
 | Event filtering               | P2       | Subscribers can filter events by type, entity, or criteria   |
 
 **Acceptance Criteria:**
+
 - Webhook payloads include event type, timestamp, tenant ID, and resource data.
 - Failed deliveries do not block the originating workflow.
 - Secrets are stored encrypted and never exposed in logs.
@@ -662,6 +679,7 @@ Enterprise.IOMS/
 | Search indexing               | P1       | Background indexing for sub-200ms search response times      |
 
 **Acceptance Criteria:**
+
 - Global search returns results across entity types within 200ms.
 - Search results are tenant-isolated.
 - Index is updated within 5 seconds of data changes.
@@ -681,6 +699,7 @@ Enterprise.IOMS/
 | Privacy audit log             | P1       | Log all data access and export events for compliance         |
 
 **Acceptance Criteria:**
+
 - Data export is generated in a machine-readable format (JSON/CSV) within 48 hours.
 - Erasure anonymizes customer PII but retains transaction records for accounting compliance.
 - Retention policies auto-archive records past the configured period.
@@ -699,6 +718,7 @@ Enterprise.IOMS/
 | Custom recipient lists        | P2       | Define distribution lists per scheduled report               |
 
 **Acceptance Criteria:**
+
 - Scheduled reports execute at the configured time without manual intervention.
 - Failed report deliveries are retried and logged.
 - Recipients only receive reports they have permission to view.
@@ -719,6 +739,7 @@ Enterprise.IOMS/
 | Custom fields in search       | P2       | Search and filter by custom field values                     |
 
 **Acceptance Criteria:**
+
 - Adding a custom field does not require application redeployment.
 - Custom field values are stored efficiently (EAV or JSON column strategy).
 - Custom fields are tenant-isolated.
@@ -739,6 +760,7 @@ Enterprise.IOMS/
 | Supplier notification         | P1       | Notify supplier of the return via email                      |
 
 **Acceptance Criteria:**
+
 - Purchase return cannot exceed original GRN received quantities.
 - Stock movement (Type: Return) is created with supplier reference.
 - Debit note total matches the return value.
@@ -758,6 +780,7 @@ Enterprise.IOMS/
 | RFQ status tracking           | P1       | Draft → Sent → Received → Awarded → Closed                  |
 
 **Acceptance Criteria:**
+
 - RFQ can be sent to multiple suppliers for the same items.
 - Comparison view highlights best price, shortest lead time.
 - Converting to PO pre-fills supplier, items, and quoted prices.
@@ -777,6 +800,7 @@ Enterprise.IOMS/
 | Landed cost journal entries   | P1       | Post journal entries for each landed cost component          |
 
 **Acceptance Criteria:**
+
 - Inventory valuation reflects the fully landed cost per unit.
 - Landed cost allocation is traceable to the source PO/GRN.
 - COGS calculations use the landed cost, not just the supplier price.
@@ -796,6 +820,7 @@ Enterprise.IOMS/
 | Kit stock tracking            | P1       | Track assembled kit inventory as a distinct SKU              |
 
 **Acceptance Criteria:**
+
 - Assembling a kit deducts component stock and creates kit stock atomically.
 - Kit components are validated for sufficient stock before assembly.
 - Kit cost is calculated from the sum of component costs.
@@ -814,6 +839,7 @@ Enterprise.IOMS/
 | Disposal journal entries      | P1       | Auto-post DR: Inventory Write-Off Expense, CR: Inventory    |
 
 **Acceptance Criteria:**
+
 - Dead stock threshold is configurable per category (e.g., 90, 180, 365 days).
 - Write-offs require manager approval and create audit log entries.
 - Disposed stock is removed from inventory valuation reports.
@@ -833,6 +859,7 @@ Enterprise.IOMS/
 | Collection follow-up tracking | P2       | Track follow-up actions and notes on overdue invoices        |
 
 **Acceptance Criteria:**
+
 - Aging is calculated from invoice due date, not invoice date.
 - Report totals reconcile with AR/AP GL account balances.
 - Customer statements can be exported as PDF.
@@ -852,6 +879,7 @@ Enterprise.IOMS/
 | Rate limit dashboard          | P2       | Admin view of tenant API usage and throttle events           |
 
 **Acceptance Criteria:**
+
 - Rate limits are enforced at the API gateway / middleware level.
 - Exceeded limits return proper 429 responses without processing the request.
 - Rate limit configuration is adjustable per tenant tier.
@@ -871,6 +899,7 @@ Enterprise.IOMS/
 | Purge after retention         | P2       | Permanently delete archived records after retention period expires |
 
 **Acceptance Criteria:**
+
 - Archived records are removed from active queries to improve performance.
 - Archival does not affect referenced records still in active use.
 - Purge operations require admin confirmation and create audit entries.
@@ -1155,6 +1184,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 ```
 
 **DbContext Behaviors:**
+
 - Global query filters for multi-tenant isolation (`entity.TenantId == currentTenantId`)
 - Automatic `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy` population on `SaveChangesAsync`
 - Automatic audit log capture for all tracked entity changes
@@ -1383,6 +1413,7 @@ public interface IRepository<T> where T : BaseEntity
 ### 10.3 Audit Logging
 
 The `SaveChangesAsync` override in `AppDbContext` captures:
+
 - Entity type and record ID
 - Action type (Created, Updated, Deleted)
 - Old and new values (serialized JSON)
@@ -1391,6 +1422,7 @@ The `SaveChangesAsync` override in `AppDbContext` captures:
 ### 10.4 Real-Time Updates (SignalR)
 
 `InventoryHub` broadcasts stock change events to all connected Blazor clients:
+
 - Stock level changes (order, receipt, adjustment, transfer)
 - Low stock alert triggers
 - Order status transitions
@@ -2207,6 +2239,19 @@ public interface ISearchService
 
 ## 16. Development Phases & Roadmap
 
+### Scalability Roadmap
+
+The platform will scale in measured stages. The initial architecture is a shared SQL Server database with `TenantId` isolation, Redis caching for safe read acceleration, and tenant-leading indexes on transactional tables. This supports fast reads, efficient writes, and predictable growth for the planned tenant workload.
+
+| Phase | Evolution | Trigger |
+| ----- | --------- | ------- |
+| 1 | Shared SQL Server, shared schema with `TenantId`, Redis, and indexed transactional tables | Initial production architecture |
+| 2 | Read replicas or a dedicated reporting database | Reporting load becomes significant and affects transactional performance |
+| 3 | Dedicated search engine for product and global search | SQL Server search is insufficient for a very large catalog |
+| 4 | Extract only proven high-load or independent modules, such as notifications, search, or integrations | Measured bottlenecks and clear module ownership justify extraction |
+
+Microservices, sharding, and database-per-tenant are deliberately deferred until workload measurements and business requirements justify their operational cost and complexity.
+
 ### Phase 1 — Foundation (Core Infrastructure)
 
 **Objective:** Establish project structure, authentication, and basic CRUD operations.
@@ -2294,29 +2339,29 @@ public interface ISearchService
 
 **Objective:** Add enterprise-grade operational features for warehouse, shipping, and inventory.
 
-| Deliverable                                  | Status      |
+| Deliverable | Status |
 | -------------------------------------------- | ----------- |
-| MediatR CQRS full integration                | Not Started |
-| FluentValidation pipeline                    | Not Started |
-| Audit logging (SaveChanges override)         | Not Started |
-| SignalR real-time stock updates               | Not Started |
-| Low stock alerts & notifications              | Not Started |
-| Stock transfer between warehouses             | Not Started |
-| Bin/location tracking                         | Not Started |
-| Customer returns / RMA workflow               | Not Started |
-| Purchase returns (return-to-supplier)         | Not Started |
-| Partial fulfillment                           | Not Started |
-| Stocktake / cycle count workflow              | Not Started |
-| Delivery note & packing slip generation       | Not Started |
-| Shipment tracking (carrier, tracking no.)     | Not Started |
-| Delivery scheduling                           | Not Started |
-| Freight cost allocation on orders             | Not Started |
-| Kitting / simple assembly                     | Not Started |
-| Dead stock / obsolescence management          | Not Started |
-| Landed cost calculation & allocation          | Not Started |
-| Batch/serial number tracking                  | Not Started |
-| Expiry management (FIFO/FEFO)                 | Not Started |
-| Picking & packing lists                       | Not Started |
+| MediatR CQRS full integration | Not Started |
+| FluentValidation pipeline | Not Started |
+| Audit logging (SaveChanges override) | Not Started |
+| SignalR real-time stock updates | Not Started |
+| Low stock alerts & notifications | Not Started |
+| Stock transfer between warehouses | Not Started |
+| Bin/location tracking | Not Started |
+| Customer returns / RMA workflow | Not Started |
+| Purchase returns (return-to-supplier) | Not Started |
+| Partial fulfillment | Not Started |
+| Stocktake / cycle count workflow | Not Started |
+| Delivery note & packing slip generation | Not Started |
+| Shipment tracking (carrier, tracking no.) | Not Started |
+| Delivery scheduling | Not Started |
+| Freight cost allocation on orders | Not Started |
+| Kitting / simple assembly | Not Started |
+| Dead stock / obsolescence management | Not Started |
+| Landed cost calculation & allocation | Not Started |
+| Batch/serial number tracking | Not Started |
+| Expiry management (FIFO/FEFO) | Not Started |
+| Picking & packing lists | Not Started |
 
 **Exit Criteria:** Real-time updates working; full audit trail captured; all advanced warehouse and logistics workflows functional.
 
@@ -2326,22 +2371,22 @@ public interface ISearchService
 
 **Objective:** Implement document generation, communication, approval workflows, and extensibility.
 
-| Deliverable                                          | Status      |
+| Deliverable | Status |
 | ---------------------------------------------------- | ----------- |
-| Document template engine (invoice, PO, quote, DN)    | Not Started |
-| PDF generation for all document types                 | Not Started |
-| Email notification system (transactional)             | Not Started |
-| SMS notification support (optional)                   | Not Started |
-| Notification preference management per user           | Not Started |
-| Configurable approval workflow engine                 | Not Started |
-| Multi-level approval chains                           | Not Started |
-| Approval delegation & escalation                      | Not Started |
-| Custom fields / user-defined fields per entity        | Not Started |
-| Product image & document attachment support           | Not Started |
-| Bulk import/export (CSV/Excel)                        | Not Started |
-| Opening balance & opening stock import                | Not Started |
-| Scheduled/automated report generation                 | Not Started |
-| Report email delivery to recipients                   | Not Started |
+| Document template engine (invoice, PO, quote, DN) | Not Started |
+| PDF generation for all document types | Not Started |
+| Email notification system (transactional) | Not Started |
+| SMS notification support (optional) | Not Started |
+| Notification preference management per user | Not Started |
+| Configurable approval workflow engine | Not Started |
+| Multi-level approval chains | Not Started |
+| Approval delegation & escalation | Not Started |
+| Custom fields / user-defined fields per entity | Not Started |
+| Product image & document attachment support | Not Started |
+| Bulk import/export (CSV/Excel) | Not Started |
+| Opening balance & opening stock import | Not Started |
+| Scheduled/automated report generation | Not Started |
+| Report email delivery to recipients | Not Started |
 
 **Exit Criteria:** Documents auto-generate; notifications delivered reliably; approval workflows block/allow progression correctly; bulk import operational.
 

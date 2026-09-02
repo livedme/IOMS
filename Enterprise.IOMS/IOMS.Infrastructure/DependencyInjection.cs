@@ -3,9 +3,11 @@ using IOMS.Domain.Entities;
 using IOMS.Infrastructure.Data;
 using IOMS.Infrastructure.Repositories;
 using IOMS.Infrastructure.Services;
+using IOMS.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace IOMS.Infrastructure;
@@ -17,7 +19,25 @@ public static class DependencyInjection
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(
                 configuration.GetConnectionString("DefaultConnection"),
-                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                b =>
+                {
+                    b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                    b.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+                    b.MinBatchSize(4);
+                    b.MaxBatchSize(100);
+                }));
+
+        var redisConnection = configuration.GetConnectionString("Redis");
+        if (string.IsNullOrWhiteSpace(redisConnection))
+        {
+            services.AddDistributedMemoryCache();
+        }
+        else
+        {
+            services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
+        }
+
+        services.AddScoped<ITenantCache, TenantCache>();
 
         //services.AddAuthentication(options =>
         //{
@@ -39,6 +59,8 @@ public static class DependencyInjection
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddSignInManager()
         .AddDefaultTokenProviders();
+
+        services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, TenantClaimsPrincipalFactory>();
 
         services.ConfigureApplicationCookie(options =>
         {

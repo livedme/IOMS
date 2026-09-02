@@ -1,5 +1,6 @@
 using System.Text.Json;
 using IOMS.Domain.Entities;
+using IOMS.Shared.Constants;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -10,6 +11,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
     private readonly Guid _tenantId;
     private readonly string? _userId;
+
+    public bool DisableAuditLogging { get; set; }
+
+    public DbSet<Tenant> Tenants => Set<Tenant>();
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ITenantProvider tenantProvider)
         : base(options)
@@ -118,6 +123,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<Tenant>(entity =>
+        {
+            entity.HasKey(tenant => tenant.Id);
+            entity.Property(tenant => tenant.CompanyName).HasMaxLength(200).IsRequired();
+            entity.Property(tenant => tenant.CompanyCode).HasMaxLength(20).IsRequired();
+            entity.HasIndex(tenant => tenant.CompanyCode).IsUnique();
+            entity.HasData(new Tenant
+            {
+                Id = Guid.Parse(AppConstants.DefaultTenantId),
+                CompanyName = "Default Tenant",
+                CompanyCode = "default",
+                TenantStatus = TenantStatus.Active,
+                CreatedAt = new DateTime(2026, 1, 1)
+            });
+        });
+
         // Global query filters for multi-tenancy and soft delete
         foreach (var entityType in builder.Model.GetEntityTypes())
         {
@@ -151,7 +172,41 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
 
         ConfigureRelationships(builder);
+        ConfigureTenantRelationships(builder);
         ConfigureIndexes(builder);
+    }
+
+    private static void ConfigureTenantRelationships(ModelBuilder builder)
+    {
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+            {
+                builder.Entity(entityType.ClrType)
+                    .HasOne(typeof(Tenant), nameof(BaseEntity.Tenant))
+                    .WithMany()
+                    .HasForeignKey(nameof(BaseEntity.TenantId))
+                    .OnDelete(DeleteBehavior.Restrict);
+            }
+        }
+
+        builder.Entity<TenantSetting>()
+            .HasOne(setting => setting.Tenant)
+            .WithMany(tenant => tenant.TenantSettings)
+            .HasForeignKey(setting => setting.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<TenantSubscription>()
+            .HasOne(subscription => subscription.Tenant)
+            .WithMany(tenant => tenant.TenantSubscriptions)
+            .HasForeignKey(subscription => subscription.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<ApplicationUser>()
+            .HasOne(user => user.Tenant)
+            .WithMany(tenant => tenant.Users)
+            .HasForeignKey(user => user.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     private void ConfigureGlobalFilters<T>(ModelBuilder builder) where T : BaseEntity
@@ -423,53 +478,59 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         builder.Entity<Product>().HasIndex(p => new { p.TenantId, p.SKU }).IsUnique();
         builder.Entity<Product>().HasIndex(p => p.Barcode);
-        builder.Entity<Product>().HasIndex(p => p.Name);
+        builder.Entity<Product>().HasIndex(p => new { p.TenantId, p.Name });
 
         builder.Entity<Category>().HasIndex(c => new { c.TenantId, c.Name });
         builder.Entity<Brand>().HasIndex(b => new { b.TenantId, b.Name });
         builder.Entity<Brand>().HasIndex(b => new { b.TenantId, b.BrandCode });
 
-        builder.Entity<Inventory>().HasIndex(i => new { i.ProductId, i.WarehouseId }).IsUnique();
+        builder.Entity<Inventory>().HasIndex(i => new { i.TenantId, i.ProductId, i.WarehouseId }).IsUnique();
 
         builder.Entity<Customer>().HasIndex(c => new { c.TenantId, c.CustomerEmail });
-        builder.Entity<Customer>().HasIndex(c => c.CustomerName);
+        builder.Entity<Customer>().HasIndex(c => new { c.TenantId, c.CustomerName });
 
         builder.Entity<Supplier>().HasIndex(s => new { s.TenantId, s.SupplierEmail });
 
         builder.Entity<SalesOrder>().HasIndex(o => new { o.TenantId, o.OrderNumber }).IsUnique();
-        builder.Entity<SalesOrder>().HasIndex(o => o.Status);
-        builder.Entity<SalesOrder>().HasIndex(o => o.OrderDate);
+        builder.Entity<SalesOrder>().HasIndex(o => new { o.TenantId, o.Status });
+        builder.Entity<SalesOrder>().HasIndex(o => new { o.TenantId, o.OrderDate });
 
         builder.Entity<PurchaseOrder>().HasIndex(o => new { o.TenantId, o.OrderNumber }).IsUnique();
-        builder.Entity<PurchaseOrder>().HasIndex(o => o.Status);
+        builder.Entity<PurchaseOrder>().HasIndex(o => new { o.TenantId, o.Status });
 
         builder.Entity<Account>().HasIndex(a => new { a.TenantId, a.Code }).IsUnique();
 
         builder.Entity<JournalEntry>().HasIndex(j => new { j.TenantId, j.Reference });
-        builder.Entity<JournalEntry>().HasIndex(j => j.EntryDate);
+        builder.Entity<JournalEntry>().HasIndex(j => new { j.TenantId, j.EntryDate });
 
         builder.Entity<Invoice>().HasIndex(i => new { i.TenantId, i.InvoiceNumber }).IsUnique();
-        builder.Entity<Invoice>().HasIndex(i => i.DueDate);
+        builder.Entity<Invoice>().HasIndex(i => new { i.TenantId, i.DueDate });
 
         builder.Entity<SalesQuote>().HasIndex(q => new { q.TenantId, q.QuoteNumber }).IsUnique();
 
-        builder.Entity<StockMovement>().HasIndex(m => m.MovementDate);
-        builder.Entity<StockMovement>().HasIndex(m => m.ProductId);
+        builder.Entity<StockMovement>().HasIndex(m => new { m.TenantId, m.MovementDate });
+        builder.Entity<StockMovement>().HasIndex(m => new { m.TenantId, m.ProductId });
 
         builder.Entity<AuditLog>().HasIndex(a => new { a.TenantId, a.TableName, a.RecordId });
-        builder.Entity<AuditLog>().HasIndex(a => a.Timestamp);
+        builder.Entity<AuditLog>().HasIndex(a => new { a.TenantId, a.Timestamp });
 
         builder.Entity<Warehouse>().HasIndex(w => new { w.TenantId, w.Code }).IsUnique();
 
         builder.Entity<Currency>().HasIndex(c => new { c.TenantId, c.Code }).IsUnique();
 
         builder.Entity<ProductSerial>().HasIndex(ps => new { ps.TenantId, ps.SerialNumber }).IsUnique();
-        builder.Entity<ProductSerial>().HasIndex(ps => ps.ProductId);
-        builder.Entity<ProductSerial>().HasIndex(ps => ps.Status);
+        builder.Entity<ProductSerial>().HasIndex(ps => new { ps.TenantId, ps.ProductId });
+        builder.Entity<ProductSerial>().HasIndex(ps => new { ps.TenantId, ps.Status });
+
+        builder.Entity<ApplicationUser>().HasIndex(u => new { u.TenantId, u.NormalizedUserName });
+        builder.Entity<ApplicationUser>().HasIndex(u => new { u.TenantId, u.NormalizedEmail });
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        if (DisableAuditLogging)
+            return await base.SaveChangesAsync(cancellationToken);
+
         var auditEntries = OnBeforeSaveChanges();
         var result = await base.SaveChangesAsync(cancellationToken);
         await OnAfterSaveChanges(auditEntries, cancellationToken);

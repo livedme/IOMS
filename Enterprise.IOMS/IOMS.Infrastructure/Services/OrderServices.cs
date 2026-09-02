@@ -1,5 +1,4 @@
 using AutoMapper;
-using Humanizer;
 using IOMS.Application.DTOs;
 using IOMS.Application.Interfaces;
 using IOMS.Domain.Entities;
@@ -7,8 +6,6 @@ using IOMS.Domain.Enums;
 using IOMS.Domain.Exceptions;
 using IOMS.Infrastructure.Data;
 using IOMS.Shared.Helpers;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.CodeAnalysis.Operations;
 using Microsoft.EntityFrameworkCore;
 
 namespace IOMS.Infrastructure.Services;

@@ -69,10 +69,16 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
-// Seed data
+if (args.Contains("--seed-load-data", StringComparer.OrdinalIgnoreCase))
+{
+    await SeedData.InitializeLoadTestDataAsync(app.Services);
+    return;
+}
+
+//Seed data
 //using (var scope = app.Services.CreateScope())
 //{
-//    await SeedData.InitializeAsync(scope.ServiceProvider);
+//   await SeedData.InitializeAsync(scope.ServiceProvider);
 //}
 
 

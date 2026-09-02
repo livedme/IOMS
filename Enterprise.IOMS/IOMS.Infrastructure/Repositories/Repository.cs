@@ -36,19 +36,21 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
         => await _dbSet.FindAsync([id], ct);
 
     public async Task<List<T>> GetAllAsync(CancellationToken ct = default)
-        => await _dbSet.ToListAsync(ct);
+        => await _dbSet.AsNoTracking().ToListAsync(ct);
 
     public async Task<List<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default)
-        => await _dbSet.Where(predicate).ToListAsync(ct);
+        => await _dbSet.AsNoTracking().Where(predicate).ToListAsync(ct);
 
     public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default)
-        => await _dbSet.FirstOrDefaultAsync(predicate, ct);
+        => await _dbSet.AsNoTracking().FirstOrDefaultAsync(predicate, ct);
 
     public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default)
-        => await _dbSet.AnyAsync(predicate, ct);
+        => await _dbSet.AsNoTracking().AnyAsync(predicate, ct);
 
     public async Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null, CancellationToken ct = default)
-        => predicate == null ? await _dbSet.CountAsync(ct) : await _dbSet.CountAsync(predicate, ct);
+        => predicate == null
+            ? await _dbSet.AsNoTracking().CountAsync(ct)
+            : await _dbSet.AsNoTracking().CountAsync(predicate, ct);
 
     public IQueryable<T> Query() => _dbSet;
 
