@@ -3,6 +3,30 @@ using IOMS.Domain.Enums;
 namespace IOMS.Application.DTOs
 {
 
+    public class ProductDetailsDto
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public string SKU { get; set; }
+        public string? Barcode { get; set; }
+        public string? Description { get; set; }
+        public decimal CostPrice { get; set; }
+        public decimal SellingPrice { get; set; }
+        public decimal WholeSellingPrice { get; set; }
+        public int ReorderStockLevel { get; set; }
+        public int MinOrderQuantity { get; set; }
+        public Guid CategoryId { get; set; }
+        public string? CategoryName { get; set; }
+        public Guid? BrandId { get; set; }
+        public string? BrandName { get; set; }
+        public string? ImageUrl { get; set; }
+        public int TotalStock { get; set; }
+        public bool IsKit { get; set; }
+        public string? Model { get; set; }
+        public string OriginCountry { get; set; }
+        public string OriginManufacturer { get; set; }
+    }
+
     public class CreateSalesOrderDtoModels
     {
         public string? BranchName { get; set; }

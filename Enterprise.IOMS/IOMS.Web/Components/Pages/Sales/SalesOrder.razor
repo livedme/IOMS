@@ -204,14 +204,6 @@
                     }
                 }
 
-                @* ── EDIT / CREATE mode ── *@
-                @if (_drawerMode == SliderMode.Edit || _drawerMode == SliderMode.Create)
-                {
-                    <SalesOrderDialog @key="_drawerKey" Customers="_drawerCustomers" Products="_drawerProducts"
-                                      dataModel="_editModel" OnSubmit="HandleFormSubmit" OnSubmitAndPrint="HandleFormSubmitAndPrint"
-                                      OnCancel="CloseDrawer" />
-                }
-
             </div>
         </MudDrawer>
 
@@ -347,13 +339,14 @@
 
     private async Task SwitchToEdit(SalesOrderDto order)
     {
-        await LoadDrawerFormData(order);
+        CloseDrawer();
+        await OpenEdit(order);
     }
 
     private async Task OpenEdit(SalesOrderDto order)
     {
         await LoadDrawerFormData(order);
-        _drawerOpen = true;
+        await ShowSalesOrderDialog($"Edit Sale #{order.OrderNumber}");
     }
 
     private async Task LoadDrawerFormData(SalesOrderDto order)
@@ -388,14 +381,13 @@
         };
 
         _editingOrder = order;
-        _drawerTitle = $"Edit Sale #{order.OrderNumber}";
         _drawerMode = SliderMode.Edit;
         _drawerKey++;
     }
 
     private async Task OpenCreate()
     {
-        var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToListAsync();
+        var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).AsNoTracking().ToListAsync();
         var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
 
         _drawerCustomers = customers.Select(c => new CustomerDto(c.Id, c.CustomerName, c.CustomerEmail, c.CustomerPhone,"","","", c.Address,
@@ -404,11 +396,35 @@
 
         _editModel = new CreateSalesOrderDtoModels();
         _editingOrder = null;
-        _drawerTitle = "New Sale";
         _drawerMode = SliderMode.Create;
         _drawerKey++;
-        _drawerOpen = true;
+        await ShowSalesOrderDialog("New Sale");
     }
+
+    private async Task ShowSalesOrderDialog(string title)
+    {
+        var parameters = new DialogParameters<SalesOrderDialog>
+        {
+            { x => x.Customers, _drawerCustomers },
+            { x => x.Products, _drawerProducts },
+            { x => x.dataModel, _editModel },
+            { x => x.OnSubmit, EventCallback.Factory.Create<CreateSalesOrderDto>(this, HandleFormSubmit) },
+            { x => x.OnSubmitAndPrint, EventCallback.Factory.Create<CreateSalesOrderDto>(this, HandleFormSubmitAndPrint) },
+            { x => x.OnCancel, EventCallback.Factory.Create(this, CloseDialog) }
+        };
+
+        var dialog = await DialogService.ShowAsync<SalesOrderDialog>(title, parameters,
+            new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,                
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            });
+
+        await dialog.Result;
+    }
+
+    private Task CloseDialog() => Task.CompletedTask;
 
     private async Task HandleFormSubmit(CreateSalesOrderDto dto)
     {
@@ -424,7 +440,6 @@
                 await OrderService.CreateSalesOrder(dto);
                 Snackbar.Add("Sales created successfully", Severity.Success);
             }
-            CloseDrawer();
             await LoadOrders();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

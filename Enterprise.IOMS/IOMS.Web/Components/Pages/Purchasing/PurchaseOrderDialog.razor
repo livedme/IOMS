@@ -448,13 +448,13 @@
         {
             var categories = await DbContext.Categories.ToListAsync(); // IOMS.Web.Utility.Common.GetCategoryList(DbContext);
             var brands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
-            var parameters = new DialogParameters<IOMS.Web.Components.Pages.Inventory.ProductDialog>
+            var parameters = new DialogParameters<IOMS.Web.Components.Pages.Inventory.ProductAddEditDialog>
         {
             { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList() },
             { x => x.Brands, brands.Select(b => new BrandDto(b.Id, b.Name, b.Description, 0)).ToList() }
         };
 
-            var dialog = await DialogService.ShowAsync<IOMS.Web.Components.Pages.Inventory.ProductDialog>("New Product", parameters,
+            var dialog = await DialogService.ShowAsync<IOMS.Web.Components.Pages.Inventory.ProductAddEditDialog>("New Product", parameters,
                 new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
             var result = await dialog.Result;
 

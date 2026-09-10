@@ -10,13 +10,12 @@
                 <MudText Typo="Typo.subtitle1" Style="font-weight:700;">Basic Information</MudText>
             </MudItem>
             <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="DataModel.Name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="_sku" Label="SKU" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"  />
-            </MudItem>           
+                <MudTextField @bind-Value="DataModel.SKU" Label="SKU" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
             <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="_barcode" Label="Barcode" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"  />
                 <MudAutocomplete T="CategoryDto"
                                  @ref="CategoryDropDownControl"
                                  Label="Category"
@@ -26,10 +25,15 @@
                                  @bind-Text="_categoryText"
                                  @bind-Value:after="OnCategoryChanged"
                                  SearchFunc="SearchCategories"
-                                 ToStringFunc="@(c => c?.Path ?? c?.Name ?? "")"                                 
+                                 ToStringFunc="@(c => c?.Path ?? c?.Name ?? "")"
                                  ResetValueOnEmptyText="true"
                                  CoerceText="true"
                                  Clearable="true" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
+            </MudItem>
+            <MudItem xs="12" sm="6" Class="p-4 py-3">
+                <MudTextField @bind-Value="this.DataModel.Barcode" Label="Barcode" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6" Class="p-4 py-3">
 
                 <MudAutocomplete T="BrandDto"
                                  Label="Brand"
@@ -43,21 +47,20 @@
                                  ResetValueOnEmptyText="true"
                                  CoerceText="true"
                                  Clearable="true" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
-                <MudTextField @bind-Value="_model" Label="Model" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
-                <MudTextField @bind-Value="_originManufacturer" Label="Origin Manufacturer" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
-            </MudItem>          
+                <MudTextField @bind-Value="DataModel.Model" Label="Model" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
+                <MudTextField @bind-Value="DataModel.OriginManufacturer" Label="Origin Manufacturer" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
+                <MudTextField @bind-Value="DataModel.OriginCountry" Label="Origin Country" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
+            </MudItem>
             <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudNumericField @bind-Value="_costPrice" Label="Cost Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-                <MudNumericField @bind-Value="_sellingPrice" Label="Selling Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-                <MudNumericField @bind-Value="_wholeSellingPrice" Label="Whole Selling Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-                <MudNumericField @bind-Value="_ReorderStockLevel" Label="Reorder Stock Level" Min="0" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                <MudTextField @bind-Value="_originCountry" Label="Origin Country" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
-
+                <MudNumericField @bind-Value="DataModel.CostPrice" Label="Cost Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudNumericField @bind-Value="DataModel.SellingPrice" Label="Selling Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudNumericField @bind-Value="DataModel.WholeSellingPrice" Label="Whole Selling Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudNumericField @bind-Value="DataModel.ReorderStockLevel" Label="Reorder Stock Level" Min="0" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" Class="py-0">
-                <RichTextField @bind-Value="_description" Label="Description" Lines="10" Class="mt-3" />
+                <RichTextField @bind-Value="DataModel.Description" Label="Description" Lines="10" Class="mt-3" />
             </MudItem>
-        
+
         </MudGrid>
     </DialogContent>
     <DialogActions>
@@ -70,102 +73,82 @@
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
-    [Parameter] public object? Product { get; set; }
+    [Parameter] public ProductDetailsDto DataModel { get; set; }
     [Parameter] public List<CategoryDto> Categories { get; set; } = new();
     [Parameter] public List<BrandDto> Brands { get; set; } = new();
 
     private MudAutocomplete<CategoryDto> CategoryDropDownControl = default!;
     private MudAutocomplete<BrandDto> BrandDropDownControl = default!;
-
-
-    // Basic fields
-    private string _name = "";
-    private string _sku = "";
-    private string? _barcode;
-    private string? _description;
-    private Guid _categoryId;
     private CategoryDto? _selectedCategory;
     private CategoryDto? _lastCategorySelection;
-    private int _selectedCategoryIndex=0;
-    private string? _categoryText;
-    private Guid? _brandId;
     private BrandDto? _selectedBrand;
     private BrandDto? _lastBrandSelection;
-    private int _selectedBrandIndex=0;
-
     private string? _brandText;
-    private decimal _costPrice;
-    private decimal _sellingPrice;
-    private decimal _wholeSellingPrice;
-    private int _ReorderStockLevel = 10;
-    private int _MinOrderQuantity = 1;
-    private string? _model;
-    private string? _originCountry;
-    private string? _originManufacturer;
+    private string? _categoryText;
+    private int _selectedBrandIndex = 0;
+    private int _selectedCategoryIndex = 0;
 
 
-    private static readonly CategoryDto AddNewCategoryOption =
-        new(Guid.Empty, "Add New", "Create a new category", null, null, 0, "Add New");
-    private static readonly BrandDto AddNewBrandOption =
-        new(Guid.Empty, "Add New", "Create a new brand", 0);
+    private static readonly CategoryDto AddNewCategoryOption = new(Guid.Empty, "Add New", "Create a new category", null, null, 0, "Add New");
+    private static readonly BrandDto AddNewBrandOption = new(Guid.Empty, "Add New", "Create a new brand", 0);
 
     protected override void OnInitialized()
     {
         Categories = Categories.Where(c => c.Id != Guid.Empty).ToList();
         Brands = Brands.Where(b => b.Id != Guid.Empty).ToList();
 
-        if (Product is ProductDetailsDto details)
-        {
-            _name = details.Name;
-            _sku = details.SKU;
-            _barcode = details.Barcode;
-            _description = details.Description;
-            _categoryId = details.CategoryId;
-            _selectedCategory = GetRealCategoryById(details.CategoryId);
-            _lastCategorySelection = _selectedCategory;
-            _categoryText = CategoryToDisplay(_selectedCategory);
-            _costPrice = details.CostPrice;
-            _wholeSellingPrice = details.WholeSellingPrice;
-            _sellingPrice = details.SellingPrice;
-            _ReorderStockLevel = details.ReorderStockLevel;
-            _MinOrderQuantity = details.MinOrderQuantity;
-            _model = details.Model;
-            _brandId = details.BrandId;
-            _selectedBrand = GetRealBrandById(details.BrandId);
-            _lastBrandSelection = _selectedBrand;
-            _brandText = BrandToDisplay(_selectedBrand);
-            _originCountry = details.OriginCountry;
-            _originManufacturer = details.OriginManufacturer;
-        }
-        else if (Product is ProductDto p)
-        {
-            _name = p.Name;
-            _sku = p.SKU;
-            _barcode = p.Barcode;
-            _description = p.Description;
-            _categoryId = p.CategoryId;
-            _selectedCategory = GetRealCategoryById(p.CategoryId);
-            _lastCategorySelection = _selectedCategory;
-            _categoryText = CategoryToDisplay(_selectedCategory);
-            _brandId = p.BrandId;
-            _selectedBrand = GetRealBrandById(p.BrandId);
-            _lastBrandSelection = _selectedBrand;
-            _brandText = BrandToDisplay(_selectedBrand);
-            _costPrice = p.CostPrice;
-            _wholeSellingPrice = p.WholeSellingPrice;
-            _sellingPrice = p.SellingPrice;
-            _ReorderStockLevel = p.ReorderStockLevel;
-            _MinOrderQuantity = p.MinOrderQuantity;
-            _originCountry = p.OriginCountry;
-            _originManufacturer = p.OriginManufacturer;
-        }
-        else if (Categories.Any(c => c.Id != Guid.Empty))
-        {
-            _selectedCategory = Categories.First(c => c.Id != Guid.Empty);
-            _lastCategorySelection = _selectedCategory;
-            _categoryId = _selectedCategory.Id;
-            _categoryText = CategoryToDisplay(_selectedCategory);
-        }
+        // if (Product is ProductDetailsDto details)
+        // {
+        //     _name = details.Name;
+        //     _sku = details.SKU;
+        //     _barcode = details.Barcode;
+        //     _description = details.Description;
+        //     _categoryId = details.CategoryId;
+        //     _selectedCategory = GetRealCategoryById(details.CategoryId);
+        //     _lastCategorySelection = _selectedCategory;
+        //     _categoryText = CategoryToDisplay(_selectedCategory);
+        //     _costPrice = details.CostPrice;
+        //     _wholeSellingPrice = details.WholeSellingPrice;
+        //     _sellingPrice = details.SellingPrice;
+        //     _ReorderStockLevel = details.ReorderStockLevel;
+        //     _MinOrderQuantity = details.MinOrderQuantity;
+        //     _model = details.Model;
+        //     _brandId = details.BrandId;
+        //     _selectedBrand = GetRealBrandById(details.BrandId);
+        //     _lastBrandSelection = _selectedBrand;
+        //     _brandText = BrandToDisplay(_selectedBrand);
+        //     _originCountry = details.OriginCountry;
+        //     _originManufacturer = details.OriginManufacturer;
+        // }
+        // else if (Product is ProductDto p)
+        // {
+        //     _name = p.Name;
+        //     _sku = p.SKU;
+        //     _barcode = p.Barcode;
+        //     _description = p.Description;
+        //     _categoryId = p.CategoryId;
+        //     _selectedCategory = GetRealCategoryById(p.CategoryId);
+        //     _lastCategorySelection = _selectedCategory;
+        //     _categoryText = CategoryToDisplay(_selectedCategory);
+        //     _brandId = p.BrandId;
+        //     _selectedBrand = GetRealBrandById(p.BrandId);
+        //     _lastBrandSelection = _selectedBrand;
+        //     _brandText = BrandToDisplay(_selectedBrand);
+        //     _costPrice = p.CostPrice;
+        //     _wholeSellingPrice = p.WholeSellingPrice;
+        //     _sellingPrice = p.SellingPrice;
+        //     _ReorderStockLevel = p.ReorderStockLevel;
+        //     _MinOrderQuantity = p.MinOrderQuantity;
+        //     _originCountry = p.OriginCountry;
+        //     _originManufacturer = p.OriginManufacturer;
+        // }
+        // else if (Categories.Any(c => c.Id != Guid.Empty))
+        // {
+        //     _selectedCategory = Categories.First(c => c.Id != Guid.Empty);
+        //     _lastCategorySelection = _selectedCategory;
+        //     _categoryId = _selectedCategory.Id;
+        //     _categoryText = CategoryToDisplay(_selectedCategory);
+        // }
     }
 
     private Task<IEnumerable<CategoryDto>> SearchCategories(string text, CancellationToken _)
@@ -231,12 +214,12 @@
                 var path = parent == null ? dto.Name : parent.ParentCategory == null ? $"{parent.Name} > {dto.Name}" : $"{parent.ParentCategory.Name} > {parent.Name} > {dto.Name}";
 
                 var category = new IOMS.Domain.Entities.Category
-                    {
-                        Name = dto.Name,
-                        Path = path,
-                        Description = dto.Description,
-                        ParentCategoryId = dto.ParentCategoryId
-                    };
+                {
+                    Name = dto.Name,
+                    Path = path,
+                    Description = dto.Description,
+                    ParentCategoryId = dto.ParentCategoryId
+                };
                 DbContext.Categories.Add(category);
                 await DbContext.SaveChangesAsync();
                 //  Snackbar.Add("Category created", Severity.Success);
@@ -249,7 +232,7 @@
 
                 _selectedCategory = GetRealCategoryById(cat.Id);
                 _lastCategorySelection = _selectedCategory;
-                _categoryId = _selectedCategory?.Id ?? Guid.Empty;
+                DataModel.CategoryId = _selectedCategory?.Id ?? Guid.Empty;
                 _categoryText = CategoryToDisplay(_selectedCategory);
 
                 _selectedCategoryIndex++;
@@ -260,14 +243,14 @@
             {
                 _selectedCategory = previousCategory;
                 _lastCategorySelection = _selectedCategory;
-                _categoryId = previousCategory?.Id ?? Guid.Empty;
+                DataModel.CategoryId = previousCategory?.Id ?? Guid.Empty;
                 _categoryText = CategoryToDisplay(_selectedCategory);
                 StateHasChanged();
             }
         }
         else
         {
-            _categoryId = cat?.Id ?? Guid.Empty;
+            DataModel.CategoryId = cat?.Id ?? Guid.Empty;
             _lastCategorySelection = cat;
             _categoryText = CategoryToDisplay(_selectedCategory);
         }
@@ -330,7 +313,7 @@
 
                 _selectedBrand = GetRealBrandById(entity.Id);
                 _lastBrandSelection = _selectedBrand;
-                _brandId = _selectedBrand?.Id;
+                DataModel.BrandId = _selectedBrand?.Id;
                 _brandText = BrandToDisplay(_selectedBrand);
 
                 _selectedBrandIndex++;
@@ -340,7 +323,7 @@
             {
                 _selectedBrand = previousBrand;
                 _lastBrandSelection = _selectedBrand;
-                _brandId = previousBrand?.Id;
+                DataModel.BrandId = previousBrand?.Id;
                 _brandText = BrandToDisplay(_selectedBrand);
                 StateHasChanged();
             }
@@ -348,7 +331,7 @@
             return;
         }
 
-        _brandId = brand?.Id;
+        DataModel.BrandId = brand?.Id;
         _lastBrandSelection = brand;
         _brandText = BrandToDisplay(_selectedBrand);
     }
@@ -371,23 +354,7 @@
 
     private void Submit()
     {
-        var dto = new ProductDetailsDto()
-            {
-                Name = _name,
-                SKU = _sku,
-                Barcode = _barcode,
-                Description = _description,
-                CostPrice = _costPrice,
-                SellingPrice = _sellingPrice,
-                WholeSellingPrice = _wholeSellingPrice,
-                ReorderStockLevel = _ReorderStockLevel,
-                MinOrderQuantity = _MinOrderQuantity,
-                CategoryId = _categoryId,
-                BrandId = _brandId,
-                ImageUrl = null, // ImageUrl
-                Model = _model
-            };
 
-        MudDialog.Close(DialogResult.Ok(dto));
+        MudDialog.Close(DialogResult.Ok(DataModel));
     }
 }

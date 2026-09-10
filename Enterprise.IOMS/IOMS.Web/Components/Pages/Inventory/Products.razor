@@ -21,7 +21,7 @@
         </MudItem>
         <MudItem xs="12" sm="6" Class="d-flex justify-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreateDialog">New Product</MudButton>
+                       OnClick="(()=>OpenAddEditDialog(null))">New Product</MudButton>
         </MudItem>
     </MudGrid>
 
@@ -50,7 +50,7 @@
                 <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small" Color="Color.Default"
                                Title="View Detail" OnClick="@(() => NavigateToDetail(context.Id))" />
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
-                               OnClick="@(() => OpenEditDialog(context))" />
+                               OnClick="@(() => OpenAddEditDialog(context))" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                                OnClick="@(() => DeleteProduct(context.Id))" />
             </MudTd>
@@ -122,92 +122,104 @@
         await LoadProducts();
     }
 
-    private async Task OpenCreateDialog()
+    private async Task OpenAddEditDialog(ProductDto? product)
     {
         var categories = await DbContext.Categories.ToListAsync(); // IOMS.Web.Utility.Common.GetCategoryList(DbContext);
         var brands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
-        var parameters = new DialogParameters<ProductDialog>
+        var fullProduct = product == null
+            ? null
+            : await DbContext.Products.Include(p => p.Brand).FirstOrDefaultAsync(p => p.Id == product.Id);
+        var detailsDto = new ProductDetailsDto()
         {
-            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0,
-c.Path)).ToList() },
+            Id = fullProduct?.Id ?? Guid.Empty,
+            Name = fullProduct?.Name,
+            SKU = fullProduct?.SKU ?? "",
+            Barcode = fullProduct?.Barcode,
+            Description = fullProduct?.Description,
+            CostPrice= fullProduct?.CostPrice ?? 0,
+            SellingPrice= fullProduct?.SellingPrice ?? 0,
+            WholeSellingPrice= fullProduct?.WholeSellingPrice ?? 0,
+            ReorderStockLevel= fullProduct?.ReorderStockLevel ?? 0,
+            MinOrderQuantity= fullProduct?.MinOrderQuantity ?? 0,
+            CategoryId= fullProduct?.CategoryId ?? Guid.Empty,
+            CategoryName= product?.CategoryName,
+            BrandId= fullProduct?.BrandId,
+            BrandName= fullProduct?.Brand?.Name,
+            ImageUrl= fullProduct?.ImageUrl,            
+            IsKit= fullProduct?.IsKit ?? false,
+            Model= fullProduct?.Model,
+            OriginCountry= fullProduct?.OriginCountry ?? "",
+            OriginManufacturer= fullProduct?.OriginManufacturer ?? ""
+        };
+
+        var parameters = new DialogParameters<ProductAddEditDialog>
+        {
+            { x => x.DataModel, detailsDto },
+            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null,
+0,c.Path)).ToList() },
             { x => x.Brands, brands.Select(b => new BrandDto(b.Id, b.Name, b.Description, 0)).ToList() }
         };
 
-        var dialog = await DialogService.ShowAsync<ProductDialog>("New Product", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var dialog = await DialogService.ShowAsync<ProductAddEditDialog>("New Product", parameters, new DialogOptions
+        {
+            MaxWidth
+= MaxWidth.Large,
+            FullWidth = true
+        });
+
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled && result.Data is CreateProductDetailsDto dto)
         {
-            var product = new IOMS.Domain.Entities.Product
+            if (dto.Id == Guid.Empty)
             {
-                Name = dto.Name,
-                SKU = dto.SKU,
-                Barcode = dto.Barcode,
-                Description = dto.Description,
-                CostPrice = dto.CostPrice,
-                SellingPrice = dto.SellingPrice,
-                ReorderStockLevel = dto.ReorderStockLevel,
-                MinOrderQuantity = dto.MinOrderQuantity,
-                CategoryId = dto.CategoryId,
-                BrandId = dto.BrandId,
-                ImageUrl = dto.ImageUrl,
-                Model = dto.Model
-            };
-            DbContext.Products.Add(product);
+                var newProduct = new IOMS.Domain.Entities.Product
+                {
+                    Name = dto.Name,
+                    SKU = dto.SKU,
+                    Barcode = dto.Barcode,
+                    Description = dto.Description,
+                    CostPrice = dto.CostPrice,
+                    SellingPrice = dto.SellingPrice,
+                    WholeSellingPrice = dto.WholeSellingPrice,
+                    ReorderStockLevel = dto.ReorderStockLevel,
+                    MinOrderQuantity = dto.MinOrderQuantity,
+                    CategoryId = dto.CategoryId,
+                    BrandId = dto.BrandId,
+                    ImageUrl = dto.ImageUrl,
+                    Model = dto.Model
+                };
+                DbContext.Products.Add(newProduct);
+            }
+            else
+            {
+                var entity = await DbContext.Products.FindAsync(dto.Id);
+                if (entity == null) return;
+
+                entity.Name = dto.Name;
+                entity.SKU = dto.SKU;
+                entity.Barcode = dto.Barcode;
+                entity.Description = dto.Description;
+                entity.CostPrice = dto.CostPrice;
+                entity.SellingPrice = dto.SellingPrice;
+                entity.WholeSellingPrice = dto.WholeSellingPrice;
+                entity.ReorderStockLevel = dto.ReorderStockLevel;
+                entity.MinOrderQuantity = dto.MinOrderQuantity;
+                entity.CategoryId = dto.CategoryId;
+                entity.BrandId = dto.BrandId;
+                entity.ImageUrl = dto.ImageUrl;
+                entity.Model = dto.Model;
+            }
+
             await DbContext.SaveChangesAsync();
-            Snackbar.Add("Product created successfully", Severity.Success);
+            Snackbar.Add(dto.Id == Guid.Empty ? "Product created successfully" : "Product updated successfully", Severity.Success);
             await LoadProducts();
         }
     }
 
     private async Task OpenEditDialog(ProductDto product)
     {
-        var categories = await DbContext.Categories.ToListAsync();
-        var brands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
-        var fullProduct = await DbContext.Products.Include(p => p.Brand).FirstOrDefaultAsync(p => p.Id == product.Id);
-        ProductDetailsDto? detailsDto = null;
-        if (fullProduct != null)
-        {
-            detailsDto = new ProductDetailsDto(
-                fullProduct.Id, fullProduct.Name, fullProduct.SKU, fullProduct.Barcode, fullProduct.Description,
-                fullProduct.CostPrice, fullProduct.SellingPrice, fullProduct.WholeSellingPrice, fullProduct.ReorderStockLevel,
-fullProduct.MinOrderQuantity,
-                fullProduct.CategoryId, product.CategoryName, fullProduct.BrandId, fullProduct.Brand?.Name, fullProduct.ImageUrl, 0,
-fullProduct.IsKit,
-                fullProduct.Model, fullProduct.OriginCountry, fullProduct.OriginManufacturer);
-        }
-
-        var parameters = new DialogParameters<ProductDialog>
-        {
-            { x => x.Product, (object?)(detailsDto ?? (object?)product) },
-            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0,
-c.Path)).ToList() },
-            { x => x.Brands, brands.Select(b => new BrandDto(b.Id, b.Name, b.Description, 0)).ToList() }
-        };
-
-        var dialog = await DialogService.ShowAsync<ProductDialog>("Edit Product", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled && result.Data is CreateProductDetailsDto dto)
-        {
-            var entity = await DbContext.Products.FindAsync(product.Id);
-            if (entity != null)
-            {
-                entity.Name = dto.Name; entity.SKU = dto.SKU; entity.Barcode = dto.Barcode;
-                entity.Description = dto.Description; entity.CostPrice = dto.CostPrice;
-                entity.SellingPrice = dto.SellingPrice; entity.ReorderStockLevel = dto.ReorderStockLevel;
-                entity.MinOrderQuantity = dto.MinOrderQuantity; entity.ReorderStockLevel = dto.ReorderStockLevel; entity.CategoryId =
-dto.CategoryId;
-                entity.BrandId = dto.BrandId;
-                entity.ImageUrl = dto.ImageUrl;
-                entity.Model = dto.Model;
-                await DbContext.SaveChangesAsync();
-                Snackbar.Add("Product updated successfully", Severity.Success);
-                await LoadProducts();
-            }
-        }
+        await OpenAddEditDialog(product);
     }
 
     private async Task DeleteProduct(Guid id)

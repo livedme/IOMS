@@ -10,28 +10,28 @@ public record ProductDto(Guid Id, string Name, string SKU, string? Barcode, stri
     bool IsKit, string OriginCountry, string OriginManufacturer);
 
 // Extended Product DTO with additional product fields
-public record ProductDetailsDto(
-    Guid Id,
-    string Name,
-    string SKU,
-    string? Barcode,
-    string? Description,
-    decimal CostPrice,
-    decimal SellingPrice,
-    decimal WholeSellingPrice,
-    int ReorderStockLevel,
-    int MinOrderQuantity,
-    Guid CategoryId,
-    string? CategoryName,
-    Guid? BrandId,
-    string? BrandName,
-    string? ImageUrl,
-    int TotalStock,
-    bool IsKit,
-    string? Model,
-    string OriginCountry,
-    string OriginManufacturer
-) : ProductDto(Id, Name, SKU, Barcode, Description, CostPrice, SellingPrice, WholeSellingPrice, ReorderStockLevel, MinOrderQuantity, CategoryId, CategoryName, BrandId, BrandName, ImageUrl, TotalStock, IsKit, OriginCountry, OriginManufacturer);
+//public record ProductDetailsDto(
+//    Guid Id,
+//    string? Name,
+//    string SKU,
+//    string? Barcode,
+//    string? Description,
+//    decimal CostPrice,
+//    decimal SellingPrice,
+//    decimal WholeSellingPrice,
+//    int ReorderStockLevel,
+//    int MinOrderQuantity,
+//    Guid CategoryId,
+//    string? CategoryName,
+//    Guid? BrandId,
+//    string? BrandName,
+//    string? ImageUrl,
+//    int TotalStock,
+//    bool IsKit,
+//    string? Model,
+//    string OriginCountry,
+//    string OriginManufacturer
+//) : ProductDto(Id, Name, SKU, Barcode, Description, CostPrice, SellingPrice, WholeSellingPrice, ReorderStockLevel, MinOrderQuantity, CategoryId, CategoryName, BrandId, BrandName, ImageUrl, TotalStock, IsKit, OriginCountry, OriginManufacturer);
 
 public record CreateProductDto(string Name, string SKU, string? Barcode, string? Description,
     decimal CostPrice, decimal SellingPrice, decimal WholeSellingPrice, int ReorderStockLevel, int MinOrderQuantity,
@@ -39,6 +39,7 @@ public record CreateProductDto(string Name, string SKU, string? Barcode, string?
 
 // Extended CreateProductDto
 public record CreateProductDetailsDto(
+    Guid Id,
     string Name,
     string SKU,
     string? Barcode,

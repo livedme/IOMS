@@ -12,6 +12,8 @@
         padding-inline-end: 15px;
     }
 </style>
+<MudDialog>
+    <DialogContent>
 <div class="sales-order-form">
         <MudGrid>
             <MudItem xs="12" sm="2">
@@ -239,6 +241,8 @@
         </MudButton>
     </div>
 </div>
+    </DialogContent>
+</MudDialog>
 
 @inject ApplicationDbContext DbContext
 @inject IDialogService DialogService
@@ -246,6 +250,7 @@
 @inject ISnackbar Snackbar
 
 @code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public List<CustomerDto> Customers { get; set; } = new();
     [Parameter] public List<(Guid Id, string Name, string SKU, decimal Price)> Products { get; set; } = new();
     [Parameter] public CreateSalesOrderDtoModels dataModel { get; set; } = new CreateSalesOrderDtoModels();
@@ -529,13 +534,13 @@
         {
             var categories = await DbContext.Categories.ToListAsync(); // IOMS.Web.Utility.Common.GetCategoryList(DbContext);
             var brands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
-            var parameters = new DialogParameters<IOMS.Web.Components.Pages.Inventory.ProductDialog>
+            var parameters = new DialogParameters<IOMS.Web.Components.Pages.Inventory.ProductAddEditDialog>
         {
             { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList() },
             { x => x.Brands, brands.Select(b => new BrandDto(b.Id, b.Name, b.Description, 0)).ToList() }
         };
 
-            var dialog = await DialogService.ShowAsync<IOMS.Web.Components.Pages.Inventory.ProductDialog>("New Product", parameters,
+            var dialog = await DialogService.ShowAsync<IOMS.Web.Components.Pages.Inventory.ProductAddEditDialog>("New Product", parameters,
                 new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
             var result = await dialog.Result;
 
@@ -769,7 +774,11 @@
         dataModel.DueAmount = (dataModel.TotalAmount) - (dataModel.PaidAmount);
     }
 
-    private async Task Cancel() => await OnCancel.InvokeAsync();
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+        MudDialog.Cancel();
+    }
 
     private async Task Submit()
     {
@@ -777,6 +786,7 @@
             OrderStatus.Sold, dataModel.SalesDate ?? DateTime.Today, dataModel.SubTotal, dataModel.LabourCharge, dataModel.TruckCharge,
             dataModel.TaxAmount, dataModel.DiscountType, dataModel.DiscountAmount, dataModel.TotalAmount, dataModel.PaidAmount, dataModel.DueAmount, dataModel.Items);
         await OnSubmit.InvokeAsync(dto);
+        MudDialog.Close(DialogResult.Ok(dto));
     }
 
     private async Task SubmitToPrint()
@@ -785,6 +795,7 @@
             OrderStatus.Delivered, dataModel.SalesDate ?? DateTime.Today, dataModel.SubTotal, dataModel.LabourCharge, dataModel.TruckCharge,
             dataModel.TaxAmount, dataModel.DiscountType, dataModel.DiscountAmount, dataModel.TotalAmount, dataModel.PaidAmount, dataModel.DueAmount, dataModel.Items);
         await OnSubmitAndPrint.InvokeAsync(dto);
+        MudDialog.Close(DialogResult.Ok(dto));
     }
 
     private string GetMultiSelectionText(IReadOnlyList<string> selectedValues)
