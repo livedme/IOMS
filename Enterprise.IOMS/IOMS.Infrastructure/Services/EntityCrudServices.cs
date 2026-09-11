@@ -20,7 +20,7 @@ public class ProductService : IProductService
         _mapper = mapper;
     }
 
-    public async Task<PagedResult<ProductDto>> GetProducts(string? search, Guid? categoryId, int page, int pageSize)
+    public async Task<PagedResult<ProductDto>> GetProductsAsync(string? search, Guid? categoryId, int page, int pageSize)
     {
         var query = _db.Products.Include(p => p.Category).Include(p => p.Brand).Include(p => p.Inventories).AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
@@ -33,96 +33,141 @@ public class ProductService : IProductService
         return new PagedResult<ProductDto>(_mapper.Map<List<ProductDto>>(items), total, page, pageSize);
     }
 
-    public async Task<ProductDto?> GetProductById(Guid id)
+    public async Task<ProductDto?> GetProductByIdAsync(Guid id)
     {
         var product = await _db.Products.Include(p => p.Category).Include(p => p.Brand).Include(p => p.Inventories).FirstOrDefaultAsync(p => p.Id == id);
         return product == null ? null : _mapper.Map<ProductDto>(product);
     }
 
-    public async Task<ProductDetailsDto?> GetProductDetailsById(Guid id)
+    public async Task<ProductDetailsDto?> GetProductDetailsByIdAsync(Guid id)
     {
         var product = await _db.Products.Include(p => p.Category).Include(p => p.Brand).Include(p => p.Inventories).FirstOrDefaultAsync(p => p.Id == id);
         return product == null ? null : _mapper.Map<ProductDetailsDto>(product);
     }
 
-    public async Task<Guid> CreateProduct(CreateProductDto dto)
+    public async Task<Guid> CreateProductAsync(ProductDetailsDto dto)
     {
         var product = new Product
         {
             Name = dto.Name,
             SKU = dto.SKU,
             Barcode = dto.Barcode,
-            Description = dto.Description,
-            CostPrice = dto.CostPrice,
-            SellingPrice = dto.SellingPrice,
-            ReorderStockLevel = dto.ReorderStockLevel,
-            MinOrderQuantity = dto.MinOrderQuantity,
-            CategoryId = dto.CategoryId,
-            BrandId = dto.BrandId,
-            BaseUoMId = dto.BaseUoMId,
-            ImageUrl = dto.ImageUrl
-        };
-        _db.Products.Add(product);
-        await _db.SaveChangesAsync();
-        return product.Id;
-    }
 
-    public async Task<Guid> CreateProductDetails(CreateProductDetailsDto dto)
-    {
-        var product = new Product
-        {
-            Name = dto.Name,
-            SKU = dto.SKU,
-            Barcode = dto.Barcode,
-            Description = dto.Description,
-            CostPrice = dto.CostPrice,
-            SellingPrice = dto.SellingPrice,
-            ReorderStockLevel = dto.ReorderStockLevel,
-            MinOrderQuantity = dto.MinOrderQuantity,
             CategoryId = dto.CategoryId,
             BrandId = dto.BrandId,
+            Model = dto.Model,
+
+            CostPrice = dto.CostPrice,
+            SellingPrice = dto.SellingPrice,
+            WholeSellingPrice = dto.WholeSellingPrice,
+
+            ReorderStockLevel = dto.ReorderStockLevel,
+            OriginManufacturer = dto.OriginManufacturer,
+            OriginCountry = dto.OriginCountry,
+
+            MinOrderQuantity = dto.MinOrderQuantity,
             BaseUoMId = dto.BaseUoMId,
             ImageUrl = dto.ImageUrl,
-            Model = dto.Model
+            Description = dto.Description
         };
         _db.Products.Add(product);
         await _db.SaveChangesAsync();
         return product.Id;
     }
 
-    public async Task UpdateProduct(UpdateProductDto dto)
+    public async Task<Guid> CreateProductDetailsAsync(ProductDetailsDto dto)
     {
-        var product = await _db.Products.FindAsync(dto.Id) ?? throw new KeyNotFoundException("Product not found");
-        product.Name = dto.Name; product.SKU = dto.SKU; product.Barcode = dto.Barcode;
-        product.Description = dto.Description; product.CostPrice = dto.CostPrice;
-        product.SellingPrice = dto.SellingPrice; product.ReorderStockLevel = dto.ReorderStockLevel;
-        product.MinOrderQuantity = dto.MinOrderQuantity; product.CategoryId = dto.CategoryId;
-        product.BrandId = dto.BrandId;
-        product.BaseUoMId = dto.BaseUoMId; product.ImageUrl = dto.ImageUrl;
+        var product = new Product
+        {
+            Name = dto.Name,
+            SKU = dto.SKU,
+            Barcode = dto.Barcode,
+
+            CategoryId = dto.CategoryId,
+            BrandId = dto.BrandId,
+            Model = dto.Model,
+
+            CostPrice = dto.CostPrice,
+            SellingPrice = dto.SellingPrice,
+            WholeSellingPrice = dto.WholeSellingPrice,
+
+            ReorderStockLevel = dto.ReorderStockLevel,
+            OriginManufacturer = dto.OriginManufacturer,
+            OriginCountry = dto.OriginCountry,
+
+            MinOrderQuantity = dto.MinOrderQuantity,
+            BaseUoMId = dto.BaseUoMId,
+            ImageUrl = dto.ImageUrl,
+            Description = dto.Description
+        };
+        _db.Products.Add(product);
         await _db.SaveChangesAsync();
+        return product.Id;
     }
 
-    public async Task UpdateProductDetails(UpdateProductDetailsDto dto)
+    public async Task UpdateProductAsync(ProductDetailsDto dto)
     {
         var product = await _db.Products.FindAsync(dto.Id) ?? throw new KeyNotFoundException("Product not found");
-        product.Name = dto.Name; product.SKU = dto.SKU; product.Barcode = dto.Barcode;
-        product.Description = dto.Description; product.CostPrice = dto.CostPrice;
-        product.SellingPrice = dto.SellingPrice; product.ReorderStockLevel = dto.ReorderStockLevel;
-        product.MinOrderQuantity = dto.MinOrderQuantity; product.CategoryId = dto.CategoryId;
+        product.Name = dto.Name;
+        product.SKU = dto.SKU; 
+        product.Barcode = dto.Barcode;
+        
+        product.CategoryId = dto.CategoryId;
         product.BrandId = dto.BrandId;
-        product.BaseUoMId = dto.BaseUoMId; product.ImageUrl = dto.ImageUrl;
         product.Model = dto.Model;
+
+        product.CostPrice = dto.CostPrice;
+        product.SellingPrice = dto.SellingPrice;
+        product.WholeSellingPrice = dto.WholeSellingPrice;
+
+        product.ReorderStockLevel = dto.ReorderStockLevel;
+        product.OriginManufacturer = dto.OriginManufacturer;
+        product.OriginCountry = dto.OriginCountry;
+
+        product.MinOrderQuantity = dto.MinOrderQuantity; 
+        product.BaseUoMId = dto.BaseUoMId;
+        product.ImageUrl = dto.ImageUrl;
+        product.Description = dto.Description;
+        
+
         await _db.SaveChangesAsync();
     }
 
-    public async Task DeleteProduct(Guid id)
+    public async Task UpdateProductDetailsAsync(ProductDetailsDto dto)
+    {
+        var product = await _db.Products.FindAsync(dto.Id) ?? throw new KeyNotFoundException("Product not found");
+        product.Name = dto.Name;
+        product.SKU = dto.SKU;
+        product.Barcode = dto.Barcode;
+
+        product.CategoryId = dto.CategoryId;
+        product.BrandId = dto.BrandId;
+        product.Model = dto.Model;
+
+        product.CostPrice = dto.CostPrice;
+        product.SellingPrice = dto.SellingPrice;
+        product.WholeSellingPrice = dto.WholeSellingPrice;
+
+        product.ReorderStockLevel = dto.ReorderStockLevel;
+        product.OriginManufacturer = dto.OriginManufacturer;
+        product.OriginCountry = dto.OriginCountry;
+
+        product.MinOrderQuantity = dto.MinOrderQuantity;
+        product.BaseUoMId = dto.BaseUoMId;
+        product.ImageUrl = dto.ImageUrl;
+        product.Description = dto.Description;
+
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DeleteProductAsync(Guid id)
     {
         var product = await _db.Products.FindAsync(id) ?? throw new KeyNotFoundException("Product not found");
         product.IsDeleted = true;
         await _db.SaveChangesAsync();
     }
 
-    public async Task<PagedResult<BrandDto>> GetBrands(string? search, int page, int pageSize)
+    public async Task<PagedResult<BrandDto>> GetBrandsAsync(string? search, int page, int pageSize)
     {
         var query = _db.Brands.Include(b => b.Products).AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
@@ -137,13 +182,13 @@ public class ProductService : IProductService
         return new PagedResult<BrandDto>(_mapper.Map<List<BrandDto>>(items), total, page, pageSize);
     }
 
-    public async Task<List<BrandDto>> GetAllBrands()
+    public async Task<List<BrandDto>> GetAllBrandsAsync()
     {
         var brands = await _db.Brands.Include(b => b.Products).OrderBy(b => b.Name).ToListAsync();
         return _mapper.Map<List<BrandDto>>(brands);
     }
 
-    public async Task<Guid> CreateBrand(CreateBrandDto dto)
+    public async Task<Guid> CreateBrandAsync(CreateBrandDto dto)
     {
         var brand = new Brand
         {
@@ -161,14 +206,14 @@ public class ProductService : IProductService
         return brand.Id;
     }
 
-    public async Task DeleteBrand(Guid id)
+    public async Task DeleteBrandAsync(Guid id)
     {
         var brand = await _db.Brands.FindAsync(id) ?? throw new KeyNotFoundException("Brand not found");
         brand.IsDeleted = true;
         await _db.SaveChangesAsync();
     }
 
-    public async Task<PagedResult<CategoryDto>> GetCategories(string? search, int page, int pageSize)
+    public async Task<PagedResult<CategoryDto>> GetCategoriesAsync(string? search, int page, int pageSize)
     {
         var query = _db.Categories.Include(c => c.ParentCategory).Include(c => c.Products).AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
@@ -178,13 +223,13 @@ public class ProductService : IProductService
         return new PagedResult<CategoryDto>(_mapper.Map<List<CategoryDto>>(items), total, page, pageSize);
     }
 
-    public async Task<List<CategoryDto>> GetAllCategories()
+    public async Task<List<CategoryDto>> GetAllCategoriesAsync()
     {
         var categories = await _db.Categories.Include(c => c.ParentCategory).Include(c => c.Products).OrderBy(c => c.Name).ToListAsync();
         return _mapper.Map<List<CategoryDto>>(categories);
     }
 
-    public async Task<Guid> CreateCategory(CreateCategoryDto dto)
+    public async Task<Guid> CreateCategoryAsync(CreateCategoryDto dto)
     {
         var category = new Category { Name = dto.Name, Description = dto.Description, ParentCategoryId = dto.ParentCategoryId };
         _db.Categories.Add(category);
@@ -192,14 +237,14 @@ public class ProductService : IProductService
         return category.Id;
     }
 
-    public async Task DeleteCategory(Guid id)
+    public async Task DeleteCategoryAsync(Guid id)
     {
         var category = await _db.Categories.FindAsync(id) ?? throw new KeyNotFoundException("Category not found");
         category.IsDeleted = true;
         await _db.SaveChangesAsync();
     }
 
-    public async Task<PagedResult<WarehouseDto>> GetWarehouses(string? search, int page, int pageSize)
+    public async Task<PagedResult<WarehouseDto>> GetWarehousesAsync(string? search, int page, int pageSize)
     {
         var query = _db.Warehouses.AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
@@ -209,13 +254,13 @@ public class ProductService : IProductService
         return new PagedResult<WarehouseDto>(_mapper.Map<List<WarehouseDto>>(items), total, page, pageSize);
     }
 
-    public async Task<List<WarehouseDto>> GetAllWarehouses()
+    public async Task<List<WarehouseDto>> GetAllWarehousesAsync ()
     {
         var warehouses = await _db.Warehouses.Where(w => w.IsActive).OrderBy(w => w.Name).ToListAsync();
         return _mapper.Map<List<WarehouseDto>>(warehouses);
     }
 
-    public async Task<Guid> CreateWarehouse(CreateWarehouseDto dto)
+    public async Task<Guid> CreateWarehouseAsync(CreateWarehouseDto dto)
     {
         var warehouse = new Warehouse { Name = dto.Name, Code = dto.Code, Location = dto.Location, Address = dto.Address };
         _db.Warehouses.Add(warehouse);
@@ -223,7 +268,7 @@ public class ProductService : IProductService
         return warehouse.Id;
     }
 
-    public async Task DeleteWarehouse(Guid id)
+    public async Task DeleteWarehouseAsync(Guid id)
     {
         var warehouse = await _db.Warehouses.FindAsync(id) ?? throw new KeyNotFoundException("Warehouse not found");
         warehouse.IsDeleted = true;
@@ -242,7 +287,7 @@ public class CustomerSupplierService : ICustomerSupplierService
         _mapper = mapper;
     }
 
-    public async Task<PagedResult<CustomerDto>> GetCustomers(string? search, int page, int pageSize)
+    public async Task<PagedResult<CustomerDto>> GetCustomersAsync(string? search, int page, int pageSize)
     {
         var query = _db.Customers.AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
@@ -252,13 +297,13 @@ public class CustomerSupplierService : ICustomerSupplierService
         return new PagedResult<CustomerDto>(_mapper.Map<List<CustomerDto>>(items), total, page, pageSize);
     }
 
-    public async Task<CustomerDto?> GetCustomerById(Guid id)
+    public async Task<CustomerDto?> GetCustomerByIdAsync(Guid id)
     {
         var customer = await _db.Customers.FindAsync(id);
         return customer == null ? null : _mapper.Map<CustomerDto>(customer);
     }
 
-    public async Task<Guid> CreateCustomer(CreateCustomerDto dto)
+    public async Task<Guid> CreateCustomerAsync(CreateCustomerDto dto)
     {
         var customer = new Customer
         {
@@ -285,7 +330,7 @@ public class CustomerSupplierService : ICustomerSupplierService
         return customer.Id;
     }
 
-    public async Task UpdateCustomer(Guid id, CreateCustomerDto dto)
+    public async Task UpdateCustomerAsync(Guid id, CreateCustomerDto dto)
     {
         var customer = await _db.Customers.FindAsync(id) ?? throw new KeyNotFoundException("Customer not found");
         customer.CustomerName = dto.CustomerName; customer.CustomerEmail = dto.CustomerEmail; customer.CustomerPhone = dto.CustomerPhone;
@@ -297,14 +342,14 @@ public class CustomerSupplierService : ICustomerSupplierService
         await _db.SaveChangesAsync();
     }
 
-    public async Task DeleteCustomer(Guid id)
+    public async Task DeleteCustomerAsync(Guid id)
     {
         var customer = await _db.Customers.FindAsync(id) ?? throw new KeyNotFoundException("Customer not found");
         customer.IsDeleted = true;
         await _db.SaveChangesAsync();
     }
 
-    public async Task<PagedResult<SupplierDto>> GetSuppliers(string? search, int page, int pageSize)
+    public async Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search, int page, int pageSize)
     {
         var query = _db.Suppliers.AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
@@ -314,13 +359,13 @@ public class CustomerSupplierService : ICustomerSupplierService
         return new PagedResult<SupplierDto>(_mapper.Map<List<SupplierDto>>(items), total, page, pageSize);
     }
 
-    public async Task<SupplierDto?> GetSupplierById(Guid id)
+    public async Task<SupplierDto?> GetSupplierByIdAsync(Guid id)
     {
         var supplier = await _db.Suppliers.FindAsync(id);
         return supplier == null ? null : _mapper.Map<SupplierDto>(supplier);
     }
 
-    public async Task<Guid> CreateSupplier(CreateSupplierDto dto)
+    public async Task<Guid> CreateSupplierAsync(CreateSupplierDto dto)
     {
         var supplier = new Supplier
         {
@@ -341,7 +386,7 @@ public class CustomerSupplierService : ICustomerSupplierService
         return supplier.Id;
     }
 
-    public async Task UpdateSupplier(Guid id, CreateSupplierDto dto)
+    public async Task UpdateSupplierAsync(Guid id, CreateSupplierDto dto)
     {
         var supplier = await _db.Suppliers.FindAsync(id) ?? throw new KeyNotFoundException("Supplier not found");
         supplier.SupplierName = dto.SupplierName; supplier.SupplierEmail = dto.SupplierEmail; supplier.SupplierPhone = dto.SupplierPhone;
@@ -351,7 +396,7 @@ public class CustomerSupplierService : ICustomerSupplierService
         await _db.SaveChangesAsync();
     }
 
-    public async Task DeleteSupplier(Guid id)
+    public async Task DeleteSupplierAsync(Guid id)
     {
         var supplier = await _db.Suppliers.FindAsync(id) ?? throw new KeyNotFoundException("Supplier not found");
         supplier.IsDeleted = true;
@@ -372,7 +417,7 @@ public class InvoiceService : IInvoiceService
         _numberGen = numberGen;
     }
 
-    public async Task<PagedResult<InvoiceDto>> GetInvoices(string? search, InvoiceStatus? status, InvoiceType? type, int page, int pageSize)
+    public async Task<PagedResult<InvoiceDto>> GetInvoicesAsync(string? search, InvoiceStatus? status, InvoiceType? type, int page, int pageSize)
     {
         var query = _db.Invoices.Include(i => i.Customer).Include(i => i.Supplier).AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
@@ -385,13 +430,13 @@ public class InvoiceService : IInvoiceService
         return new PagedResult<InvoiceDto>(_mapper.Map<List<InvoiceDto>>(items), total, page, pageSize);
     }
 
-    public async Task<InvoiceDto?> GetInvoiceById(Guid id)
+    public async Task<InvoiceDto?> GetInvoiceByIdAsync(Guid id)
     {
         var invoice = await _db.Invoices.Include(i => i.Customer).Include(i => i.Supplier).FirstOrDefaultAsync(i => i.Id == id);
         return invoice == null ? null : _mapper.Map<InvoiceDto>(invoice);
     }
 
-    public async Task<Guid> CreateInvoice(CreateInvoiceDto dto)
+    public async Task<Guid> CreateInvoiceAsync(CreateInvoiceDto dto)
     {
         var invoice = new Invoice
         {
@@ -421,18 +466,18 @@ public class InvoiceService : IInvoiceService
         return invoice.Id;
     }
 
-    public async Task<Guid> GenerateInvoiceFromSalesOrder(Guid salesOrderId)
+    public async Task<Guid> GenerateInvoiceFromSalesOrderAsync(Guid salesOrderId)
     {
         var so = await _db.SalesOrders.Include(o => o.Customer).FirstOrDefaultAsync(o => o.Id == salesOrderId)
             ?? throw new KeyNotFoundException("Sales order not found");
-        return await CreateInvoice(new CreateInvoiceDto(InvoiceType.Sales, salesOrderId, null, so.CustomerId, null, DateTime.UtcNow.AddDays(30), null));
+        return await CreateInvoiceAsync(new CreateInvoiceDto(InvoiceType.Sales, salesOrderId, null, so.CustomerId, null, DateTime.UtcNow.AddDays(30), null));
     }
 
-    public async Task<Guid> GenerateInvoiceFromPurchaseOrder(Guid purchaseOrderId)
+    public async Task<Guid> GenerateInvoiceFromPurchaseOrderAsync(Guid purchaseOrderId)
     {
         var po = await _db.PurchaseOrders.Include(o => o.Supplier).FirstOrDefaultAsync(o => o.Id == purchaseOrderId)
             ?? throw new KeyNotFoundException("Purchase order not found");
-        return await CreateInvoice(new CreateInvoiceDto(InvoiceType.Purchase, null, purchaseOrderId, null, po.SupplierId, DateTime.UtcNow.AddDays(30), null));
+        return await CreateInvoiceAsync(new CreateInvoiceDto(InvoiceType.Purchase, null, purchaseOrderId, null, po.SupplierId, DateTime.UtcNow.AddDays(30), null));
     }
 }
 

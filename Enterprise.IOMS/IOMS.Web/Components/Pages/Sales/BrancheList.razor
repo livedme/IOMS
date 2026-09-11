@@ -76,7 +76,7 @@
         };
 
         var dialog = await DialogService.ShowAsync<BrancheDialog>("New Branch", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = false });
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = false, CloseButton = true });
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled && result.Data is CreateBranchDto dto)
@@ -100,7 +100,7 @@
 
         var parameters = new DialogParameters<BrancheDialog> { { x => x.Branch, dto } };
         var dialog = await DialogService.ShowAsync<BrancheDialog>("Edit Branch", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateBranchDto updated)
         {

@@ -251,49 +251,49 @@ public interface IArchivalService
 
 public interface IProductService
 {
-    Task<PagedResult<ProductDto>> GetProducts(string? search, Guid? categoryId, int page, int pageSize);
-    Task<ProductDto?> GetProductById(Guid id);
-    Task<ProductDetailsDto?> GetProductDetailsById(Guid id);
-    Task<Guid> CreateProduct(CreateProductDto dto);
-    Task<Guid> CreateProductDetails(CreateProductDetailsDto dto);
-    Task UpdateProduct(UpdateProductDto dto);
-    Task UpdateProductDetails(UpdateProductDetailsDto dto);
-    Task DeleteProduct(Guid id);
-    Task<PagedResult<BrandDto>> GetBrands(string? search, int page, int pageSize);
-    Task<List<BrandDto>> GetAllBrands();
-    Task<Guid> CreateBrand(CreateBrandDto dto);
-    Task DeleteBrand(Guid id);
-    Task<PagedResult<CategoryDto>> GetCategories(string? search, int page, int pageSize);
-    Task<List<CategoryDto>> GetAllCategories();
-    Task<Guid> CreateCategory(CreateCategoryDto dto);
-    Task DeleteCategory(Guid id);
-    Task<PagedResult<WarehouseDto>> GetWarehouses(string? search, int page, int pageSize);
-    Task<List<WarehouseDto>> GetAllWarehouses();
-    Task<Guid> CreateWarehouse(CreateWarehouseDto dto);
-    Task DeleteWarehouse(Guid id);
+    Task<PagedResult<ProductDto>> GetProductsAsync(string? search, Guid? categoryId, int page, int pageSize);
+    Task<ProductDto?> GetProductByIdAsync(Guid id);
+    Task<ProductDetailsDto?> GetProductDetailsByIdAsync(Guid id);
+    Task<Guid> CreateProductAsync(ProductDetailsDto dto);
+    Task<Guid> CreateProductDetailsAsync(ProductDetailsDto dto);
+    Task UpdateProductAsync(ProductDetailsDto dto);
+    Task UpdateProductDetailsAsync(ProductDetailsDto dto);
+    Task DeleteProductAsync(Guid id);
+    Task<PagedResult<BrandDto>> GetBrandsAsync(string? search, int page, int pageSize);
+    Task<List<BrandDto>> GetAllBrandsAsync();
+    Task<Guid> CreateBrandAsync(CreateBrandDto dto);
+    Task DeleteBrandAsync(Guid id);
+    Task<PagedResult<CategoryDto>> GetCategoriesAsync(string? search, int page, int pageSize);
+    Task<List<CategoryDto>> GetAllCategoriesAsync();
+    Task<Guid> CreateCategoryAsync(CreateCategoryDto dto);
+    Task DeleteCategoryAsync(Guid id);
+    Task<PagedResult<WarehouseDto>> GetWarehousesAsync(string? search, int page, int pageSize);
+    Task<List<WarehouseDto>> GetAllWarehousesAsync();
+    Task<Guid> CreateWarehouseAsync(CreateWarehouseDto dto);
+    Task DeleteWarehouseAsync(Guid id);
 }
 
 public interface ICustomerSupplierService
 {
-    Task<PagedResult<CustomerDto>> GetCustomers(string? search, int page, int pageSize);
-    Task<CustomerDto?> GetCustomerById(Guid id);
-    Task<Guid> CreateCustomer(CreateCustomerDto dto);
-    Task UpdateCustomer(Guid id, CreateCustomerDto dto);
-    Task DeleteCustomer(Guid id);
-    Task<PagedResult<SupplierDto>> GetSuppliers(string? search, int page, int pageSize);
-    Task<SupplierDto?> GetSupplierById(Guid id);
-    Task<Guid> CreateSupplier(CreateSupplierDto dto);
-    Task UpdateSupplier(Guid id, CreateSupplierDto dto);
-    Task DeleteSupplier(Guid id);
+    Task<PagedResult<CustomerDto>> GetCustomersAsync(string? search, int page, int pageSize);
+    Task<CustomerDto?> GetCustomerByIdAsync(Guid id);
+    Task<Guid> CreateCustomerAsync(CreateCustomerDto dto);
+    Task UpdateCustomerAsync(Guid id, CreateCustomerDto dto);
+    Task DeleteCustomerAsync(Guid id);
+    Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search, int page, int pageSize);
+    Task<SupplierDto?> GetSupplierByIdAsync(Guid id);
+    Task<Guid> CreateSupplierAsync(CreateSupplierDto dto);
+    Task UpdateSupplierAsync(Guid id, CreateSupplierDto dto);
+    Task DeleteSupplierAsync(Guid id);
 }
 
 public interface IInvoiceService
 {
-    Task<PagedResult<InvoiceDto>> GetInvoices(string? search, InvoiceStatus? status, InvoiceType? type, int page, int pageSize);
-    Task<InvoiceDto?> GetInvoiceById(Guid id);
-    Task<Guid> CreateInvoice(CreateInvoiceDto dto);
-    Task<Guid> GenerateInvoiceFromSalesOrder(Guid salesOrderId);
-    Task<Guid> GenerateInvoiceFromPurchaseOrder(Guid purchaseOrderId);
+    Task<PagedResult<InvoiceDto>> GetInvoicesAsync(string? search, InvoiceStatus? status, InvoiceType? type, int page, int pageSize);
+    Task<InvoiceDto?> GetInvoiceByIdAsync(Guid id);
+    Task<Guid> CreateInvoiceAsync(CreateInvoiceDto dto);
+    Task<Guid> GenerateInvoiceFromSalesOrderAsync(Guid salesOrderId);
+    Task<Guid> GenerateInvoiceFromPurchaseOrderAsync(Guid purchaseOrderId);
 }
 
 public interface IUoMService

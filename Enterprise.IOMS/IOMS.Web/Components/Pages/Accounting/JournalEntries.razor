@@ -98,7 +98,7 @@
         var accounts = await AccountingService.GetChartOfAccounts();
         var parameters = new DialogParameters<JournalEntryDialog> { { x => x.Accounts, accounts } };
         var dialog = await DialogService.ShowAsync<JournalEntryDialog>("New Journal Entry", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateJournalEntryDto dto)
         {

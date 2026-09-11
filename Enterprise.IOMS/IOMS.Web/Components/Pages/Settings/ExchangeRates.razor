@@ -53,7 +53,7 @@
         var currencies = await PricingService.GetCurrencies();
         var parameters = new DialogParameters<ExchangeRateDialog> { { x => x.Currencies, currencies } };
         var dialog = await DialogService.ShowAsync<ExchangeRateDialog>("Add Exchange Rate", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {

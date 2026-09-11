@@ -25,6 +25,7 @@ public class MappingProfile : Profile
                 s.Category != null ? s.Category.Name : null,
                 s.BrandId,
                 s.Brand != null ? s.Brand.Name : null,
+                s.Model,
                 s.ImageUrl,
                 s.Inventories.Sum(i => i.Quantity),
                 s.IsKit,
@@ -50,6 +51,14 @@ public class MappingProfile : Profile
 
         // Category
         CreateMap<Category, CategoryDto>()
+            .ConstructUsing(s => new CategoryDto(
+                s.Id,
+                s.Name,
+                s.Description,
+                s.ParentCategoryId,
+                s.ParentCategory != null ? s.ParentCategory.Name : null,
+                s.Products.Count,
+                s.Path))
             .ForMember(d => d.ParentCategoryName, o => o.MapFrom(s => s.ParentCategory != null ? s.ParentCategory.Name : null))
             .ForMember(d => d.ProductCount, o => o.MapFrom(s => s.Products.Count));
 

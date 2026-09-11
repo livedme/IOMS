@@ -78,7 +78,7 @@
     private async Task OpenCreate()
     {
         var dialog = await DialogService.ShowAsync<CustomerDialog>("New Customer",
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateCustomerDto dto)
         {
@@ -116,7 +116,7 @@
 
         var parameters = new DialogParameters<CustomerDialog> { { x => x.Customer, dto } };
         var dialog = await DialogService.ShowAsync<CustomerDialog>("Edit Customer", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateCustomerDto updated)
         {

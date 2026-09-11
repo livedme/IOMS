@@ -88,7 +88,7 @@
         var warehouses = await DbContext.Set<Warehouse>().Where(w => w.IsActive).OrderBy(w => w.Name).ToListAsync();
         var parameters = new DialogParameters<StocktakeCreateDialog> { { x => x.Warehouses, warehouses } };
         var dialog = await DialogService.ShowAsync<StocktakeCreateDialog>("New Stocktake", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result is not null && !result.Canceled) await LoadData();
     }

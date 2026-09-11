@@ -6,7 +6,7 @@ namespace IOMS.Application.DTOs;
 // Products
 public record ProductDto(Guid Id, string Name, string SKU, string? Barcode, string? Description,
     decimal CostPrice, decimal SellingPrice, decimal WholeSellingPrice, int ReorderStockLevel, int MinOrderQuantity,
-    Guid CategoryId, string? CategoryName, Guid? BrandId, string? BrandName, string? ImageUrl, int TotalStock,
+    Guid CategoryId, string? CategoryName, Guid? BrandId, string? BrandName, string? Model, string? ImageUrl, int TotalStock,
     bool IsKit, string OriginCountry, string OriginManufacturer);
 
 // Extended Product DTO with additional product fields

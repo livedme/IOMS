@@ -3,35 +3,38 @@
 
 <MudDialog>
     <DialogContent>
-        <MudGrid>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_brandCode" Label="Brand Code" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudSelect T="string" @bind-Value="_status" Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense">
-                    <MudSelectItem Value=@("Active")>Active</MudSelectItem>
-                    <MudSelectItem Value=@("Inactive")>Inactive</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudNumericField T="int?" @bind-Value="_foundedYear" Label="Founded Year" Min="1800" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_originCompany" Label="Origin Company" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_originCountry" Label="Origin Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-            <MudItem xs="12">
-                <MudTextField @bind-Value="_logoUrl" Label="Logo URL" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-            <MudItem xs="12">
-                <RichTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />
-            </MudItem>
-        </MudGrid>
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="" Variant="Variant.Outlined" Margin="Margin.Normal" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_brandCode" Label="Brand Code" Required="true" RequiredError="" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Normal" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_originCompany" Label="Origin Company" Required="true" RequiredError="" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_originCountry" Label="Origin Country" Required="true" RequiredError="" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" @bind-Value="_status" Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem Value=@("Active")>Active</MudSelectItem>
+                        <MudSelectItem Value=@("Inactive")>Inactive</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int?" @bind-Value="_foundedYear" Label="Founded Year" Min="1900" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+              
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_logoUrl" Label="Logo URL" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12">
+                    <RichTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
@@ -42,6 +45,7 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public BrandDto? Brand { get; set; }
+    private MudForm _form = default;
 
     private string _name = "";
     private string? _brandCode;
@@ -68,15 +72,28 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new CreateBrandDto
-    {
-        Name = _name,
-        BrandCode = _brandCode,
-        Description = _description,
-        LogoUrl = _logoUrl,
-        Status = _status,
-        OriginCompany = _originCompany,
-        OriginCountry = _originCountry,
-        FoundedYear = _foundedYear
-    }));
+
+    private async Task Submit()
+    {   
+        await _form.ValidateAsync();
+        
+        if (!_form.IsValid)
+            return;     
+
+        //MudDialog.Close(DialogResult.Ok(new CreateCategoryDto(trimmedName, _description, _parentId)));
+        MudDialog.Close(DialogResult.Ok(new CreateBrandDto
+        {
+            Name = _name,
+            BrandCode = _brandCode,
+            Description = _description,
+            LogoUrl = _logoUrl,
+            Status = _status,
+            OriginCompany = _originCompany,
+            OriginCountry = _originCountry,
+            FoundedYear = _foundedYear
+
+        }));
+    
+    }
+
 }

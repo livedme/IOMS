@@ -94,7 +94,7 @@
     private async Task OpenPriceListDialog()
     {
         var dialog = await DialogService.ShowAsync<PriceListDialog>("Create Price List", new DialogParameters(),
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled)
             await LoadPriceLists();
@@ -103,7 +103,7 @@
     private async Task OpenDiscountDialog()
     {
         var dialog = await DialogService.ShowAsync<DiscountDialog>("Create Discount", new DialogParameters(),
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled)
             await LoadDiscounts();

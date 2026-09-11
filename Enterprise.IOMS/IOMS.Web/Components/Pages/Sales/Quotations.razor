@@ -113,7 +113,7 @@
     private async Task OpenCreateDialog()
     {
         var dialog = await DialogService.ShowAsync<QuotationDialog>("New Quotation", new DialogParameters(),
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled)
             await Load();

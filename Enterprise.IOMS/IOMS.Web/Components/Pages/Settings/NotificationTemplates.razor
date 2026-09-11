@@ -54,7 +54,7 @@
 
         var dialog = await DialogService.ShowAsync<NotificationTemplateDialog>(
             existing == null ? "Add Template" : "Edit Template", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {

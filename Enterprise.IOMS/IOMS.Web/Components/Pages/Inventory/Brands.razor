@@ -104,7 +104,7 @@
     private async Task OpenCreateDialog()
     {
         var dialog = await DialogService.ShowAsync<BrandDialog>("New Brand",
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
@@ -135,7 +135,7 @@
         };
 
         var dialog = await DialogService.ShowAsync<BrandDialog>("Edit Brand", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)

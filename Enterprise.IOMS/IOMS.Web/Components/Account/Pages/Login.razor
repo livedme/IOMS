@@ -44,7 +44,7 @@
             }
 
             <EditForm EditContext="editContext" method="post" OnValidSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator />
+                                <DataAnnotationsValidator />                
 
                 <div class="field-group">
                     <label for="Input.Email">Email address</label>
@@ -172,41 +172,43 @@
 
     public async Task LoginUser()
     {
-        if (!string.IsNullOrEmpty(Input.Passkey?.Error))
-        {
-            errorMessage = $"Error: {Input.Passkey.Error}";
-            return;
-        }
+        
+            if (!string.IsNullOrEmpty(Input.Passkey?.Error))
+            {
+                errorMessage = $"Error: {Input.Passkey.Error}";
+                return;
+            }
 
-        SignInResult result;
-        if (!string.IsNullOrEmpty(Input.Passkey?.CredentialJson))
-        {
-            result = await SignInManager.PasskeySignInAsync(Input.Passkey.CredentialJson);
-        }
-        else
-        {
-            if (!editContext.Validate()) return;
-            result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-        }
+            SignInResult result;
+            if (!string.IsNullOrEmpty(Input.Passkey?.CredentialJson))
+            {
+                result = await SignInManager.PasskeySignInAsync(Input.Passkey.CredentialJson);
+            }
+            else
+            {
+                if (!editContext.Validate()) return;
+                result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+            }
 
-        if (result.Succeeded)
-        {
-            Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
-        }
-        else if (result.RequiresTwoFactor)
-        {
-            RedirectManager.RedirectTo("Account/LoginWith2fa", new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
-        }
-        else if (result.IsLockedOut)
-        {
-            Logger.LogWarning("User account locked out.");
-            RedirectManager.RedirectTo("Account/Lockout");
-        }
-        else
-        {
-            errorMessage = "Error: Invalid login attempt.";
-        }
+            if (result.Succeeded)
+            {
+                Logger.LogInformation("User logged in.");
+                RedirectManager.RedirectTo(ReturnUrl);
+            }
+            else if (result.RequiresTwoFactor)
+            {
+                RedirectManager.RedirectTo("Account/LoginWith2fa", new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+            }
+            else if (result.IsLockedOut)
+            {
+                Logger.LogWarning("User account locked out.");
+                RedirectManager.RedirectTo("Account/Lockout");
+            }
+            else
+            {
+                errorMessage = "Error: Invalid login attempt.";
+            }
+        
     }
 
     private sealed class InputModel

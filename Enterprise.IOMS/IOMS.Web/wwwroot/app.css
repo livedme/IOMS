@@ -106,6 +106,10 @@ h1:focus {
 .left-nav-menu {
     scrollbar-color: rgb(79 87 120) transparent !important;
 }
+.mud-nav-link .mud-nav-link-expand-icon {
+    font-size: 1.6rem;
+    margin-top: 0px;
+}
 
 .add-item-icon .mud-button-label {
     padding: 0rem;

@@ -77,7 +77,7 @@
     private async Task OpenCreate()
     {
         var dialog = await DialogService.ShowAsync<SupplierDialog>("New Supplier",
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateSupplierDto dto)
         {
@@ -106,7 +106,7 @@
 
         var parameters = new DialogParameters<SupplierDialog> { { x => x.Supplier, dto } };
         var dialog = await DialogService.ShowAsync<SupplierDialog>("Edit Supplier", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateSupplierDto updated)
         {

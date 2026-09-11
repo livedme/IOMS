@@ -23,6 +23,7 @@ namespace IOMS.Application.DTOs
         public int TotalStock { get; set; }
         public bool IsKit { get; set; }
         public string? Model { get; set; }
+        public Guid? BaseUoMId { get; set; }
         public string OriginCountry { get; set; }
         public string OriginManufacturer { get; set; }
     }

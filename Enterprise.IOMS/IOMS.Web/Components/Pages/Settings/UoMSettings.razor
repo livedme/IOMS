@@ -87,7 +87,7 @@
     {
         var parameters = new DialogParameters<UoMDialog>();
         var dialog = await DialogService.ShowAsync<UoMDialog>("Add Unit of Measure", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {
@@ -100,7 +100,7 @@
     {
         var parameters = new DialogParameters<UoMConversionDialog> { { x => x.Units, _units } };
         var dialog = await DialogService.ShowAsync<UoMConversionDialog>("Add Conversion", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result is { Canceled: false })
         {

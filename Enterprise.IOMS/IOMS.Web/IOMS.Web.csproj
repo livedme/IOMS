@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <Content Remove="Components\Pages\Auth.razor" />
+    <Content Remove="Components\Pages\Inventory\ProductDialog.razor" />
   </ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\IOMS.Application\IOMS.Application.csproj" />

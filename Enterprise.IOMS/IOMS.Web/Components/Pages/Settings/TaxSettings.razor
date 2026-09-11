@@ -93,7 +93,7 @@
     private async Task OpenTaxRateDialog()
     {
         var dialog = await DialogService.ShowAsync<TaxRateDialog>("Add Tax Rate", new DialogParameters(),
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled)
             await LoadRates();
@@ -103,7 +103,7 @@
     {
         var parameters = new DialogParameters { ["ExistingRate"] = rate };
         var dialog = await DialogService.ShowAsync<TaxRateDialog>("Edit Tax Rate", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled)
             await LoadRates();
@@ -112,7 +112,7 @@
     private async Task OpenJurisdictionDialog()
     {
         var dialog = await DialogService.ShowAsync<JurisdictionDialog>("Add Jurisdiction", new DialogParameters(),
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled)
             await LoadJurisdictions();

@@ -191,7 +191,7 @@ c.State, c.Country, c.PostalCode, null, 10, 1, false)).ToList() },
         };
 
         var dialog = await DialogService.ShowAsync<PurchaseOrderDialog>(dialogTitle, parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled && result.Data is CreatePurchaseOrderDto dto)

@@ -91,7 +91,7 @@
     private async Task OpenCurrencyDialog()
     {
         var dialog = await DialogService.ShowAsync<CurrencyDialog>("Add Currency", new DialogParameters(),
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled)
             await LoadCurrencies();

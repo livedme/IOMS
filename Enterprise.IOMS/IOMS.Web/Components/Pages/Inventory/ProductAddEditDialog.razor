@@ -4,64 +4,81 @@
 
 <MudDialog>
     <DialogContent>
+        <MudForm @ref="_form">
         <MudGrid>
             @* === Basic Info === *@
-            <MudItem xs="12">
-                <MudText Typo="Typo.subtitle1" Style="font-weight:700;">Basic Information</MudText>
-            </MudItem>
-            <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="DataModel.Name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-            </MudItem>
-            <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="DataModel.SKU" Label="SKU" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-            </MudItem>
-            <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudAutocomplete T="CategoryDto"
-                                 @ref="CategoryDropDownControl"
-                                 Label="Category"
-                                 Required="true"
-                                 @key="_lastCategorySelection"
-                                 @bind-Value="_selectedCategory"
-                                 @bind-Text="_categoryText"
-                                 @bind-Value:after="OnCategoryChanged"
-                                 SearchFunc="SearchCategories"
-                                 ToStringFunc="@(c => c?.Path ?? c?.Name ?? "")"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true"
-                                 Clearable="true" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
-            </MudItem>
-            <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudTextField @bind-Value="this.DataModel.Barcode" Label="Barcode" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-            </MudItem>
-            <MudItem xs="12" sm="6" Class="p-4 py-3">
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:700;">Basic Information</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="p-4 py-2 pt-4">
+                    <MudTextField @bind-Value="DataModel.Name" Label="Name" Required="true" RequiredError="" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="p-4 py-2 pt-4">
+                    <MudTextField @bind-Value="DataModel.SKU" Label="SKU" Required="true" RequiredError="" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="p-4 py-2 pt-4">
+                    <MudTextField @bind-Value="this.DataModel.Barcode" Label="Barcode" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                </MudItem>
 
-                <MudAutocomplete T="BrandDto"
-                                 Label="Brand"
-                                 @ref="BrandDropDownControl"
-                                 @key="_selectedBrandIndex"
-                                 @bind-Value="_selectedBrand"
-                                 @bind-Text="_brandText"
-                                 @bind-Value:after="OnBrandChanged"
-                                 SearchFunc="SearchBrands"
-                                 ToStringFunc="@(b => b?.Name ?? "")"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true"
-                                 Clearable="true" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
-                <MudTextField @bind-Value="DataModel.Model" Label="Model" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
-                <MudTextField @bind-Value="DataModel.OriginManufacturer" Label="Origin Manufacturer" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
-                <MudTextField @bind-Value="DataModel.OriginCountry" Label="Origin Country" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" ErrorText="" />
-            </MudItem>
-            <MudItem xs="12" sm="6" Class="p-4 py-3">
-                <MudNumericField @bind-Value="DataModel.CostPrice" Label="Cost Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                <MudNumericField @bind-Value="DataModel.SellingPrice" Label="Selling Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                <MudNumericField @bind-Value="DataModel.WholeSellingPrice" Label="Whole Selling Price" Format="N2" Min="0m" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                <MudNumericField @bind-Value="DataModel.ReorderStockLevel" Label="Reorder Stock Level" Min="0" Class="pb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-            </MudItem>
+                <MudItem xs="12" sm="4" Class="p-4 py-2">
+                    <MudAutocomplete T="CategoryDto"
+                                     @ref="CategoryDropDownControl"
+                                     Label="Category"
+                                     @key="_lastCategorySelection"
+                                     @bind-Value="_selectedCategory"
+                                     @bind-Text="_categoryText"
+                                     @bind-Value:after="OnCategoryChanged"
+                                     SearchFunc="SearchCategories"
+                                     ToStringFunc="@(c => c?.Path ?? c?.Name ?? "")"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true"
+                                     Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                </MudItem>
+
+                <MudItem xs="12" sm="4" Class="p-4 py-2">
+                    <MudAutocomplete T="BrandDto"
+                                     Label="Brand"
+                                     @ref="BrandDropDownControl"
+                                     @key="_selectedBrandIndex"
+                                     @bind-Value="_selectedBrand"
+                                     @bind-Text="_brandText"
+                                     @bind-Value:after="OnBrandChanged"
+                                     SearchFunc="SearchBrands"
+                                     ToStringFunc="@(b => b?.Name ?? "")"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true"
+                                     Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="p-4 py-2">
+                    <MudTextField @bind-Value="DataModel.Model" Label="Model" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="p-4 py-2">
+                    <MudNumericField @bind-Value="DataModel.CostPrice" Label="Cost Price" Format="N2" Min="0m" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="p-4 py-2">
+                    <MudNumericField @bind-Value="DataModel.SellingPrice" Label="Selling Price" Format="N2" Min="0m" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="p-4 py-2">
+                    <MudNumericField @bind-Value="DataModel.WholeSellingPrice" Label="Whole Selling Price" Format="N2" Min="0m" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="p-4 py-2">
+                    <MudNumericField @bind-Value="DataModel.ReorderStockLevel" Label="Reorder Stock Level" Min="0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="p-4 py-2">
+                    <MudTextField @bind-Value="DataModel.OriginManufacturer" Label="Origin Manufacturer" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="p-4 py-2">
+                    <MudTextField @bind-Value="DataModel.OriginCountry" Label="Origin Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                </MudItem>
+
+           
             <MudItem xs="12" Class="py-0">
                 <RichTextField @bind-Value="DataModel.Description" Label="Description" Lines="10" Class="mt-3" />
             </MudItem>
 
         </MudGrid>
+        </MudForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
@@ -76,6 +93,7 @@
     [Parameter] public ProductDetailsDto DataModel { get; set; }
     [Parameter] public List<CategoryDto> Categories { get; set; } = new();
     [Parameter] public List<BrandDto> Brands { get; set; } = new();
+    private MudForm _form = default!;
 
     private MudAutocomplete<CategoryDto> CategoryDropDownControl = default!;
     private MudAutocomplete<BrandDto> BrandDropDownControl = default!;
@@ -97,7 +115,19 @@
         Categories = Categories.Where(c => c.Id != Guid.Empty).ToList();
         Brands = Brands.Where(b => b.Id != Guid.Empty).ToList();
 
-        // if (Product is ProductDetailsDto details)
+        if (DataModel is ProductDetailsDto details)
+        {
+       // _categoryId = details.CategoryId;
+        _selectedCategory = GetRealCategoryById(details.CategoryId);
+        _lastCategorySelection = _selectedCategory;
+        _categoryText = CategoryToDisplay(_selectedCategory);
+
+    //    _brandId = details.BrandId;
+        _selectedBrand = GetRealBrandById(details.BrandId);
+        _lastBrandSelection = _selectedBrand;
+        _brandText = BrandToDisplay(_selectedBrand);
+        }
+    // if (Product is ProductDetailsDto details)
         // {
         //     _name = details.Name;
         //     _sku = details.SKU;
@@ -203,7 +233,7 @@
             };
 
             var dialog = await DialogService.ShowAsync<CategoryDialog>("New Category", parameters,
-                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true,CloseButton = true });
             var result = await dialog.Result;
 
             await CategoryDropDownControl.ResetAsync();
@@ -275,7 +305,7 @@
             var previousBrand = _lastBrandSelection;
 
             var dialog = await DialogService.ShowAsync<BrandDialog>("New Brand",
-                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
             var result = await dialog.Result;
 
             await BrandDropDownControl.ResetAsync();
@@ -352,8 +382,12 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit()
+    private async Task Submit()
     {
+        await _form.ValidateAsync();
+
+        if (!_form.IsValid)
+            return;
 
         MudDialog.Close(DialogResult.Ok(DataModel));
     }

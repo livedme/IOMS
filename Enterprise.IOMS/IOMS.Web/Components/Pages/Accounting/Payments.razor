@@ -73,7 +73,7 @@
     private async Task OpenCreateDialog()
     {
         var dialog = await DialogService.ShowAsync<PaymentDialog>("Record Payment", new DialogParameters(),
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled)
             await Load();

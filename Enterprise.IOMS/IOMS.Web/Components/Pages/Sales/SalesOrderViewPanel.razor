@@ -488,7 +488,7 @@
         var orderId = _order.Id;
         var dialog = await DialogService.ShowAsync<SalesOrderDialog>(
             $"Edit Sales Order — {_order.OrderNumber}", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
 
         var result = await dialog.Result;
 
