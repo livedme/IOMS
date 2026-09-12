@@ -1,6 +1,7 @@
 using IOMS.Domain.Entities;
-using IOMS.Web.Components.Account.Pages;
-using IOMS.Web.Components.Account.Pages.Manage;
+using IOMS.Web1.Components.Account.Pages;
+using IOMS.Web1.Components.Account.Pages.Manage;
+
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -44,11 +45,10 @@ namespace Microsoft.AspNetCore.Routing
             accountGroup.MapPost("/Logout", async (
                 ClaimsPrincipal user,
                 [FromServices] SignInManager<ApplicationUser> signInManager,
-                [FromForm] string? returnUrl) =>
+                [FromForm] string returnUrl) =>
             {
                 await signInManager.SignOutAsync();
-                var redirectTo = string.IsNullOrEmpty(returnUrl) ? "~/" : $"~/{returnUrl.TrimStart('/')}";
-                return TypedResults.LocalRedirect(redirectTo);
+                return TypedResults.LocalRedirect($"~/{returnUrl}");
             });
 
             accountGroup.MapPost("/PasskeyCreationOptions", async (
@@ -88,7 +88,7 @@ namespace Microsoft.AspNetCore.Routing
                 var user = string.IsNullOrEmpty(username) ? null : await userManager.FindByNameAsync(username);
                 var optionsJson = await signInManager.MakePasskeyRequestOptionsAsync(user);
                 return TypedResults.Content(optionsJson, contentType: "application/json");
-            }).AllowAnonymous();
+            });
 
             var manageGroup = accountGroup.MapGroup("/Manage").RequireAuthorization();
 

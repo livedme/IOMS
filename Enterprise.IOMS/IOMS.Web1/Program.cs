@@ -1,29 +1,25 @@
-using IOMS.Domain.Entities;
 using IOMS.Infrastructure;
-using IOMS.Web.Services;
-using IOMS.Web.Components;
-using IOMS.Web.Components.Account;
-using Microsoft.AspNetCore.Authorization;
+using IOMS.Application;
+using IOMS.Web1.Components;
+using IOMS.Web1.Components.Account;
+
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
-using IOMS.Application;
+using IOMS.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add MudBlazor
 builder.Services.AddMudServices();
 
+
 // Add Infrastructure (DbContext, Identity, Repository, TenantProvider)
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// Email service
-builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
-builder.Services.AddScoped<IEmailService, SmtpEmailService>();
-
 // Add Application Services (AutoMapper, all business services)
 builder.Services.AddApplication();
-
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -56,28 +52,7 @@ builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuth
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
-// Require authentication on all pages by default; use [AllowAnonymous] to opt out
-builder.Services.AddAuthorization(options =>
-{
-    options.FallbackPolicy = new AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .Build();
-});
-
 var app = builder.Build();
-
-//if (args.Contains("--seed-load-data", StringComparer.OrdinalIgnoreCase))
-//{
-//    await SeedData.InitializeLoadTestDataAsync(app.Services);
-//    return;
-//}
-
-//Seed data
-//using (var scope = app.Services.CreateScope())
-//{
-//   await SeedData.InitializeAsync(scope.ServiceProvider);
-//}
-
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -93,16 +68,13 @@ else
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); // Must come first
-app.UseAuthorization();  // Must come second
-app.UseAntiforgery();    // Must come AFTER auth middleware!
+app.UseAntiforgery();
 
-app.MapStaticAssets().AllowAnonymous();
+app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
-
 
 app.Run();

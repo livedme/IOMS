@@ -6,48 +6,7 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
-    @* <MudAppBar Elevation="0" Dense="true" Style="border-bottom:1px solid var(--mud-palette-lines-default); backdrop-filter:blur(12px); background:rgba(255,255,255,0.85);">              
-        <MudTooltip Text="@(_isDarkMode ? "Light Mode" : "Dark Mode")">
-            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
-                           Color="Color.Default" OnClick="@ToggleDarkMode" />
-        </MudTooltip>
-        <MudSpacer />
-        <MudMenu @bind-Open="_menuOpen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">
-            <ActivatorContent>
-                <MudAvatar Color="Color.Primary" Size="Size.Small" Class="ml-1 cursor-pointer"
-                           Style="font-size:0.8rem;font-weight:600;"
-                           @onclick="ToggleUserMenu">
-                    @_userInitial
-                </MudAvatar>
-            </ActivatorContent>
-            <ChildContent>
-                <MudMenuItem Disabled="true">
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">@_userDisplayName</MudText>                        
-                    </MudStack>
-                </MudMenuItem>
-                <MudMenuItem Class="logout justify-content-end d-flex" IconColor="Color.Error">
-                    <form action="/Account/Logout" method="post">
-                        <AntiforgeryToken />
-                        <input type="hidden" name="returnUrl" value="/" />
-                        <button type="submit" style="background:none;border:none;padding:0;cursor:pointer;color:var(--mud-palette-error);font:inherit; float:right;">
-                            Sign out
-                        </button>
-                    </form>
-                </MudMenuItem>
-            </ChildContent>
-        </MudMenu>
-    </MudAppBar>
-
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive" Style="background:#222e3c;border-right:1px solid #2f3d4f;">
-         <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Default" Edge="Edge.Start" Class="me-2 icon-toggle" Style="color:#e5e7eb;" OnClick="@ToggleDrawer" />
-        <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Class="ml-2 mr-2" Style="font-size:1.1rem;" />
-        <MudText Typo="Typo.h6" Style="font-weight:700;letter-spacing:-0.5px;">IOMS</MudText>
-        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2 mt-1">Enterprise</MudText>                
-        
-        <NavMenu />
-    </MudDrawer> *@
+<MudLayout>  
 
     <MudAppBar Style="border-bottom:1px solid var(--mud-palette-lines-default); backdrop-filter:blur(12px); background:rgba(255,255,255,0.85);height: 54px;">
         <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Default" Edge="Edge.Start" Class="me-2 icon-toggle" Style="color:#e5e7eb;" OnClick="@ToggleDrawer" />        
