@@ -1,0 +1,103 @@
+@page "/settings/templates"
+@rendermode InteractiveServer
+@inject IDocumentTemplateService TemplateService
+@inject ISnackbar Snackbar
+
+<PageTitle>Document Templates - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Document Templates</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="() => _showCreate = true" Class="mb-4">New Template</MudButton>
+
+@if (_showCreate)
+{
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Create Template</MudText>
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_name" Label="Name" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect @bind-Value="_type" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem Value="@("Invoice")">Invoice</MudSelectItem>
+                    <MudSelectItem Value="@("Quotation")">Quotation</MudSelectItem>
+                    <MudSelectItem Value="@("PurchaseOrder")">Purchase Order</MudSelectItem>
+                    <MudSelectItem Value="@("DeliveryNote")">Delivery Note</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudCheckBox @bind-Value="_isDefault" Label="Default Template" Class="mt-3" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
+            </MudItem>
+            <MudItem xs="12">
+                <RichTextField @bind-Value="_htmlContent" Label="HTML Content" Lines="5" />
+            </MudItem>
+        </MudGrid> 
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Create" Class="mt-3">Save</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="() => _showCreate = false" Class="mt-3 ml-2">Cancel</MudButton>
+    </MudPaper>
+}
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_templates" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Default</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.Name</strong></MudTd>
+            <MudTd>@context.Type</MudTd>
+            <MudTd><MudIcon Icon="@(context.IsDefault ? Icons.Material.Filled.Star : Icons.Material.Filled.StarBorder)" Color="@(context.IsDefault ? Color.Warning : Color.Default)" /></MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="() => Delete(context.Id)" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<DocumentTemplateDto> _templates = new();
+    private string _name = "";
+    private string _type = "Invoice";
+    private string _htmlContent = "";
+    private bool _isDefault;
+    private bool _showCreate;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _templates = await TemplateService.GetTemplates();
+        _loading = false;
+    }
+
+    private async Task Create()
+    {
+        try
+        {
+            var dto = new CreateDocumentTemplateDto(_name, _type, _htmlContent, _isDefault);
+            await TemplateService.CreateTemplate(dto);
+            Snackbar.Add("Template created.", Severity.Success);
+            _showCreate = false;
+            _name = ""; _htmlContent = "";
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task Delete(Guid id)
+    {
+        try
+        {
+            await TemplateService.DeleteTemplate(id);
+            Snackbar.Add("Template deleted.", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

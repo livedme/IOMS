@@ -1,0 +1,69 @@
+@page "/approvals"
+@rendermode InteractiveServer
+@inject IApprovalService ApprovalService
+@inject ISnackbar Snackbar
+
+<PageTitle>My Approvals - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">My Approvals</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_approvals" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Document Type</MudTh>
+            <MudTh>Document ID</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Level</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.DocumentType</strong></MudTd>
+            <MudTd>@context.DocumentId.ToString()[..8]...</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetColor(context.Status)">@context.Status</MudChip>
+            </MudTd>
+            <MudTd>@context.CurrentLevel</MudTd>
+            <MudTd>
+                @if (context.Status == ApprovalDecision.Pending)
+                {
+                    var step = context.Steps.FirstOrDefault(s => s.Decision == ApprovalDecision.Pending);
+                    if (step != null)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                   OnClick="() => Decide(step.Id, ApprovalDecision.Approved)">Approve</MudButton>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" Class="ml-2"
+                                   OnClick="() => Decide(step.Id, ApprovalDecision.Rejected)">Reject</MudButton>
+                    }
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<ApprovalRequestDto> _approvals = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        var result = await ApprovalService.GetPendingApprovals(null, 1, 100);
+        _approvals = result.Items;
+        _loading = false;
+    }
+
+    private async Task Decide(Guid stepId, ApprovalDecision decision)
+    {
+        try
+        {
+            await ApprovalService.ProcessDecision(stepId, decision, null);
+            Snackbar.Add($"Decision recorded: {decision}", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    
+}

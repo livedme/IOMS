@@ -1,0 +1,41 @@
+@inject IPricingService PricingService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">Add Currency</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_code" Label="Currency Code (e.g. USD)" Required="true" MaxLength="3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudTextField @bind-Value="_name" Label="Name" Required="true" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudTextField @bind-Value="_symbol" Label="Symbol (e.g. $)" Required="true" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudCheckBox @bind-Value="_isBase" Label="Set as Base Currency" Class="mt-3" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    private MudForm _form = null!;
+
+    private string _code = "", _name = "", _symbol = "";
+    private bool _isBase = false;
+
+    private async Task Submit()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+        try
+        {
+            await PricingService.CreateCurrency(new CreateCurrencyDto(_code.ToUpperInvariant(), _name, _symbol, _isBase));
+            Snackbar.Add("Currency created", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

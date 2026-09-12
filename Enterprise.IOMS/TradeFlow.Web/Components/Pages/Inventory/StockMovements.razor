@@ -1,0 +1,130 @@
+@page "/stock-movements"
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
+@using IOMS.Infrastructure.Data
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Stock Movements - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Stock Movements</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_search" Placeholder="Search by product or reference..."
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true" DebounceInterval="300" OnDebounceIntervalElapsed="Load" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect Value="_typeFilter" Label="Movement Type" Clearable="true" ValueChanged="@((StockMovementType? v) => { _typeFilter = v; _ = Load(); })" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (StockMovementType t in Enum.GetValues<StockMovementType>())
+                {
+                    <MudSelectItem Value="@((StockMovementType?)t)">@t</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect Value="_warehouseFilter" Label="Warehouse" Clearable="true" ValueChanged="@((Guid? v) => { _warehouseFilter = v; _ = Load(); })" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var w in _warehouses)
+                {
+                    <MudSelectItem Value="@((Guid?)w.Id)">@w.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_movements" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Product</MudTh>
+            <MudTh>Warehouse</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh Style="text-align:right">Quantity</MudTh>
+            <MudTh>Reference</MudTh>
+            <MudTh>Notes</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.MovementDate.ToString("yyyy-MM-dd HH:mm")</MudTd>
+            <MudTd><strong>@context.ProductName</strong></MudTd>
+            <MudTd>@context.WarehouseName</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.MovementType)">@context.MovementType</MudChip>
+            </MudTd>
+            <MudTd Style="text-align:right">
+                <MudText Color="@(context.Quantity >= 0 ? Color.Success : Color.Error)">
+                    @(context.Quantity > 0 ? "+" : "")@context.Quantity
+                </MudText>
+            </MudTd>
+            <MudTd>@context.ReferenceNumber</MudTd>
+            <MudTd>@context.Notes</MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<StockMovementDisplayDto> _movements = new();
+    private List<Warehouse> _warehouses = new();
+    private string _search = "";
+    private StockMovementType? _typeFilter;
+    private Guid? _warehouseFilter;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _warehouses = await DbContext.Warehouses.OrderBy(w => w.Name).ToListAsync();
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        try
+        {
+            var query = DbContext.StockMovements
+                .Include(m => m.Product)
+                .Include(m => m.Warehouse)
+                .AsQueryable();
+
+            if (_typeFilter.HasValue) query = query.Where(m => m.Type == _typeFilter.Value);
+            if (_warehouseFilter.HasValue) query = query.Where(m => m.WarehouseId == _warehouseFilter.Value);
+            if (!string.IsNullOrWhiteSpace(_search))
+                query = query.Where(m => m.Product.Name.Contains(_search) || (m.Reference != null && m.Reference.Contains(_search)));
+
+            var data = await query.OrderByDescending(m => m.MovementDate).Take(200).ToListAsync();
+            _movements = data.Select(m => new StockMovementDisplayDto
+            {
+                MovementDate = m.MovementDate,
+                ProductName = m.Product?.Name ?? "",
+                WarehouseName = m.Warehouse?.Name ?? "",
+                MovementType = m.Type,
+                Quantity = m.Quantity,
+                ReferenceNumber = m.Reference ?? "",
+                Notes = m.Notes ?? ""
+            }).ToList();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loading = false;
+    }
+
+    private Color GetTypeColor(StockMovementType type) => type switch
+    {
+        StockMovementType.In => Color.Success,
+        StockMovementType.Out => Color.Error,
+        StockMovementType.Transfer => Color.Info,
+        StockMovementType.Adjustment => Color.Warning,
+        StockMovementType.Return => Color.Secondary,
+        _ => Color.Default
+    };
+
+    private class StockMovementDisplayDto
+    {
+        public DateTime MovementDate { get; set; }
+        public string ProductName { get; set; } = "";
+        public string WarehouseName { get; set; } = "";
+        public StockMovementType MovementType { get; set; }
+        public decimal Quantity { get; set; }
+        public string ReferenceNumber { get; set; } = "";
+        public string Notes { get; set; } = "";
+    }
+}

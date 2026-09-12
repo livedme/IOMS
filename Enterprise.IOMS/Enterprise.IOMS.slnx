@@ -4,5 +4,5 @@
   <Project Path="IOMS.Infrastructure/IOMS.Infrastructure.csproj" />
   <Project Path="IOMS.Shared/IOMS.Shared.csproj" />
   <Project Path="IOMS.Web/IOMS.Web.csproj" />
-  <Project Path="IOMS.Web1/IOMS.Web1.csproj" Id="b59bea6c-9853-4f64-ad80-0ee801e1dd05" />
+  <Project Path="TradeFlow.Web/TradeFlow.Web.csproj" Id="0a2ec851-1fd9-4715-a92c-fabaefe48373" />
 </Solution>

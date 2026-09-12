@@ -1,0 +1,63 @@
+@inject INotificationTemplateService TemplateService
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_eventType" Label="Event Type" Required="true" Variant="Variant.Outlined"
+                      Placeholder="e.g. OrderCreated, InvoiceOverdue" Margin="Margin.Dense" Class="mb-3" />
+        <MudSelect @bind-Value="_channel" Label="Channel" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="mb-3">
+            @foreach (var ch in Enum.GetValues<NotificationChannel>())
+            {
+                <MudSelectItem Value="@ch">@ch</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField @bind-Value="_subject" Label="Subject" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="mb-3" />
+        <RichTextField @bind-Value="_bodyTemplate" Label="Body Template" Required="true"
+                      Lines="6" Placeholder="Use {{Variable}} placeholders..." />
+    </DialogContent> 
+    <DialogActions> 
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public NotificationTemplateDto? Existing { get; set; }
+
+    private string _eventType = "", _subject = "", _bodyTemplate = "";
+    private NotificationChannel _channel = NotificationChannel.Email;
+    private bool _saving;
+
+    protected override void OnParametersSet()
+    {
+        if (Existing != null)
+        {
+            _eventType = Existing.EventType;
+            _channel = Existing.Channel;
+            _subject = Existing.Subject;
+            _bodyTemplate = Existing.BodyTemplate;
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_eventType) || string.IsNullOrWhiteSpace(_subject)) return;
+        _saving = true;
+        try
+        {
+            var dto = new CreateNotificationTemplateDto(_eventType, _channel, _subject, _bodyTemplate);
+            if (Existing != null)
+                await TemplateService.UpdateTemplate(Existing.Id, dto);
+            else
+                await TemplateService.CreateTemplate(dto);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch { MudDialog.Close(DialogResult.Cancel()); }
+        finally { _saving = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,55 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_code" Label="Code" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_location" Label="Location" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>   
+            <MudItem xs="12" sm="6">
+                <MudCheckBox @bind-Value="_isActive" Label="Active" Required="true" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_address" Label="Address" Lines="3" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+          
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public BranchDto? Branch { get; set; }
+
+    private string _name = "", _code = "", _location = "", _address = "";
+    private bool _isActive;
+
+
+    //43  public record BranchDto(Guid Id, string Name, string Code, string? Location, string? Address, bool IsActive, SalesOrderDto SalesOrder);
+    //public record CreateBranchDto(string Name, string Code, string? Location, string? Address , bool IsActive);
+
+    protected override void OnInitialized()
+    {
+        if (Branch != null)
+        {
+            _name = Branch.Name;
+            _code = Branch.Code;
+            _location = Branch.Location;
+            _address = Branch.Address;
+            _isActive = Branch.IsActive;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new CreateBranchDto(_name, _code, _location, _address, _isActive)));
+}

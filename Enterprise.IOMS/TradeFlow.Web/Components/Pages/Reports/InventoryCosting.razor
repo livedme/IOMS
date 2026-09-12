@@ -1,0 +1,168 @@
+@page "/reports/inventory-costing"
+@rendermode InteractiveServer
+@inject IOMS.Infrastructure.Data.ApplicationDbContext DbContext
+@inject ILandedCostService LandedCostService
+@inject ISnackbar Snackbar
+
+<PageTitle>Inventory Costing</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">Inventory Costing</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudSelect @bind-Value="_costingMethod" Label="Costing Method" Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem Value="@("WeightedAverage")">Weighted Average</MudSelectItem>
+                <MudSelectItem Value="@("FIFO")">FIFO</MudSelectItem>
+                <MudSelectItem Value="@("StandardCost")">Standard Cost</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"
+                       StartIcon="@Icons.Material.Filled.Calculate">Calculate</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_rows.Any())
+{
+    @* ── KPI Cards ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-primary);">
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Inventory Value</MudText>
+                <MudText Typo="Typo.h5"><strong>@_rows.Sum(r => r.TotalValue).ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-warning);">
+                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Landed Cost</MudText>
+                <MudText Typo="Typo.h5"><strong>@_rows.Sum(r => r.LandedCost).ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Products</MudText>
+                <MudText Typo="Typo.h5"><strong>@_rows.Count.ToString("N0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Charts ── *@
+    <MudGrid Class="mb-4">
+        @if (_topCostLabels.Length > 0)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Top 10 Products by Total Value</MudText>
+                    <MudChart T=double ChartType="ChartType.Bar" ChartSeries="@_topCostSeries"
+                              XAxisLabels="@_topCostLabels" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudItem>
+        }
+        @if (_costBreakdownLabels.Length > 0)
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Cost Breakdown (Top 8 Products)</MudText>
+                    <MudChart T=double ChartType="ChartType.Donut" InputData="@_costBreakdownData"
+                              InputLabels="@_costBreakdownLabels" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+<MudTable Items="_rows" Hover="true" Striped="true" Loading="_loading" Dense="true">
+    <HeaderContent>
+        <MudTh>Product</MudTh>
+        <MudTh>SKU</MudTh>
+        <MudTh Style="text-align:right">Total Qty</MudTh>
+        <MudTh Style="text-align:right">Unit Cost</MudTh>
+        <MudTh Style="text-align:right">Total Value</MudTh>
+        <MudTh Style="text-align:right">Landed Cost</MudTh>
+        <MudTh Style="text-align:right">Effective Cost</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.ProductName</MudTd>
+        <MudTd>@context.SKU</MudTd>
+        <MudTd Style="text-align:right">@context.TotalQty</MudTd>
+        <MudTd Style="text-align:right">@context.UnitCost.ToString("C")</MudTd>
+        <MudTd Style="text-align:right">@context.TotalValue.ToString("C")</MudTd>
+        <MudTd Style="text-align:right">@context.LandedCost.ToString("C")</MudTd>
+        <MudTd Style="text-align:right">@context.EffectiveCost.ToString("C")</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private record CostingRow(string ProductName, string SKU, int TotalQty, decimal UnitCost, decimal TotalValue, decimal LandedCost, decimal EffectiveCost);
+
+    private List<CostingRow> _rows = new();
+    private string _costingMethod = "WeightedAverage";
+    private bool _loading;
+
+    // Chart data
+    private string[] _topCostLabels = [];
+    private List<ChartSeries<double>> _topCostSeries = new();
+    private string[] _costBreakdownLabels = [];
+    private double[] _costBreakdownData = [];
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            var inventories = await DbContext.Inventories
+                .Include(i => i.Product)
+                .Where(i => i.Quantity > 0)
+                .GroupBy(i => new { i.ProductId, i.Product.Name, i.Product.SKU, i.Product.CostPrice })
+                .Select(g => new
+                {
+                    g.Key.ProductId,
+                    g.Key.Name,
+                    g.Key.SKU,
+                    g.Key.CostPrice,
+                    TotalQty = g.Sum(i => i.Quantity)
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            var allocations = await LandedCostService.GetAllocations(null);
+            var landedByPo = allocations.GroupBy(a => a.PurchaseOrderId)
+                .ToDictionary(g => g.Key ?? Guid.Empty, g => g.Sum(a => a.Amount));
+
+            var totalLanded = landedByPo.Values.Sum();
+            var totalInventoryValue = inventories.Sum(i => i.TotalQty * i.CostPrice);
+
+            _rows = inventories.Select(i =>
+            {
+                var value = i.TotalQty * i.CostPrice;
+                var landedShare = totalInventoryValue > 0 ? totalLanded * (value / totalInventoryValue) : 0;
+                var effectiveCost = i.TotalQty > 0 ? (value + landedShare) / i.TotalQty : i.CostPrice;
+                return new CostingRow(i.Name, i.SKU, i.TotalQty, i.CostPrice, value, landedShare, effectiveCost);
+            })
+            .OrderByDescending(r => r.TotalValue)
+            .ToList();
+
+            // Top products bar chart
+            var topCost = _rows.Take(10).ToList();
+            _topCostLabels = topCost.Select(r => r.ProductName.Length > 12 ? r.ProductName[..12] + ".." : r.ProductName).ToArray();
+            _topCostSeries = new List<ChartSeries<double>>
+            {
+                new() { Name = "Inventory Value", Data = topCost.Select(r => (double)r.TotalValue).ToArray() },
+                new() { Name = "Landed Cost", Data = topCost.Select(r => (double)r.LandedCost).ToArray() }
+            };
+
+            // Cost breakdown donut
+            var topBreakdown = _rows.Take(8).ToList();
+            _costBreakdownLabels = topBreakdown.Select(r => r.ProductName.Length > 15 ? r.ProductName[..15] + ".." : r.ProductName).ToArray();
+            _costBreakdownData = topBreakdown.Select(r => (double)(r.TotalValue + r.LandedCost)).ToArray();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+}

@@ -1,0 +1,86 @@
+@page "/settings/workflows"
+@rendermode InteractiveServer
+@inject IApprovalService ApprovalService
+@inject ISnackbar Snackbar
+
+<PageTitle>Approval Workflows - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Approval Workflows</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="() => _showCreate = true" Class="mb-4">New Workflow Rule</MudButton>
+
+@if (_showCreate)
+{
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Create Workflow Rule</MudText>
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <MudSelect @bind-Value="_docType" Label="Document Type" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem Value="@("SalesOrder")">Sales Order</MudSelectItem>
+                    <MudSelectItem Value="@("PurchaseOrder")">Purchase Order</MudSelectItem>
+                    <MudSelectItem Value="@("Quotation")">Quotation</MudSelectItem>
+                    <MudSelectItem Value="@("CreditNote")">Credit Note</MudSelectItem>
+                    <MudSelectItem Value="@("Invoice")">Invoice</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudNumericField @bind-Value="_amountThreshold" Label="Amount Threshold" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudNumericField @bind-Value="_level" Label="Approval Level" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Create" Class="mt-3">Save</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="() => _showCreate = false" Class="mt-3 ml-2">Cancel</MudButton>
+    </MudPaper>
+}
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_rules" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Document Type</MudTh>
+            <MudTh>Amount Threshold</MudTh>
+            <MudTh>Level</MudTh>
+            <MudTh>Active</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.DocumentType</strong></MudTd>
+            <MudTd>@(context.AmountThreshold?.ToString("C") ?? "Any")</MudTd>
+            <MudTd>@context.Level</MudTd>
+            <MudTd><MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)" Color="@(context.IsActive ? Color.Success : Color.Error)" /></MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<ApprovalWorkflowRuleDto> _rules = new();
+    private string _docType = "SalesOrder";
+    private decimal? _amountThreshold;
+    private int _level = 1;
+    private bool _showCreate;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _rules = await ApprovalService.GetWorkflowRules();
+        _loading = false;
+    }
+
+    private async Task Create()
+    {
+        try
+        {
+            var dto = new CreateApprovalWorkflowRuleDto(_docType, null, _amountThreshold, null, _level);
+            await ApprovalService.CreateWorkflowRule(dto);
+            Snackbar.Add("Workflow rule created.", Severity.Success);
+            _showCreate = false;
+            _docType = "SalesOrder"; _amountThreshold = null; _level = 1;
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

@@ -1,0 +1,179 @@
+@page "/brands"
+@rendermode InteractiveServer
+@using IOMS.Infrastructure.Data
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Brands - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Brands</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="8">
+            <MudTextField @bind-Value="_searchString" Placeholder="Search brands..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadBrands" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateDialog">New Brand</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_brands" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4"
+              Elevation="0">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Code</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Origin Company</MudTh>
+            <MudTh>Origin Country</MudTh>
+            <MudTh>Founded</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Products</MudTh>
+            <MudTh>Created</MudTh>
+            <MudTh>Updated</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Code">@context.BrandCode</MudTd>
+            <MudTd DataLabel="Status">@context.Status</MudTd>
+            <MudTd DataLabel="Origin Company">@context.OriginCompany</MudTd>
+            <MudTd DataLabel="Origin Country">@context.OriginCountry</MudTd>
+            <MudTd DataLabel="Founded">@context.FoundedYear</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd DataLabel="Products">@context.ProductCount</MudTd>
+            <MudTd DataLabel="Created">@FormatDate(context.CreatedAt)</MudTd>
+            <MudTd DataLabel="Updated">@FormatDate(context.UpdatedAt)</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="@(() => OpenEditDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => DeleteBrand(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>No brands found</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<BrandDto> _brands = new();
+    private string _searchString = "";
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadBrands();
+
+    private async Task LoadBrands()
+    {
+        _loading = true;
+
+        var query = DbContext.Brands.Include(b => b.Products).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(_searchString))
+            query = query.Where(b => b.Name.Contains(_searchString)
+                || (b.BrandCode != null && b.BrandCode.Contains(_searchString))
+                || (b.Description != null && b.Description.Contains(_searchString))
+                || (b.OriginCompany != null && b.OriginCompany.Contains(_searchString))
+                || (b.OriginCountry != null && b.OriginCountry.Contains(_searchString)));
+
+        var brands = await query.OrderBy(b => b.Name).ToListAsync();
+        _brands = brands.Select(b => new BrandDto
+        {
+            Id = b.Id,
+            Name = b.Name,
+            BrandCode = b.BrandCode,
+            Description = b.Description,
+            LogoUrl = b.LogoUrl,
+            Status = b.Status,
+            CreatedAt = b.CreatedAt,
+            UpdatedAt = b.UpdatedAt,
+            OriginCompany = b.OriginCompany,
+            OriginCountry = b.OriginCountry,
+            FoundedYear = b.FoundedYear,
+            ProductCount = b.Products.Count
+        }).ToList();
+
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var dialog = await DialogService.ShowAsync<BrandDialog>("New Brand",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
+        {
+            DbContext.Brands.Add(new Brand
+            {
+                Name = dto.Name,
+                BrandCode = dto.BrandCode,
+                Description = dto.Description,
+                LogoUrl = dto.LogoUrl,
+                Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status,
+                OriginCompany = dto.OriginCompany,
+                OriginCountry = dto.OriginCountry,
+                FoundedYear = dto.FoundedYear
+            });
+
+            await DbContext.SaveChangesAsync();
+            Snackbar.Add("Brand created", Severity.Success);
+            await LoadBrands();
+        }
+    }
+
+    private async Task OpenEditDialog(BrandDto brand)
+    {
+        var parameters = new DialogParameters<BrandDialog>
+        {
+            { x => x.Brand, brand }
+        };
+
+        var dialog = await DialogService.ShowAsync<BrandDialog>("Edit Brand", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
+        {
+            var entity = await DbContext.Brands.FindAsync(brand.Id);
+            if (entity != null)
+            {
+                entity.Name = dto.Name;
+                entity.BrandCode = dto.BrandCode;
+                entity.Description = dto.Description;
+                entity.LogoUrl = dto.LogoUrl;
+                entity.Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status;
+                entity.OriginCompany = dto.OriginCompany;
+                entity.OriginCountry = dto.OriginCountry;
+                entity.FoundedYear = dto.FoundedYear;
+                await DbContext.SaveChangesAsync();
+                Snackbar.Add("Brand updated", Severity.Success);
+                await LoadBrands();
+            }
+        }
+    }
+
+    private async Task DeleteBrand(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm", "Delete this brand?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            var entity = await DbContext.Brands.FindAsync(id);
+            if (entity != null)
+            {
+                entity.IsDeleted = true;
+                await DbContext.SaveChangesAsync();
+                Snackbar.Add("Brand deleted", Severity.Success);
+                await LoadBrands();
+            }
+        }
+    }
+
+    private static string FormatDate(DateTime? dateTime)
+        => dateTime?.ToLocalTime().ToString("g") ?? string.Empty;
+}

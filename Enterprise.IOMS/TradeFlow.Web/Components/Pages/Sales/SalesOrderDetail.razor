@@ -1,0 +1,417 @@
+@page "/orders/sales/{Id:guid}"
+@rendermode InteractiveServer
+@inject IOrderService OrderService
+@inject ICustomerSupplierService CustomerService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>Sales Order Detail - IOMS</PageTitle>
+
+@if (_order == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <div class="p-4">
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Nav.NavigateTo("/orders/sales"))">Back to Orders</MudButton>
+        </MudItem>
+        <MudItem xs="12" Class="my-3">
+            <div class="d-flex">
+            <MudText Typo="Typo.h5">Reference# @_order.OrderNumber</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Class="py-0" OnClick="@(() => Nav.NavigateTo("/orders/sales"))"></MudIconButton>
+            </div>
+        </MudItem>
+        <div class="info-card mb-4">
+            <div class="row g-4">
+                <div class="col-lg-3 col-md-4">
+                    <div class="d-flex gap-3">
+                        <div class="icon-circle"><i class="fa fa-building"></i></div>
+                        <div>
+                            <div class="text-muted">Customer</div>
+                            <h5>@_order.Customer?.CustomerName</h5>
+                            @_order.Customer?.Address<br>
+                            @_order.Customer?.City, @_order.Customer?.State @_order.Customer?.PostalCode<br>
+                            @_order.Customer?.CustomerEmail<br>
+                            Phone: @_order.Customer?.CustomerPhone
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-4">
+                    <div class="d-flex gap-3">
+                        <div class="icon-circle"><i class="fa fa-calendar"></i></div>
+                        <div>
+                            <div class="text-muted">Order Date</div>
+                            <h5>@_order.OrderDate.ToString("dd-MMM-yyyy")</h5>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-4">
+                    <div class="d-flex gap-3">
+                        <div class="icon-circle"><i class="fa fa-tag"></i></div>
+                        <div>
+                            <div class="text-muted">Status</div>
+                            <br>
+                            <span class="badge @CommonUtility.GetStatusColor(_order.Status) px-3 py-2">
+                                @_order.Status
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-4">
+                    <div class="d-flex gap-3">
+                        <div class="icon-circle"><i class="fa fa-tag"></i></div>
+                        <div>
+                            <div class="text-muted">Branch</div>
+                            <h5>@_order.Branch?.Name</h5>
+                            @_order.Branch?.Location<br>
+                            @_order.Branch?.Address<br>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PRODUCTS -->
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <MudItem xs="12">
+                    <MudTable Items="@_order.Items" Dense="true" Hover="true" Elevation="2" ContainerClass="table-responsive" TableClass="table table-bordered m-0" HeaderClass="table-dark-custom">
+                        <HeaderContent>
+                            <MudTh>#</MudTh>
+                            <MudTh>Product</MudTh>
+                            <MudTh>SKU</MudTh>
+                            <MudTh Style="text-align:right">Qty</MudTh>
+                            <MudTh Style="text-align:right">Unit Price</MudTh>
+                            <MudTh Style="text-align:right">Discount</MudTh>
+                            <MudTh Style="text-align:right">Total</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="#">
+                                @(_order.Items.IndexOf(context) + 1)
+                            </MudTd>
+                            <MudTd>@context.ProductName</MudTd>
+                            <MudTd>@context.ProductSKU</MudTd>
+                            <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                            <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
+                            <MudTd Style="text-align:right">@context.TotalDiscount.ToString("C")</MudTd>
+                            <MudTd Style="text-align:right">@context.LineTotalPrice.ToString("C")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudItem>
+            </div>
+            <div class="col-lg-4">
+                <div class="summary-card">
+                    <h5 class="text-primary mb-4">
+                        ORDER SUMMARY
+                    </h5>
+
+                    <div class="summary-item">
+                        <span>Subtotal</span>
+                        <strong>@_order.SubTotal.ToString("C")</strong>
+                    </div>
+
+                    <div class="summary-item">
+                        <span>Discount</span>
+                        <strong>@_order.DiscountAmount.ToString("C")</strong>
+                    </div>
+                    <div class="summary-item">
+                        <span>Tax</span>
+                        <strong>@_order.TaxAmount.ToString("C")</strong>
+                    </div>
+                    <div class="summary-item">
+                        <span>Labour</span>
+                        <strong>@_order.LabourCharge.ToString("C")</strong>
+                    </div>
+
+                    <div class="summary-item">
+                        <span>Truck</span>
+                        <strong>@_order.TruckCharge.ToString("C")</strong>
+                    </div>
+
+                    <div class="pt-4">
+                        <h5>TOTAL</h5>
+                        <div class="total-price">
+                            @_order.TotalAmount.ToString("C")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        @if (!string.IsNullOrWhiteSpace(_order.Notes))
+        {
+            <MudItem xs="12">
+                <MudField Label="Notes">@_order.Notes</MudField>
+            </MudItem>
+        }
+    </div>
+
+}
+
+<style>
+
+    :root {
+        --primary: #0d6efd;
+        --dark: #02152d;
+        --border: #dee2e6;
+    }
+
+    body {
+        background: #f5f7fb;
+        font-family: Segoe UI, sans-serif;
+        color: #344054;
+    }
+
+    .sales-order {
+        background: #fff;
+        border: 1px solid var(--border);
+    }
+
+    .top-header {
+        background: linear-gradient(90deg,#02152d,#042d5e,#02152d);
+        color: #fff;
+        padding: 25px;
+    }
+
+    .logo-section {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .logo-icon {
+        width: 55px;
+        height: 55px;
+        background: linear-gradient(135deg,#0d6efd,#7db4ff);
+        clip-path: polygon(50% 0%, 100% 100%, 70% 100%, 50% 60%, 30% 100%, 0 100%);
+    }
+
+    .company-name {
+        font-size: 38px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .company-tag {
+        font-size: 13px;
+        letter-spacing: .5px;
+    }
+
+    .order-title {
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .order-number {
+        color: #2b8cff;
+        font-size: 42px;
+        font-weight: 700;
+    }
+
+    .action-btn {
+        border: 1px solid rgba(255,255,255,.3);
+        color: white;
+        background: transparent;
+        padding: 10px 18px;
+    }
+
+        .action-btn:hover {
+            background: white;
+            color: #02152d;
+        }
+
+    .info-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 25px;
+        background: #fff;
+    }
+
+    .icon-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #0d6efd;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+    .address-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 25px;
+        height: 100%;
+    }
+
+    .section-title {
+        color: #0d6efd;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .timeline-container {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 30px;
+        overflow-x: auto;
+    }
+
+    .timeline {
+        display: flex;
+        justify-content: space-between;
+        min-width: 700px;
+        position: relative;
+    }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 32px;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: #0d6efd;
+        }
+
+    .step {
+        text-align: center;
+        position: relative;
+        z-index: 2;
+    }
+
+    .step-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: #0d6efd;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: auto;
+        border: 4px solid white;
+    }
+
+    .step.pending .step-icon {
+        background: white;
+        color: #adb5bd;
+        border: 2px solid #ced4da;
+    }
+
+    .table-dark-custom {
+        background: linear-gradient(90deg,#02152d,#042d5e,#02152d);
+        color: white;
+    }
+
+    .product-image {
+        width: 70px;
+    }
+
+    .summary-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        background-color: white;
+    }
+
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .total-price {
+        color: #0d6efd;
+        font-size: 25px;
+        font-weight: 700;
+    }
+
+    .signature-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 25px;
+    }
+
+    .signature-line {
+        border-top: 1px solid #555;
+        margin-top: 40px;
+        padding-top: 10px;
+        text-align: center;
+    }
+
+    .footer {
+        border-top: 1px solid var(--border);
+        padding: 25px;
+        text-align: center;
+    }
+
+    @@media(max - width:768px) {
+
+        .company-name {
+            font-size: 28px;
+        }
+
+        .order-number {
+            font-size: 28px;
+        }
+
+        .action-btn {
+            width: 100%;
+        }
+
+        .total-price {
+            font-size: 30px;
+        }
+
+        .top-header {
+            text-align: center;
+        }
+
+        .logo-section {
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+    }
+
+    @@media print {
+
+        body {
+            background: white;
+        }
+
+        .action-buttons {
+            display: none !important;
+        }
+
+        .sales-order {
+            border: none;
+        }
+    }
+
+</style>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private SalesOrderDto? _order;
+    private CustomerDto? _customer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _order = await OrderService.GetSalesOrderById(Id);
+            _customer = _order.Customer;
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

@@ -1,0 +1,52 @@
+@inject IExchangeRateService ExchangeRateService
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect @bind-Value="_fromCurrencyId" Label="From Currency" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="mb-3">
+            @foreach (var c in Currencies)
+            {
+                <MudSelectItem Value="@c.Id">@c.Code - @c.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect @bind-Value="_toCurrencyId" Label="To Currency" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="mb-3">
+            @foreach (var c in Currencies)
+            {
+                <MudSelectItem Value="@c.Id">@c.Code - @c.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudNumericField @bind-Value="_rate" Label="Rate" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Format="F6" Min="0.000001M" Class="mb-3" />
+        <MudDatePicker @bind-Date="_effectiveDate" Label="Effective Date" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@_saving">
+            @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public List<CurrencyDto> Currencies { get; set; } = new();
+
+    private Guid _fromCurrencyId, _toCurrencyId;
+    private decimal _rate = 1;
+    private DateTime? _effectiveDate = DateTime.Today;
+    private bool _saving;
+
+    private async Task Submit()
+    {
+        if (_fromCurrencyId == Guid.Empty || _toCurrencyId == Guid.Empty || _effectiveDate == null) return;
+        _saving = true;
+        try
+        {
+            await ExchangeRateService.CreateExchangeRate(_fromCurrencyId, _toCurrencyId, _rate, _effectiveDate.Value);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch { MudDialog.Close(DialogResult.Cancel()); }
+        finally { _saving = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

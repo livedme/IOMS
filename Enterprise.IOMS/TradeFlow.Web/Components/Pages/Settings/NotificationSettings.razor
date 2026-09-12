@@ -1,0 +1,57 @@
+@page "/settings/notifications"
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
+@using IOMS.Infrastructure.Data
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Notification Settings - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Notification Settings</MudText>
+
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Notification Templates</MudText>
+    <MudTable Items="@_templates" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Event Type</MudTh>
+            <MudTh>Channel</MudTh>
+            <MudTh>Subject</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.EventType</strong></MudTd>
+            <MudTd>@context.Channel</MudTd>
+            <MudTd>@context.Subject</MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Recent Notification Logs</MudText>
+    <MudTable Items="@_logs" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Event Type</MudTh>
+            <MudTh>Channel</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Sent At</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.EventType</strong></MudTd>
+            <MudTd>@context.Channel</MudTd>
+            <MudTd>@(context.Status ?? "Unknown")</MudTd>
+            <MudTd>@(context.SentAt?.ToString("yyyy-MM-dd HH:mm") ?? "-")</MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<NotificationTemplate> _templates = new();
+    private List<NotificationLog> _logs = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _templates = await DbContext.Set<NotificationTemplate>().OrderBy(t => t.EventType).ToListAsync();
+        _logs = await DbContext.Set<NotificationLog>().OrderByDescending(l => l.SentAt).Take(50).ToListAsync();
+        _loading = false;
+    }
+}

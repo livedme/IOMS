@@ -1,0 +1,81 @@
+@page "/shipping/delivery-notes"
+@rendermode InteractiveServer
+@inject IShippingService ShippingService
+@inject IOrderService OrderService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IOMS.Infrastructure.Data.ApplicationDbContext DbContext
+
+<PageTitle>Delivery Notes</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">Delivery Notes</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="8">
+            <MudTextField @bind-Value="_search" Label="Search" Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                          OnKeyUp="@(async _ => await LoadData())" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateDeliveryNote"
+                       StartIcon="@Icons.Material.Filled.Add">New Delivery Note</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable Items="_deliveryNotes" Hover="true" Striped="true" Loading="_loading">
+    <HeaderContent>
+        <MudTh>DN Number</MudTh>
+        <MudTh>Sales Order</MudTh>
+        <MudTh>Date</MudTh>
+        <MudTh>Shipped By</MudTh>
+        <MudTh>Tracking #</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="DN Number">@context.DeliveryNoteNumber</MudTd>
+        <MudTd DataLabel="Sales Order">@context.SalesOrderNumber</MudTd>
+        <MudTd DataLabel="Date">@context.Date.ToShortDateString()</MudTd>
+        <MudTd DataLabel="Shipped By">@context.ShippedBy</MudTd>
+        <MudTd DataLabel="Tracking #">@context.TrackingNumber</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<DeliveryNoteDto> _deliveryNotes = new();
+    private string? _search;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            var query = DbContext.Set<DeliveryNote>()
+                .Include(d => d.SalesOrder)
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(_search))
+                query = query.Where(d => d.DeliveryNoteNumber.Contains(_search)
+                    || d.SalesOrder.OrderNumber.Contains(_search));
+
+            _deliveryNotes = await query.OrderByDescending(d => d.Date)
+                .Select(d => new DeliveryNoteDto(d.Id, d.DeliveryNoteNumber, d.SalesOrderId,
+                    d.SalesOrder.OrderNumber, d.Date, d.ShippedBy, d.TrackingNumber))
+                .ToListAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private async Task CreateDeliveryNote()
+    {
+        var parameters = new DialogParameters<DeliveryNoteCreateDialog>();
+        var dialog = await DialogService.ShowAsync<DeliveryNoteCreateDialog>("New Delivery Note", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadData();
+    }
+}

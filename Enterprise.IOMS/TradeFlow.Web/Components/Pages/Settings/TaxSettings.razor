@@ -1,0 +1,129 @@
+@page "/settings/tax"
+@rendermode InteractiveServer
+@inject ITaxService TaxService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using IOMS.Infrastructure.Data
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Tax Settings - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Tax Rates & Jurisdictions</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+    <MudTabPanel Text="Tax Rates">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenTaxRateDialog" Class="mb-3">Add Tax Rate</MudButton>
+
+        <MudTable Items="@_taxRates" Dense="true" Hover="true" Striped="true" Loading="@_loadingRates" Elevation="0">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Rate %</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh>Active</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.Name</strong></MudTd>
+                <MudTd>@context.Rate.ToString("F2")%</MudTd>
+                <MudTd>@context.TaxType</MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">@(context.IsActive ? "Active" : "Inactive")</MudChip></MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="() => EditTaxRate(context)" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Jurisdictions">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenJurisdictionDialog" Class="mb-3">Add Jurisdiction</MudButton>
+
+        <MudTable Items="@_jurisdictions" Dense="true" Hover="true" Striped="true" Loading="@_loadingJurisdictions" Elevation="0">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Code</MudTh>
+                <MudTh>Country</MudTh>
+                <MudTh>State</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.Name</strong></MudTd>
+                <MudTd>@context.Code</MudTd>
+                <MudTd>@context.Country</MudTd>
+                <MudTd>@context.State</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private List<TaxRateDto> _taxRates = new();
+    private List<TaxJurisdictionDisplayDto> _jurisdictions = new();
+    private bool _loadingRates = true, _loadingJurisdictions = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRates();
+        await LoadJurisdictions();
+    }
+
+    private async Task LoadRates()
+    {
+        _loadingRates = true;
+        try { _taxRates = await TaxService.GetTaxRates(); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loadingRates = false;
+    }
+
+    private async Task LoadJurisdictions()
+    {
+        _loadingJurisdictions = true;
+        try
+        {
+            var data = await DbContext.TaxJurisdictions.OrderBy(j => j.Name).ToListAsync();
+            _jurisdictions = data.Select(j => new TaxJurisdictionDisplayDto
+            {
+                Id = j.Id, Name = j.Name, Code = j.Code, Country = j.Country, State = j.State ?? ""
+            }).ToList();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loadingJurisdictions = false;
+    }
+
+    private async Task OpenTaxRateDialog()
+    {
+        var dialog = await DialogService.ShowAsync<TaxRateDialog>("Add Tax Rate", new DialogParameters(),
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+            await LoadRates();
+    }
+
+    private async Task EditTaxRate(TaxRateDto rate)
+    {
+        var parameters = new DialogParameters { ["ExistingRate"] = rate };
+        var dialog = await DialogService.ShowAsync<TaxRateDialog>("Edit Tax Rate", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+            await LoadRates();
+    }
+
+    private async Task OpenJurisdictionDialog()
+    {
+        var dialog = await DialogService.ShowAsync<JurisdictionDialog>("Add Jurisdiction", new DialogParameters(),
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+            await LoadJurisdictions();
+    }
+
+    private class TaxJurisdictionDisplayDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Code { get; set; } = "";
+        public string Country { get; set; } = "";
+        public string State { get; set; } = "";
+    }
+}

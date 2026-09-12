@@ -1,0 +1,517 @@
+@inject IOrderService OrderService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ApplicationDbContext DbContext
+@using IOMS.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+
+@if (_open)
+{
+    <div class="so-backdrop" @onclick="Close"></div>
+
+    <div class="so-side-panel @(_animateIn ? "so-panel-open" : "")">
+
+        <!-- Header -->
+        <div class="so-header">
+            <div class="d-flex align-items-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Primary" />
+                <div>
+                    <div class="so-header-title">Sales Order</div>
+                    @if (_order != null)
+                    {
+                        <div class="so-header-sub">@_order.OrderNumber</div>
+                    }
+                </div>
+                @if (_order != null)
+                {
+                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_order.Status)" Size="Size.Small" Class="ms-1">
+                        @_order.Status</MudChip>
+                    }
+                </div>
+                <div class="d-flex gap-1">
+                    @if (_order != null && _order.Status == OrderStatus.Pending)
+                    {
+                        <MudTooltip Text="Edit Order">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                           OnClick="OpenEdit" />
+                        </MudTooltip>
+                    }
+                    <MudTooltip Text="Close panel">
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Close" />
+                    </MudTooltip>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="so-body">
+                @if (_loading)
+                {
+                    <div class="d-flex justify-center align-center" style="height:200px;">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                    </div>
+                }
+                else if (_order != null)
+                {
+                    <!-- Reference block -->
+                    <div class="so-ref-block mb-3">
+                        <div class="d-flex justify-space-between">
+                            <div>
+                                <div class="so-lbl">Order Number</div>
+                                <div class="so-val-lg">@_order.OrderNumber</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="so-lbl">Order Date</div>
+                                <div class="so-val fw-semibold">@_order.OrderDate.ToString("dd MMM yyyy")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <MudDivider Class="mb-3" />
+
+                    <!-- Customer & Branch -->
+                    <MudGrid Spacing="2" Class="mb-3">
+                        <MudItem xs="6">
+                            <div class="so-info-card">
+                                <div class="so-info-icon">
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Style="color:#fff;" />
+                                </div>
+                                <div class="overflow-hidden">
+                                    <div class="so-lbl">Customer</div>
+                                    <div class="so-val fw-bold text-truncate">@_order.Customer?.CustomerName</div>
+                                    @if (!string.IsNullOrEmpty(_order.Customer?.CustomerPhone))
+                                    {
+                                        <div class="so-sm">@_order.Customer.CustomerPhone</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(_order.Customer?.City))
+                                    {
+                                        <div class="so-sm">@_order.Customer.City@(!string.IsNullOrEmpty(_order.Customer.State) ? $",         {_order.Customer.State}" : "")</div>
+                                    }
+                                </div>
+                            </div>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <div class="so-info-card">
+                                <div class="so-info-icon">
+                                    <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Small" Style="color:#fff;" />
+                                </div>
+                                <div class="overflow-hidden">
+                                    <div class="so-lbl">Branch</div>
+                                    <div class="so-val fw-bold text-truncate">@(_order.Branch?.Name ?? "—")</div>
+                                    @if (!string.IsNullOrEmpty(_order.Branch?.Location))
+                                    {
+                                        <div class="so-sm">@_order.Branch.Location</div>
+                                    }
+                                </div>
+                            </div>
+                        </MudItem>
+                        @if (!string.IsNullOrEmpty(_order.Naration) || !string.IsNullOrEmpty(_order.Chalan))
+                        {
+                            @if (!string.IsNullOrEmpty(_order.Naration))
+                            {
+                                <MudItem xs="6">
+                                    <div class="so-lbl">Narration</div>
+                                    <div class="so-val">@_order.Naration</div>
+                                </MudItem>
+                            }
+                            @if (!string.IsNullOrEmpty(_order.Chalan))
+                            {
+                                <MudItem xs="6">
+                                    <div class="so-lbl">Chalan</div>
+                                    <div class="so-val">@_order.Chalan</div>
+                                </MudItem>
+                            }
+                        }
+                    </MudGrid>
+
+                    <MudDivider Class="mb-3" />
+
+                    <!-- Items table -->
+                    <div class="so-section-lbl mb-2">Order Items (@_order.Items.Count)</div>
+                    <div class="so-items-wrapper">
+                        <MudTable Items="@_order.Items" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                            <HeaderContent>
+                                <MudTh>Product</MudTh>
+                                <MudTh Style="text-align:right">Qty</MudTh>
+                                <MudTh Style="text-align:right">Price</MudTh>
+                                <MudTh Style="text-align:right">Disc.</MudTh>
+                                <MudTh Style="text-align:right">Total</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>
+                                    <div class="so-val fw-semibold" style="line-height:1.2;">@context.ProductName</div>
+                                    <div class="so-sm text-muted">@context.ProductSKU</div>
+                                </MudTd>
+                                <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                                <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
+                                <MudTd Style="text-align:right">@context.TotalDiscount.ToString("C")</MudTd>
+                                <MudTd Style="text-align:right;font-weight:600;">@context.LineTotalPrice.ToString("C")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </div>
+
+                    <MudDivider Class="my-3" />
+
+                    <!-- Totals -->
+                    <div class="so-totals-box">
+                        <div class="so-total-row">
+                            <span>Subtotal</span>
+                            <span>@_order.SubTotal.ToString("C")</span>
+                        </div>
+                        @if (_order.DiscountAmount > 0)
+                        {
+                            <div class="so-total-row">
+                                <span>Discount</span>
+                                <span class="text-error">-@_order.DiscountAmount.ToString("C")</span>
+                            </div>
+                        }
+                        @if (_order.TaxAmount > 0)
+                        {
+                            <div class="so-total-row">
+                                <span>Tax</span>
+                                <span>@_order.TaxAmount.ToString("C")</span>
+                            </div>
+                        }
+                        @if (_order.LabourCharge > 0)
+                        {
+                            <div class="so-total-row">
+                                <span>Labour</span>
+                                <span>@_order.LabourCharge.ToString("C")</span>
+                            </div>
+                        }
+                        @if (_order.TruckCharge > 0)
+                        {
+                            <div class="so-total-row">
+                                <span>Transport</span>
+                                <span>@_order.TruckCharge.ToString("C")</span>
+                            </div>
+                        }
+                        <div class="so-total-row so-grand-total">
+                            <span>TOTAL</span>
+                            <span>@_order.TotalAmount.ToString("C")</span>
+                        </div>
+                        <div class="so-total-row">
+                            <span>Paid</span>
+                            <span class="text-success">@_order.PaidAmount.ToString("C")</span>
+                        </div>
+                        <div class="so-total-row @(_order.DueAmount > 0 ? "so-due-row" : "")">
+                            <span>Due</span>
+                            <span>@_order.DueAmount.ToString("C")</span>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_order.Notes))
+                    {
+                        <MudDivider Class="my-3" />
+                        <div class="so-lbl mb-1">Notes</div>
+                        <div class="so-val">@_order.Notes</div>
+                    }
+                }
+            </div>
+
+            <!-- Footer -->
+            @if (_order != null)
+            {
+                <div class="so-footer">
+                    <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+                    @if (_order.Status == OrderStatus.Pending)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Edit" OnClick="OpenEdit">Edit Order</MudButton>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    <style>
+        .so-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.38);
+            z-index: 1200;
+            backdrop-filter: blur(2px);
+            animation: soFadeIn .2s ease;
+        }
+
+        @@keyframes soFadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .so-side-panel {
+            position: fixed;
+            top: 0;
+            right: -720px;
+            width: 680px;
+            max-width: 96vw;
+            height: 100vh;
+            background: var(--mud-palette-surface, #fff);
+            border-left: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+            box-shadow: -6px 0 32px rgba(0, 0, 0, 0.16);
+            z-index: 1201;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .so-panel-open {
+            right: 0 !important;
+        }
+
+        .so-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+            flex-shrink: 0;
+            background: var(--mud-palette-surface, #fff);
+        }
+
+        .so-header-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .so-header-sub {
+            font-size: 0.78rem;
+            color: var(--mud-palette-text-secondary, #757575);
+        }
+
+        .so-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px 20px;
+        }
+
+        .so-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 10px 18px;
+            border-top: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+            flex-shrink: 0;
+            background: var(--mud-palette-surface, #fff);
+        }
+
+        .so-ref-block {
+            background: var(--mud-palette-background-grey, #f5f5f5);
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+
+        .so-lbl {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--mud-palette-text-secondary, #757575);
+            margin-bottom: 2px;
+        }
+
+        .so-val {
+            font-size: 0.875rem;
+        }
+
+        .so-val-lg {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--mud-palette-primary, #594ae2);
+        }
+
+        .so-sm {
+            font-size: 0.76rem;
+            color: var(--mud-palette-text-secondary, #757575);
+        }
+
+        .so-info-card {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .so-info-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--mud-palette-primary, #594ae2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .so-section-lbl {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--mud-palette-text-secondary, #757575);
+        }
+
+        .so-items-wrapper {
+            border: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .so-items-table {
+            width: 100%;
+        }
+
+        .so-totals-box {
+            background: var(--mud-palette-background-grey, #f5f5f5);
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+
+        .so-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3px 0;
+            font-size: 0.875rem;
+        }
+
+        .so-grand-total {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--mud-palette-primary, #594ae2);
+            border-top: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+            border-bottom: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+            padding: 7px 0;
+            margin: 4px 0;
+        }
+
+        .so-due-row {
+            color: var(--mud-palette-error, #f44336);
+            font-weight: 600;
+        }
+    </style>
+
+@code {
+    [Parameter] public EventCallback OnOrderUpdated { get; set; }
+
+    private bool _open;
+    private bool _animateIn;
+    private bool _loading;
+    private SalesOrderDto? _order;
+
+    public async Task OpenAsync(Guid id)
+    {
+        _open = true;
+        _loading = true;
+        _animateIn = false;
+        _order = null;
+        StateHasChanged();
+
+        // Small delay so the panel renders before the slide-in class is added
+        await Task.Delay(20);
+        _animateIn = true;
+        StateHasChanged();
+
+        try
+        {
+            _order = await OrderService.GetSalesOrderById(id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        _open = false;
+        _animateIn = false;
+        _order = null;
+        StateHasChanged();
+    }
+
+    private async Task OpenEdit()
+    {
+        if (_order == null) return;
+
+        var customers = await DbContext.Customers
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.CustomerName)
+            .ToListAsync();
+
+        var products = await DbContext.Products
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+
+        var editModel = new CreateSalesOrderDtoModels
+        {
+            BranchId = _order.BranchId ?? Guid.Empty,
+            BranchName = _order.Branch?.Name,
+            Notes = _order.Notes,
+            SalesDate = _order.OrderDate,
+            Naration = _order.Naration,
+            Chalan = _order.Chalan,
+            SubTotal = _order.SubTotal,
+            LabourCharge = _order.LabourCharge,
+            TruckCharge = _order.TruckCharge,
+            TaxAmount = _order.TaxAmount,
+            DiscountAmount = _order.DiscountAmount,
+            DiscountType = _order.DiscountType,
+            TotalAmount = _order.TotalAmount,
+            PaidAmount = _order.PaidAmount,
+            DueAmount = _order.DueAmount,
+            SelectedCustomer = new FilterItem(_order.CustomerId, _order.Customer?.CustomerName ?? string.Empty, true),
+            Items = _order.Items
+                .Select(i => new CreateSalesOrderItemDto(
+                    i.ProductId, i.Quantity, i.UnitPrice,
+                    i.DiscountAmount, i.DiscountType,
+                    i.TotalDiscount, i.LineTotalPrice, null))
+                .ToList()
+        };
+
+        var parameters = new DialogParameters<SalesOrderDialog>
+        {
+            { x => x.Customers, customers.Select(c => new CustomerDto(
+                c.Id, c.CustomerName, c.CustomerEmail, c.CustomerPhone, c.ContactPersonName, c.ContactPersonPhone, c.ContactPersonEmail,
+                c.Address,                c.City, c.Zila, c.State, c.Country, c.PostalCode,
+                c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList() },
+            { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList() },
+            { x => x.dataModel, editModel }
+        };
+
+        var orderId = _order.Id;
+        var dialog = await DialogService.ShowAsync<SalesOrderDialog>(
+            $"Edit Sales Order — {_order.OrderNumber}", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
+
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is CreateSalesOrderDto dto)
+        {
+            try
+            {
+                await OrderService.UpdateSalesOrder(orderId, dto);
+                Snackbar.Add("Sales order updated successfully", Severity.Success);
+
+                // Refresh panel with updated order
+                _loading = true;
+                StateHasChanged();
+                _order = await OrderService.GetSalesOrderById(orderId);
+                _loading = false;
+                StateHasChanged();
+
+                await OnOrderUpdated.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,56 @@
+@inject IPricingService PricingService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">Create Discount</MudText></TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudSelect @bind-Value="_discountType" Label="Discount Type" Required="true" Class="mt-3" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (DiscountType t in Enum.GetValues<DiscountType>())
+                {
+                    <MudSelectItem Value="@t">@t</MudSelectItem>
+                }
+            </MudSelect>
+            <MudNumericField @bind-Value="_value" Label="Value" Required="true" Min="0" Class="mt-3" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             HelperText="@(_discountType == DiscountType.Percentage ? "Percentage (0-100)" : "Fixed amount")" />
+            <MudNumericField @bind-Value="_minQty" Label="Minimum Quantity" Min="0" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudDatePicker @bind-Date="_startDate" Label="Start Date" Required="true" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudDatePicker @bind-Date="_endDate" Label="End Date" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            <MudCheckBox @bind-Value="_isActive" Label="Active" Class="mt-3" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    private MudForm _form = null!;
+
+    private string _name = "";
+    private DiscountType _discountType = DiscountType.Percentage;
+    private decimal _value = 0;
+    private int _minQty = 0;
+    private DateTime? _startDate = DateTime.Today;
+    private DateTime? _endDate;
+    private bool _isActive = true;
+
+    private async Task Submit()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+        try
+        {
+            await PricingService.CreateDiscount(new CreateDiscountDto(
+                _name, _discountType, _value, _minQty, _startDate ?? DateTime.Today, _endDate, _isActive));
+            Snackbar.Add("Discount created", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,126 @@
+@page "/inventory"
+@rendermode InteractiveServer
+@inject IInventoryService InventoryService
+@inject ISnackbar Snackbar
+@using IOMS.Infrastructure.Data
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Stock Levels - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Stock Levels</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudSelect @bind-Value="_selectedWarehouseId" Label="Warehouse" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var wh in _warehouses)
+                {
+                    <MudSelectItem Value="@wh.Id">@wh.Name (@wh.Code)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadInventory" Class="mt-2">
+                Load Stock
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Outlined" Color="Color.Warning" OnClick="LoadLowStock" Class="mt-2">
+                Low Stock Alerts
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    @if (_showLowStock)
+    {
+        <MudText Typo="Typo.h6" Class="mt-4 mb-2" Color="Color.Error">Low Stock Alerts</MudText>
+        <MudTable Items="@_lowStockAlerts" Dense="true" Hover="true" Striped="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Product</MudTh>
+                <MudTh>SKU</MudTh>
+                <MudTh>Warehouse</MudTh>
+                <MudTh Style="text-align:right">Current Stock</MudTh>
+                <MudTh Style="text-align:right">Reorder Level</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.ProductName</MudTd>
+                <MudTd>@context.SKU</MudTd>
+                <MudTd>@context.WarehouseName</MudTd>
+                <MudTd Style="text-align:right">
+                    <MudText Color="Color.Error">@context.CurrentStock</MudText>
+                </MudTd>
+                <MudTd Style="text-align:right">@context.ReorderStockLevel</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+    else
+    {
+        <MudTable Items="@_inventory" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+            <HeaderContent>
+                <MudTh>Product</MudTh>
+                <MudTh>SKU</MudTh>
+                <MudTh>Warehouse</MudTh>
+                <MudTh Style="text-align:right">On Hand</MudTh>
+                <MudTh Style="text-align:right">Reserved</MudTh>
+                <MudTh Style="text-align:right">Available</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.ProductName</MudTd>
+                <MudTd>@context.ProductSKU</MudTd>
+                <MudTd>@context.WarehouseName</MudTd>
+                <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                <MudTd Style="text-align:right">@context.ReservedQuantity</MudTd>
+                <MudTd Style="text-align:right">
+                    <MudText Color="@(context.AvailableQuantity <= 0 ? Color.Error : Color.Default)">
+                        @context.AvailableQuantity
+                    </MudText>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    private record WhItem(Guid Id, string Name, string Code);
+
+    private List<WhItem> _warehouses = new();
+    private Guid _selectedWarehouseId;
+    private List<InventoryDto> _inventory = new();
+    private List<LowStockAlertDto> _lowStockAlerts = new();
+    private bool _loading;
+    private bool _showLowStock;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var whs = await DbContext.Warehouses.Where(w => w.IsActive).OrderBy(w => w.Code).ToListAsync();
+        _warehouses = whs.Select(w => new WhItem(w.Id, w.Name, w.Code)).ToList();
+        if (_warehouses.Count > 0)
+        {
+            _selectedWarehouseId = _warehouses.First().Id;
+            await LoadInventory();
+        }
+    }
+
+    private async Task LoadInventory()
+    {
+        _showLowStock = false;
+        _loading = true;
+        try
+        {
+            var result = await InventoryService.GetInventoryByWarehouse(_selectedWarehouseId, 1, 200);
+            _inventory = result.Items;
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loading = false;
+    }
+
+    private async Task LoadLowStock()
+    {
+        _showLowStock = true;
+        try { _lowStockAlerts = await InventoryService.GetLowStockAlerts(); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

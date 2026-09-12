@@ -1,0 +1,267 @@
+﻿@page "/Account/Login"
+@layout EmptyLayout
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Login> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Log in</PageTitle>
+
+
+<div class="login-page">
+
+    @* Brand panel *@
+    <div class="login-brand">
+        <div class="login-brand-inner">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="56" height="56"><path d="M20 7H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9 8H9v2H7v-2H5v-2h2v-2h2v2h2v2zm5.5 1c-.83 0-1.5-.67-1.5-1.5S15.67 13 16.5 13s1.5.67 1.5 1.5S17.33 16 16.5 16zm3-3c-.83 0-1.5-.67-1.5-1.5S18.67 10 19.5 10s1.5.67 1.5 1.5S20.33 13 19.5 13zM1 6h22V4H1v2z" /></svg>
+            <h2 style="color:#fff;font-weight:800;letter-spacing:-1px;margin:0.5rem 0 0;">IOMS</h2>
+            <p style="color:rgba(255,255,255,0.75);max-width:260px;text-align:center;margin:0.5rem 0 0;line-height:1.5;font-size:0.95rem;">
+                Enterprise Inventory &amp; Order Management
+            </p>
+            <hr style="border:none;height:1px;background:rgba(255,255,255,0.2);width:60px;margin:1.5rem auto;" />
+            <span style="color:rgba(255,255,255,0.5);font-size:0.75rem;">Streamline · Track · Grow</span>
+        </div>
+    </div>
+
+    @* Form panel *@
+    <div class="login-form-panel">
+        <div class="login-form-inner">
+
+            <h4 style="font-weight:800;letter-spacing:-0.5px;margin:0 0 0.25rem;">Welcome back</h4>
+            <p style="color:#7C7F93;margin:0 0 2rem;font-size:0.9rem;">Sign in to your account to continue</p>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="login-alert">
+                    <span>@errorMessage</span>
+                    <button type="button" class="login-alert-close" @onclick="@(() => errorMessage = null)">&#x2715;</button>
+                </div>
+            }
+
+            <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
+                <DataAnnotationsValidator />
+
+                <div class="field-group">
+                    <label for="Input.Email">Email address</label>
+                    <div class="input-wrap">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,12 2,6" /></svg>
+                        <InputText @bind-Value="Input.Email" id="Input.Email" type="email" placeholder="name@example.com"
+                                   autocomplete="username webauthn" aria-required="true" class="login-input" />
+                    </div>
+                    <ValidationMessage For="() => Input.Email" class="field-error" />
+                </div>
+
+                <div class="field-group">
+                    <label for="Input.Password">Password</label>
+                    <div class="input-wrap">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                        <InputText @bind-Value="Input.Password" id="Input.Password" type="@(_showPassword ? "text" : "password")"
+                                   placeholder="••••••••" autocomplete="current-password" aria-required="true" class="login-input" />
+                        <button type="button" class="toggle-pw" @onclick="TogglePasswordVisibility" tabindex="-1">
+                            @if (_showPassword)
+                            {
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                            }
+                            else
+                            {
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                            }
+                        </button>
+                    </div>
+                    <ValidationMessage For="() => Input.Password" class="field-error" />
+                </div>
+
+                <div class="login-row" style="margin-bottom:1.5rem;">
+                    <label class="checkbox-label">
+                        <InputCheckbox @bind-Value="Input.RememberMe" class="login-check" />
+                        Remember me
+                    </label>
+                    <a href="Account/ForgotPassword" class="login-link">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="btn-signin">Sign In</button>
+
+                <div class="login-divider"><span>or</span></div>
+
+                <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Email"
+                               class="btn-passkey">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" style="flex-shrink:0;"><path d="M12 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3z" /><path d="M12 13c-3.87 0-7 1.79-7 4v1h14v-1c0-2.21-3.13-4-7-4z" /><circle cx="17" cy="17" r="4" fill="none" /><line x1="20.5" y1="17" x2="20.5" y2="17.01" /></svg>
+                    Sign in with a passkey
+                </PasskeySubmit>
+
+                <hr style="border:none;border-top:1px solid #e8eaf0;margin:1.5rem 0;" />
+
+                <p style="text-align:center;margin:0;font-size:0.875rem;color:#7C7F93;">
+                    New to IOMS?&nbsp;
+                    <a href="@NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl })"
+                       class="login-link" style="font-weight:600;">Create an account</a>
+                </p>
+                <p>
+                    <h2>Test user</h2>
+                    <table class="table table-bordered w-100">
+                        <tr><td>UserName</td><td>:</td><td>admin@ioms.local</td></tr>
+                        <tr><td>Password</td><td>:</td><td>Admin@123!</td></tr>
+                    </table>
+                </p>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@* 
+<h1>Log in</h1>
+<div class="row">
+    <div class="col-lg-6">
+        <section>
+            <StatusMessage Message="@errorMessage" />
+            <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
+                <DataAnnotationsValidator />
+                <h2>Use a local account to log in.</h2>
+                <hr />
+                <ValidationSummary class="text-danger" role="alert" />
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username webauthn" aria-required="true" placeholder="name@example.com" />
+                    <label for="Input.Email" class="form-label">Email</label>
+                    <ValidationMessage For="() => Input.Email" class="text-danger" />
+                </div>
+                <div class="form-floating mb-3">
+                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                    <label for="Input.Password" class="form-label">Password</label>
+                    <ValidationMessage For="() => Input.Password" class="text-danger" />
+                </div>
+                <div class="checkbox mb-3">
+                    <label class="form-label">
+                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
+                        Remember me
+                    </label>
+                </div>
+                <div>
+                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                </div>
+                <hr />
+                <div class="d-flex flex-column">
+                    <span class="text-secondary mx-auto mt-2">OR</span>
+                    <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Email" class="btn btn-link mx-auto">Log in with a passkey</PasskeySubmit>
+                </div>
+                <hr />
+                <div>
+                    <p>
+                        <a href="Account/ForgotPassword">Forgot your password?</a>
+                    </p>
+                    <p>
+                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
+                    </p>
+                    <p>
+                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
+                    </p>
+                </div>
+            </EditForm>
+        </section>
+    </div>
+    <div class="col-lg-4 col-lg-offset-2">
+        <section>
+            <h3>Use another service to log in.</h3>
+            <hr />
+            <ExternalLoginPicker />
+        </section>
+    </div>
+</div> *@
+
+@code {
+    private string? errorMessage;
+    private EditContext editContext = default!;
+    private bool _showPassword = false;
+    private void TogglePasswordVisibility() => _showPassword = !_showPassword;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+
+        editContext = new EditContext(Input);
+
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Clear the existing external cookie to ensure a clean login process
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        if (!string.IsNullOrEmpty(Input.Passkey?.Error))
+        {
+            errorMessage = $"Error: {Input.Passkey.Error}";
+            return;
+        }
+
+        SignInResult result;
+        if (!string.IsNullOrEmpty(Input.Passkey?.CredentialJson))
+        {
+            // When performing passkey sign-in, don't perform form validation.
+            result = await SignInManager.PasskeySignInAsync(Input.Passkey.CredentialJson);
+        }
+        else
+        {
+            // If doing a password sign-in, validate the form.
+            if (!editContext.Validate())
+            {
+                return;
+            }
+
+            // This doesn't count login failures towards account lockout
+            // To enable password failures to trigger account lockout, set lockoutOnFailure: true
+            result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        }
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User logged in.");
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            RedirectManager.RedirectTo(
+                "Account/LoginWith2fa",
+                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            errorMessage = "Error: Invalid login attempt.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "Remember me?")]
+        public bool RememberMe { get; set; }
+
+        public PasskeyInputModel? Passkey { get; set; }
+    }
+}

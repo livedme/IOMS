@@ -1,0 +1,96 @@
+@page "/warehouses"
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using IOMS.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Warehouses - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Warehouses</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="8" />
+        <MudItem xs="12" sm="4" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreate">New Warehouse</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+        <HeaderContent>
+            <MudTh>Code</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Location</MudTh>
+            <MudTh>Address</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Code</MudTd>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>@context.Location</MudTd>
+            <MudTd>@context.Address</MudTd>
+            <MudTd>
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Default)" Size="Size.Small">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="@(() => OpenEdit(context))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<WarehouseDto> _items = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        var data = await DbContext.Warehouses.OrderBy(w => w.Code).ToListAsync();
+        _items = data.Select(w => new WarehouseDto(w.Id, w.Name, w.Code, w.Location, w.Address, w.IsActive)).ToList();
+        _loading = false;
+    }
+
+    private async Task OpenCreate()
+    {
+        var dialog = await DialogService.ShowAsync<WarehouseDialog>("New Warehouse",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled && result.Data is CreateWarehouseDto dto)
+        {
+            DbContext.Warehouses.Add(new IOMS.Domain.Entities.Warehouse
+            { Name = dto.Name, Code = dto.Code, Location = dto.Location, Address = dto.Address });
+            await DbContext.SaveChangesAsync();
+            Snackbar.Add("Warehouse created", Severity.Success);
+            await LoadData();
+        }
+    }
+
+    private async Task OpenEdit(WarehouseDto item)
+    {
+        var parameters = new DialogParameters<WarehouseDialog> { { x => x.Warehouse, item } };
+        var dialog = await DialogService.ShowAsync<WarehouseDialog>("Edit Warehouse", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled && result.Data is CreateWarehouseDto dto)
+        {
+            var entity = await DbContext.Warehouses.FindAsync(item.Id);
+            if (entity != null)
+            {
+                entity.Name = dto.Name; entity.Code = dto.Code; entity.Location = dto.Location; entity.Address = dto.Address;
+                await DbContext.SaveChangesAsync();
+                Snackbar.Add("Warehouse updated", Severity.Success);
+                await LoadData();
+            }
+        }
+    }
+}

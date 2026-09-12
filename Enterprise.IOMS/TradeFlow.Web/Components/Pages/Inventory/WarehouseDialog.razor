@@ -1,0 +1,42 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_name" Label="Name" Required="true" RequiredError="" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudTextField @bind-Value="_code" Label="Code" Required="true" RequiredError="" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudTextField @bind-Value="_location" Label="Location" Required="true" RequiredError="" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <RichTextField @bind-Value="_address" Label="Address" Lines="2" Class="mt-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public WarehouseDto? Warehouse { get; set; }
+    private MudForm _form = default;
+    private string _name = "", _code = "";
+    private string? _location, _address;
+
+    protected override void OnInitialized()
+    {
+        if (Warehouse != null)
+        { _name = Warehouse.Name; _code = Warehouse.Code; _location = Warehouse.Location; _address = Warehouse.Address; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.ValidateAsync();
+
+        if (!_form.IsValid)
+            return;
+
+        MudDialog.Close(DialogResult.Ok(new CreateWarehouseDto(_name, _code, _location, _address)));
+    }
+}

@@ -1,0 +1,58 @@
+@inject IShippingService ShippingService
+@inject IOrderService OrderService
+@inject ISnackbar Snackbar
+@inject IOMS.Infrastructure.Data.ApplicationDbContext DbContext
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="_salesOrderId" Label="Sales Order" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var so in _salesOrders)
+                    {
+                        <MudSelectItem Value="@so.Id">@so.OrderNumber - @so.Customer.CustomerName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_shippedDate" Label="Shipped Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12">
+                <RichTextField @bind-Value="_notes" Label="Notes" Lines="2" />
+            </MudItem> 
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private Guid _salesOrderId;
+    private DateTime? _shippedDate = DateTime.Today;
+    private string? _notes;
+    private List<SalesOrderDto> _salesOrders = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await OrderService.GetSalesOrders(null, null, 1, 200);
+        _salesOrders = result.Items;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        try
+        {
+            var dto = new CreateDeliveryNoteDto(_salesOrderId, null, _shippedDate, _notes);
+            await ShippingService.CreateDeliveryNote(dto);
+            Snackbar.Add("Delivery note created.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

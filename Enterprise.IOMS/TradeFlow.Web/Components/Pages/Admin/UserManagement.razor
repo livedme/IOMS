@@ -1,0 +1,77 @@
+@page "/admin/users"
+@rendermode InteractiveServer
+@inject IOMS.Infrastructure.Data.ApplicationDbContext DbContext
+@inject ISnackbar Snackbar
+
+<PageTitle>User Management</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">User Management</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudTextField @bind-Value="_search" Label="Search users" Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                  OnKeyUp="@(async _ => await LoadData())" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+</MudPaper>
+
+<MudTable Items="_users" Hover="true" Striped="true" Loading="_loading">
+    <HeaderContent>
+        <MudTh>Full Name</MudTh>
+        <MudTh>Email</MudTh>
+        <MudTh>Department</MudTh>
+        <MudTh>Active</MudTh>
+        <MudTh>Created</MudTh>
+        <MudTh>Last Login</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Full Name">@context.FullName</MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+        <MudTd DataLabel="Department">@context.Department</MudTd>
+        <MudTd DataLabel="Active">
+            <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                @(context.IsActive ? "Active" : "Inactive")
+            </MudChip>
+        </MudTd>
+        <MudTd DataLabel="Created">@context.CreatedAt.ToShortDateString()</MudTd>
+        <MudTd DataLabel="Last Login">@(context.LastLoginAt?.ToShortDateString() ?? "Never")</MudTd>
+        <MudTd DataLabel="Actions">
+            <MudIconButton Icon="@(context.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.CheckCircle)"
+                           Color="@(context.IsActive ? Color.Error : Color.Success)" Size="Size.Small"
+                           OnClick="@(() => ToggleActive(context))"
+                           Title="@(context.IsActive ? "Deactivate" : "Activate")" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<ApplicationUser> _users = new();
+    private string? _search;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            var query = DbContext.Set<ApplicationUser>().AsQueryable();
+            if (!string.IsNullOrWhiteSpace(_search))
+                query = query.Where(u => u.FullName.Contains(_search) || u.Email!.Contains(_search));
+
+            _users = await query.OrderBy(u => u.FullName).ToListAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private async Task ToggleActive(ApplicationUser user)
+    {
+        try
+        {
+            user.IsActive = !user.IsActive;
+            await DbContext.SaveChangesAsync();
+            Snackbar.Add($"User {(user.IsActive ? "activated" : "deactivated")}.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

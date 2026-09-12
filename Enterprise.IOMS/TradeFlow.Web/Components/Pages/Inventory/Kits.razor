@@ -1,0 +1,73 @@
+@page "/products/kits"
+@rendermode InteractiveServer
+@inject IKitService KitService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using IOMS.Infrastructure.Data
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Kits - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Kit Management</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="OpenCreate" Class="mb-4">New Kit</MudButton>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_kits" Dense="true" Hover="true" Striped="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Kit Product</MudTh>
+            <MudTh>SKU</MudTh>
+            <MudTh>Components</MudTh>
+            <MudTh>Active</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.ProductName</strong></MudTd>
+            <MudTd>@context.ProductSKU</MudTd>
+            <MudTd>@context.Components.Count</MudTd>
+            <MudTd><MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)" Color="@(context.IsActive ? Color.Success : Color.Error)" /></MudTd>
+            <MudTd>
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => OpenAssemble(context)">Assemble</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning" OnClick="() => OpenDisassemble(context)">Disassemble</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<KitDto> _kits = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _kits = await KitService.GetKits();
+        _loading = false;
+    }
+
+    private async Task OpenCreate()
+    {
+        var dialog = await DialogService.ShowAsync<KitDialog>("New Kit");
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await Load();
+    }
+
+    private async Task OpenAssemble(KitDto kit)
+    {
+        var parameters = new DialogParameters { ["Kit"] = kit, ["IsAssemble"] = true };
+        var dialog = await DialogService.ShowAsync<KitAssemblyDialog>("Assemble Kit", parameters);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) { Snackbar.Add("Kit assembled.", Severity.Success); await Load(); }
+    }
+
+    private async Task OpenDisassemble(KitDto kit)
+    {
+        var parameters = new DialogParameters { ["Kit"] = kit, ["IsAssemble"] = false };
+        var dialog = await DialogService.ShowAsync<KitAssemblyDialog>("Disassemble Kit", parameters);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) { Snackbar.Add("Kit disassembled.", Severity.Success); await Load(); }
+    }
+}

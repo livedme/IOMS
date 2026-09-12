@@ -1,0 +1,82 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6" class="d-flex flex-column">
+                <MudTextField @bind-Value="_customerName" Label="Customer Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5"/>            
+                <MudTextField @bind-Value="_customerEmail" Label="Customer Email" InputType="InputType.Email" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5" />
+                <MudTextField @bind-Value="_customerPhone" Label="Customer Phone" AdornmentAriaLabel="Phone" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6" class="d-flex column-gap-3 flex-column">
+                <MudTextField @bind-Value="_contactPersonName" Label="Contact Person Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5"/>
+                <MudTextField @bind-Value="_contactPersonEmail" Label="Contact Person Email" InputType="InputType.Email" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" class="mb-5"/>
+                <MudTextField @bind-Value="_contactPersonPhone" Label="Contact Person Phone" AdornmentAriaLabel="Phone" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_address" Label="Address" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12" sm="4"> 
+                <MudTextField @bind-Value="_city" Label="Upozila" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_zila" Label="Zila" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_state" Label="Division" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            @* <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_country" Label="Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_postalCode" Label="Postal Code" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem> *@
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_paymentTerms" Label="Payment Terms" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox @bind-Value="_isTaxExempt" Label="Tax Exempt" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CustomerDto? Customer { get; set; }
+
+    private string _customerName = "", _contactPersonName = "";
+
+    private string? _customerEmail, _customerPhone, _address, _city, _zila, _state, _country, _postalCode, _paymentTerms, _contactPersonEmail, _contactPersonPhone;
+    private decimal _creditLimit;
+    private bool _isTaxExempt;
+
+    protected override void OnInitialized()
+    {
+        if (Customer != null)
+        {
+            _customerName = Customer.CustomerName;
+            _customerEmail = Customer.CustomerEmail;
+            _customerPhone = Customer.CustomerPhone;
+            _contactPersonName = Customer.ContactPersonName;
+            _contactPersonEmail = Customer.ContactPersonEmail;
+            _contactPersonPhone = Customer.ContactPersonPhone;
+            _address = Customer.Address;
+            _city = Customer.City;
+            _zila = Customer.Zila;
+            _state = Customer.State;            
+            _country = Customer.Country;
+            _creditLimit = Customer.CreditLimit;
+            _paymentTerms = Customer.PaymentTerms;
+            _isTaxExempt = Customer.IsTaxExempt;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(
+        new CreateCustomerDto(_customerName, _customerEmail, _customerPhone, _contactPersonName, _contactPersonEmail, _contactPersonPhone, _address, _city, _zila, _state, _country, _postalCode,_creditLimit, _paymentTerms,null,null,null, _isTaxExempt)));
+}

@@ -1,0 +1,113 @@
+@page "/settings/scheduled-reports"
+@rendermode InteractiveServer
+@inject IScheduledReportService ReportService
+@inject ISnackbar Snackbar
+
+<PageTitle>Scheduled Reports - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Scheduled Reports</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="() => _showCreate = true" Class="mb-4">New Scheduled Report</MudButton>
+
+@if (_showCreate)
+{
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Create Scheduled Report</MudText>
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <MudSelect @bind-Value="_reportType" Label="Report Type" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem Value="@("TrialBalance")">Trial Balance</MudSelectItem>
+                    <MudSelectItem Value="@("ProfitAndLoss")">Profit & Loss</MudSelectItem>
+                    <MudSelectItem Value="@("BalanceSheet")">Balance Sheet</MudSelectItem>
+                    <MudSelectItem Value="@("Sales")">Sales Report</MudSelectItem>
+                    <MudSelectItem Value="@("Inventory")">Inventory Report</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudTextField @bind-Value="_cron" Label="Cron Expression" Placeholder="0 8 * * MON" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudTextField @bind-Value="_recipients" Label="Recipients" Placeholder="email@example.com" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudSelect @bind-Value="_format" Label="Format" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem Value="@("PDF")">PDF</MudSelectItem>
+                    <MudSelectItem Value="@("Excel")">Excel</MudSelectItem>
+                    <MudSelectItem Value="@("CSV")">CSV</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Create" Class="mt-3">Save</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="() => _showCreate = false" Class="mt-3 ml-2">Cancel</MudButton>
+    </MudPaper>
+}
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_reports" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Report Type</MudTh>
+            <MudTh>Schedule (Cron)</MudTh>
+            <MudTh>Recipients</MudTh>
+            <MudTh>Format</MudTh>
+            <MudTh>Active</MudTh>
+            <MudTh>Last Run</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.ReportType</strong></MudTd>
+            <MudTd><code>@context.CronExpression</code></MudTd>
+            <MudTd>@context.Recipients</MudTd>
+            <MudTd>@context.Format</MudTd>
+            <MudTd><MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)" Color="@(context.IsActive ? Color.Success : Color.Error)" /></MudTd>
+            <MudTd>@(context.LastRunAt?.ToString("yyyy-MM-dd HH:mm") ?? "Never")</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="() => Delete(context.Id)" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<ScheduledReportDto> _reports = new();
+    private string _reportType = "TrialBalance";
+    private string _cron = "";
+    private string _recipients = "";
+    private string _format = "PDF";
+    private bool _showCreate;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _reports = await ReportService.GetScheduledReports();
+        _loading = false;
+    }
+
+    private async Task Create()
+    {
+        try
+        {
+            var dto = new CreateScheduledReportDto(_reportType, _cron, _recipients, _format);
+            await ReportService.CreateScheduledReport(dto);
+            Snackbar.Add("Scheduled report created.", Severity.Success);
+            _showCreate = false;
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task Delete(Guid id)
+    {
+        try
+        {
+            await ReportService.DeleteScheduledReport(id);
+            Snackbar.Add("Report deleted.", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

@@ -1,0 +1,102 @@
+@page "/settings/webhooks"
+@rendermode InteractiveServer
+@inject IWebhookService WebhookService
+@inject ISnackbar Snackbar
+
+<PageTitle>Webhook Management - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Webhook Subscriptions</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="() => _showCreate = true" Class="mb-4">New Subscription</MudButton>
+
+@if (_showCreate)
+{
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Create Webhook Subscription</MudText>
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudSelect @bind-Value="_eventType" Label="Event Type" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem Value="@("order.created")">Order Created</MudSelectItem>
+                    <MudSelectItem Value="@("order.updated")">Order Updated</MudSelectItem>
+                    <MudSelectItem Value="@("invoice.created")">Invoice Created</MudSelectItem>
+                    <MudSelectItem Value="@("payment.received")">Payment Received</MudSelectItem>
+                    <MudSelectItem Value="@("stock.low")">Low Stock Alert</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_url" Label="URL" Placeholder="https://..." ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_secret" Label="Secret" InputType="InputType.Password" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Create" Class="mt-3">Save</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="() => _showCreate = false" Class="mt-3 ml-2">Cancel</MudButton>
+    </MudPaper>
+}
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_subscriptions" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Event Type</MudTh>
+            <MudTh>URL</MudTh>
+            <MudTh>Active</MudTh>
+            <MudTh>Deliveries</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.EventType</strong></MudTd>
+            <MudTd>@context.Url</MudTd>
+            <MudTd><MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)" Color="@(context.IsActive ? Color.Success : Color.Error)" /></MudTd>
+            <MudTd>@context.DeliveryCount</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="() => Delete(context.Id)" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<WebhookSubscriptionDto> _subscriptions = new();
+    private string _eventType = "order.created";
+    private string _url = "";
+    private string _secret = "";
+    private bool _showCreate;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _subscriptions = await WebhookService.GetSubscriptions();
+        _loading = false;
+    }
+
+    private async Task Create()
+    {
+        try
+        {
+            var dto = new CreateWebhookSubscriptionDto(_eventType, _url, _secret);
+            await WebhookService.CreateSubscription(dto);
+            Snackbar.Add("Webhook subscription created.", Severity.Success);
+            _showCreate = false;
+            _url = ""; _secret = "";
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task Delete(Guid id)
+    {
+        try
+        {
+            await WebhookService.DeleteSubscription(id);
+            Snackbar.Add("Subscription deleted.", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

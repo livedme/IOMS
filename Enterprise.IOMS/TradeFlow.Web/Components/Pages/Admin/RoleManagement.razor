@@ -1,0 +1,154 @@
+@page "/admin/roles"
+@rendermode InteractiveServer
+@inject IUserManagementService UserService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Role Management - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Role Management</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_newRoleName" Label="New Role Name" Variant="Variant.Outlined"
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Add"
+                          OnAdornmentClick="CreateRole" Placeholder="Enter role name..." Margin="Margin.Dense" />
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_roles" Dense="true" Hover="true" Striped="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Role Name</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small">@context</MudChip>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="@(() => DeleteRole(context))"
+                               Disabled="@(context is "Admin" or "Manager" or "User")" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+<MudPaper Elevation="2" Class="pa-4 mt-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Assign Role to User</MudText>
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudAutocomplete T="UserDto" @bind-Value="_selectedUser" Label="Select User"
+                             SearchFunc="SearchUsers" ToStringFunc="@(u => u?.FullName ?? "")"
+                             ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect @bind-Value="_selectedRole" Label="Select Role" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var role in _roles)
+                {
+                    <MudSelectItem Value="@role">@role</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex align-end gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AssignRole"
+                       Disabled="@(_selectedUser == null || string.IsNullOrEmpty(_selectedRole))">Assign</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="RemoveRole"
+                       Disabled="@(_selectedUser == null || string.IsNullOrEmpty(_selectedRole))">Remove</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    @if (_selectedUser != null && _userRoles.Any())
+    {
+        <MudText Class="mt-3"><strong>Current Roles for @_selectedUser.FullName:</strong></MudText>
+        <MudChipSet T="string" Class="mt-1">
+            @foreach (var role in _userRoles)
+            {
+                <MudChip T="string" Color="Color.Info" Size="Size.Small">@role</MudChip>
+            }
+        </MudChipSet>
+    }
+</MudPaper>
+
+@code {
+    private List<string> _roles = new();
+    private List<UserDto> _users = new();
+    private List<string> _userRoles = new();
+    private string _newRoleName = "";
+    private string? _selectedRole;
+    private UserDto? _selectedUser;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRoles();
+        _users = await UserService.GetUsers(null);
+    }
+
+    private async Task LoadRoles()
+    {
+        _loading = true;
+        try { _roles = await UserService.GetRoles(); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private async Task CreateRole()
+    {
+        if (string.IsNullOrWhiteSpace(_newRoleName)) return;
+        try
+        {
+            await UserService.CreateRole(_newRoleName.Trim());
+            _newRoleName = "";
+            await LoadRoles();
+            Snackbar.Add("Role created", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task DeleteRole(string roleName)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm Delete", $"Delete role '{roleName}'?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            try
+            {
+                await UserService.DeleteRole(roleName);
+                await LoadRoles();
+                Snackbar.Add("Role deleted", Severity.Success);
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private async Task<IEnumerable<UserDto>> SearchUsers(string? value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return _users.Take(10);
+        return _users.Where(u => u.FullName.Contains(value, StringComparison.OrdinalIgnoreCase)).Take(10);
+    }
+
+    private async Task AssignRole()
+    {
+        if (_selectedUser == null || string.IsNullOrEmpty(_selectedRole)) return;
+        try
+        {
+            await UserService.AssignRole(_selectedUser.Id, _selectedRole);
+            _userRoles = await UserService.GetUserRoles(_selectedUser.Id);
+            Snackbar.Add($"Role '{_selectedRole}' assigned to {_selectedUser.FullName}", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task RemoveRole()
+    {
+        if (_selectedUser == null || string.IsNullOrEmpty(_selectedRole)) return;
+        try
+        {
+            await UserService.RemoveRole(_selectedUser.Id, _selectedRole);
+            _userRoles = await UserService.GetUserRoles(_selectedUser.Id);
+            Snackbar.Add($"Role '{_selectedRole}' removed from {_selectedUser.FullName}", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

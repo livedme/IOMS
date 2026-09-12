@@ -1,0 +1,73 @@
+@page "/shipping/shipments"
+@rendermode InteractiveServer
+@inject IShippingService ShippingService
+@inject ISnackbar Snackbar
+@using IOMS.Infrastructure.Data
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Shipments - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Shipments</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_shipments" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Carrier</MudTh>
+            <MudTh>Tracking #</MudTh>
+            <MudTh>Shipped</MudTh>
+            <MudTh>Delivered</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.Carrier</strong></MudTd>
+            <MudTd>@context.TrackingNumber</MudTd>
+            <MudTd>@(context.ShippedDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+            <MudTd>@(context.DeliveredDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetColor(context.Status)">@context.Status</MudChip>
+            </MudTd>
+            <MudTd>
+                @if (context.Status == ShipmentStatus.Pending)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                               OnClick="() => UpdateStatus(context.Id, ShipmentStatus.InTransit)">Ship</MudButton>
+                }
+                @if (context.Status == ShipmentStatus.InTransit)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Success"
+                               OnClick="() => UpdateStatus(context.Id, ShipmentStatus.Delivered)">Deliver</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<ShipmentDto> _shipments = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        var result = await ShippingService.GetShipments(null, 1, 100);
+        _shipments = result.Items;
+        _loading = false;
+    }
+
+    private async Task UpdateStatus(Guid id, ShipmentStatus status)
+    {
+        try
+        {
+            await ShippingService.UpdateShipmentStatus(id, status);
+            Snackbar.Add($"Shipment updated to {status}.", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+   
+}

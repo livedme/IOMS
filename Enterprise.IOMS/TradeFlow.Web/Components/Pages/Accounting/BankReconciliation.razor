@@ -1,0 +1,64 @@
+@page "/accounting/reconciliation"
+@rendermode InteractiveServer
+@inject IBankReconciliationService ReconciliationService
+@inject ISnackbar Snackbar
+
+<PageTitle>Bank Reconciliation - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Bank Reconciliation</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_statements" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Bank Account</MudTh>
+            <MudTh>Statement Date</MudTh>
+            <MudTh>Imported At</MudTh>
+            <MudTh>Reconciled</MudTh>
+            <MudTh>Lines</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.BankAccountName</strong></MudTd>
+            <MudTd>@context.StatementDate.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd>@context.ImportedAt.ToString("yyyy-MM-dd HH:mm")</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@(context.IsReconciled ? Color.Success : Color.Warning)">
+                    @(context.IsReconciled ? "Reconciled" : "Pending")
+                </MudChip>
+            </MudTd>
+            <MudTd>@context.Lines.Count (@context.Lines.Count(l => l.IsMatched) matched)</MudTd>
+            <MudTd>
+                @if (!context.IsReconciled)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"
+                                   Title="Approve" OnClick="() => Approve(context.Id)" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<BankStatementDto> _statements = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _statements = await ReconciliationService.GetBankStatements();
+        _loading = false;
+    }
+
+    private async Task Approve(Guid id)
+    {
+        try
+        {
+            await ReconciliationService.ApproveReconciliation(id);
+            Snackbar.Add("Reconciliation approved.", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

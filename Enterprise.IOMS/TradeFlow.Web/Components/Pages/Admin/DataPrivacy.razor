@@ -1,0 +1,108 @@
+@page "/admin/data-privacy"
+@rendermode InteractiveServer
+@inject IDataPrivacyService PrivacyService
+@inject ISnackbar Snackbar
+
+<PageTitle>Data Privacy - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Data Privacy (GDPR)</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="() => _showCreate = true" Class="mb-4">New Request</MudButton>
+
+@if (_showCreate)
+{
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Submit Data Subject Request</MudText>
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudSelect @bind-Value="_requestType" Label="Request Type" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (DataSubjectRequestType t in Enum.GetValues<DataSubjectRequestType>())
+                    {
+                        <MudSelectItem Value="@t">@t</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_email" Label="Subject Email" InputType="InputType.Email" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_notes" Label="Notes" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+            </MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Submit" Class="mt-3">Submit</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="() => _showCreate = false" Class="mt-3 ml-2">Cancel</MudButton>
+    </MudPaper>
+}
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@_requests" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Type</MudTh>
+            <MudTh>Subject Email</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Completed</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.RequestType</strong></MudTd>
+            <MudTd>@context.SubjectEmail</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip>
+            </MudTd>
+            <MudTd>@(context.CompletedAt?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+            <MudTd>
+                @if (context.Status == DataSubjectRequestStatus.Pending || context.Status == DataSubjectRequestStatus.InProgress)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Primary" Size="Size.Small"
+                                   Title="Process" OnClick="() => Process(context.Id)" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<DataSubjectRequestDto> _requests = new();
+    private DataSubjectRequestType _requestType = DataSubjectRequestType.Access;
+    private string _email = "";
+    private string _notes = "";
+    private bool _showCreate;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        _requests = await PrivacyService.GetRequests();
+        _loading = false;
+    }
+
+    private async Task Submit()
+    {
+        try
+        {
+            var dto = new CreateDataSubjectRequestDto(_requestType, _email, _notes);
+            await PrivacyService.CreateRequest(dto);
+            Snackbar.Add("Request submitted.", Severity.Success);
+            _showCreate = false;
+            _email = ""; _notes = "";
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task Process(Guid id)
+    {
+        try
+        {
+            await PrivacyService.ProcessRequest(id);
+            Snackbar.Add("Request processed.", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+   
+}

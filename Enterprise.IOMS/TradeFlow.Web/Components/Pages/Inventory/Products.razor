@@ -1,0 +1,225 @@
+@page "/products"
+@rendermode InteractiveServer
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+@using IOMS.Infrastructure.Data
+
+<PageTitle>Products - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Products</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_searchString" Placeholder="Search products..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" DebounceInterval="300"
+                          OnDebounceIntervalElapsed="OnSearchChanged" ShrinkLabel="true" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" Class="rounded-3 border-3" />
+        </MudItem>
+        <MudItem xs="12" sm="6" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="(()=>OpenAddEditDialog(null))">New Product</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_products" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4"
+              Elevation="0">
+        <HeaderContent>
+            <MudTh>SKU</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Category</MudTh>
+            <MudTh>Brand</MudTh>
+            <MudTh>Model</MudTh>
+            <MudTh Style="text-align:right">Cost Price</MudTh>
+            <MudTh Style="text-align:right">Selling Price</MudTh>
+            <MudTh Style="text-align:right">Whole Selling Price</MudTh>
+            <MudTh Style="text-align:right">Reorder Level</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="SKU">@context.SKU</MudTd>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Category">@context.CategoryName</MudTd>
+            <MudTd DataLabel="Brand">@context.BrandName</MudTd>
+            <MudTd DataLabel="Model">@context.Model</MudTd>
+            <MudTd DataLabel="Cost" Style="text-align:right">@context.CostPrice.ToString("C")</MudTd>
+            <MudTd DataLabel="Price" Style="text-align:right">@context.SellingPrice.ToString("C")</MudTd>
+            <MudTd DataLabel="WholeSellingPrice" Style="text-align:right">@context.WholeSellingPrice</MudTd>
+            <MudTd DataLabel="Reorder Level" Style="text-align:right">@context.ReorderStockLevel</MudTd>            
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Outlined.Visibility" Size="Size.Small" Color="Color.Default"
+                               Title="View Detail" OnClick="@(() => NavigateToDetail(context.Id))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="@(() => OpenAddEditDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => DeleteProduct(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>No products found</MudText>
+        </NoRecordsContent>
+    </MudTable>
+
+    <div class="d-flex align-center justify-space-between mt-4">
+        <MudPagination Count="@_totalPages" SelectedChanged="OnPageChanged" Selected="@_page" />
+        <MudSelect T="int" Label="Page size" Value="@_pageSize" ValueChanged="OnPageSizeChanged"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Style="max-width: 120px;">
+            <MudSelectItem Value="10">10</MudSelectItem>
+            <MudSelectItem Value="20">20</MudSelectItem>
+            <MudSelectItem Value="50">50</MudSelectItem>
+            <MudSelectItem Value="100">100</MudSelectItem>
+        </MudSelect>
+    </div>
+</MudPaper>
+
+@code {
+    private List<ProductDto> _products = new();
+    private string _searchString = "";
+    private int _page = 1;
+    private int _pageSize = 20;
+    private int _totalPages = 1;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadProducts();
+
+    private void NavigateToDetail(Guid id) => Navigation.NavigateTo($"/products/{id}");
+
+    private async Task LoadProducts()
+    {
+        _loading = true;
+        try
+        {
+            var result = await ProductService.GetProductsAsync(_searchString, null, _page, _pageSize);
+            _products = result.Items;
+            _totalPages = result.TotalPages;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading products: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        _page = page;
+        await LoadProducts();
+    }
+
+    private async Task OnSearchChanged()
+    {
+        _page = 1;
+        await LoadProducts();
+    }
+
+    private async Task OnPageSizeChanged(int pageSize)
+    {
+        _pageSize = pageSize;
+        _page = 1;
+        await LoadProducts();
+    }
+
+    private async Task OpenAddEditDialog(ProductDto? product)
+    {
+        var categories = await ProductService.GetAllCategoriesAsync();
+        var brands = await ProductService.GetAllBrandsAsync(); // await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
+        var detailsDto = new ProductDetailsDto();
+        if (product != null)
+        {
+            var fullProduct = product == null ? null : await ProductService.GetProductDetailsByIdAsync(product.Id);
+            detailsDto = new ProductDetailsDto()
+                {
+                    Id = fullProduct?.Id ?? Guid.Empty,
+                    Name = fullProduct?.Name,
+                    SKU = fullProduct?.SKU ?? "",
+                    Barcode = fullProduct?.Barcode,
+                    Description = fullProduct?.Description,
+                    CostPrice = fullProduct?.CostPrice ?? 0,
+                    SellingPrice = fullProduct?.SellingPrice ?? 0,
+                    WholeSellingPrice = fullProduct?.WholeSellingPrice ?? 0,
+                    ReorderStockLevel = fullProduct?.ReorderStockLevel ?? 0,
+                    MinOrderQuantity = fullProduct?.MinOrderQuantity ?? 0,
+                    CategoryId = fullProduct?.CategoryId ?? Guid.Empty,
+                    CategoryName = product?.CategoryName,
+                    BrandId = fullProduct?.BrandId,
+                    BrandName = fullProduct?.BrandName,
+                    ImageUrl = fullProduct?.ImageUrl,
+                    IsKit = fullProduct?.IsKit ?? false,
+                    Model = fullProduct?.Model,
+                    //BaseUoMId = fullProduct?.BaseUoMId ?? Guid.Empty,
+                    OriginCountry = fullProduct?.OriginCountry ?? "",
+                    OriginManufacturer = fullProduct?.OriginManufacturer ?? ""
+                };
+        };
+
+        var parameters = new DialogParameters<ProductAddEditDialog>
+        {
+            { x => x.DataModel, detailsDto },
+            { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null,0,c.Path)).ToList() },
+            { x => x.Brands, brands.Select(b => new BrandDto(b.Id, b.Name, b.Description, 0)).ToList() }
+        };
+
+        var dialog = await DialogService.ShowAsync<ProductAddEditDialog>("New Product", parameters, new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        });
+
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is ProductDetailsDto dto)
+        {
+            if (dto.Id == Guid.Empty)
+            {   
+                await ProductService.CreateProductAsync(dto);
+            }
+            else
+            {
+                await ProductService.UpdateProductDetailsAsync(dto);
+                // var entity = await DbContext.Products.FindAsync(dto.Id);
+                // if (entity == null) return;
+
+                // entity.Name = dto.Name;
+                // entity.SKU = dto.SKU;
+                // entity.Barcode = dto.Barcode;
+                // entity.Description = dto.Description;
+                // entity.CostPrice = dto.CostPrice;
+                // entity.SellingPrice = dto.SellingPrice;
+                // entity.WholeSellingPrice = dto.WholeSellingPrice;
+                // entity.ReorderStockLevel = dto.ReorderStockLevel;
+                // entity.MinOrderQuantity = dto.MinOrderQuantity;
+                // entity.CategoryId = dto.CategoryId;
+                // entity.BrandId = dto.BrandId;
+                // entity.ImageUrl = dto.ImageUrl;
+                // entity.Model = dto.Model;
+            }
+
+           // await DbContext.SaveChangesAsync();
+            Snackbar.Add(dto.Id == Guid.Empty ? "Product created successfully" : "Product updated successfully", Severity.Success);
+            await LoadProducts();
+        }
+    }
+
+    private async Task OpenEditDialog(ProductDto product)
+    {
+        await OpenAddEditDialog(product);
+    }
+
+    private async Task DeleteProduct(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm Delete",
+            "Are you sure you want to delete this product?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            await ProductService.DeleteProductAsync(id);
+            Snackbar.Add("Product deleted", Severity.Success);
+            await LoadProducts();
+        }
+    }
+}

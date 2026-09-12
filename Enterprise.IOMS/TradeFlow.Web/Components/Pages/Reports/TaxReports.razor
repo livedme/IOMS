@@ -1,0 +1,188 @@
+@page "/reports/tax"
+@rendermode InteractiveServer
+@using IOMS.Infrastructure.Data
+@inject ApplicationDbContext DbContext
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>Tax Reports - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Tax Reports</MudText>
+
+<MudGrid Class="mb-4">
+    <MudItem xs="12" md="3">
+        <MudDatePicker @bind-Date="_fromDate" Label="From Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+    </MudItem>
+    <MudItem xs="12" md="3">
+        <MudDatePicker @bind-Date="_toDate" Label="To Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+    </MudItem>
+    <MudItem xs="12" md="2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Load" Class="mt-3">Generate</MudButton>
+    </MudItem>
+</MudGrid>
+
+@* ── KPI Cards ── *@
+<MudGrid Class="mb-4">
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
+            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Error" Size="Size.Large" Class="mr-3" />
+            <div><MudText Typo="Typo.body2" Color="Color.Secondary">Output Tax (Sales)</MudText>
+            <MudText Typo="Typo.h5"><strong>@_outputTax.ToString("C0")</strong></MudText></div>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
+            <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+            <div><MudText Typo="Typo.body2" Color="Color.Secondary">Input Tax (Purchases)</MudText>
+            <MudText Typo="Typo.h5"><strong>@_inputTax.ToString("C0")</strong></MudText></div>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="@($"border-left:4px solid {(_netTax >= 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)")};")">
+            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="@(_netTax >= 0 ? Color.Error : Color.Success)" Size="Size.Large" Class="mr-3" />
+            <div><MudText Typo="Typo.body2" Color="Color.Secondary">Net Tax Liability</MudText>
+            <MudText Typo="Typo.h5"><strong>@_netTax.ToString("C0")</strong></MudText></div>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* ── Charts ── *@
+<MudGrid Class="mb-4">
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="3">
+            <MudText Typo="Typo.h6" Class="mb-2">Output vs Input Tax</MudText>
+            <MudChart T=double ChartType="ChartType.Bar" ChartSeries="@_taxComparisonSeries"
+                      XAxisLabels="@_taxCompLabels" Width="100%" Height="300px" />
+        </MudPaper>
+    </MudItem>
+    @if (_taxByRate.Any())
+    {
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-2">Tax Distribution by Rate</MudText>
+                <MudChart T=double ChartType="ChartType.Donut" InputData="@_taxRateChartData"
+                          InputLabels="@_taxRateChartLabels" Width="100%" Height="300px" />
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+@if (_monthlyTaxLabels.Length > 0)
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="3">
+        <MudText Typo="Typo.h6" Class="mb-2">Monthly Tax Trend</MudText>
+        <MudChart T=double ChartType="ChartType.Line" ChartSeries="@_monthlyTaxSeries"
+                  XAxisLabels="@_monthlyTaxLabels" Width="100%" Height="300px"
+                  ChartOptions="@(new ChartOptions())" />
+    </MudPaper>
+}
+
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Tax by Rate</MudText>
+    <MudTable Items="@_taxByRate" Dense="true" Hover="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Tax Rate</MudTh>
+            <MudTh Style="text-align:right">Taxable Amount</MudTh>
+            <MudTh Style="text-align:right">Tax Amount</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.TaxName (@context.Rate%)</strong></MudTd>
+            <MudTd Style="text-align:right">@context.TaxableAmount.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@context.TaxAmount.ToString("C")</MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private DateTime? _fromDate = DateTime.Today.AddMonths(-3);
+    private DateTime? _toDate = DateTime.Today;
+    private decimal _outputTax, _inputTax, _netTax;
+    private List<TaxRateRow> _taxByRate = new();
+    private bool _loading = true;
+
+    // Chart data
+    private List<ChartSeries<double>> _taxComparisonSeries = new();
+    private string[] _taxCompLabels = { "Output Tax", "Input Tax", "Net Liability" };
+    private double[] _taxRateChartData = [];
+    private string[] _taxRateChartLabels = [];
+    private string[] _monthlyTaxLabels = [];
+    private List<ChartSeries<double>> _monthlyTaxSeries = new();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        var from = _fromDate ?? DateTime.Today.AddMonths(-3);
+        var to = _toDate ?? DateTime.Today;
+
+        _outputTax = await DbContext.Set<IOMS.Domain.Entities.Invoice>()
+            .Where(i => !i.IsDeleted && i.InvoiceDate >= from && i.InvoiceDate <= to)
+            .SumAsync(i => i.TaxAmount);
+
+        _inputTax = await DbContext.Set<IOMS.Domain.Entities.PurchaseOrder>()
+            .Where(p => !p.IsDeleted && p.PurchaseDate >= from && p.PurchaseDate <= to)
+            .SumAsync(p => p.TaxAmount);
+
+        _netTax = _outputTax - _inputTax;
+
+        _taxByRate = await DbContext.Set<IOMS.Domain.Entities.TaxRate>()
+            .Where(t => !t.IsDeleted)
+            .Select(t => new TaxRateRow
+            {
+                TaxName = t.Name,
+                Rate = t.Rate,
+                TaxableAmount = 0,
+                TaxAmount = 0
+            }).ToListAsync();
+
+        // Tax comparison bar
+        _taxComparisonSeries = new List<ChartSeries<double>>
+        {
+            new() { Name = "Amount", Data = new double[] { (double)_outputTax, (double)_inputTax, (double)Math.Abs(_netTax) } }
+        };
+
+        // Tax by rate donut
+        if (_taxByRate.Any())
+        {
+            _taxRateChartLabels = _taxByRate.Select(t => $"{t.TaxName} ({t.Rate}%)").ToArray();
+            _taxRateChartData = _taxByRate.Select(t => (double)t.Rate).ToArray();
+        }
+
+        // Monthly tax trend
+        var invoices = await DbContext.Set<IOMS.Domain.Entities.Invoice>()
+            .Where(i => !i.IsDeleted && i.InvoiceDate >= from && i.InvoiceDate <= to)
+            .ToListAsync();
+        var purchases = await DbContext.Set<IOMS.Domain.Entities.PurchaseOrder>()
+            .Where(p => !p.IsDeleted && p.PurchaseDate >= from && p.PurchaseDate <= to)
+            .ToListAsync();
+
+        var months = Enumerable.Range(0, (int)((to - from).TotalDays / 30) + 1)
+            .Select(i => from.AddMonths(i))
+            .Select(d => new DateTime(d.Year, d.Month, 1))
+            .Distinct()
+            .OrderBy(d => d)
+            .ToList();
+
+        if (months.Count > 1)
+        {
+            _monthlyTaxLabels = months.Select(m => m.ToString("MMM yy")).ToArray();
+            _monthlyTaxSeries = new List<ChartSeries<double>>
+            {
+                new() { Name = "Output Tax", Data = months.Select(m =>
+                    (double)invoices.Where(i => i.InvoiceDate.Year == m.Year && i.InvoiceDate.Month == m.Month).Sum(i => i.TaxAmount)).ToArray() },
+                new() { Name = "Input Tax", Data = months.Select(m =>
+                    (double)purchases.Where(p => p.PurchaseDate.Year == m.Year && p.PurchaseDate.Month == m.Month).Sum(p => p.TaxAmount)).ToArray() }
+            };
+        }
+
+        _loading = false;
+    }
+
+    private class TaxRateRow
+    {
+        public string TaxName { get; set; } = "";
+        public decimal Rate { get; set; }
+        public decimal TaxableAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+    }
+}

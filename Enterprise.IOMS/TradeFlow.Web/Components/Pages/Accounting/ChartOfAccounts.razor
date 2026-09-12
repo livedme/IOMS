@@ -1,0 +1,106 @@
+@page "/accounting/accounts"
+@rendermode InteractiveServer
+@inject IAccountingService AccountingService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Chart of Accounts - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Chart of Accounts</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="8">
+            <MudSelect @bind-Value="_typeFilter" Label="Account Type" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var type in Enum.GetValues<AccountType>())
+                {
+                    <MudSelectItem Value="@((AccountType?)type)">@type</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreate">New Account</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_accounts" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+        <HeaderContent>
+            <MudTh>Code</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Parent</MudTh>
+            <MudTh Style="text-align:right">Balance</MudTh>
+            <MudTh>System</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.Code</strong></MudTd>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>
+                <MudChip T="string" Color="@GetTypeColor(context.AccountType)" Size="Size.Small">@context.AccountType</MudChip>
+            </MudTd>
+            <MudTd>@context.ParentAccountName</MudTd>
+            <MudTd Style="text-align:right">@context.Balance.ToString("C")</MudTd>
+            <MudTd>
+                @if (context.IsSystemAccount)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<AccountDto> _accounts = new();
+    private AccountType? _typeFilter;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAccounts();
+
+    private async Task LoadAccounts()
+    {
+        _loading = true;
+        try
+        {
+            if (_typeFilter.HasValue)
+            {
+                var result = await AccountingService.GetAccounts(null, _typeFilter, 1, 200);
+                _accounts = result.Items;
+            }
+            else
+            {
+                _accounts = await AccountingService.GetChartOfAccounts();
+            }
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loading = false;
+    }
+
+    private async Task OpenCreate()
+    {
+        var dialog = await DialogService.ShowAsync<AccountDialog>("New Account",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled && result.Data is CreateAccountDto dto)
+        {
+            try
+            {
+                await AccountingService.CreateAccount(dto);
+                Snackbar.Add("Account created", Severity.Success);
+                await LoadAccounts();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private Color GetTypeColor(AccountType type) => type switch
+    {
+        AccountType.Asset => Color.Primary,
+        AccountType.Liability => Color.Warning,
+        AccountType.Equity => Color.Info,
+        AccountType.Revenue => Color.Success,
+        AccountType.Expense => Color.Error,
+        _ => Color.Default
+    };
+}

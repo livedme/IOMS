@@ -1,0 +1,81 @@
+@page "/settings/discounts"
+@rendermode InteractiveServer
+@inject IPricingService PricingService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Discounts</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">Discounts</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+           OnClick="OpenCreateDialog" Class="mb-4">New Discount</MudButton>
+
+<MudTable Items="_discounts" Dense="true" Hover="true" Striped="true" Loading="_loading">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Type</MudTh>
+        <MudTh>Value</MudTh>
+        <MudTh>Min Qty</MudTh>
+        <MudTh>Max Qty</MudTh>
+        <MudTh>Start Date</MudTh>
+        <MudTh>End Date</MudTh>
+        <MudTh>Active</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Name</MudTd>
+        <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.Type == DiscountType.Percentage ? Color.Info : Color.Warning)">@context.Type</MudChip></MudTd>
+        <MudTd>@(context.Type == DiscountType.Percentage ? $"{context.Value}%" : context.Value.ToString("C"))</MudTd>
+        <MudTd>@(context.MinQuantity?.ToString() ?? "—")</MudTd>
+        <MudTd>@(context.MaxQuantity?.ToString() ?? "—")</MudTd>
+        <MudTd>@(context.StartDate?.ToShortDateString() ?? "—")</MudTd>
+        <MudTd>@(context.EndDate?.ToShortDateString() ?? "—")</MudTd>
+        <MudTd>
+            @if (context.IsActive)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" />
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No discounts found.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private List<DiscountDto> _discounts = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            _discounts = await PricingService.GetDiscounts();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading discounts: {ex.Message}", Severity.Error);
+        }
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var dialog = await DialogService.ShowAsync<DiscountDialog>("Create Discount",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+}

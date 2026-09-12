@@ -1,0 +1,174 @@
+@page "/reports/balance-sheet"
+@rendermode InteractiveServer
+@inject IAccountingService AccountingService
+@inject ISnackbar Snackbar
+
+<PageTitle>Balance Sheet - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Balance Sheet</MudText>
+
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudDatePicker @bind-Date="_asOfDate" Label="As Of Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Generate" Class="mt-2">Generate</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_report != null)
+{
+    @* ── KPI Cards ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-primary);">
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Assets</MudText>
+                <MudText Typo="Typo.h5"><strong>@_report.TotalAssets.ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-warning);">
+                <MudIcon Icon="@Icons.Material.Filled.CreditCard" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Liabilities</MudText>
+                <MudText Typo="Typo.h5"><strong>@_report.TotalLiabilities.ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-info);">
+                <MudIcon Icon="@Icons.Material.Filled.Savings" Color="Color.Info" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Equity</MudText>
+                <MudText Typo="Typo.h5"><strong>@_report.TotalEquity.ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="@($"border-left:4px solid {(_isBalanced ? "var(--mud-palette-success)" : "var(--mud-palette-error)")};")">
+                <MudIcon Icon="@(_isBalanced ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)"
+                         Color="@(_isBalanced ? Color.Success : Color.Error)" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Status</MudText>
+                <MudText Typo="Typo.h6"><strong>@(_isBalanced ? "Balanced" : "Unbalanced")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Charts ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-2">Financial Position</MudText>
+                <MudChart T=double T=double ChartType="ChartType.Donut" InputData="@_positionData"
+                          InputLabels="@_positionLabels" Width="100%" Height="280px" />
+            </MudPaper>
+        </MudItem>
+        @if (_report.Assets.Any())
+        {
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Asset Composition</MudText>
+                    <MudChart T=double T=double ChartType="ChartType.Pie" InputData="@_assetPieData"
+                              InputLabels="@_assetPieLabels" Width="100%" Height="280px" />
+                </MudPaper>
+            </MudItem>
+        }
+        @if (_report.Liabilities.Any() || _report.Equity.Any())
+        {
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6" Class="mb-2">Liabilities & Equity</MudText>
+                    <MudChart T=double T=double ChartType="ChartType.Pie" InputData="@_liabEquityPieData"
+                              InputLabels="@_liabEquityPieLabels" Width="100%" Height="280px" />
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h5" Color="Color.Primary">Assets</MudText>
+                <MudTable Items="@_report.Assets" Dense="true" Elevation="0">
+                    <RowTemplate>
+                        <MudTd>@context.AccountCode</MudTd>
+                        <MudTd>@context.AccountName</MudTd>
+                        <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+                    </RowTemplate>
+                    <FooterContent>
+                        <MudTd ColSpan="2"><strong>Total Assets</strong></MudTd>
+                        <MudTd Style="text-align:right"><strong>@_report.TotalAssets.ToString("C")</strong></MudTd>
+                    </FooterContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h5" Color="Color.Warning">Liabilities</MudText>
+                <MudTable Items="@_report.Liabilities" Dense="true" Elevation="0">
+                    <RowTemplate>
+                        <MudTd>@context.AccountCode</MudTd>
+                        <MudTd>@context.AccountName</MudTd>
+                        <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+                    </RowTemplate>
+                    <FooterContent>
+                        <MudTd ColSpan="2"><strong>Total Liabilities</strong></MudTd>
+                        <MudTd Style="text-align:right"><strong>@_report.TotalLiabilities.ToString("C")</strong></MudTd>
+                    </FooterContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h5" Color="Color.Info">Equity</MudText>
+                <MudTable Items="@_report.Equity" Dense="true" Elevation="0">
+                    <RowTemplate>
+                        <MudTd>@context.AccountCode</MudTd>
+                        <MudTd>@context.AccountName</MudTd>
+                        <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+                    </RowTemplate>
+                    <FooterContent>
+                        <MudTd ColSpan="2"><strong>Total Equity</strong></MudTd>
+                        <MudTd Style="text-align:right"><strong>@_report.TotalEquity.ToString("C")</strong></MudTd>
+                    </FooterContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private DateTime? _asOfDate = DateTime.Today;
+    private BalanceSheetDto? _report;
+    private bool _isBalanced;
+
+    // Chart data
+    private string[] _positionLabels = { "Assets", "Liabilities", "Equity" };
+    private double[] _positionData = [];
+    private string[] _assetPieLabels = [];
+    private double[] _assetPieData = [];
+    private string[] _liabEquityPieLabels = [];
+    private double[] _liabEquityPieData = [];
+
+    private async Task Generate()
+    {
+        try
+        {
+            _report = await AccountingService.GetBalanceSheet(_asOfDate ?? DateTime.Today);
+            _isBalanced = Math.Abs(_report.TotalAssets - (_report.TotalLiabilities + _report.TotalEquity)) < 0.01m;
+
+            // Financial position donut
+            _positionData = new double[] { (double)_report.TotalAssets, (double)_report.TotalLiabilities, (double)_report.TotalEquity };
+
+            // Asset pie
+            var topAssets = _report.Assets.OrderByDescending(a => a.Amount).Take(8).ToList();
+            _assetPieLabels = topAssets.Select(a => a.AccountName.Length > 18 ? a.AccountName[..18] + ".." : a.AccountName).ToArray();
+            _assetPieData = topAssets.Select(a => (double)Math.Abs(a.Amount)).ToArray();
+
+            // Liab+equity pie
+            var liabEquity = _report.Liabilities.Concat(_report.Equity).OrderByDescending(a => Math.Abs(a.Amount)).Take(8).ToList();
+            _liabEquityPieLabels = liabEquity.Select(a => a.AccountName.Length > 18 ? a.AccountName[..18] + ".." : a.AccountName).ToArray();
+            _liabEquityPieData = liabEquity.Select(a => (double)Math.Abs(a.Amount)).ToArray();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

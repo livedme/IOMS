@@ -1,0 +1,186 @@
+@page "/reports/abc-analysis"
+@rendermode InteractiveServer
+@inject IOMS.Infrastructure.Data.ApplicationDbContext DbContext
+@inject ISnackbar Snackbar
+
+<PageTitle>ABC Analysis</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">ABC Analysis</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="3">
+            <MudNumericField @bind-Value="_aPercent" Label="A Class %" Min="1" Max="100" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudNumericField @bind-Value="_bPercent" Label="B Class %" Min="1" Max="100" />
+        </MudItem>
+        <MudItem xs="12" sm="3" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"
+                       StartIcon="@Icons.Material.Filled.Analytics">Analyze</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_loaded)
+{
+    @* ── KPI Cards ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
+                <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Class A</MudText>
+                <MudText Typo="Typo.h6"><strong>@_aItems.Count items &middot; @_aItems.Sum(i => i.Revenue).ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-warning);">
+                <MudIcon Icon="@Icons.Material.Filled.StarHalf" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Class B</MudText>
+                <MudText Typo="Typo.h6"><strong>@_bItems.Count items &middot; @_bItems.Sum(i => i.Revenue).ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
+                <MudIcon Icon="@Icons.Material.Filled.StarBorder" Color="Color.Error" Size="Size.Large" Class="mr-3" />
+                <div><MudText Typo="Typo.body2" Color="Color.Secondary">Class C</MudText>
+                <MudText Typo="Typo.h6"><strong>@_cItems.Count items &middot; @_cItems.Sum(i => i.Revenue).ToString("C0")</strong></MudText></div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Charts ── *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-2">Items by Class</MudText>
+                <MudChart T=double ChartType="ChartType.Donut" InputData="@_classItemsData"
+                          InputLabels="@_classLabels" Width="100%" Height="280px" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-2">Revenue by Class</MudText>
+                <MudChart T=double ChartType="ChartType.Pie" InputData="@_classRevenueData"
+                          InputLabels="@_classLabels" Width="100%" Height="280px" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-2">Class Comparison</MudText>
+                <MudChart T=double ChartType="ChartType.Bar" ChartSeries="@_classBarSeries"
+                          XAxisLabels="@_classLabels" Width="100%" Height="280px" />
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (_paretoLabels.Length > 0)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="3">
+            <MudText Typo="Typo.h6" Class="mb-2">Pareto Curve (Cumulative Revenue %)</MudText>
+            <MudChart T=double ChartType="ChartType.Line" ChartSeries="@_paretoSeries"
+                      XAxisLabels="@_paretoLabels" Width="100%" Height="300px"
+                      ChartOptions="@(new ChartOptions ())" />
+        </MudPaper>
+    }
+}
+
+<MudTable Items="_allItems" Hover="true" Striped="true" Loading="_loading" Dense="true">
+    <HeaderContent>
+        <MudTh>Product</MudTh>
+        <MudTh>SKU</MudTh>
+        <MudTh Style="text-align:right">Revenue</MudTh>
+        <MudTh Style="text-align:right">% of Total</MudTh>
+        <MudTh Style="text-align:right">Cumulative %</MudTh>
+        <MudTh>Class</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Product">@context.ProductName</MudTd>
+        <MudTd DataLabel="SKU">@context.SKU</MudTd>
+        <MudTd DataLabel="Revenue" Style="text-align:right">@context.Revenue.ToString("C")</MudTd>
+        <MudTd DataLabel="% of Total" Style="text-align:right">@context.RevenuePercent.ToString("F1")%</MudTd>
+        <MudTd DataLabel="Cumulative %" Style="text-align:right">@context.CumulativePercent.ToString("F1")%</MudTd>
+        <MudTd DataLabel="Class">
+            <MudChip T="string" Color="@(context.Class == "A" ? Color.Success : context.Class == "B" ? Color.Warning : Color.Error)" Size="Size.Small">
+                @context.Class
+            </MudChip>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private record AbcRow(string ProductName, string SKU, decimal Revenue, decimal RevenuePercent, decimal CumulativePercent, string Class);
+
+    private List<AbcRow> _allItems = new();
+    private List<AbcRow> _aItems = new();
+    private List<AbcRow> _bItems = new();
+    private List<AbcRow> _cItems = new();
+    private int _aPercent = 80;
+    private int _bPercent = 15;
+    private bool _loading;
+    private bool _loaded;
+
+    // Chart data
+    private string[] _classLabels = { "Class A", "Class B", "Class C" };
+    private double[] _classItemsData = [];
+    private double[] _classRevenueData = [];
+    private List<ChartSeries<double>> _classBarSeries = new();
+    private string[] _paretoLabels = [];
+    private List<ChartSeries<double>> _paretoSeries = new();
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            var items = await DbContext.SalesOrderItems
+                .Include(i => i.Product)
+                .GroupBy(i => new { i.ProductId, i.Product.Name, i.Product.SKU })
+                .Select(g => new { g.Key.Name, g.Key.SKU, Revenue = g.Sum(i => i.LineTotalPrice) })
+                .OrderByDescending(x => x.Revenue)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var totalRevenue = items.Sum(i => i.Revenue);
+            if (totalRevenue == 0) totalRevenue = 1;
+
+            decimal cumulative = 0;
+            _allItems = items.Select(i =>
+            {
+                var pct = i.Revenue / totalRevenue * 100;
+                cumulative += pct;
+                var cls = cumulative <= _aPercent ? "A" : cumulative <= _aPercent + _bPercent ? "B" : "C";
+                return new AbcRow(i.Name, i.SKU, i.Revenue, pct, cumulative, cls);
+            }).ToList();
+
+            _aItems = _allItems.Where(i => i.Class == "A").ToList();
+            _bItems = _allItems.Where(i => i.Class == "B").ToList();
+            _cItems = _allItems.Where(i => i.Class == "C").ToList();
+            _loaded = true;
+
+            // Class distribution charts
+            _classItemsData = new double[] { _aItems.Count, _bItems.Count, _cItems.Count };
+            _classRevenueData = new double[] { (double)_aItems.Sum(i => i.Revenue), (double)_bItems.Sum(i => i.Revenue), (double)_cItems.Sum(i => i.Revenue) };
+            _classBarSeries = new List<ChartSeries<double>>
+            {
+                new() { Name = "Items", Data = _classItemsData },
+                new() { Name = "Revenue ($K)", Data = new double[] {
+                    (double)_aItems.Sum(i => i.Revenue) / 1000,
+                    (double)_bItems.Sum(i => i.Revenue) / 1000,
+                    (double)_cItems.Sum(i => i.Revenue) / 1000 } }
+            };
+
+            // Pareto curve
+            var step = Math.Max(1, _allItems.Count / 20);
+            var paretoItems = _allItems.Where((_, idx) => idx % step == 0 || idx == _allItems.Count - 1).ToList();
+            _paretoLabels = paretoItems.Select((_, idx) => $"{(idx * step + 1)}").ToArray();
+            _paretoSeries = new List<ChartSeries<double>>
+            {
+                new() { Name = "Cumulative %", Data = paretoItems.Select(i => (double)i.CumulativePercent).ToArray() }
+            };
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+}

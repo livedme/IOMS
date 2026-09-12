@@ -1,0 +1,63 @@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="rich-text-field @Class">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="mud-input-label">@Label@(Required ? " *" : "")</label>
+    }
+    <div id="@_editorId"
+         data-placeholder="@Placeholder"
+         style="min-height:@(_minHeight)px; background:#fff; border-radius:0 0 8px 8px;"></div>
+</div>
+
+@code {
+    private string _editorId = "rte-" + Guid.NewGuid().ToString("N")[..8];
+    private DotNetObjectReference<RichTextField>? _dotNetRef;
+    private string? _pendingValue;
+    private bool _initialized;
+
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public int Lines { get; set; } = 3;
+
+    private int _minHeight => Lines * 24 + 24;
+
+    protected override void OnParametersSet()
+    {
+        if (!_initialized)
+            _pendingValue = Value;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("RichTextEditor.initialize", _editorId, _pendingValue, _dotNetRef);
+            _initialized = true;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnContentChanged(string html)
+    {
+        Value = html;
+        await ValueChanged.InvokeAsync(html);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_initialized)
+                await JS.InvokeVoidAsync("RichTextEditor.dispose", _editorId);
+        }
+        catch { /* component already detached */ }
+        _dotNetRef?.Dispose();
+    }
+}

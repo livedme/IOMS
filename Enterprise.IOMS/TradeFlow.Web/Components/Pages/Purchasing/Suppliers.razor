@@ -1,0 +1,132 @@
+@page "/suppliers"
+@rendermode InteractiveServer
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using IOMS.Infrastructure.Data
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Suppliers - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Suppliers</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12" sm="8">
+            <MudTextField @bind-Value="_searchString" Placeholder="Search suppliers..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadData" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreate">New Supplier</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="@_items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Email</MudTh>
+            <MudTh>Phone</MudTh>
+            <MudTh>Lead Time</MudTh>
+            <MudTh>Rating</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>@context.Email</MudTd>
+            <MudTd>@context.Phone</MudTd>
+            <MudTd>@context.LeadTimeDays days</MudTd>
+            <MudTd><MudRating ReadOnly="true" SelectedValue="@((int)context.Rating)" /></MudTd>
+            <MudTd>
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Default)" Size="Size.Small">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="@(() => OpenEdit(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => Delete(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private record SupplierListItem(Guid Id, string Name, string? Email, string? Phone, int LeadTimeDays, decimal Rating, bool IsActive);
+
+    private List<SupplierListItem> _items = new();
+    private string _searchString = "";
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        var query = DbContext.Suppliers.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(_searchString))
+            query = query.Where(s => s.SupplierName.Contains(_searchString) || (s.SupplierEmail != null && s.SupplierEmail.Contains(_searchString)));
+
+        var data = await query.OrderBy(s => s.SupplierName).Take(100).ToListAsync();
+        _items = data.Select(s => new SupplierListItem(s.Id, s.SupplierName, s.SupplierEmail, s.SupplierPhone, s.LeadTimeDays, s.Rating, s.IsActive)).ToList();
+        _loading = false;
+    }
+
+    private async Task OpenCreate()
+    {
+        var dialog = await DialogService.ShowAsync<SupplierDialog>("New Supplier",
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled && result.Data is CreateSupplierDto dto)
+        {
+            DbContext.Suppliers.Add(new IOMS.Domain.Entities.Supplier
+            {
+                SupplierName = dto.SupplierName,
+                SupplierEmail = dto.SupplierEmail,
+                SupplierPhone = dto.SupplierPhone,
+                Address = dto.Address, City = dto.City, State = dto.State,
+                Country = dto.Country, PostalCode = dto.PostalCode,
+                PaymentTerms = dto.PaymentTerms, LeadTimeDays = dto.LeadTimeDays
+            });
+            await DbContext.SaveChangesAsync();
+            Snackbar.Add("Supplier created", Severity.Success);
+            await LoadData();
+        }
+    }
+
+    private async Task OpenEdit(SupplierListItem item)
+    {
+        var entity = await DbContext.Suppliers.FindAsync(item.Id);
+        if (entity == null) return;
+
+        var dto = new SupplierDto(entity.Id, entity.SupplierName, entity.SupplierEmail, entity.SupplierPhone,"","","", entity.Address,
+            entity.City, entity.Zila, entity.State, entity.Country, entity.PostalCode, entity.PaymentTerms, entity.LeadTimeDays, entity.Rating, entity.IsActive);
+
+        var parameters = new DialogParameters<SupplierDialog> { { x => x.Supplier, dto } };
+        var dialog = await DialogService.ShowAsync<SupplierDialog>("Edit Supplier", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled && result.Data is CreateSupplierDto updated)
+        {
+            entity.SupplierName = updated.SupplierName; entity.SupplierEmail = updated.SupplierEmail; entity.SupplierPhone = updated.SupplierPhone;
+            entity.Address = updated.Address; entity.City = updated.City; entity.State = updated.State;
+            entity.Country = updated.Country; entity.PostalCode = updated.PostalCode;
+            entity.PaymentTerms = updated.PaymentTerms; entity.LeadTimeDays = updated.LeadTimeDays;
+            await DbContext.SaveChangesAsync();
+            Snackbar.Add("Supplier updated", Severity.Success);
+            await LoadData();
+        }
+    }
+
+    private async Task Delete(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm", "Delete this supplier?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            var entity = await DbContext.Suppliers.FindAsync(id);
+            if (entity != null) { entity.IsDeleted = true; await DbContext.SaveChangesAsync(); await LoadData(); }
+        }
+    }
+}

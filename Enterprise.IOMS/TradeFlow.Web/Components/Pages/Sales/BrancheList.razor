@@ -1,0 +1,122 @@
+@page "/shop/branches"
+@rendermode InteractiveServer
+@inject IBranchService BranchService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+<PageTitle>Branches - IOMS</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">Branches</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudItem xs="12" sm="12" Class="d-flex justify-end">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreate">New Branch</MudButton>
+    </MudItem>
+    <MudTable Items="@_branches" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">      
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Code</MudTh>
+            <MudTh>Location</MudTh>
+            <MudTh>Address</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>       
+        <RowTemplate>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>@context.Code</MudTd>
+            <MudTd>@context.Location</MudTd> 
+            <MudTd>@context.Address</MudTd>
+            <MudTd>
+                <MudChip T="string" Color="@CommonUtility.GetStatusColor(context.IsActive)" Size="Size.Small">@CommonUtility.GetStatusText(context.IsActive)</MudChip>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                               OnClick="@(() => OpenEdit(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => Delete(context.Id))" />
+
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<BranchDto> _branches = new();
+    private List<SalesOrderDto> salesOrders = new();
+    private BranchDto _branche = new BranchDto(Guid.Empty, "", "", null, null,true);
+    private string _search = "";
+    // private List<BranchStatus?> _statusFilters = new() {
+    //     BranchStatus.Active,
+    //             BranchStatus.Pending,
+    //             BranchStatus.Approved,
+    //             BranchStatus.Suspended,
+    //             BranchStatus.Closed };
+    // private BranchStatus? _statusFilter;
+    private bool _loading = true;
+    private int _page = 1;
+
+    protected override async Task OnInitializedAsync() => await LoadBranches();
+
+    private async Task LoadBranches()
+    {
+        _loading = true;
+        try { _branches = await BranchService.GetBranches(); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _loading = false;
+    }
+
+    private async Task OpenCreate()
+    {      
+        var parameters = new DialogParameters<BrancheDialog>
+        {
+            { x => x.Branch, _branche }
+        };
+
+        var dialog = await DialogService.ShowAsync<BrancheDialog>("New Branch", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = false, CloseButton = true });
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is CreateBranchDto dto)
+        {
+            try
+            {
+                var branchId = await BranchService.CreateBranch(dto);
+                Snackbar.Add("Branch created successfully", Severity.Success);
+                await LoadBranches ();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+
+    private async Task OpenEdit(BranchDto item)
+    {
+        var entity = await BranchService.GetBranchById(item.Id);
+        if (entity == null) return;
+
+        var dto = new BranchDto(entity.Id, entity.Name, entity.Code, entity.Location, entity.Address, entity.IsActive);
+
+        var parameters = new DialogParameters<BrancheDialog> { { x => x.Branch, dto } };
+        var dialog = await DialogService.ShowAsync<BrancheDialog>("Edit Branch", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled && result.Data is CreateBranchDto updated)
+        {
+            await BranchService.UpdateBranch(entity.Id, updated);
+            Snackbar.Add("Branch updated", Severity.Success);
+            await LoadBranches();
+        }
+    }
+    private async Task Delete(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm", "Delete this branch?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            var entity = await BranchService.GetBranchById(id);
+            if (entity != null) { await BranchService.DeleteBranch(id); await LoadBranches(); }
+        }
+    }
+
+}

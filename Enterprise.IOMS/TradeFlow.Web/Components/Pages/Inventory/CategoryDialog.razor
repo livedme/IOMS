@@ -1,0 +1,68 @@
+@using MudBlazor
+@rendermode InteractiveServer
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_name" Label="Name" Required="true" Validation="ValidateName" RequiredError="" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <RichTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />
+            <MudSelect @bind-Value="_parentId" Label="Parent Category" Clearable="true" Class="mt-3" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var cat in AllCategories.Where(c => Category == null || c.Id != Category.Id))
+                {
+                    <MudSelectItem Value="@((Guid?)cat.Id)">@cat.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CategoryDto? Category { get; set; }
+    [Parameter] public List<CategoryDto> AllCategories { get; set; } = new();
+    private MudForm _form = default;
+
+    private string _name = "";
+    private string? _description;
+    private Guid? _parentId;
+
+    protected override void OnInitialized()
+    {
+        if (Category != null)
+        {
+            _name = Category.Name;
+            _description = Category.Description;
+            _parentId = Category.ParentCategoryId;
+        }
+    }
+    private string? ValidateName(string? name)
+    {
+        var trimmed = name?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(trimmed))
+            return "";
+
+        // Duplicate check (case-insensitive, trimmed, globally unique)
+        var duplicate = AllCategories.Any(c =>
+            !string.Equals(c.Id.ToString(), Category?.Id.ToString(), StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(c.Name.Trim(), trimmed, StringComparison.OrdinalIgnoreCase));
+
+        if (duplicate)
+            return $"A category named '{trimmed}' already exists.";
+
+        return null;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private async Task Submit()
+    {
+        await _form.ValidateAsync();
+
+        if (!_form.IsValid)
+            return;
+
+        MudDialog.Close(DialogResult.Ok(new CreateCategoryDto(_name, _description, _parentId)));
+    } 
+}

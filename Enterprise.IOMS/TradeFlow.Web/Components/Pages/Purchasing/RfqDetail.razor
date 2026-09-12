@@ -1,0 +1,160 @@
+@page "/quotes/rfq/{Id:guid}"
+@rendermode InteractiveServer
+@inject IRfqService RfqService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@using IOMS.Infrastructure.Data
+@inject ApplicationDbContext DbContext
+
+<PageTitle>RFQ Detail - IOMS</PageTitle>
+
+@if (_rfq == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-2">@_rfq.RfqNumber</MudText>
+    <MudChip T="string" Size="Size.Small">@_rfq.Status</MudChip>
+    <MudText Typo="Typo.subtitle1" Class="mb-4">Required: @(_rfq.RequiredDate?.ToString("yyyy-MM-dd") ?? "N/A")</MudText>
+
+    <MudText Typo="Typo.h6" Class="mb-2">Requested Items</MudText>
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudTable Items="@_rfq.Items" Dense="true" Hover="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Product</MudTh>
+                <MudTh Style="text-align:right">Quantity</MudTh>
+                <MudTh Style="text-align:right">Target Price</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.ProductName</MudTd>
+                <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                <MudTd Style="text-align:right">@(context.TargetUnitPrice?.ToString("C") ?? "-")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+    <MudText Typo="Typo.h6" Class="mb-2">Supplier Responses</MudText>
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        @if (_rfq.Status == RfqStatus.Sent || _rfq.Status == RfqStatus.Received)
+        {
+            <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="ShowAddResponse" Class="mb-2">Add Response</MudButton>
+        }
+        <MudTable Items="@_rfq.SupplierResponses" Dense="true" Hover="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Supplier</MudTh>
+                <MudTh Style="text-align:right">Quoted Price</MudTh>
+                <MudTh>Lead Time</MudTh>
+                <MudTh>Valid Until</MudTh>
+                <MudTh>Selected</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.SupplierName</MudTd>
+                <MudTd Style="text-align:right">@context.QuotedPrice.ToString("C")</MudTd>
+                <MudTd>@context.LeadTimeDays days</MudTd>
+                <MudTd>@(context.ValidUntil?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+                <MudTd>@(context.IsSelected ? "✓" : "")</MudTd>
+                <MudTd>
+                    @if (!context.IsSelected && _rfq.Status != RfqStatus.Closed)
+                    {
+                        <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
+                                   OnClick="() => Award(context.Id)">Award</MudButton>
+                        <MudButton Size="Size.Small" Color="Color.Primary" Variant="Variant.Text"
+                                   OnClick="() => ConvertToPO(context.Id)">Convert to PO</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+    @if (_showResponse)
+    {
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <MudText Typo="Typo.h6" Class="mb-2">Add Supplier Response</MudText>
+            <MudGrid>
+                <MudItem xs="12" sm="3">
+                    <MudSelect T="Guid" Label="Supplier" @bind-Value="_respSupplierId" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var s in _suppliers)
+                        {
+                            <MudSelectItem Value="@s.Id">@s.SupplierName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudNumericField T="decimal" Label="Quoted Price" @bind-Value="_respPrice" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudNumericField T="int" Label="Lead Time (days)" @bind-Value="_respLeadTime" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker Label="Valid Until" @bind-Date="_respValidUntil" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                </MudItem>
+                <MudItem xs="12" sm="2" Class="d-flex align-end">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitResponse">Save</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private RfqRequestDto? _rfq;
+    private List<Supplier> _suppliers = new();
+    private bool _showResponse;
+    private Guid _respSupplierId;
+    private decimal _respPrice;
+    private int _respLeadTime;
+    private DateTime? _respValidUntil;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _suppliers = await DbContext.Suppliers.Where(s => s.IsActive).OrderBy(s => s.SupplierName).ToListAsync();
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _rfq = await RfqService.GetRfqRequestById(Id);
+    }
+
+    private void ShowAddResponse() => _showResponse = true;
+
+    private async Task SubmitResponse()
+    {
+        try
+        {
+            await RfqService.AddSupplierResponse(new CreateRfqSupplierResponseDto(
+                Id, _respSupplierId, _respPrice, _respLeadTime,
+                _respValidUntil.HasValue ? DateTime.SpecifyKind(_respValidUntil.Value, DateTimeKind.Utc) : null, null));
+            Snackbar.Add("Response added.", Severity.Success);
+            _showResponse = false;
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task Award(Guid responseId)
+    {
+        try
+        {
+            await RfqService.AwardRfq(Id, responseId);
+            Snackbar.Add("RFQ awarded.", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task ConvertToPO(Guid responseId)
+    {
+        try
+        {
+            var poId = await RfqService.ConvertRfqToPurchaseOrder(Id, responseId);
+            Snackbar.Add("Purchase Order created.", Severity.Success);
+            Navigation.NavigateTo("/orders/purchase");
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

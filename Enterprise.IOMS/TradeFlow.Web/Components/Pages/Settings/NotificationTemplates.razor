@@ -1,0 +1,80 @@
+@page "/settings/notification-templates"
+@rendermode InteractiveServer
+@inject INotificationTemplateService TemplateService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Notification Templates - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Notification Templates</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="() => OpenDialog(null)" Class="mb-3">Add Template</MudButton>
+
+    <MudTable Items="@_templates" Dense="true" Hover="true" Striped="true" Loading="@_loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Event Type</MudTh>
+            <MudTh>Channel</MudTh>
+            <MudTh>Subject</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Info">@context.EventType</MudChip></MudTd>
+            <MudTd>@context.Channel</MudTd>
+            <MudTd>@context.Subject</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                               OnClick="@(() => OpenDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="@(() => Delete(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<NotificationTemplateDto> _templates = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        try { _templates = await TemplateService.GetTemplates(); }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private async Task OpenDialog(NotificationTemplateDto? existing)
+    {
+        var parameters = new DialogParameters<NotificationTemplateDialog>();
+        if (existing != null) parameters.Add(x => x.Existing, existing);
+
+        var dialog = await DialogService.ShowAsync<NotificationTemplateDialog>(
+            existing == null ? "Add Template" : "Edit Template", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await Load();
+            Snackbar.Add(existing == null ? "Template created" : "Template updated", Severity.Success);
+        }
+    }
+
+    private async Task Delete(Guid id)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm Delete", "Delete this template?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            try
+            {
+                await TemplateService.DeleteTemplate(id);
+                await Load();
+                Snackbar.Add("Template deleted", Severity.Success);
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        }
+    }
+}

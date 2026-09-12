@@ -1,0 +1,113 @@
+@page "/inventory/stocktakes"
+@rendermode InteractiveServer
+@inject IStocktakeService StocktakeService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+@inject IOMS.Infrastructure.Data.ApplicationDbContext DbContext
+
+<PageTitle>Stocktakes</PageTitle>
+<MudText Typo="Typo.h4" Class="mb-4">Stocktakes</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (StocktakeStatus s in Enum.GetValues<StocktakeStatus>())
+                {
+                    <MudSelectItem Value="@((StocktakeStatus?)s)">@s</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" Class="d-flex align-end gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData"
+                       StartIcon="@Icons.Material.Filled.Refresh">Refresh</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateNew"
+                       StartIcon="@Icons.Material.Filled.Add">New Stocktake</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable Items="_stocktakes" Hover="true" Striped="true" Loading="_loading">
+    <HeaderContent>
+        <MudTh>Warehouse</MudTh>
+        <MudTh>Start Date</MudTh>
+        <MudTh>End Date</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Total Items</MudTh>
+        <MudTh>Counted</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
+        <MudTd DataLabel="Start Date">@context.StartDate.ToShortDateString()</MudTd>
+        <MudTd DataLabel="End Date">@(context.EndDate?.ToShortDateString() ?? "-")</MudTd>
+        <MudTd DataLabel="Status">
+            <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetColor(context.Status)">@context.Status</MudChip>
+        </MudTd>
+        <MudTd DataLabel="Total Items">@context.TotalItems</MudTd>
+        <MudTd DataLabel="Counted">@context.CountedItems</MudTd>
+        <MudTd DataLabel="Actions">
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                           OnClick="@(() => Navigation.NavigateTo($"/inventory/stocktakes/{context.Id}"))" />
+            @if (context.Status == StocktakeStatus.PendingApproval)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"
+                               OnClick="@(() => Approve(context.Id))" Title="Approve" />
+            }
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+<MudPagination Class="mt-4" Count="_totalPages" SelectedChanged="OnPageChanged" Selected="_page" />
+
+@code {
+    private List<StocktakeDto> _stocktakes = new();
+    private StocktakeStatus? _statusFilter;
+    private int _page = 1;
+    private int _totalPages = 1;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        try
+        {
+            var result = await StocktakeService.GetStocktakes(_statusFilter, _page, 20);
+            _stocktakes = result.Items;
+            _totalPages = result.TotalPages;
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private async Task CreateNew()
+    {
+        var warehouses = await DbContext.Set<Warehouse>().Where(w => w.IsActive).OrderBy(w => w.Name).ToListAsync();
+        var parameters = new DialogParameters<StocktakeCreateDialog> { { x => x.Warehouses, warehouses } };
+        var dialog = await DialogService.ShowAsync<StocktakeCreateDialog>("New Stocktake", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadData();
+    }
+
+    private async Task Approve(Guid id)
+    {
+        try
+        {
+            await StocktakeService.ApproveStocktake(id);
+            Snackbar.Add("Stocktake approved.", Severity.Success);
+            await LoadData();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        _page = page;
+        await LoadData();
+    }
+
+}
