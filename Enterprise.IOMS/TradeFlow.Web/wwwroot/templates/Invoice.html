@@ -1,0 +1,655 @@
+﻿@page "/orders/sales1"
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sales Order</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+
+    <style>
+
+        :root {
+            --primary: #0d6efd;
+            --dark: #02152d;
+            --border: #dee2e6;
+        }
+
+        body {
+            background: #f5f7fb;
+            font-family: Segoe UI, sans-serif;
+            color: #344054;
+        }
+
+        .sales-order {
+            background: #fff;
+            border: 1px solid var(--border);
+        }
+
+        .top-header {
+            background: linear-gradient(90deg,#02152d,#042d5e,#02152d);
+            color: #fff;
+            padding: 25px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 55px;
+            height: 55px;
+            background: linear-gradient(135deg,#0d6efd,#7db4ff);
+            clip-path: polygon(50% 0%, 100% 100%, 70% 100%, 50% 60%, 30% 100%, 0 100%);
+        }
+
+        .company-name {
+            font-size: 38px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .company-tag {
+            font-size: 13px;
+            letter-spacing: .5px;
+        }
+
+        .order-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .order-number {
+            color: #2b8cff;
+            font-size: 42px;
+            font-weight: 700;
+        }
+
+        .action-btn {
+            border: 1px solid rgba(255,255,255,.3);
+            color: white;
+            background: transparent;
+            padding: 10px 18px;
+        }
+
+            .action-btn:hover {
+                background: white;
+                color: #02152d;
+            }
+
+        .info-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            background: #fff;
+        }
+
+        .icon-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #0d6efd;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .address-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            height: 100%;
+        }
+
+        .section-title {
+            color: #0d6efd;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .timeline-container {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            overflow-x: auto;
+        }
+
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            min-width: 700px;
+            position: relative;
+        }
+
+            .timeline::before {
+                content: '';
+                position: absolute;
+                top: 32px;
+                left: 10%;
+                right: 10%;
+                height: 3px;
+                background: #0d6efd;
+            }
+
+        .step {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: #0d6efd;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: auto;
+            border: 4px solid white;
+        }
+
+        .step.pending .step-icon {
+            background: white;
+            color: #adb5bd;
+            border: 2px solid #ced4da;
+        }
+
+        .table-dark-custom {
+            background: linear-gradient(90deg,#02152d,#042d5e,#02152d);
+            color: white;
+        }
+
+        .product-image {
+            width: 70px;
+        }
+
+        .summary-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .total-price {
+            color: #0d6efd;
+            font-size: 42px;
+            font-weight: 700;
+        }
+
+        .signature-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .signature-line {
+            border-top: 1px solid #555;
+            margin-top: 40px;
+            padding-top: 10px;
+            text-align: center;
+        }
+
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 25px;
+            text-align: center;
+        }
+
+        @@media(max - width:768px) {
+
+            .company-name {
+                font-size: 28px;
+            }
+
+            .order-number {
+                font-size: 28px;
+            }
+
+            .action-btn {
+                width: 100%;
+            }
+
+            .total-price {
+                font-size: 30px;
+            }
+
+            .top-header {
+                text-align: center;
+            }
+
+            .logo-section {
+                justify-content: center;
+                margin-bottom: 20px;
+            }
+        }
+
+        @@media print {
+
+            body {
+                background: white;
+            }
+
+            .action-buttons {
+                display: none !important;
+            }
+
+            .sales-order {
+                border: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container-fluid p-lg-4 p-2">
+
+        <div class="sales-order">
+
+            <!-- HEADER -->
+
+            <div class="top-header">
+
+                <div class="row align-items-center gy-4">
+
+                    <div class="col-lg-4">
+
+                        <div class="logo-section">
+
+                            <div class="logo-icon"></div>
+
+                            <div>
+                                <div class="company-name">AVANCER</div>
+                                <div class="company-tag">
+                                    INVENTORY & ORDER MANAGEMENT
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-lg-4 text-center">
+
+                        <div class="order-title">SALES ORDER</div>
+
+                        <div class="order-number">
+                            SO-20260616-4391
+                        </div>
+
+                    </div>
+
+                    <div class="col-lg-4">
+
+                        <div class="d-flex flex-wrap gap-2 justify-content-lg-end action-buttons">
+
+                            <button class="btn action-btn">
+                                <i class="fa fa-print me-2"></i>Print
+                            </button>
+
+                            <button class="btn action-btn">
+                                <i class="fa fa-file-pdf me-2"></i>PDF
+                            </button>
+
+                            <button class="btn action-btn">
+                                <i class="fa fa-envelope me-2"></i>Email
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- CUSTOMER INFO -->
+
+            <div class="p-4">
+                <div class="info-card mb-4">
+                    <div class="row g-4">
+                        <div class="col-lg-3 col-md-6">
+                            <div class="d-flex gap-3">
+                                <div class="icon-circle"><i class="fa fa-building"></i></div>
+                                <div>
+                                    <div class="text-muted">Customer</div>
+                                    <h5>Acme Corp</h5>
+                                    123 Business Park<br>
+                                    New York, NY 10001<br>
+                                    Phone: (212) 555-1234
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <div class="d-flex gap-3">
+                                <div class="icon-circle"><i class="fa fa-calendar"></i></div>
+                                <div>
+                                    <div class="text-muted">Order Date</div>
+                                    <h5>16-Jun-2026</h5>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <div class="d-flex gap-3">
+                                <div class="icon-circle"><i class="fa fa-tag"></i></div>
+                                <div>
+                                    <div class="text-muted">Status</div>
+                                    <br>
+                                    <span class="badge bg-success px-3 py-2">
+                                        Sold
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <div class="d-flex gap-3">
+                                <div class="icon-circle"><i class="fa fa-user"></i></div>
+                                <div>
+                                    <div class="text-muted">Sales Rep</div>
+                                    <h5>John Doe</h5>
+                                    Phone: (212) 555-6789
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- BILL SHIP -->
+
+                <div class="row g-4 mb-4">
+
+                    <div class="col-lg-6">
+
+                        <div class="address-card">
+
+                            <div class="section-title mb-3">
+                                <i class="fa fa-location-dot me-2"></i>
+                                Bill To
+                            </div>
+
+                            <h5>Acme Corp</h5>
+
+                            123 Business Park<br>
+                            New York, NY 10001<br>
+                            USA<br>
+                            Phone: (212) 555-1234
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-lg-6">
+
+                        <div class="address-card">
+
+                            <div class="section-title mb-3">
+                                <i class="fa fa-truck me-2"></i>
+                                Ship To
+                            </div>
+
+                            <h5>Acme Corp Warehouse</h5>
+
+                            456 Warehouse Lane<br>
+                            New York, NY 10001<br>
+                            USA<br>
+                            Phone: (212) 555-9876
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- TIMELINE -->
+
+                <div class="timeline-container mb-4">
+
+                    <div class="timeline">
+
+                        <div class="step">
+                            <div>Created</div>
+                            <div class="step-icon"><i class="fa fa-file"></i></div>
+                            <small>16-Jun-2026</small>
+                        </div>
+
+                        <div class="step">
+                            <div>Approved</div>
+                            <div class="step-icon"><i class="fa fa-check"></i></div>
+                            <small>16-Jun-2026</small>
+                        </div>
+
+                        <div class="step">
+                            <div>Packed</div>
+                            <div class="step-icon"><i class="fa fa-box"></i></div>
+                            <small>16-Jun-2026</small>
+                        </div>
+
+                        <div class="step">
+                            <div>Shipped</div>
+                            <div class="step-icon"><i class="fa fa-truck"></i></div>
+                            <small>16-Jun-2026</small>
+                        </div>
+
+                        <div class="step pending">
+                            <div>Delivered</div>
+                            <div class="step-icon"><i class="fa fa-check"></i></div>
+                            <small>-</small>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- PRODUCTS -->
+
+                <div class="row g-4">
+
+                    <div class="col-lg-8">
+
+                        <div class="table-responsive">
+
+                            <table class="table table-bordered">
+
+                                <thead class="table-dark-custom">
+
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Product</th>
+                                        <th>SKU</th>
+                                        <th>Qty</th>
+                                        <th>Unit Price</th>
+                                        <th>Discount</th>
+                                        <th>Tax</th>
+                                        <th>Amount</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody>
+
+                                    <tr>
+
+                                        <td>1</td>
+
+                                        <td>
+                                            <img src="https://via.placeholder.com/70"
+                                                 class="product-image me-2">
+                                            27" Monitor
+                                        </td>
+
+                                        <td>SKU-0004</td>
+                                        <td>2</td>
+                                        <td>$150.00</td>
+                                        <td>$45.00</td>
+                                        <td>$21.00</td>
+
+                                        <td><strong>$318.00</strong></td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                        <p class="mt-5">
+                            Thank you for your business!
+                        </p>
+
+                    </div>
+
+                    <div class="col-lg-4">
+
+                        <div class="summary-card">
+
+                            <h5 class="text-primary mb-4">
+                                ORDER SUMMARY
+                            </h5>
+
+                            <div class="summary-item">
+                                <span>Subtotal</span>
+                                <strong>$300.00</strong>
+                            </div>
+
+                            <div class="summary-item">
+                                <span>Discount</span>
+                                <strong>$45.00</strong>
+                            </div>
+
+                            <div class="summary-item">
+                                <span>Tax</span>
+                                <strong>$21.00</strong>
+                            </div>
+
+                            <div class="summary-item">
+                                <span>Labour</span>
+                                <strong>$0.00</strong>
+                            </div>
+
+                            <div class="summary-item">
+                                <span>Truck</span>
+                                <strong>$0.00</strong>
+                            </div>
+
+                            <div class="text-center pt-4">
+
+                                <h4>TOTAL</h4>
+
+                                <div class="total-price">
+                                    $318.00
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- NOTES -->
+
+                <div class="row mt-5 g-4">
+
+                    <div class="col-lg-6">
+
+                        <h5 class="text-primary">
+                            NOTES
+                        </h5>
+
+                        <p>
+                            Goods once sold will not be taken back or exchanged.
+                        </p>
+
+                        <h5 class="text-primary mt-4">
+                            TERMS & CONDITIONS
+                        </h5>
+
+                        <p>
+                            Payment is due within 15 days from delivery.
+                            Late payments may incur additional charges.
+                        </p>
+
+                    </div>
+
+                    <div class="col-lg-6">
+
+                        <div class="signature-card">
+
+                            <h5 class="text-primary mb-4">
+                                AUTHORIZED SIGNATURES
+                            </h5>
+
+                            <div class="row">
+
+                                <div class="col-md-4 mb-4">
+                                    <div class="signature-line">
+                                        Prepared By<br>
+                                        John Doe
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4 mb-4">
+                                    <div class="signature-line">
+                                        Approved By<br>
+                                        Jane Smith
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4 mb-4">
+                                    <div class="signature-line">
+                                        Customer Signature
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="footer">
+
+                Avancer Inc. |
+                123 Business Park, New York, NY 10001, USA
+
+                <br><br>
+
+                Phone: (212) 555-0000 |
+                Email: sales@avancer.com |
+                www.avancer.com
+
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

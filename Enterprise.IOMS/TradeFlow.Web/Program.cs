@@ -1,19 +1,24 @@
+using IOMS.Application;
 using IOMS.Domain.Entities;
 using IOMS.Infrastructure;
 using IOMS.Infrastructure.Data;
-using IOMS.Application;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using TradeFlow.Web.Components;
 using TradeFlow.Web.Components.Account;
+using TradeFlow.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
 // Add MudBlazor
 builder.Services.AddMudServices();
+
+// Email service
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 // Add Infrastructure (DbContext, Identity, Repository, TenantProvider)
 builder.Services.AddInfrastructure(builder.Configuration);
