@@ -454,6 +454,26 @@ public record OrderStatusBreakdownDto(string Status, int Count);
 public record RecentOrderDto(Guid Id, string OrderNumber, string CustomerOrSupplier,
     DateTime Date, decimal TotalAmount, string Status);
 
+// ── Screenshot-aligned dashboard DTOs ──────────────────────────────
+public record DashboardExtendedKpiDto(
+    decimal TotalSales, double TotalSalesGrowth,
+    decimal TodaysSales, double TodaysSalesGrowth,
+    int TotalOrders, double TotalOrdersGrowth,
+    decimal TotalProfit, double TotalProfitGrowth,
+    decimal InventoryValue, double InventoryValueGrowth,
+    int LowStockItems, double LowStockGrowth);
+
+public record SalesByCategoryDto(string Category, decimal Amount, double Percentage);
+public record PaymentMethodBreakdownDto(string Method, decimal Amount, double Percentage);
+public record InventoryStatusDto(int TotalProducts, int InStock, int LowStock, int OutOfStock,
+    double InStockPct, double LowStockPct, double OutOfStockPct);
+public record DailySalesByStoreDto(string StoreName, decimal Sales);
+public record BestStoreDto(string StoreName, decimal Sales, double GrowthPct);
+public record RecentTransactionDto(string Type, string Number, string TimeAgo, decimal Amount, string Status, string StatusColor);
+public record SystemAlertDto(string Title, string Detail, string TimeAgo, string AlertType, string Icon);
+public record RecentOrderExtendedDto(Guid Id, string OrderNumber, string Customer, string Store, DateTime Date, string Status, decimal Amount);
+public record SalesOverviewPointDto(string Label, decimal TotalSales, decimal Profit);
+
 // Audit log
 public record AuditLogDto(Guid Id, string TableName, Guid RecordId, string Action,
     string? OldValues, string? NewValues, string? UserId, DateTime Timestamp);

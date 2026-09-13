@@ -112,6 +112,17 @@ public interface IDashboardService
     Task<List<OrderStatusBreakdownDto>> GetPurchaseOrderStatusBreakdown();
     Task<List<RecentOrderDto>> GetRecentSalesOrders(int count);
     Task<List<RecentOrderDto>> GetRecentPurchaseOrders(int count);
+    // Screenshot-aligned extensions
+    Task<DashboardExtendedKpiDto> GetExtendedKpis();
+    Task<List<SalesOverviewPointDto>> GetSalesOverview(int days);
+    Task<List<SalesByCategoryDto>> GetSalesByCategory();
+    Task<List<PaymentMethodBreakdownDto>> GetPaymentMethodBreakdown();
+    Task<InventoryStatusDto> GetInventoryStatus();
+    Task<List<DailySalesByStoreDto>> GetDailySalesByStore();
+    Task<List<BestStoreDto>> GetBestPerformingStores();
+    Task<List<RecentTransactionDto>> GetRecentTransactions(int count);
+    Task<List<SystemAlertDto>> GetSystemAlerts(int count);
+    Task<List<RecentOrderExtendedDto>> GetRecentOrdersExtended(int count);
 }
 
 public interface ISearchService
