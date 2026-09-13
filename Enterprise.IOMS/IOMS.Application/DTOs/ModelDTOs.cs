@@ -14,9 +14,11 @@ namespace IOMS.Application.DTOs
         public decimal SellingPrice { get; set; }
         public decimal WholeSellingPrice { get; set; }
         public int ReorderStockLevel { get; set; }
-        public int MinOrderQuantity { get; set; }
+        public int MinOrderQuantity { get; set; }        
+        public ControlDto CategoryControl { get; set; }= new ControlDto();
         public Guid CategoryId { get; set; }
         public string? CategoryName { get; set; }
+        public ControlDto BrandControl { get; set; }= new ControlDto();
         public Guid? BrandId { get; set; }
         public string? BrandName { get; set; }
         public string? ImageUrl { get; set; }

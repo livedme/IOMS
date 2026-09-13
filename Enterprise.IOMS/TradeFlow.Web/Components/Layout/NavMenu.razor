@@ -75,6 +75,13 @@
         <MudNavLink Href="/reports/inventory-costing" Icon="@Icons.Material.Outlined.Calculate">Inventory Costing</MudNavLink>
     </MudNavGroup>
 
+    <MudText Typo="Typo.caption" Class="px-4 pt-4 pb-1" Style="text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--mud-palette-text-secondary);">Sales & Purchasing</MudText>
+    <MudNavGroup Title="Organization" Icon="@Icons.Material.Outlined.PointOfSale" Expanded="false">
+        <MudNavLink Href="/orders/Branches" Icon="@Icons.Material.Outlined.Receipt">Branches</MudNavLink>
+        <MudNavLink Href="/sales/Warehouses" Icon="@Icons.Material.Outlined.Receipt">Warehouses</MudNavLink>
+        <MudNavLink Href="/Departments" Icon="@Icons.Material.Outlined.People">Departments</MudNavLink>
+    </MudNavGroup>
+
     <MudText Typo="Typo.caption" Class="px-4 pt-4 pb-1" Style="text-transform:uppercase;letter-spacing:0.08em;font-weight:600;color:var(--mud-palette-text-secondary);">System</MudText>
     <MudNavGroup Title="Settings" Icon="@Icons.Material.Outlined.Settings" Expanded="false">
         <MudNavLink Href="/settings/tax" Icon="@Icons.Material.Outlined.Receipt">Tax Rates</MudNavLink>
@@ -101,6 +108,19 @@
         <MudNavLink Href="/admin/data-privacy" Icon="@Icons.Material.Outlined.Security">Data Privacy</MudNavLink>
         <MudNavLink Href="/admin/archival" Icon="@Icons.Material.Outlined.Archive">Data Archival</MudNavLink>
     </MudNavGroup>
+
+
+    <MudNavGroup Title="Platform Admin" Icon="@Icons.Material.Outlined.AdminPanelSettings" Expanded="false" Class="">
+        <MudNavLink Href="/admin/users" Icon="@Icons.Material.Outlined.Group">Tenants</MudNavLink>
+        <MudNavLink Href="/admin/roles" Icon="@Icons.Material.Outlined.AdminPanelSettings">Subscriptions</MudNavLink>
+        <MudNavLink Href="/admin/audit-logs" Icon="@Icons.Material.Outlined.History">Plans</MudNavLink>
+        <MudNavLink Href="/admin/import" Icon="@Icons.Material.Outlined.Upload">Tenant Usage</MudNavLink>
+        <MudNavLink Href="/admin/export" Icon="@Icons.Material.Outlined.Download">Feature Management</MudNavLink>
+        <MudNavLink Href="/admin/data-privacy" Icon="@Icons.Material.Outlined.Security">System Monitoring</MudNavLink>
+        <MudNavLink Href="/admin/archival" Icon="@Icons.Material.Outlined.Archive">Support / Tickets</MudNavLink>
+        <MudNavLink Href="/admin/archival" Icon="@Icons.Material.Outlined.Archive">Global Settings</MudNavLink>
+    </MudNavGroup>
+
 </MudNavMenu>
 
 @code {

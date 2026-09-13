@@ -3,7 +3,7 @@
 @using IOMS.Infrastructure.Data
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject ApplicationDbContext DbContext
+@inject IProductService ProductService
 
 <PageTitle>Brands - IOMS</PageTitle>
 
@@ -72,17 +72,17 @@
     {
         _loading = true;
 
-        var query = DbContext.Brands.Include(b => b.Products).AsQueryable();
+        _brands = await ProductService.GetAllBrandsAsync();
 
         if (!string.IsNullOrWhiteSpace(_searchString))
-            query = query.Where(b => b.Name.Contains(_searchString)
+            _brands = _brands.Where(b => b.Name.Contains(_searchString)
                 || (b.BrandCode != null && b.BrandCode.Contains(_searchString))
                 || (b.Description != null && b.Description.Contains(_searchString))
                 || (b.OriginCompany != null && b.OriginCompany.Contains(_searchString))
-                || (b.OriginCountry != null && b.OriginCountry.Contains(_searchString)));
+                || (b.OriginCountry != null && b.OriginCountry.Contains(_searchString))).ToList();
 
-        var brands = await query.OrderBy(b => b.Name).ToListAsync();
-        _brands = brands.Select(b => new BrandDto
+
+        _brands = _brands.Select(b => new BrandDto
         {
             Id = b.Id,
             Name = b.Name,
@@ -95,7 +95,7 @@
             OriginCompany = b.OriginCompany,
             OriginCountry = b.OriginCountry,
             FoundedYear = b.FoundedYear,
-            ProductCount = b.Products.Count
+            ProductCount = b.ProductCount
         }).ToList();
 
         _loading = false;
@@ -109,7 +109,7 @@
 
         if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
         {
-            DbContext.Brands.Add(new Brand
+            await ProductService.CreateBrandAsync(new CreateBrandDto
             {
                 Name = dto.Name,
                 BrandCode = dto.BrandCode,
@@ -121,7 +121,6 @@
                 FoundedYear = dto.FoundedYear
             });
 
-            await DbContext.SaveChangesAsync();
             Snackbar.Add("Brand created", Severity.Success);
             await LoadBrands();
         }
@@ -140,18 +139,9 @@
 
         if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
         {
-            var entity = await DbContext.Brands.FindAsync(brand.Id);
-            if (entity != null)
+            var entity = await ProductService.UpdateBrandAsync(brand.Id, dto);
+            if (entity)
             {
-                entity.Name = dto.Name;
-                entity.BrandCode = dto.BrandCode;
-                entity.Description = dto.Description;
-                entity.LogoUrl = dto.LogoUrl;
-                entity.Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status;
-                entity.OriginCompany = dto.OriginCompany;
-                entity.OriginCountry = dto.OriginCountry;
-                entity.FoundedYear = dto.FoundedYear;
-                await DbContext.SaveChangesAsync();
                 Snackbar.Add("Brand updated", Severity.Success);
                 await LoadBrands();
             }
@@ -163,11 +153,9 @@
         var confirm = await DialogService.ShowMessageBoxAsync("Confirm", "Delete this brand?", "Delete", "Cancel");
         if (confirm == true)
         {
-            var entity = await DbContext.Brands.FindAsync(id);
-            if (entity != null)
+            var result = await ProductService.DeleteBrandAsync(id);
+            if (result)
             {
-                entity.IsDeleted = true;
-                await DbContext.SaveChangesAsync();
                 Snackbar.Add("Brand deleted", Severity.Success);
                 await LoadBrands();
             }

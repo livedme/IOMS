@@ -19,27 +19,27 @@
                 </MudItem>
 
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
-                    <MudAutocomplete T="CategoryDto"
-                                     @ref="CategoryDropDownControl"
+                    <MudAutocomplete T="ControlItemsDto"
+                                     @ref="DataModel.CategoryControl.ControlRef"
                                      Label="Category"
-                                     @key="_lastCategorySelection"
-                                     @bind-Value="_selectedCategory"
-                                     @bind-Text="_categoryText"
+                                     @key="DataModel.CategoryControl.SelectedIndex"
+                                     @bind-Value="DataModel.CategoryControl.SelectedItem"
+                                     @bind-Text="DataModel.CategoryControl.SelectedText"
                                      @bind-Value:after="OnCategoryChanged"
                                      SearchFunc="SearchCategories"
-                                     ToStringFunc="@(c => c?.Path ?? c?.Name ?? "")"
+                                     ToStringFunc="@(c => c?.Text1 ?? c?.Name ?? "")"
                                      ResetValueOnEmptyText="true"
                                      CoerceText="true"
                                      Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
                 </MudItem>
 
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
-                    <MudAutocomplete T="BrandDto"
+                    <MudAutocomplete T="ControlItemsDto"
                                      Label="Brand"
-                                     @ref="BrandDropDownControl"
-                                     @key="_selectedBrandIndex"
-                                     @bind-Value="_selectedBrand"
-                                     @bind-Text="_brandText"
+                                     @ref="DataModel.BrandControl.ControlRef"
+                                     @key="DataModel.BrandControl.SelectedIndex"
+                                     @bind-Value="DataModel.BrandControl.SelectedItem"
+                                     @bind-Text="DataModel.BrandControl.SelectedText"
                                      @bind-Value:after="OnBrandChanged"
                                      SearchFunc="SearchBrands"
                                      ToStringFunc="@(b => b?.Name ?? "")"
@@ -89,24 +89,12 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public ProductDetailsDto DataModel { get; set; }
-    [Parameter] public List<CategoryDto> Categories { get; set; } = new();
-    [Parameter] public List<BrandDto> Brands { get; set; } = new();
+    [Parameter] public List<ControlItemsDto> Categories { get; set; } = new();
+    [Parameter] public List<ControlItemsDto> Brands { get; set; } = new();
     private MudForm _form = default!;
 
-    private MudAutocomplete<CategoryDto> CategoryDropDownControl = default!;
-    private MudAutocomplete<BrandDto> BrandDropDownControl = default!;
-    private CategoryDto? _selectedCategory;
-    private CategoryDto? _lastCategorySelection;
-    private BrandDto? _selectedBrand;
-    private BrandDto? _lastBrandSelection;
-    private string? _brandText;
-    private string? _categoryText;
-    private int _selectedBrandIndex = 0;
-    private int _selectedCategoryIndex = 0;
-
-
-    private static readonly CategoryDto AddNewCategoryOption = new(Guid.Empty, "Add New", "Create a new category", null, null, 0, "Add New");
-    private static readonly BrandDto AddNewBrandOption = new(Guid.Empty, "Add New", "Create a new brand", 0);
+    private static readonly ControlItemsDto AddNewCategoryOption = new ControlItemsDto { Id = Guid.Empty, Name = "Add New", Text1 = "Add New", Text2 = string.Empty };
+    private static readonly ControlItemsDto AddNewBrandOption = new ControlItemsDto { Id = Guid.Empty, Name = "Add New", Text1 = "Add New", Text2 = string.Empty };
 
     protected override void OnInitialized()
     {
@@ -115,15 +103,16 @@
 
         if (DataModel is ProductDetailsDto details)
         {
-       // _categoryId = details.CategoryId;
-        _selectedCategory = GetRealCategoryById(details.CategoryId);
-        _lastCategorySelection = _selectedCategory;
-        _categoryText = CategoryToDisplay(_selectedCategory);
-
-    //    _brandId = details.BrandId;
-        _selectedBrand = GetRealBrandById(details.BrandId);
-        _lastBrandSelection = _selectedBrand;
-        _brandText = BrandToDisplay(_selectedBrand);
+            // _categoryId = details.CategoryId;
+            DataModel.CategoryControl.SelectedItem = GetRealCategoryById(details.CategoryId);
+            DataModel.CategoryControl.LastSelectedItem = DataModel.CategoryControl.SelectedItem;
+            DataModel.CategoryControl.SelectedText = CategoryToDisplay(DataModel.CategoryControl.SelectedItem);
+            DataModel.CategoryControl.SelectedIndex = 1;
+            //    _brandId = details.BrandId;
+            DataModel.BrandControl.SelectedItem = GetRealBrandById(details.BrandId);
+            DataModel.BrandControl.LastSelectedItem = DataModel.BrandControl.SelectedItem;
+            DataModel.BrandControl.SelectedText = BrandToDisplay(DataModel.BrandControl.SelectedItem);
+            DataModel.BrandControl.SelectedIndex = 2;
         }
     // if (Product is ProductDetailsDto details)
         // {
@@ -179,9 +168,9 @@
         // }
     }
 
-    private Task<IEnumerable<CategoryDto>> SearchCategories(string text, CancellationToken _)
+    private Task<IEnumerable<ControlItemsDto>> SearchCategories(string text, CancellationToken _)
     {
-        IEnumerable<CategoryDto> baseResults;
+        IEnumerable<ControlItemsDto> baseResults;
 
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -192,16 +181,16 @@
             baseResults = Categories.Where(c =>
                 c.Id != Guid.Empty &&
                 (c.Name.Contains(text, StringComparison.OrdinalIgnoreCase) ||
-                 (c.Path != null && c.Path.Contains(text, StringComparison.OrdinalIgnoreCase))));
+                 (c.Text1 != null && c.Text1.Contains(text, StringComparison.OrdinalIgnoreCase))));
         }
 
         var results = new[] { AddNewCategoryOption }.Concat(baseResults).DistinctBy(c => c.Id);
         return Task.FromResult(results);
     }
 
-    private Task<IEnumerable<BrandDto>> SearchBrands(string text, CancellationToken _)
+    private Task<IEnumerable<ControlItemsDto>> SearchBrands(string text, CancellationToken _)
     {
-        IEnumerable<BrandDto> baseResults;
+        IEnumerable<ControlItemsDto> baseResults;
 
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -220,73 +209,73 @@
 
     private async Task OnCategoryChanged()
     {
-        var cat = _selectedCategory;
+        // var cat = DataModel.CategoryControl.SelectedItem;
 
-        if (cat?.Id == Guid.Empty)
-        {
-            var previousCategory = _lastCategorySelection;
-            var parameters = new DialogParameters<CategoryDialog>
-            {
-                { x => x.AllCategories, Categories.Where(c => c.Id != Guid.Empty).ToList() }
-            };
+        // if (cat?.Id == Guid.Empty)
+        // {
+        //     var previousCategory = DataModel.CategoryControl.LastSelectedItem;
+        //     var parameters = new DialogParameters<CategoryDialog>
+        //     {
+        //         { x => x.AllCategories, Categories.Where(c => c.Id != Guid.Empty).ToList() }
+        //     };
 
-            var dialog = await DialogService.ShowAsync<CategoryDialog>("New Category", parameters,
-                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true,CloseButton = true });
-            var result = await dialog.Result;
+        //     var dialog = await DialogService.ShowAsync<CategoryDialog>("New Category", parameters,
+        //         new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true,CloseButton = true });
+        //     var result = await dialog.Result;
 
-            await CategoryDropDownControl.ResetAsync();
+        //     await CategoryDropDownControl.ResetAsync();
 
-            if (result != null && !result.Canceled && result.Data is CreateCategoryDto dto)
-            {
-                var parent = await DbContext.Categories.FindAsync(dto.ParentCategoryId);
-                var path = parent == null ? dto.Name : parent.ParentCategory == null ? $"{parent.Name} > {dto.Name}" : $"{parent.ParentCategory.Name} > {parent.Name} > {dto.Name}";
+        //     if (result != null && !result.Canceled && result.Data is CreateCategoryDto dto)
+        //     {
+        //         var parent = await DbContext.Categories.FindAsync(dto.ParentCategoryId);
+        //         var path = parent == null ? dto.Name : parent.ParentCategory == null ? $"{parent.Name} > {dto.Name}" : $"{parent.ParentCategory.Name} > {parent.Name} > {dto.Name}";
 
-                var category = new IOMS.Domain.Entities.Category
-                {
-                    Name = dto.Name,
-                    Path = path,
-                    Description = dto.Description,
-                    ParentCategoryId = dto.ParentCategoryId
-                };
-                DbContext.Categories.Add(category);
-                await DbContext.SaveChangesAsync();
-                //  Snackbar.Add("Category created", Severity.Success);
-                //  await LoadCategories();
+        //         var category = new IOMS.Domain.Entities.Category
+        //         {
+        //             Name = dto.Name,
+        //             Path = path,
+        //             Description = dto.Description,
+        //             ParentCategoryId = dto.ParentCategoryId
+        //         };
+        //         DbContext.Categories.Add(category);
+        //         await DbContext.SaveChangesAsync();
+        //         //  Snackbar.Add("Category created", Severity.Success);
+        //         //  await LoadCategories();
 
-                cat = new CategoryDto(category.Id, category.Name, category.Description, category.ParentCategoryId, null, 0, category.Path);
+        //         cat = new CategoryDto(category.Id, category.Name, category.Description, category.ParentCategoryId, null, 0, category.Path);
 
-                var myCategories = await DbContext.Categories.ToListAsync();
-                Categories = myCategories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList();
+        //         var myCategories = await DbContext.Categories.ToListAsync();
+        //         Categories = myCategories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList();
 
-                _selectedCategory = GetRealCategoryById(cat.Id);
-                _lastCategorySelection = _selectedCategory;
-                DataModel.CategoryId = _selectedCategory?.Id ?? Guid.Empty;
-                _categoryText = CategoryToDisplay(_selectedCategory);
+        //         _selectedCategory = GetRealCategoryById(cat.Id);
+        //         _lastCategorySelection = _selectedCategory;
+        //         DataModel.CategoryId = _selectedCategory?.Id ?? Guid.Empty;
+        //         _categoryText = CategoryToDisplay(_selectedCategory);
 
-                _selectedCategoryIndex++;
+        //         _selectedCategoryIndex++;
 
-                StateHasChanged();
-            }
-            else
-            {
-                _selectedCategory = previousCategory;
-                _lastCategorySelection = _selectedCategory;
-                DataModel.CategoryId = previousCategory?.Id ?? Guid.Empty;
-                _categoryText = CategoryToDisplay(_selectedCategory);
-                StateHasChanged();
-            }
-        }
-        else
-        {
-            DataModel.CategoryId = cat?.Id ?? Guid.Empty;
-            _lastCategorySelection = cat;
-            _categoryText = CategoryToDisplay(_selectedCategory);
-        }
+        //         StateHasChanged();
+        //     }
+        //     else
+        //     {
+        //         _selectedCategory = previousCategory;
+        //         _lastCategorySelection = _selectedCategory;
+        //         DataModel.CategoryId = previousCategory?.Id ?? Guid.Empty;
+        //         _categoryText = CategoryToDisplay(_selectedCategory);
+        //         StateHasChanged();
+        //     }
+        // }
+        // else
+        // {
+        //     DataModel.CategoryId = cat?.Id ?? Guid.Empty;
+        //     _lastCategorySelection = cat;
+        //     _categoryText = CategoryToDisplay(_selectedCategory);
+        // }
 
 
     }
 
-    private CategoryDto? GetRealCategoryById(Guid categoryId)
+    private ControlItemsDto? GetRealCategoryById(Guid categoryId)
     {
         if (categoryId == Guid.Empty)
             return null;
@@ -296,75 +285,75 @@
 
     private async Task OnBrandChanged()
     {
-        var brand = _selectedBrand;
+        // var brand = _selectedBrand;
 
-        if (brand?.Id == Guid.Empty)
-        {
-            var previousBrand = _lastBrandSelection;
+        // if (brand?.Id == Guid.Empty)
+        // {
+        //     var previousBrand = _lastBrandSelection;
 
-            var dialog = await DialogService.ShowAsync<BrandDialog>("New Brand",
-                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
-            var result = await dialog.Result;
+        //     var dialog = await DialogService.ShowAsync<BrandDialog>("New Brand",
+        //         new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        //     var result = await dialog.Result;
 
-            await BrandDropDownControl.ResetAsync();
+        //     await BrandDropDownControl.ResetAsync();
 
-            if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
-            {
-                var entity = new IOMS.Domain.Entities.Brand
-                {
-                    Name = dto.Name,
-                    BrandCode = dto.BrandCode,
-                    Description = dto.Description,
-                    LogoUrl = dto.LogoUrl,
-                    Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status,
-                    OriginCompany = dto.OriginCompany,
-                    OriginCountry = dto.OriginCountry,
-                    FoundedYear = dto.FoundedYear
-                };
+        //     if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
+        //     {
+        //         var entity = new IOMS.Domain.Entities.Brand
+        //         {
+        //             Name = dto.Name,
+        //             BrandCode = dto.BrandCode,
+        //             Description = dto.Description,
+        //             LogoUrl = dto.LogoUrl,
+        //             Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status,
+        //             OriginCompany = dto.OriginCompany,
+        //             OriginCountry = dto.OriginCountry,
+        //             FoundedYear = dto.FoundedYear
+        //         };
 
-                DbContext.Brands.Add(entity);
-                await DbContext.SaveChangesAsync();
+        //         DbContext.Brands.Add(entity);
+        //         await DbContext.SaveChangesAsync();
 
-                var allBrands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
-                Brands = allBrands.Select(b => new BrandDto
-                {
-                    Id = b.Id,
-                    Name = b.Name,
-                    BrandCode = b.BrandCode,
-                    Description = b.Description,
-                    LogoUrl = b.LogoUrl,
-                    Status = b.Status,
-                    OriginCompany = b.OriginCompany,
-                    OriginCountry = b.OriginCountry,
-                    FoundedYear = b.FoundedYear
-                }).ToList();
+        //         var allBrands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
+        //         Brands = allBrands.Select(b => new BrandDto
+        //         {
+        //             Id = b.Id,
+        //             Name = b.Name,
+        //             BrandCode = b.BrandCode,
+        //             Description = b.Description,
+        //             LogoUrl = b.LogoUrl,
+        //             Status = b.Status,
+        //             OriginCompany = b.OriginCompany,
+        //             OriginCountry = b.OriginCountry,
+        //             FoundedYear = b.FoundedYear
+        //         }).ToList();
 
-                _selectedBrand = GetRealBrandById(entity.Id);
-                _lastBrandSelection = _selectedBrand;
-                DataModel.BrandId = _selectedBrand?.Id;
-                _brandText = BrandToDisplay(_selectedBrand);
+        //         _selectedBrand = GetRealBrandById(entity.Id);
+        //         _lastBrandSelection = _selectedBrand;
+        //         DataModel.BrandId = _selectedBrand?.Id;
+        //         _brandText = BrandToDisplay(_selectedBrand);
 
-                _selectedBrandIndex++;
-                StateHasChanged();
-            }
-            else
-            {
-                _selectedBrand = previousBrand;
-                _lastBrandSelection = _selectedBrand;
-                DataModel.BrandId = previousBrand?.Id;
-                _brandText = BrandToDisplay(_selectedBrand);
-                StateHasChanged();
-            }
+        //         _selectedBrandIndex++;
+        //         StateHasChanged();
+        //     }
+        //     else
+        //     {
+        //         _selectedBrand = previousBrand;
+        //         _lastBrandSelection = _selectedBrand;
+        //         DataModel.BrandId = previousBrand?.Id;
+        //         _brandText = BrandToDisplay(_selectedBrand);
+        //         StateHasChanged();
+        //     }
 
-            return;
-        }
+        //     return;
+        // }
 
-        DataModel.BrandId = brand?.Id;
-        _lastBrandSelection = brand;
-        _brandText = BrandToDisplay(_selectedBrand);
+        // DataModel.BrandId = brand?.Id;
+        // _lastBrandSelection = brand;
+        // _brandText = BrandToDisplay(_selectedBrand);
     }
 
-    private BrandDto? GetRealBrandById(Guid? brandId)
+    private ControlItemsDto? GetRealBrandById(Guid? brandId)
     {
         if (!brandId.HasValue || brandId.Value == Guid.Empty)
             return null;
@@ -372,11 +361,11 @@
         return Brands.FirstOrDefault(b => b.Id == brandId.Value);
     }
 
-    private static string? CategoryToDisplay(CategoryDto? category)
-        => category?.Path ?? category?.Name;
+    private static string? CategoryToDisplay(ControlItemsDto? category)
+        => category?.Text1 ?? category?.Name;
 
-    private static string? BrandToDisplay(BrandDto? brand)
-        => brand?.Name;
+    private static string? BrandToDisplay(ControlItemsDto? brand)
+        => brand?.Text1 ?? brand?.Name;
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -386,6 +375,11 @@
 
         if (!_form.IsValid)
             return;
+
+        DataModel.BrandId = DataModel.BrandControl.SelectedItem?.Id;
+        DataModel.BrandName = DataModel.BrandControl.SelectedItem?.Name;
+        DataModel.CategoryId = DataModel.CategoryControl.SelectedItem?.Id;
+        DataModel.CategoryName = DataModel.CategoryControl.SelectedItem?.Name;
 
         MudDialog.Close(DialogResult.Ok(DataModel));
     }

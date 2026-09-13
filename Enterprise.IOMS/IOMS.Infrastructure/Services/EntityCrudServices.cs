@@ -184,10 +184,15 @@ public class ProductService : IProductService
 
     public async Task<List<BrandDto>> GetAllBrandsAsync()
     {
-        var brands = await _db.Brands.Include(b => b.Products).OrderBy(b => b.Name).ToListAsync();
+        var brands = await _db.Brands.OrderBy(b => b.Name).ToListAsync();
         return _mapper.Map<List<BrandDto>>(brands);
     }
-
+    public async Task<BrandDto> GetBrandByIdAsync(Guid id)
+    {
+        var brand = await _db.Brands.FindAsync(id);
+        if (brand == null) throw new KeyNotFoundException("Brand not found");
+        return _mapper.Map<BrandDto>(brand);
+    }
     public async Task<Guid> CreateBrandAsync(CreateBrandDto dto)
     {
         var brand = new Brand
@@ -205,12 +210,26 @@ public class ProductService : IProductService
         await _db.SaveChangesAsync();
         return brand.Id;
     }
-
-    public async Task DeleteBrandAsync(Guid id)
+    public async Task<bool> UpdateBrandAsync(Guid id, CreateBrandDto dto)
+    {
+        var brand = await _db.Brands.FindAsync(id) ?? throw new KeyNotFoundException("Brand not found");
+        brand.Name = dto.Name;
+        brand.BrandCode = dto.BrandCode;
+        brand.Description = dto.Description;
+        brand.LogoUrl = dto.LogoUrl;
+        brand.Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status;
+        brand.OriginCompany = dto.OriginCompany;
+        brand.OriginCountry = dto.OriginCountry;
+        brand.FoundedYear = dto.FoundedYear;
+        await _db.SaveChangesAsync();
+        return true;
+    }
+    public async Task<bool> DeleteBrandAsync(Guid id)
     {
         var brand = await _db.Brands.FindAsync(id) ?? throw new KeyNotFoundException("Brand not found");
         brand.IsDeleted = true;
         await _db.SaveChangesAsync();
+        return true;
     }
 
     public async Task<PagedResult<CategoryDto>> GetCategoriesAsync(string? search, int page, int pageSize)
@@ -222,6 +241,7 @@ public class ProductService : IProductService
         var items = await query.OrderBy(c => c.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
         return new PagedResult<CategoryDto>(_mapper.Map<List<CategoryDto>>(items), total, page, pageSize);
     }
+    
 
     public async Task<List<CategoryDto>> GetAllCategoriesAsync()
     {

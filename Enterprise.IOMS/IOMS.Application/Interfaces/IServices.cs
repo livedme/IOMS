@@ -259,10 +259,16 @@ public interface IProductService
     Task UpdateProductAsync(ProductDetailsDto dto);
     Task UpdateProductDetailsAsync(ProductDetailsDto dto);
     Task DeleteProductAsync(Guid id);
+
+
     Task<PagedResult<BrandDto>> GetBrandsAsync(string? search, int page, int pageSize);
     Task<List<BrandDto>> GetAllBrandsAsync();
+    Task<BrandDto> GetBrandByIdAsync(Guid id);
     Task<Guid> CreateBrandAsync(CreateBrandDto dto);
-    Task DeleteBrandAsync(Guid id);
+    Task<bool> UpdateBrandAsync(Guid id, CreateBrandDto dto);
+    Task<bool> DeleteBrandAsync(Guid id);
+    
+    
     Task<PagedResult<CategoryDto>> GetCategoriesAsync(string? search, int page, int pageSize);
     Task<List<CategoryDto>> GetAllCategoriesAsync();
     Task<Guid> CreateCategoryAsync(CreateCategoryDto dto);
