@@ -107,7 +107,7 @@
     private static readonly CategoryDto AddNewCategoryOption =
         new(Guid.Empty, "Add New", "Create a new category", null, null, 0, "Add New");
     private static readonly BrandDto AddNewBrandOption =
-        new(Guid.Empty, "Add New", "Create a new brand", 0);
+        new(Guid.Empty, "Add New","", "Create a new brand", 0);
 
     protected override void OnInitialized()
     {
@@ -315,7 +315,7 @@
                 await DbContext.SaveChangesAsync();
 
                 var allBrands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
-                Brands = allBrands.Select(b => new BrandDto
+                Brands = allBrands.Select(b => new BrandDto(b.Id, b.Name, b.BrandCode, b.Description, 0)
                 {
                     Id = b.Id,
                     Name = b.Name,

@@ -56,17 +56,18 @@ namespace IOMS.Application.DTOs
         public decimal TotalAmount { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal DueAmount { get; set; }
-        public FilterItem SelectedCustomer { get; set; } = new FilterItem(Guid.Empty, "", false);
-        public SalesOrderItemDtoModels SelectedItem { get; set; } = new SalesOrderItemDtoModels();
-        public List<CreateSalesOrderItemDto> Items { get; set; } = new();
+        public ControlDto CustomerDdlControl { get; set; } = new ControlDto();
+        //public ControlDto SelectedCustomer { get; set; } = new FilterItem(Guid.Empty, "", false);
+        public SalesOrderItemDtoModels ProductObj { get; set; } = new SalesOrderItemDtoModels();
+        public List<CreateSalesOrderItemDto> ItemsLine { get; set; } = new();
 
-        //Guid ProductId, int Quantity, decimal UnitPrice,decimal DiscountAmount, DiscountType DiscountType, decimal TotalPrice, Guid? UoMId
+
         public class SalesOrderItemDtoModels
         {
-            public FilterItem SelectedProduct { get; set; } = new FilterItem(Guid.Empty, "", false);
+            public ControlDto ProductDdlControl { get; set; } = new ControlDto();
             public Guid ProductId { get; set; }
             public int Quantity { get; set; }
-            public Guid Serial{ get; set; }
+            public Guid Serial { get; set; }
             public decimal UnitPrice { get; set; }
             public decimal DiscountAmount { get; set; }
             public int DiscountType { get; set; }
@@ -75,15 +76,10 @@ namespace IOMS.Application.DTOs
             public List<Guid> SelectedSerialIds { get; set; } = new();
         }
     }
-    
-    
+
     public class PurchaseOrderDtoModels
     {
-        public DateTime? PurchaseDate { get; set; } = DateTime.UtcNow;
-        public Guid SupplierId { get; set; }
-        public FilterItem SelectedSupplier { get; set; } = new FilterItem(Guid.Empty, "", false);
-        public string? SupplierText { get; set; }
-        public FilterItem? LastSupplierSelection { get; set; }
+        public DateTime? PurchaseDate { get; set; } = DateTime.UtcNow;        
         public Guid WarehouseId { get; set; }
         public string? WarehouseText { get; set; }
         public string? Notes { get; set; }        
@@ -95,14 +91,17 @@ namespace IOMS.Application.DTOs
         public decimal PaidAmount { get; set; }
         public decimal DueAmount { get; set; }
 
-        public PurchaseOrderItemDtoModels SelectedItem { get; set; } = new PurchaseOrderItemDtoModels();
+        public Guid SupplierId { get; set; }
+        public ControlDto SupplierDdlControl { get; set; } = new ControlDto();
+
+        public PurchaseOrderItemDtoModels ProductObj { get; set; } = new PurchaseOrderItemDtoModels();
         
-        public List<CreatePurchaseOrderItemDto> Items { get; set; } = new();
+        public List<CreatePurchaseOrderItemDto> ItemsLine { get; set; } = new();
 
         public class PurchaseOrderItemDtoModels
         {
             public Guid Id { get; set; }
-            public FilterItem SelectedProduct { get; set; } = new FilterItem(Guid.Empty, "", false);
+            public ControlDto ProductDdlControl { get; set; } = new ControlDto();
             public Guid ProductId { get; set; }
             public int Quantity { get; set; }
             public Guid Serial { get; set; }

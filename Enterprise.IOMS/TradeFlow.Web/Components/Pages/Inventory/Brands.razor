@@ -82,7 +82,7 @@
                 || (b.OriginCountry != null && b.OriginCountry.Contains(_searchString))).ToList();
 
 
-        _brands = _brands.Select(b => new BrandDto
+        _brands = _brands.Select(b => new BrandDto(b.Id, b.Name, b.BrandCode, b.Description,0)
         {
             Id = b.Id,
             Name = b.Name,
@@ -95,7 +95,8 @@
             OriginCompany = b.OriginCompany,
             OriginCountry = b.OriginCountry,
             FoundedYear = b.FoundedYear,
-            ProductCount = b.ProductCount
+            ProductCount = b.ProductCount,
+
         }).ToList();
 
         _loading = false;

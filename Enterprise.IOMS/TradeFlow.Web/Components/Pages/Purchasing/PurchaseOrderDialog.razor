@@ -24,26 +24,19 @@
                 <MudDatePicker @bind-Date="dataModel.PurchaseDate" Label="Purchase Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="3">
-                 <MudAutocomplete T="FilterItem"
-                                 @ref="SupplierDropDownControl"
+                <MudAutocomplete T="ControlItemsDto"
+                                 @ref="dataModel.SupplierDdlControl.ControlRef"
                                  Label="Supplier"
                                  Required="true"
-                                 @key="dataModel.LastSupplierSelection"
-                                 @bind-Value="dataModel.SelectedSupplier"
-                                 @bind-Text="dataModel.SupplierText"
+                                 @key="dataModel.SupplierDdlControl.SelectedIndex"
+                                 @bind-Value="dataModel.SupplierDdlControl.SelectedItem"
+                                 @bind-Text="dataModel.SupplierDdlControl.SelectedText"
                                  @bind-Value:after="OnSupplierChanged"
                                  SearchFunc="SearchSuppliers"
                                  ToStringFunc="@(c => c?.Name ?? "")"
                                  ResetValueOnEmptyText="true"
                                  CoerceText="true"
                                  Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-
-              @*   <MudSelect @bind-Value="dataModel.SupplierId" Label="Supplier" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
-                    @foreach (var s in Suppliers)
-                    {
-                        <MudSelectItem Value="@s.Id">@s.Name</MudSelectItem>
-                    }
-                </MudSelect> *@
             </MudItem>
             <MudItem xs="12" sm="3">
                 <MudSelect T="Guid"
@@ -67,7 +60,7 @@
 
         <MudText Typo="Typo.h6" Class="mt-4 mb-2">Item Line</MudText>
 
-        <MudTable Items="@dataModel.Items" Dense="true" Elevation="0" Class="product-item-list" FixedHeader="true" ContainerClass="border-bottom-0 mud-table-container">
+        <MudTable Items="@dataModel.ItemsLine" Dense="true" Elevation="0" Class="product-item-list" FixedHeader="true" ContainerClass="border-bottom-0 mud-table-container">
             <HeaderContent>
                 <MudTh Style="width:auto;">Product</MudTh>
                 <MudTh Style="width:80px;">Qty</MudTh>
@@ -82,12 +75,12 @@
                 @if (context.ProductId == Guid.Empty)
                 {
                     <MudTd Class="d-flex justify-content-between" Style="width:auto;">
-                        <MudAutocomplete T="FilterItem"
-                                         @ref="ProductDropDownControl"
+                        <MudAutocomplete T="ControlItemsDto"
+                                         @ref="dataModel.ProductObj.ProductDdlControl.ControlRef"
                                          Required="true"
-                                         @key="_lastProductSelection"
-                                         @bind-Value="dataModel.SelectedItem.SelectedProduct"
-                                         @bind-Text="_productText"
+                                         @key="dataModel.ProductObj.ProductDdlControl.SelectedIndex"
+                                         @bind-Value="dataModel.ProductObj.ProductDdlControl.SelectedItem"
+                                         @bind-Text="dataModel.ProductObj.ProductDdlControl.SelectedText"
                                          @bind-Value:after="OnProductChanged"
                                          SearchFunc="SearchProducts"
                                          ToStringFunc="@(c => c?.Name ?? "")"
@@ -97,14 +90,14 @@
 
                     </MudTd>
                     <MudTd Class="px-0" Style="width:auto;">
-                        <MudNumericField @bind-Value="dataModel.SelectedItem.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudNumericField @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudTd>
                     <MudTd Style="width:auto;">
-                        <MudNumericField @bind-Value="dataModel.SelectedItem.UnitPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudNumericField @bind-Value="dataModel.ProductObj.UnitPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudTd>
                     <MudTd Style="width:auto;" class="d-flex justify-content-between px-0">
-                         <MudNumericField @bind-Value="dataModel.SelectedItem.DiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                        <MudSelect @bind-Value="dataModel.SelectedItem.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudNumericField @bind-Value="dataModel.ProductObj.DiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudSelect @bind-Value="dataModel.ProductObj.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
                             {
                                 <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
@@ -121,26 +114,26 @@
                     </MudTd>
                     <MudTd Class="pe-0" Style="width:auto;">
                         @{ CalculateLineTotal(); }
-                        <MudNumericField @bind-Value="dataModel.SelectedItem.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudTd>                    
                     <MudTd Style="width:auto;" class="pe-2 text-end mb-5 px-0">
                         <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Color="Color.Primary" OnClick="AddItem" />
-                        <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => dataModel.Items.Remove(context))" />
+                        <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => dataModel.ItemsLine.Remove(context))" />
                     </MudTd>
                 }
                 else
                 {
-                    var itemIndex = dataModel.Items.IndexOf(context); 
+                    var itemIndex = dataModel.ItemsLine.IndexOf(context); 
                     @if (_editingItemIndex == itemIndex)
                     {
                         <MudTd Class="d-flex justify-content-between" Style="width:auto;">
-                            <MudAutocomplete T="FilterItem"
-                                             @ref="_editProductDropDownControl"
+                            <MudAutocomplete T="ControlItemsDto"
+                                             @ref="dataModel.ProductObj.ProductDdlControl.ControlRef"
                                              Label="Product"
                                              Required="true"
-                                             @key="_editLastProductSelection"
-                                             @bind-Value="dataModel.SelectedItem.SelectedProduct"
-                                             @bind-Text="_editProductText"
+                                             @key="dataModel.ProductObj.ProductDdlControl.SelectedIndex"
+                                             @bind-Value="dataModel.ProductObj.ProductDdlControl.SelectedItem"
+                                             @bind-Text="dataModel.ProductObj.ProductDdlControl.SelectedText"
                                              @bind-Value:after="OnEditProductChanged"
                                              SearchFunc="SearchProducts"
                                              ToStringFunc="@(c => c?.Name ?? "")"
@@ -149,14 +142,14 @@
                                              Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudTd>
                         <MudTd Class="px-0" Style="width:auto;">
-                            <MudNumericField @bind-Value="dataModel.SelectedItem.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudNumericField @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudTd>
                         <MudTd Style="width:auto;">
-                            <MudNumericField @bind-Value="dataModel.SelectedItem.UnitPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudNumericField @bind-Value="dataModel.ProductObj.UnitPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudTd>
                         <MudTd Style="width:auto;" class="d-flex justify-content-between px-0">
-                            <MudNumericField @bind-Value="dataModel.SelectedItem.DiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            <MudSelect @bind-Value="dataModel.SelectedItem.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudNumericField @bind-Value="dataModel.ProductObj.DiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudSelect @bind-Value="dataModel.ProductObj.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense">
                                 @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
                                 {
                                     <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
@@ -165,7 +158,7 @@
                         </MudTd>
                         <MudTd Class="pe-0" Style="width:auto;">
                             @{ CalculateLineTotal(); }
-                            <MudNumericField @bind-Value="dataModel.SelectedItem.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudTd>
                         <MudTd Style="width:auto;" class="pe-2 text-end mb-5 px-0">
                             <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Color="Color.Primary" OnClick="@(() => SaveEditItem(itemIndex))" />
@@ -179,7 +172,7 @@
                             <MudChip T="string" Size="Size.Small" Color="Color.Default">
                                 @(context.Serials?.Count > 0 ? $"{context.Serials.Count} serial(s)" : "-")
                                 <MudIconButton Icon="@Icons.Material.Filled.AddBox" Size="Size.Small" Color="Color.Error"
-                                               OnClick="@(() => dataModel.Items.Remove(context))" />
+                                               OnClick="@(() => dataModel.ItemsLine.Remove(context))" />
                             </MudChip> 
                         </MudTd>
                         <MudTd Style="width:auto;">@context.Quantity</MudTd>
@@ -190,7 +183,7 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Info"
                                            OnClick="@(() => StartEditItem(itemIndex, context))" />
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                           OnClick="@(() => dataModel.Items.Remove(context))" />
+                                           OnClick="@(() => dataModel.ItemsLine.Remove(context))" />
                         </MudTd>
                     }
                 }
@@ -241,7 +234,7 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!dataModel.Items.Any(i => i.ProductId != Guid.Empty))">
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!dataModel.ItemsLine.Any(i => i.ProductId != Guid.Empty))">
             Save
         </MudButton>
     </DialogActions>
@@ -253,10 +246,6 @@
 @inject ISnackbar Snackbar
 
 @code {
-    //  [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
-    // [Parameter] public List<CustomerDto> Customers { get; set; } = new();
-    // [Parameter] public List<(Guid Id, string Name, string SKU, decimal Price)> Products { get; set; } = new();
-
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public List<SupplierDto> Suppliers { get; set; } = new();
     [Parameter] public List<(Guid Id, string Name)> WareHouses { get; set; } = new();
@@ -264,23 +253,27 @@
     [Parameter] public PurchaseOrderDtoModels dataModel { get; set; } = new();
 
 
+    private int _editingItemIndex = -1;
+    private static readonly ControlItemsDto AddNewOption = new(){Id = Guid.Empty, Name = "Add New", IsSelected = false};
+
+
 
     //private PurchaseOrderDtoModels dataModel = new PurchaseOrderDtoModels();    
 
-    private MudAutocomplete<FilterItem> SupplierDropDownControl = default!;    
-    private static readonly FilterItem AddNewSupplierOption = new(Guid.Empty, "Add New", false);
+    private MudAutocomplete<ControlItemsDto> SupplierDropDownControl = default!;    
+    private static readonly ControlItemsDto AddNewSupplierOption = new(){Id = Guid.Empty, Name = "Add New", IsSelected = false};
 
     //Product List
-    private MudAutocomplete<FilterItem> ProductDropDownControl = default!;
+    private MudAutocomplete<ControlItemsDto> ProductDropDownControl = default!;
     private string? _productText;
-    private FilterItem? _lastProductSelection;
-    private static readonly FilterItem AddNewProductOption = new(Guid.Empty, "Add New", false);
+    private ControlItemsDto? _lastProductSelection;
+    // private static readonly ControlItemsDto AddNewOption = new(Guid.Empty, "Add New", false);
 
     // Edit item fields
-    private int _editingItemIndex = -1;
-    private MudAutocomplete<FilterItem>? _editProductDropDownControl;
+
+    private MudAutocomplete<ControlItemsDto>? _editProductDropDownControl;
     private string? _editProductText;
-    private FilterItem? _editLastProductSelection;
+    private ControlItemsDto? _editLastProductSelection;
 
 
     // New item form fields
@@ -302,19 +295,19 @@
 
     protected override void OnInitialized()
     {
-        if (dataModel.SelectedSupplier.Id == Guid.Empty && Suppliers.Count > 0)
-            dataModel.SelectedSupplier = Suppliers.Select(x => new FilterItem(x.Id, x.SupplierName, false)).First();
+        //if (dataModel.SupplierDdlControl.SelectedItem!=null && dataModel.SupplierDdlControl.SelectedItem.Id == Guid.Empty && Suppliers.Count > 0)
+         //   dataModel.SupplierDdlControl.SelectedItem = Suppliers.Select(x => new ControlItemsDto() { Id = x.Id, Name = x.SupplierName, IsSelected = false }).First();
 
-        if (dataModel.SelectedSupplier.Id != Guid.Empty)
+        if (dataModel.SupplierDdlControl.SelectedItem != null && dataModel.SupplierDdlControl.SelectedItem.Id != Guid.Empty)
         {
-            dataModel.SupplierText = dataModel.SelectedSupplier.Name;
-            dataModel.LastSupplierSelection = dataModel.SelectedSupplier;
+            //dataModel.SupplierText = dataModel.SupplierDdlControl.SelectedItem.Name;
+            //dataModel.LastSupplierSelection = dataModel.SupplierDdlControl.SelectedItem;
         }
 
-        if (dataModel.SelectedItem.ProductId == Guid.Empty && Products.Count > 0)
+        if (dataModel.ProductObj.ProductId == Guid.Empty && Products.Count > 0)
         { 
-            dataModel.SelectedItem.ProductId = Products.First().Id; 
-            dataModel.SelectedItem.UnitPrice = Products.First().Price; 
+            dataModel.ProductObj.ProductId = Products.First().Id; 
+            dataModel.ProductObj.UnitPrice = Products.First().Price; 
         }
 
         if (dataModel.WarehouseId == Guid.Empty && WareHouses.Count > 0)
@@ -339,17 +332,17 @@
         }
     }
 
-    
+
     private async Task OnSupplierChanged()
     {
-        var cust = dataModel.SelectedSupplier;
+        var cust = dataModel.SupplierDdlControl.SelectedItem;
 
         if (cust?.Id == Guid.Empty)
         {
-            var previousCustomer = dataModel.LastSupplierSelection;
+            var previousCustomer = dataModel.SupplierDdlControl.LastSelectedItem;
             var parameters = new DialogParameters<SupplierDialog>
             {
-              //  { x => x.Supplier, new CustomerDto(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty,  0, string.Empty, false, false) }
+                //  { x => x.Supplier, new CustomerDto(Guid.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty,  0, string.Empty, false, false) }
                 //{ x => x.Customer, Customers.Where(c => c.Id != Guid.Empty).FirstOrDefault() }
             };
 
@@ -357,7 +350,7 @@
                 new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
             var result = await dialog.Result;
 
-            await SupplierDropDownControl.ResetAsync();
+            await dataModel.SupplierDdlControl.ControlRef.ResetAsync();
 
             if (result != null && !result.Canceled && result.Data is CreateSupplierDto dto)
             {
@@ -386,54 +379,66 @@
                 var latestSuppliers = await DbContext.Suppliers.ToListAsync();
                 Suppliers = latestSuppliers.Select(c => new SupplierDto(c.Id, c.SupplierName, c.SupplierEmail, c.SupplierPhone, c.ContactPersonName, c.ContactPersonPhone, c.ContactPersonEmail, c.Address, c.City, c.Zila, c.State, c.Country, c.PostalCode, null, 10, 1, false)).ToList();
 
-                cust = new FilterItem(newCustomer.Id, newCustomer.SupplierName, false);
+                cust = new ControlItemsDto(){ Id = newCustomer.Id, Name = newCustomer.SupplierName, IsSelected = false };
 
+                await UpdateControlSelection(dataModel.SupplierDdlControl, cust);
                 //var latestCustomers = await DbContext.Customers.ToListAsync();
 
-                dataModel.SelectedSupplier = Suppliers.Where(x => x.Id == newCustomer.Id).Select(c => new FilterItem(c.Id, c.SupplierName, false)).FirstOrDefault();
+                // dataModel.SelectedSupplier = Suppliers.Where(x => x.Id == newCustomer.Id).Select(c => new ControlItemsDto(c.Id, c.SupplierName, false)).FirstOrDefault();
                 //_selectedCustomer = Customers.FirstOrDefault();
-                dataModel.LastSupplierSelection = dataModel.SelectedSupplier;
+                //  dataModel.LastSupplierSelection = dataModel.SelectedSupplier;
                 //_customerId = _selectedCustomer?.Id ?? Guid.Empty;
-                dataModel.SupplierText = dataModel.SelectedSupplier?.Name;
+                // dataModel.SupplierText = dataModel.SelectedSupplier?.Name;
 
                 StateHasChanged();
             }
             else
             {
-                dataModel.SelectedSupplier = previousCustomer;
-                dataModel.LastSupplierSelection = dataModel.SelectedSupplier;
+                //dataModel.SelectedSupplier = previousCustomer;
+                //dataModel.LastSupplierSelection = dataModel.SelectedSupplier;
                 //_customer = previousCustomer;
-                dataModel.SupplierText = dataModel.SelectedSupplier?.Name;
-
+                //dataModel.SupplierText = dataModel.SelectedSupplier?.Name;
+                await UpdateControlSelection(dataModel.SupplierDdlControl, previousCustomer);
                 StateHasChanged();
             }
         }
         else
         {
-            dataModel.SelectedSupplier = cust;
-            dataModel.LastSupplierSelection = dataModel.SelectedSupplier;
-            dataModel.SupplierText = dataModel.SelectedSupplier?.Name;
+            //dataModel.SelectedSupplier = cust;
+            //dataModel.LastSupplierSelection = dataModel.SelectedSupplier;
+            //dataModel.SupplierText = dataModel.SelectedSupplier?.Name;
+            await UpdateControlSelection(dataModel.SupplierDdlControl, cust);
         }
     }
 
-    private Task<IEnumerable<FilterItem>> SearchSuppliers(string text, CancellationToken _)
+    private async Task UpdateControlSelection(ControlDto control, ControlItemsDto? selectedItem)
     {
-        IEnumerable<FilterItem> baseResults;
+        if (selectedItem != null)
+        {
+            control.SelectedItem = selectedItem;
+            control.LastSelectedItem = selectedItem;
+            control.SelectedText = selectedItem.Name ?? selectedItem.Text1;
+            control.SelectedIndex++;
+        }
+    }
+    private Task<IEnumerable<ControlItemsDto>> SearchSuppliers(string text, CancellationToken _)
+    {
+        IEnumerable<ControlItemsDto> baseResults;
 
         if (string.IsNullOrWhiteSpace(text))
         {
-            baseResults = Suppliers.Where(c => c.Id != Guid.Empty).Select(c => new FilterItem(c.Id, c.SupplierName, false));
+            baseResults = Suppliers.Where(c => c.Id != Guid.Empty).Select(c => new ControlItemsDto() { Id = c.Id, Name = c.SupplierName, IsSelected = false });
         }
         else
         {
             baseResults = Suppliers.Where(c =>
                 c.Id != Guid.Empty &&
                 (c.SupplierName.Contains(text, StringComparison.OrdinalIgnoreCase)))
-                .Select(c => new FilterItem(c.Id, c.SupplierName, false));
+                .Select(c => new ControlItemsDto() { Id = c.Id, Name = c.SupplierName, IsSelected = false });
         }
 
         //var results = new[] { AddNewCustomerOption }.Concat(baseResults).DistinctBy(c => c.Id);
-        var results = baseResults.Append(AddNewProductOption).DistinctBy(c => c.Id);
+        var results = baseResults.Append(AddNewOption).DistinctBy(c => c.Id);
 
         return Task.FromResult(results);
     }
@@ -441,25 +446,26 @@
 
     private async Task OnProductChanged()
     {
-        var prod = dataModel.SelectedItem.SelectedProduct;
+        var prod = dataModel.ProductObj.ProductDdlControl.SelectedItem;
 
         if (prod?.Id == Guid.Empty)
         {
             var categories = await DbContext.Categories.ToListAsync(); // TradeFlow.Web.Utility.Common.GetCategoryList(DbContext);
             var brands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
             var parameters = new DialogParameters<ProductAddEditDialog>
-        {
-            { x => x.Categories, categories.Select(c => new ControlItemsDto(){ Id = c.Id, Name = c.Name, Text1 = c.Description, Text2 = c.ParentCategoryId.ToString(), IsSelected = false }).ToList() },
-            { x => x.Brands, brands.Select(b => new ControlItemsDto(){ Id = b.Id, Name = b.Name, Text1 = b.Description, Text2 = "", IsSelected = false }).ToList() }
-        };
+            {
+                 {x=>x.DataModel, new ProductDetailsDto()},
+                { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId,"",0,c.Path)).ToList() },
+                { x => x.Brands, brands.Select(b => new BrandDto(b.Id, b.Name, b.BrandCode, b.Description, 0)).ToList() }
+            };
 
             var dialog = await DialogService.ShowAsync<ProductAddEditDialog>("New Product", parameters,
                 new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
             var result = await dialog.Result;
 
-            await ProductDropDownControl.ResetAsync();
+            await dataModel.ProductObj.ProductDdlControl.ControlRef.ResetAsync();
 
-            if (result != null && !result.Canceled && result.Data is CreateProductDetailsDto dto)
+            if (result != null && !result.Canceled && result.Data is ProductDetailsDto dto)
             {
                 var product = new IOMS.Domain.Entities.Product
                 {
@@ -483,43 +489,45 @@
                 var latestProduct = await DbContext.Products.ToListAsync();
                 Products = latestProduct.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
 
-                prod = new FilterItem(product.Id, product.Name, false);
-                _lastProductSelection = prod;
-                dataModel.SelectedItem.SelectedProduct = prod;
-                _productText = prod?.Name;
+                prod = new ControlItemsDto(){ Id = product.Id, Name = product.Name, IsSelected = false };
+                //_lastProductSelection = prod;
+              //  dataModel.SelectedItem.SelectedProduct = prod;
+              //  _productText = prod?.Name;
 
                 var p = Products.FirstOrDefault(p => p.Id == prod.Id);
                 if (p != default)
                 {
-                    dataModel.SelectedItem.ProductId = p.Id;
-                    dataModel.SelectedItem.Quantity = 1;
-                    dataModel.SelectedItem.UnitPrice = p.Price;
-                    dataModel.SelectedItem.DiscountType = (int)DiscountType.Percentage;
-                    dataModel.SelectedItem.DiscountAmount = 0m;
-                    dataModel.SelectedItem.TotalDiscount = 0m;
+                    dataModel.ProductObj.ProductId = p.Id;
+                    dataModel.ProductObj.Quantity = 1;
+                    dataModel.ProductObj.UnitPrice = p.Price;
+                    dataModel.ProductObj.DiscountType = (int)DiscountType.Percentage;
+                    dataModel.ProductObj.DiscountAmount = 0m;
+                    dataModel.ProductObj.TotalDiscount = 0m;
                 }
+
+                await UpdateControlSelection(dataModel.ProductObj.ProductDdlControl, prod);
 
                 StateHasChanged();
             }
             else
             {
-                var previousProduct = _lastProductSelection;
-
-                dataModel.SelectedItem.SelectedProduct = previousProduct;
-
+                var previousProduct = dataModel.ProductObj.ProductDdlControl.SelectedItem;
                 var p = Products.FirstOrDefault(p => p.Id == previousProduct?.Id);
                 if (p != default)
                 {
-                    dataModel.SelectedItem.ProductId = p.Id;
-                    dataModel.SelectedItem.Quantity = 1;
-                    dataModel.SelectedItem.UnitPrice = p.Price;
-                    dataModel.SelectedItem.DiscountType = (int)DiscountType.Percentage;
-                    dataModel.SelectedItem.DiscountAmount = 0m;
-                    dataModel.SelectedItem.TotalDiscount = 0m;
+                    dataModel.ProductObj.ProductId = p.Id;
+                    dataModel.ProductObj.Quantity = 1;
+                    dataModel.ProductObj.UnitPrice = p.Price;
+                    dataModel.ProductObj.DiscountType = (int)DiscountType.Percentage;
+                    dataModel.ProductObj.DiscountAmount = 0m;
+                    dataModel.ProductObj.TotalDiscount = 0m;
                 }
 
-                _lastProductSelection = previousProduct;
-                _productText = previousProduct?.Name;
+               // _lastProductSelection = previousProduct;
+                //_productText = previousProduct?.Name;
+
+                await UpdateControlSelection(dataModel.ProductObj.ProductDdlControl, previousProduct);
+
                 StateHasChanged();
             }            
         }
@@ -528,42 +536,36 @@
             var p = Products.FirstOrDefault(p => p.Id == prod?.Id);
             if (p != default)
             {
-                dataModel.SelectedItem.ProductId = p.Id;
-                dataModel.SelectedItem.Quantity = 1;
-                dataModel.SelectedItem.UnitPrice = p.Price;
-                dataModel.SelectedItem.DiscountType = (int)DiscountType.Percentage;
-                dataModel.SelectedItem.DiscountAmount = 0m;
-                dataModel.SelectedItem.TotalDiscount = 0m;
+                dataModel.ProductObj.ProductId = p.Id;
+                dataModel.ProductObj.Quantity = 1;
+                dataModel.ProductObj.UnitPrice = p.Price;
+                dataModel.ProductObj.DiscountType = (int)DiscountType.Percentage;
+                dataModel.ProductObj.DiscountAmount = 0m;
+                dataModel.ProductObj.TotalDiscount = 0m;
+            }          
 
-                // Load available serials for this product
-                // _selectedSerialSet = Array.Empty<Guid>();
-                // _availableSerials = await DbContext.ProductSerials
-                //     .Where(ps => ps.ProductId == p.Id && ps.Status == ProductSerialStatus.Available)
-                //     .ToListAsync();
-            }
-            _lastProductSelection = prod;
-            _productText = prod?.Name;
+            await UpdateControlSelection(dataModel.ProductObj.ProductDdlControl, prod);
         }
     }
 
-    private Task<IEnumerable<FilterItem>> SearchProducts(string text, CancellationToken _)
+    private Task<IEnumerable<ControlItemsDto>> SearchProducts(string text, CancellationToken _)
     {
-        IEnumerable<FilterItem> baseResults;
+        IEnumerable<ControlItemsDto> baseResults;
 
         if (string.IsNullOrWhiteSpace(text))
         {
-            baseResults = Products.Where(c => c.Id != Guid.Empty).Select(c => new FilterItem(c.Id, c.Name, false));
+            baseResults = Products.Where(c => c.Id != Guid.Empty).Select(c => new ControlItemsDto(){ Id = c.Id, Name = c.Name, IsSelected = false });
         }
         else
         {
             baseResults = Products.Where(c =>
                 c.Id != Guid.Empty &&
                 (c.Name.Contains(text, StringComparison.OrdinalIgnoreCase)))
-                .Select(c => new FilterItem(c.Id, c.Name, false));
+                .Select(c => new ControlItemsDto(){ Id = c.Id, Name = c.Name, IsSelected = false });
         }
 
         //var results = new[] { AddNewCustomerOption }.Concat(baseResults).DistinctBy(c => c.Id);
-        var results = baseResults; ;//.Append(AddNewCustomerOption).DistinctBy(c => c.Id);
+        var results = baseResults.Append(AddNewOption).DistinctBy(c => c.Id);
 
         return Task.FromResult(results);
     }
@@ -571,43 +573,43 @@
 
     private void StartEditItem(int index, CreatePurchaseOrderItemDto item)
     {
-        if (dataModel.Items.Any(x => x.ProductId == Guid.Empty)) return;
+        if (dataModel.ItemsLine.Any(x => x.ProductId == Guid.Empty)) return;
 
         _editingItemIndex = index;
         var product = Products.FirstOrDefault(p => p.Id == item.ProductId);
-        dataModel.SelectedItem.ProductId = item.ProductId;
-        dataModel.SelectedItem.SelectedProduct = product != default
-            ? new FilterItem(product.Id, product.Name, false)
-            : new FilterItem(Guid.Empty, "", false);
-        dataModel.SelectedItem.Quantity = item.Quantity;
-        dataModel.SelectedItem.UnitPrice = item.UnitPrice;
-        dataModel.SelectedItem.DiscountAmount = item.DiscountAmount;
-        dataModel.SelectedItem.DiscountType = (int)item.DiscountType;
-        dataModel.SelectedItem.TotalDiscount = item.TotalDiscountAmount;
-        dataModel.SelectedItem.TotalPrice = item.TotalPrice;
-        _editProductText = product != default ? product.Name : "";
-        _editLastProductSelection = dataModel.SelectedItem.SelectedProduct;
+        dataModel.ProductObj.ProductId = item.ProductId;
+        dataModel.ProductObj.ProductDdlControl.SelectedItem = product != default
+            ? new ControlItemsDto(){ Id = product.Id, Name = product.Name, IsSelected = false }
+            : new ControlItemsDto(){ Id = Guid.Empty, Name = "", IsSelected = false };
+        dataModel.ProductObj.Quantity = item.Quantity;
+        dataModel.ProductObj.UnitPrice = item.UnitPrice;
+        dataModel.ProductObj.DiscountAmount = item.DiscountAmount;
+        dataModel.ProductObj.DiscountType = (int)item.DiscountType;
+        dataModel.ProductObj.TotalDiscount = item.TotalDiscountAmount;
+        dataModel.ProductObj.TotalPrice = item.TotalPrice;
+        //_editProductText = product != default ? product.Name : "";
+        //_editLastProductSelection = dataModel.ProductObj.ProductDdlControl.SelectedItem;
     }
 
     private void SaveEditItem(int index)
     {
-        if (dataModel.SelectedItem.ProductId == Guid.Empty || dataModel.SelectedItem.Quantity <= 0) return;
+        if (dataModel.ProductObj.ProductId == Guid.Empty || dataModel.ProductObj.Quantity <= 0) return;
 
         CalculateLineTotal();
         var updated = new CreatePurchaseOrderItemDto(
-            dataModel.SelectedItem.Id,
-            dataModel.SelectedItem.ProductId,
-            dataModel.SelectedItem.Quantity,
-            dataModel.SelectedItem.UnitPrice,
-            dataModel.SelectedItem.DiscountAmount,
-            (DiscountType)dataModel.SelectedItem.DiscountType,
-            dataModel.SelectedItem.TotalDiscount,
-            dataModel.SelectedItem.TotalPrice,
+            dataModel.ProductObj.Id,
+            dataModel.ProductObj.ProductId,
+            dataModel.ProductObj.Quantity,
+            dataModel.ProductObj.UnitPrice,
+            dataModel.ProductObj.DiscountAmount,
+            (DiscountType)dataModel.ProductObj.DiscountType,
+            dataModel.ProductObj.TotalDiscount,
+            dataModel.ProductObj.TotalPrice,
             null,
-            dataModel.Items[index].Serials);
+            dataModel.ItemsLine[index].Serials);
 
-        dataModel.Items[index] = updated;
-        dataModel.SubTotal = dataModel.Items.Sum(i => i.TotalPrice);
+        dataModel.ItemsLine[index] = updated;
+        dataModel.SubTotal = dataModel.ItemsLine.Sum(i => i.TotalPrice);
         _editingItemIndex = -1;
     }
 
@@ -616,27 +618,29 @@
         _editingItemIndex = -1;
     }
 
-    private void OnEditProductChanged()
+    private async Task OnEditProductChanged()
     {
-        var prod = dataModel.SelectedItem.SelectedProduct;
+        var prod = dataModel.ProductObj.ProductDdlControl.SelectedItem;
         if (prod == null) return;
 
         var p = Products.FirstOrDefault(p => p.Id == prod.Id);
         if (p != default)
         {
-            dataModel.SelectedItem.ProductId = p.Id;
-            dataModel.SelectedItem.UnitPrice = p.Price;
-            dataModel.SelectedItem.DiscountType = (int)DiscountType.Percentage;
-            dataModel.SelectedItem.DiscountAmount = 0m;
-            dataModel.SelectedItem.TotalDiscount = 0m;
+            dataModel.ProductObj.ProductId = p.Id;
+            dataModel.ProductObj.UnitPrice = p.Price;
+            dataModel.ProductObj.DiscountType = (int)DiscountType.Percentage;
+            dataModel.ProductObj.DiscountAmount = 0m;
+            dataModel.ProductObj.TotalDiscount = 0m;
         }
-        _editLastProductSelection = prod;
-        _editProductText = prod?.Name;
+        //_editLastProductSelection = prod;
+        //_editProductText = prod?.Name;
+          await UpdateControlSelection(dataModel.ProductObj.ProductDdlControl, prod);
+
     }
 
     private void AddNewItemForm()
     {
-        if (dataModel.Items.Any(x => x.ProductId == Guid.Empty)) return;
+        if (dataModel.ItemsLine.Any(x => x.ProductId == Guid.Empty)) return;
         if (_editingItemIndex >= 0) return;
 
         _scanInput = string.Empty;
@@ -646,94 +650,43 @@
         _warrantyEnd = null;
         _binLocation = null;
 
-        dataModel.Items.Insert(0, new CreatePurchaseOrderItemDto(Guid.NewGuid(), Guid.Empty, 0, 0, 0, DiscountType.Percentage, 0, 0, null));
+        dataModel.ItemsLine.Insert(0, new CreatePurchaseOrderItemDto(Guid.NewGuid(), Guid.Empty, 0, 0, 0, DiscountType.Percentage, 0, 0, null));
     }
 
     private void AddItem()
     {
-        if (dataModel.SelectedItem.ProductId == Guid.Empty || dataModel.SelectedItem.Quantity <= 0) return;
+        if (dataModel.ProductObj.ProductId == Guid.Empty || dataModel.ProductObj.Quantity <= 0) return;
         
-        dataModel.Items.Insert(dataModel.Items.Count, new CreatePurchaseOrderItemDto(Guid.NewGuid(), dataModel.SelectedItem.ProductId, dataModel.SelectedItem.Quantity, dataModel.SelectedItem.UnitPrice, dataModel.SelectedItem.DiscountAmount, (DiscountType)dataModel.SelectedItem.DiscountType, dataModel.SelectedItem.TotalDiscount, dataModel.SelectedItem.TotalPrice, null,null));
-        dataModel.SelectedItem.Quantity = 1;
-        dataModel.SelectedItem.DiscountAmount = 0;
-        dataModel.SelectedItem.SelectedSerialIds = new();
-        dataModel.SubTotal = dataModel.Items.Sum(i => i.TotalPrice);
-        //_availableSerials = new();
-        //_selectedSerialSet = Array.Empty<Guid>();
+        dataModel.ItemsLine.Insert(dataModel.ItemsLine.Count, new CreatePurchaseOrderItemDto(Guid.NewGuid(), dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity, dataModel.ProductObj.UnitPrice, dataModel.ProductObj.DiscountAmount, (DiscountType)dataModel.ProductObj.DiscountType, dataModel.ProductObj.TotalDiscount, dataModel.ProductObj.TotalPrice, null,null));
+        dataModel.ProductObj.Quantity = 1;
+        dataModel.ProductObj.DiscountAmount = 0;
+        dataModel.ProductObj.SelectedSerialIds = new();
+        dataModel.SubTotal = dataModel.ItemsLine.Sum(i => i.TotalPrice);
 
-        if (Products.Count > 0) { dataModel.SelectedItem.ProductId = Products.First().Id; dataModel.SelectedItem.UnitPrice = Products.First().Price; }
-
-
-        // if (!string.IsNullOrWhiteSpace(_scanInput))
-        // {
-        //     var sn = _scanInput.Trim();
-        //     if (!_scannedSerials.Any(s => s.SerialNumber.Equals(sn, StringComparison.OrdinalIgnoreCase)))
-        //     {
-        //         _scannedSerials.Add(new PurchaseSerialEntryDto(
-        //             SerialNumber: sn,
-        //             Barcode: sn,
-        //             WarrantyStartDate: _warrantyStart,
-        //             WarrantyEndDate: _warrantyEnd,
-        //             BinLocation: _binLocation));
-        //     }
-        //     _scanInput = string.Empty;
-        // }
-
-        // var serials = _scannedSerials.Count > 0 ? _scannedSerials.ToList() : null;
-
-        // dataModel.Items.Add(new CreatePurchaseOrderItemDto(
-        //     _newProductId, _quantity, _unitPrice,
-        //     _newDiscountAmount, (DiscountType)_newDiscountType,
-        //     _totalDiscount, _newTotalPrice, null, serials));
-
-        // Reset scanner fields for next item
-        // _quantity = 1;
-        // _newDiscountAmount = 0;
-        // _scanInput = string.Empty;
-        // _scannedSerials = new();
-        // _showSerialDetails = false;
-        // _warrantyStart = null;
-        // _warrantyEnd = null;
-        // _binLocation = null;
-
-        // if (Products.Count > 0) { _newProductId = Products.First().Id; _unitPrice = Products.First().Price; }
+        if (Products.Count > 0) { dataModel.ProductObj.ProductId = Products.First().Id; dataModel.ProductObj.UnitPrice = Products.First().Price; }
     }
 
     private void CalculateLineTotal()
     {
-        dataModel.SelectedItem.TotalDiscount = 0;
-        if (dataModel.SelectedItem.DiscountType == (int)DiscountType.Percentage)
+        dataModel.ProductObj.TotalDiscount = 0;
+        if (dataModel.ProductObj.DiscountType == (int)DiscountType.Percentage)
         {
-            dataModel.SelectedItem.TotalDiscount = (dataModel.SelectedItem.UnitPrice * dataModel.SelectedItem.Quantity) * (dataModel.SelectedItem.DiscountAmount / 100);
+            dataModel.ProductObj.TotalDiscount = (dataModel.ProductObj.UnitPrice * dataModel.ProductObj.Quantity) * (dataModel.ProductObj.DiscountAmount / 100);
         }
         else
         {
-            dataModel.SelectedItem.TotalDiscount = dataModel.SelectedItem.DiscountAmount;
+            dataModel.ProductObj.TotalDiscount = dataModel.ProductObj.DiscountAmount;
         }
 
-        dataModel.SelectedItem.TotalPrice = ((dataModel.SelectedItem.UnitPrice * dataModel.SelectedItem.Quantity) - dataModel.SelectedItem.TotalDiscount);
+        dataModel.ProductObj.TotalPrice = ((dataModel.ProductObj.UnitPrice * dataModel.ProductObj.Quantity) - dataModel.ProductObj.TotalDiscount);
     }
 
     private void Cancel() => MudDialog.Cancel();
 
     private void Submit() => MudDialog.Close(DialogResult.Ok(
-        new CreatePurchaseOrderDto(dataModel.SelectedSupplier.Id, dataModel.WarehouseId, dataModel.Notes, null, null,
-            dataModel.Items.Where(i => i.ProductId != Guid.Empty).ToList())));
+        new CreatePurchaseOrderDto(dataModel.SupplierDdlControl.SelectedItem?.Id, dataModel.WarehouseId, dataModel.Notes, null, null,
+            dataModel.ItemsLine.Where(i => i.ProductId != Guid.Empty).ToList())));
 
-    // private void CalculateLineTotal()
-    // {
-    //     dataModel.SelectedItem.TotalDiscount = 0;
-    //     if (dataModel.SelectedItem.DiscountType == (int)DiscountType.Percentage)
-    //     {
-    //         dataModel.SelectedItem.TotalDiscount = (dataModel.SelectedItem.UnitPrice * dataModel.SelectedItem.Quantity) * (dataModel.SelectedItem.DiscountAmount / 100);
-    //     }
-    //     else
-    //     {
-    //         dataModel.SelectedItem.TotalDiscount = dataModel.SelectedItem.DiscountAmount;
-    //     }
-
-    //     dataModel.SelectedItem.TotalPrice = ((dataModel.SelectedItem.UnitPrice * dataModel.SelectedItem.Quantity) - dataModel.SelectedItem.TotalDiscount);
-    // }
 
     private void CalculationBalance()
     {

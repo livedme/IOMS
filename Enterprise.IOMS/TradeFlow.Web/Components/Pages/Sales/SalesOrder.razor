@@ -374,8 +374,14 @@
             TotalAmount = order.TotalAmount,
             PaidAmount = order.PaidAmount,
             DueAmount = order.DueAmount,
-            SelectedCustomer = new FilterItem(order.CustomerId, order.Customer.CustomerName, false),
-            Items = order.Items.Select(i => new CreateSalesOrderItemDto(
+            CustomerDdlControl = new ControlDto
+            {
+                SelectedItem = order.CustomerId != Guid.Empty
+                    ? new ControlItemsDto() { Id = order.CustomerId, Name = order.Customer?.CustomerName ?? "", IsSelected = false }
+                    : new ControlItemsDto() { Id = Guid.Empty, Name = "", IsSelected = false }
+            },
+            //CustomerControl. = new FilterItem(order.CustomerId, order.Customer.CustomerName, false),
+            ItemsLine = order.Items.Select(i => new CreateSalesOrderItemDto(
                 i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount, i.DiscountType,
                 i.TotalDiscount, i.LineTotalPrice, null, null)).ToList()
         };

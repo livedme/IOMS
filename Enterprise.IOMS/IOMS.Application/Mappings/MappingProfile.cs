@@ -44,6 +44,12 @@ public class MappingProfile : Profile
 
         // Brand
         CreateMap<Brand, BrandDto>()
+              .ConstructUsing(s => new BrandDto(
+                  s.Id,
+                  s.Name,
+                  s.BrandCode,
+                  s.Description,
+                  s.Products.Count))
             .ForMember(d => d.ProductCount, o => o.MapFrom(s => s.Products.Count));
 
         // Branch

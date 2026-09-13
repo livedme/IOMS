@@ -155,16 +155,13 @@
 
             dialogTitle = $"Edit PO #{order.OrderNumber}";
             var supplierItem = suppliers.Where(s => s.Id == order.SupplierId)
-                .Select(s => new FilterItem(s.Id, s.SupplierName, false))
-                .FirstOrDefault() ?? new FilterItem(order.SupplierId, order.SupplierName, false);
+                .Select(s => new ControlItemsDto() {Id= s.Id, IsSelected = false, Name = s.SupplierName })
+                .FirstOrDefault() ?? new ControlItemsDto() { Id = order.SupplierId, Name = order.SupplierName, IsSelected = false };
 
             dataModel = new PurchaseOrderDtoModels()
             {
                 PurchaseDate = order.PurchaseDate,
-                SupplierId = order.SupplierId,
-                SelectedSupplier = supplierItem,
-                SupplierText = supplierItem.Name,
-                LastSupplierSelection = supplierItem,
+                SupplierId = order.SupplierId,              
                 WarehouseId = order.WarehouseId,
                 DiscountAmount = order.DiscountAmount,
                 TaxAmount = order.TaxAmount,
@@ -176,8 +173,13 @@
                 SubTotal = order.SubTotal,
                 PaidAmount = order.PaidAmount,
                 Notes = order.Notes,
-                Items = order.Items.Select(i => new CreatePurchaseOrderItemDto(i.Id, i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount,
-(DiscountType)i.DiscountType, i.TotalDiscountAmount, i.LineTotalPrice, null, null)).ToList()
+                SupplierDdlControl = new ControlDto() { 
+                    SelectedItem = supplierItem,
+                    SelectedText = supplierItem?.Name,
+                    LastSelectedItem = supplierItem
+                },
+                ItemsLine = order.Items.Select(i => new CreatePurchaseOrderItemDto(i.Id, i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount,
+                    (DiscountType)i.DiscountType, i.TotalDiscountAmount, i.LineTotalPrice, null, null)).ToList()
             };
         }
 

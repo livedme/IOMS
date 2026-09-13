@@ -159,8 +159,8 @@
         var parameters = new DialogParameters<ProductAddEditDialog>
         {
             { x => x.DataModel, detailsDto },
-            { x => x.Categories, categories.Select(c => new ControlItemsDto(){ Id = c.Id, Name = c.Name, Text1 = c.Description, Text2 = c.ParentCategoryId?.ToString(), IsSelected = false }).ToList() },
-            { x => x.Brands, brands.Select(b => new ControlItemsDto(){ Id = b.Id, Name = b.Name, Text1 = b.Description, Text2 = "", IsSelected = false }).ToList() }
+            { x => x.Categories, categories.ToList() },
+            { x => x.Brands, brands.ToList() }
         };
 
         var dialog = await DialogService.ShowAsync<ProductAddEditDialog>("New Product", parameters, new DialogOptions

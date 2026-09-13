@@ -94,14 +94,11 @@ public class BrandDto
     public int? FoundedYear { get; set; }
     public int? ProductCount { get; set; }
 
-    public BrandDto()
-    {
-    }
-
-    public BrandDto(Guid id, string name, string? description, int? productCount)
+    public BrandDto(Guid id, string name, string? brandCode, string? description, int? productCount)
     {
         Id = id;
         Name = name;
+        BrandCode = brandCode;
         Description = description;
         ProductCount = productCount;
     }

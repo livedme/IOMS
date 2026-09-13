@@ -31,7 +31,6 @@ namespace IOMS.Application.DTOs
         public string Name { get; set; }
         public string Text1 { get; set; }
         public string Text2 { get; set; }
-
         public bool IsSelected { get; set; }
     }
 }
