@@ -37,7 +37,7 @@
 
                 </MudItem> 
                 <MudItem xs="12" sm="3" Class="mb-4">
-                    <MudAutocomplete T="ControlItemsDto"
+                    <MudAutocomplete T="ControlItemsDto" 
                                      @ref="dataModel.CustomerDdlControl.ControlRef"
                                      Label="Customer"
                                      Required="true"
@@ -52,7 +52,7 @@
                                      Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" sm="2">
-                    <MudTextField @bind-Value="dataModel.Naration" Label="Naration" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudTextField @ref="RefNaration" @bind-Value="dataModel.Naration" Label="Naration" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" sm="2">
                     <MudTextField @bind-Value="dataModel.Chalan" Label="Chalan" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -102,7 +102,7 @@
                                 </div>
                             }
                         </MudTd>
-                        <MudTd Class="px-0" Style="width:auto;"><MudNumericField @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
+                        <MudTd Class="px-0" Style="width:auto;"><MudNumericField @ref="RefQuantity" @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
                         <MudTd Style="width:auto;"> <MudNumericField @bind-Value="dataModel.ProductObj.UnitPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
                         <MudTd Style="width:auto;" class="d-flex justify-content-between px-0">
                             <MudNumericField @bind-Value="dataModel.ProductObj.DiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -144,7 +144,7 @@
                                                  CoerceText="true"
                                                  Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudTd>
-                            <MudTd Class="px-0" Style="width:auto;"><MudNumericField @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
+                            <MudTd Class="px-0" Style="width:auto;"><MudNumericField @ref="RefQuantity" @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
                             <MudTd Style="width:auto;"><MudNumericField @bind-Value="dataModel.ProductObj.UnitPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
                             <MudTd Style="width:auto;" class="d-flex justify-content-between px-0">
                                 <MudNumericField @bind-Value="dataModel.ProductObj.DiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -252,6 +252,11 @@
     [Parameter] public EventCallback<CreateSalesOrderDto> OnSubmit { get; set; }
     [Parameter] public EventCallback<CreateSalesOrderDto> OnSubmitAndPrint { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
+    
+    private MudTextField<string>? RefNaration;
+    private MudNumericField<int> RefQuantity;
+
+    
 
 
     private List<BranchDto> _Branches = new();
@@ -293,7 +298,7 @@
         }
     }
 
-    protected void OnBrancheValueChanged(Guid brancheId)
+    protected async Task OnBrancheValueChanged(Guid brancheId)
     {
         var branche = _Branches.FirstOrDefault(b => b.Id == brancheId);
         dataModel.BranchName = branche?.Name;
@@ -383,6 +388,11 @@
             //_lastCustomerSelection = dataModel.SelectedCustomer;
             //_customerText = dataModel.SelectedCustomer?.Name;
         }
+
+        if (RefNaration is not null)
+        {
+            await RefNaration.FocusAsync();
+        }
     }
    
     private async Task UpdateControlSelection(ControlDto control, ControlItemsDto? selectedItem)
@@ -418,7 +428,7 @@
         return Task.FromResult(results);
     }
 
-    private void OnProductFilterChanged(Guid productId)
+    private async Task OnProductFilterChanged(Guid productId)
     {
         var p = Products.FirstOrDefault(p => p.Id == productId);
         if (p != default)
@@ -455,7 +465,7 @@
         //_editLastProductSelection = dataModel.ProductObj.ProductDdlControl;
     }
 
-    private void SaveEditItem(int index)
+    private async Task SaveEditItem(int index)
     {
         if (dataModel.ProductObj.ProductId == Guid.Empty || dataModel.ProductObj.Quantity <= 0) return;
 
@@ -476,12 +486,12 @@
         _editingItemIndex = -1;
     }
 
-    private void CancelEditItem()
+    private async Task CancelEditItem()
     {
         _editingItemIndex = -1;
     }
 
-    private void OnEditProductChanged()
+    private async Task OnEditProductChanged()
     {
         var prod = dataModel.ProductObj.ProductDdlControl?.SelectedItem;
         if (prod == null) return;
@@ -497,9 +507,14 @@
         }
         dataModel.ProductObj.ProductDdlControl.LastSelectedItem = prod;
         dataModel.ProductObj.ProductDdlControl.SelectedText = prod?.Name;
+
+        if (RefQuantity is not null)
+        {
+            await RefQuantity.FocusAsync();
+        }
     }
 
-    private void AddNewItem()
+    private async Task AddNewItem()
     {
         var item = dataModel.ItemsLine.Where(x => x.ProductId == Guid.Empty).FirstOrDefault();
         if (item != null) return;
@@ -517,7 +532,7 @@
         dataModel.ProductObj.DiscountAmount = 0;
     }
 
-    private void AddItem()
+    private async Task AddItem()
     {
 
         if (dataModel.ProductObj.ProductDdlControl.SelectedItem.Id == Guid.Empty || dataModel.ProductObj.Quantity <= 0) return;
@@ -639,6 +654,11 @@
             }
             await UpdateControlSelection(dataModel.ProductObj.ProductDdlControl, prod);
         }
+
+        if (RefQuantity is not null)
+        {
+            await RefQuantity.FocusAsync();
+        }
     }
 
     private Task<IEnumerable<ControlItemsDto>> SearchProducts(string text, CancellationToken _)
@@ -663,13 +683,13 @@
         return Task.FromResult(results);
     }
     
-    private void ToggleSerial(Guid id, bool selected)
+    private async Task ToggleSerial(Guid id, bool selected)
     {
         if (selected) _selectedSerialSet = _selectedSerialSet.Append(id).ToArray();
         else _selectedSerialSet = _selectedSerialSet.Where(x => x != id).ToArray();
     }
 
-    private void CalculateLineTotal()
+    private async Task CalculateLineTotal()
     {
         dataModel.ProductObj.TotalDiscount = 0;
         if (dataModel.ProductObj.DiscountType == (int)DiscountType.Percentage)
@@ -684,7 +704,7 @@
         dataModel.ProductObj.TotalPrice = ((dataModel.ProductObj.UnitPrice * dataModel.ProductObj.Quantity) - dataModel.ProductObj.TotalDiscount);
     }
 
-    private void CalculationBalance()
+    private async Task CalculationBalance()
     {
         decimal totalVatAmount = 0;
         decimal vat = dataModel.TaxAmount;

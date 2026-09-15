@@ -49,7 +49,7 @@
 
                 </MudItem>
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
-                    <MudTextField @bind-Value="DataModel.Model" Label="Model" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                    <MudTextField @ref="RefModel" @bind-Value="DataModel.Model" Label="Model" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
                 </MudItem>
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
                     <MudNumericField @bind-Value="DataModel.CostPrice" Label="Cost Price" Format="N2" Min="0m" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
@@ -92,6 +92,7 @@
     [Parameter] public List<CategoryDto> Categories { get; set; } = new();
     [Parameter] public List<BrandDto> Brands { get; set; } = new();
     private MudForm _form = default!;
+    MudTextField<string> RefModel = default!;
 
 
     [Parameter] public List<ControlItemsDto> AllCategories { get; set; } = new();
@@ -247,6 +248,12 @@
             // DataModel.CategoryControl.LastSelectedItem = cat;
             // DataModel.CategoryControl.SelectedText = CategoryToDisplay(cat);
         }
+
+        if (DataModel.CategoryControl.ControlRef is not null)
+        {
+            await Task.Delay(50);
+            await DataModel.CategoryControl.ControlRef.FocusAsync();
+        }
     }
 
     private async Task UpdateCategorySelection(ControlItemsDto? selectedCategory)
@@ -353,9 +360,11 @@
 
         await UpdateBrandSelection(brand);
 
-        // DataModel.BrandId = brand?.Id;
-        // _lastBrandSelection = brand;
-        // _brandText = BrandToDisplay(_selectedBrand);
+
+        if (RefModel is not null)
+        {
+            await RefModel.FocusAsync();
+        }
     }
 
     private ControlItemsDto? GetRealBrandById(Guid? brandId)

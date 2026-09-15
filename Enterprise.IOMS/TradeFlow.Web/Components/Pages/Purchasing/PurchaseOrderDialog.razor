@@ -21,7 +21,7 @@
     <DialogContent>
         <MudGrid>
             <MudItem xs="12" sm="2">
-                <MudDatePicker @bind-Date="dataModel.PurchaseDate" Label="Purchase Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudDatePicker @bind-Date="dataModel.PurchaseDate"  Label="Purchase Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="3">
                 <MudAutocomplete T="ControlItemsDto"
@@ -39,7 +39,7 @@
                                  Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" sm="3">
-                <MudSelect T="Guid"
+                <MudSelect T="Guid" @ref="RefWarehouse"
                     @bind-Value="dataModel.WarehouseId"
                            @bind-Text="dataModel.WarehouseText"
                            Label="WareHouse"
@@ -90,7 +90,7 @@
 
                     </MudTd>
                     <MudTd Class="px-0" Style="width:auto;">
-                        <MudNumericField @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudNumericField @ref="RefQuantity" @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudTd>
                     <MudTd Style="width:auto;">
                         <MudNumericField @bind-Value="dataModel.ProductObj.UnitPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -142,7 +142,7 @@
                                              Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudTd>
                         <MudTd Class="px-0" Style="width:auto;">
-                            <MudNumericField @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            <MudNumericField @ref="RefQuantity" @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudTd>
                         <MudTd Style="width:auto;">
                             <MudNumericField @bind-Value="dataModel.ProductObj.UnitPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -255,8 +255,8 @@
 
     private int _editingItemIndex = -1;
     private static readonly ControlItemsDto AddNewOption = new(){Id = Guid.Empty, Name = "Add New", IsSelected = false};
-
-
+    private MudNumericField<int>? RefQuantity;
+    private MudSelect<Guid>? RefWarehouse;
 
     //private PurchaseOrderDtoModels dataModel = new PurchaseOrderDtoModels();    
 
@@ -409,6 +409,11 @@
             //dataModel.SupplierText = dataModel.SelectedSupplier?.Name;
             await UpdateControlSelection(dataModel.SupplierDdlControl, cust);
         }
+
+        if (RefWarehouse is not null)
+        {
+           await RefWarehouse.FocusAsync();
+        }
     }
 
     private async Task UpdateControlSelection(ControlDto control, ControlItemsDto? selectedItem)
@@ -546,6 +551,11 @@
 
             await UpdateControlSelection(dataModel.ProductObj.ProductDdlControl, prod);
         }
+
+        if (RefQuantity is not null)
+        {
+            await RefQuantity.FocusAsync();
+        }
     }
 
     private Task<IEnumerable<ControlItemsDto>> SearchProducts(string text, CancellationToken _)
@@ -636,6 +646,12 @@
         //_editProductText = prod?.Name;
           await UpdateControlSelection(dataModel.ProductObj.ProductDdlControl, prod);
 
+
+          
+        if (RefQuantity is not null)
+        {
+            await RefQuantity.FocusAsync();
+        }
     }
 
     private void AddNewItemForm()
