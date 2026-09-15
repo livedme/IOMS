@@ -47,7 +47,7 @@ public class Supplier : BaseEntity
     public string? PaymentTerms { get; set; }
     public Guid? DefaultCurrencyId { get; set; }
     public Currency? DefaultCurrency { get; set; }
-    public int LeadTimeDays { get; set; }
+    public int LeadTimeDays { get; set; } = 1;
     public decimal Rating { get; set; }
     public bool IsActive { get; set; } = true;
     public ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();

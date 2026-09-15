@@ -290,17 +290,21 @@ public interface IProductService
     Task DeleteWarehouseAsync(Guid id);
 }
 
-public interface ICustomerSupplierService
+public interface ICustomerService
 {
-    Task<PagedResult<CustomerDto>> GetCustomersAsync(string? search, int page, int pageSize);
+    Task<PagedResult<CustomerDto>> GetCustomersAsync(string? search, int page=1, int pageSize=100);
     Task<CustomerDto?> GetCustomerByIdAsync(Guid id);
-    Task<Guid> CreateCustomerAsync(CreateCustomerDto dto);
-    Task UpdateCustomerAsync(Guid id, CreateCustomerDto dto);
-    Task DeleteCustomerAsync(Guid id);
-    Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search, int page, int pageSize);
+    Task<Guid> CreateCustomerAsync(CustomerDto dto);
+    Task UpdateCustomerAsync(Guid id, CustomerDto dto);
+    Task DeleteCustomerAsync(Guid id);   
+}
+
+public interface ISupplierService
+{
+    Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search="", int page=1, int pageSize=100);
     Task<SupplierDto?> GetSupplierByIdAsync(Guid id);
-    Task<Guid> CreateSupplierAsync(CreateSupplierDto dto);
-    Task UpdateSupplierAsync(Guid id, CreateSupplierDto dto);
+    Task<Guid> CreateSupplierAsync(SupplierDto dto);
+    Task UpdateSupplierAsync(Guid id, SupplierDto dto);
     Task DeleteSupplierAsync(Guid id);
 }
 

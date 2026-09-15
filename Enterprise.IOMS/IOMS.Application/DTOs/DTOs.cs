@@ -155,19 +155,21 @@ public record InventoryTrackingDto(
 public record StockAdjustmentDto(Guid ProductId, Guid WarehouseId, int QuantityChange, string Reason);
 public record StockTransferDto(Guid ProductId, Guid SourceWarehouseId, Guid TargetWarehouseId, int Quantity);
 
-// Customers
-public record CustomerDto(Guid Id, string CustomerName, string? CustomerEmail, string? CustomerPhone, string ContactPersonName, string? ContactPersonEmail, string? ContactPersonPhone,  
-    string? Address, string? City, string? Zila, string? State, string? Country, string? PostalCode, decimal CreditLimit, string? PaymentTerms, bool IsActive, bool IsTaxExempt);
+//// Customers
+//public record CustomerDto(Guid Id, string CustomerName, string? CustomerEmail, string? CustomerPhone, string ContactPersonName, string? ContactPersonEmail, string? ContactPersonPhone,  
+//    string? Address, string? City, string? Zila, string? State, string? Country, string? PostalCode, decimal CreditLimit, string? PaymentTerms, bool IsActive, bool IsTaxExempt);
 
-public record CreateCustomerDto(string CustomerName, string? CustomerEmail, string? CustomerPhone, string ContactPersonName, string? ContactPersonEmail, string? ContactPersonPhone,
-    string? Address, string? City, string? Zila, string? State, string? Country, string? PostalCode, decimal CreditLimit, string? PaymentTerms, Guid? TaxJurisdictionId, Guid? DefaultPriceListId, Guid? DefaultCurrencyId, bool IsTaxExempt);
-
+//public record CreateCustomerDto(string CustomerName, string? CustomerEmail, string? CustomerPhone, string ContactPersonName, string? ContactPersonEmail, string? ContactPersonPhone,
+//    string? Address, string? City, string? Zila, string? State, string? Country, string? PostalCode, decimal CreditLimit, string? PaymentTerms, Guid? TaxJurisdictionId, Guid? DefaultPriceListId, Guid? DefaultCurrencyId, bool IsTaxExempt);
+//private record CustomerListItem(Guid Id, string Name, string? Email, string? Phone, string? City, decimal CreditLimit, bool IsActive);
 // Suppliers
-public record SupplierDto(Guid Id, string SupplierName, string? SupplierEmail, string? SupplierPhone, string ContactPersonName, string? ContactPersonEmail, string? ContactPersonPhone, 
-    string? Address, string? City, string? Zila, string? State, string? Country, string? PostalCode, string? PaymentTerms, int LeadTimeDays, decimal Rating, bool IsActive);
+//public record SupplierDto(Guid Id, string SupplierName, string? SupplierEmail, string? SupplierPhone, string ContactPersonName, string? ContactPersonEmail, string? ContactPersonPhone, 
+//    string? Address, string? City, string? Zila, string? State, string? Country, string? PostalCode, Guid? DefaultCurrencyId, string? PaymentTerms, int LeadTimeDays=1, decimal Rating=0, bool IsActive=true);
 
-public record CreateSupplierDto(string SupplierName, string? SupplierEmail, string? SupplierPhone, string ContactPersonName, string? ContactPersonEmail, string? ContactPersonPhone, 
-    string? Address, string? City, string? Zila, string? State, string? Country, string? PostalCode,string? PaymentTerms, Guid? DefaultCurrencyId, int LeadTimeDays);
+//public record SupplierListItem(Guid Id, string Name, string? Email, string? Phone, int LeadTimeDays, decimal Rating, bool IsActive);
+
+//public record CreateSupplierDto(string SupplierName, string? SupplierEmail, string? SupplierPhone, string ContactPersonName, string? ContactPersonEmail, string? ContactPersonPhone, 
+//    string? Address, string? City, string? Zila, string? State, string? Country, string? PostalCode,string? PaymentTerms, Guid? DefaultCurrencyId, int LeadTimeDays);
 
 public record SalesOrderDto(Guid Id, string OrderNumber, Guid CustomerId, CustomerDto Customer, Guid? BranchId, BranchDto? Branch,
     DateTime OrderDate, OrderStatus Status, string Naration, string Chalan, decimal SubTotal, decimal TruckCharge, decimal LabourCharge, decimal TaxAmount,

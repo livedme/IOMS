@@ -483,10 +483,26 @@
 
         var parameters = new DialogParameters<SalesOrderDialog>
         {
-            { x => x.Customers, customers.Select(c => new CustomerDto(
-                c.Id, c.CustomerName, c.CustomerEmail, c.CustomerPhone, c.ContactPersonName, c.ContactPersonPhone, c.ContactPersonEmail,
-                c.Address,                c.City, c.Zila, c.State, c.Country, c.PostalCode,
-                c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList() },
+            { x => x.Customers, customers.Select(c => new CustomerDto()
+                {
+                    Id = c.Id,
+                    CustomerName = c.CustomerName,
+                    CustomerEmail = c.CustomerEmail,
+                    CustomerPhone = c.CustomerPhone,
+                    ContactPersonName = c.ContactPersonName,
+                    ContactPersonPhone = c.ContactPersonPhone,
+                    ContactPersonEmail = c.ContactPersonEmail,
+                    Address = c.Address,
+                    City = c.City,
+                    Zila = c.Zila,
+                    State = c.State,
+                    Country = c.Country,
+                    PostalCode = c.PostalCode,
+                    CreditLimit = c.CreditLimit,
+                    PaymentTerms = c.PaymentTerms,
+                    IsActive = c.IsActive,
+                    IsTaxExempt = c.IsTaxExempt
+                }).ToList() },
             { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList() },
             { x => x.dataModel, editModel }
         };

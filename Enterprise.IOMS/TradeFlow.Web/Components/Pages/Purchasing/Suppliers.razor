@@ -2,8 +2,7 @@
 @rendermode InteractiveServer
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using IOMS.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+@inject ISupplierService SupplierService
 
 <PageTitle>Suppliers - IOMS</PageTitle>
 
@@ -27,17 +26,20 @@
             <MudTh>Name</MudTh>
             <MudTh>Email</MudTh>
             <MudTh>Phone</MudTh>
-            <MudTh>Lead Time</MudTh>
-            <MudTh>Rating</MudTh>
+            <MudTh>Contact Person</MudTh>
             <MudTh>Status</MudTh>
             <MudTh>Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>@context.Name</MudTd>
-            <MudTd>@context.Email</MudTd>
-            <MudTd>@context.Phone</MudTd>
-            <MudTd>@context.LeadTimeDays days</MudTd>
-            <MudTd><MudRating ReadOnly="true" SelectedValue="@((int)context.Rating)" /></MudTd>
+            <MudTd>@context.SupplierName</MudTd>
+            <MudTd>@context.SupplierEmail</MudTd>
+            <MudTd>@context.SupplierPhone</MudTd>
+            <MudTd>
+@context.ContactPersonName, 
+                @context.ContactPersonEmail,
+                @context.ContactPersonPhone
+
+</MudTd>            
             <MudTd>
                 <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Default)" Size="Size.Small">
                     @(context.IsActive ? "Active" : "Inactive")
@@ -47,16 +49,14 @@
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
                                OnClick="@(() => OpenEdit(context))" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                               OnClick="@(() => Delete(context.Id))" />
+                               OnClick="@(() => Delete(context))" />
             </MudTd>
         </RowTemplate>
     </MudTable>
 </MudPaper>
 
 @code {
-    private record SupplierListItem(Guid Id, string Name, string? Email, string? Phone, int LeadTimeDays, decimal Rating, bool IsActive);
-
-    private List<SupplierListItem> _items = new();
+    private List<SupplierDto> _items = new();
     private string _searchString = "";
     private bool _loading = true;
 
@@ -65,68 +65,94 @@
     private async Task LoadData()
     {
         _loading = true;
-        var query = DbContext.Suppliers.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(_searchString))
-            query = query.Where(s => s.SupplierName.Contains(_searchString) || (s.SupplierEmail != null && s.SupplierEmail.Contains(_searchString)));
+        var query =await SupplierService.GetSuppliersAsync(search: _searchString);      
+        var data=query.Items.OrderBy(s => s.SupplierName).Take(100).ToList();
+        _items = data.Select(s => new SupplierDto()
+            {
+                Id = s.Id,
+                SupplierName = s.SupplierName,
+                SupplierEmail = s.SupplierEmail,
+                SupplierPhone = s.SupplierPhone,
+                ContactPersonName = s.ContactPersonName,
+                ContactPersonEmail = s.ContactPersonEmail,
+                ContactPersonPhone = s.ContactPersonPhone,
+                Address = s.Address,
+                City = s.City,
+                Zila = s.Zila,
+                State = s.State,
+                Country = s.Country,
+                PostalCode = s.PostalCode,
+                DefaultCurrencyId = s.DefaultCurrencyId,
+                PaymentTerms = s.PaymentTerms,
+                LeadTimeDays = s.LeadTimeDays,
+                Rating = s.Rating,
+                IsActive = s.IsActive
+            }).ToList();
 
-        var data = await query.OrderBy(s => s.SupplierName).Take(100).ToListAsync();
-        _items = data.Select(s => new SupplierListItem(s.Id, s.SupplierName, s.SupplierEmail, s.SupplierPhone, s.LeadTimeDays, s.Rating, s.IsActive)).ToList();
         _loading = false;
     }
 
     private async Task OpenCreate()
     {
-        var dialog = await DialogService.ShowAsync<SupplierDialog>("New Supplier",
+        var parameters = new DialogParameters<SupplierDialog> { { x => x.Supplier, new SupplierDto() } };
+        var dialog = await DialogService.ShowAsync<SupplierDialog>("New Supplier", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
-        if (result != null && !result.Canceled && result.Data is CreateSupplierDto dto)
+        if (result != null && !result.Canceled && result.Data is SupplierDto dto)
         {
-            DbContext.Suppliers.Add(new IOMS.Domain.Entities.Supplier
-            {
-                SupplierName = dto.SupplierName,
-                SupplierEmail = dto.SupplierEmail,
-                SupplierPhone = dto.SupplierPhone,
-                Address = dto.Address, City = dto.City, State = dto.State,
-                Country = dto.Country, PostalCode = dto.PostalCode,
-                PaymentTerms = dto.PaymentTerms, LeadTimeDays = dto.LeadTimeDays
-            });
-            await DbContext.SaveChangesAsync();
+            var model = new IOMS.Domain.Entities.Supplier
+                {
+                    SupplierName = dto.SupplierName,
+                    SupplierEmail = dto.SupplierEmail,
+                    SupplierPhone = dto.SupplierPhone,
+                    ContactPersonName = dto.ContactPersonName,
+                    ContactPersonEmail = dto.ContactPersonEmail,
+                    ContactPersonPhone = dto.ContactPersonPhone,
+                    Address = dto.Address,
+                    City = dto.City,
+                    Zila = dto.Zila,
+                    State = dto.State,
+                    Country = dto.Country,
+                    PostalCode = dto.PostalCode,
+                    PaymentTerms = dto.PaymentTerms,
+                    LeadTimeDays = dto.LeadTimeDays
+                };
+
+            await SupplierService.CreateSupplierAsync(dto);
             Snackbar.Add("Supplier created", Severity.Success);
             await LoadData();
         }
     }
 
-    private async Task OpenEdit(SupplierListItem item)
+    private async Task OpenEdit(SupplierDto entity)
     {
-        var entity = await DbContext.Suppliers.FindAsync(item.Id);
         if (entity == null) return;
 
-        var dto = new SupplierDto(entity.Id, entity.SupplierName, entity.SupplierEmail, entity.SupplierPhone,"","","", entity.Address,
-            entity.City, entity.Zila, entity.State, entity.Country, entity.PostalCode, entity.PaymentTerms, entity.LeadTimeDays, entity.Rating, entity.IsActive);
-
-        var parameters = new DialogParameters<SupplierDialog> { { x => x.Supplier, dto } };
+        var parameters = new DialogParameters<SupplierDialog> { { x => x.Supplier, entity } };
         var dialog = await DialogService.ShowAsync<SupplierDialog>("Edit Supplier", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
-        if (result != null && !result.Canceled && result.Data is CreateSupplierDto updated)
+        if (result != null && !result.Canceled && result.Data is SupplierDto updated)
         {
-            entity.SupplierName = updated.SupplierName; entity.SupplierEmail = updated.SupplierEmail; entity.SupplierPhone = updated.SupplierPhone;
-            entity.Address = updated.Address; entity.City = updated.City; entity.State = updated.State;
-            entity.Country = updated.Country; entity.PostalCode = updated.PostalCode;
-            entity.PaymentTerms = updated.PaymentTerms; entity.LeadTimeDays = updated.LeadTimeDays;
-            await DbContext.SaveChangesAsync();
+            // entity.SupplierName = updated.SupplierName; entity.SupplierEmail = updated.SupplierEmail; entity.SupplierPhone = updated.SupplierPhone;
+            // entity.Address = updated.Address; entity.City = updated.City; entity.State = updated.State;
+            //  entity.Country = updated.Country; entity.PostalCode = updated.PostalCode;
+            //  entity.DefaultCurrencyId = updated.DefaultCurrencyId; entity.PaymentTerms = updated.PaymentTerms; entity.LeadTimeDays = updated.LeadTimeDays;
+            await SupplierService.UpdateSupplierAsync(updated.Id, updated);
+            //            await DbContext.SaveChangesAsync();
             Snackbar.Add("Supplier updated", Severity.Success);
             await LoadData();
         }
     }
 
-    private async Task Delete(Guid id)
+    private async Task Delete(SupplierDto supplier)
     {
         var confirm = await DialogService.ShowMessageBoxAsync("Confirm", "Delete this supplier?", "Delete", "Cancel");
         if (confirm == true)
         {
-            var entity = await DbContext.Suppliers.FindAsync(id);
-            if (entity != null) { entity.IsDeleted = true; await DbContext.SaveChangesAsync(); await LoadData(); }
+            await SupplierService.DeleteSupplierAsync(supplier.Id);
+            Snackbar.Add($" Supplier {supplier.SupplierName} deleted", Severity.Warning);
+            await LoadData(); 
         }
     }
 }

@@ -354,8 +354,23 @@
         var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToListAsync();
         var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
 
-        _drawerCustomers = customers.Select(c => new CustomerDto(c.Id, c.CustomerName, c.CustomerEmail, c.CustomerPhone,"","","", c.Address,
-            c.City, c.Zila, c.State, c.Country, c.PostalCode, c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList();
+        _drawerCustomers = customers.Select(c => new CustomerDto()
+        {
+            Id = c.Id,
+            CustomerName = c.CustomerName,
+            CustomerEmail = c.CustomerEmail,
+            CustomerPhone = c.CustomerPhone,
+            Address = c.Address,
+            City = c.City,
+            Zila = c.Zila,
+            State = c.State,
+            Country = c.Country,
+            PostalCode = c.PostalCode,
+            CreditLimit = c.CreditLimit,
+            PaymentTerms = c.PaymentTerms,
+            IsActive = c.IsActive,
+            IsTaxExempt = c.IsTaxExempt
+        }).ToList();
         _drawerProducts = products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
 
         _editModel = new CreateSalesOrderDtoModels
@@ -396,8 +411,23 @@
         var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).AsNoTracking().ToListAsync();
         var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
 
-        _drawerCustomers = customers.Select(c => new CustomerDto(c.Id, c.CustomerName, c.CustomerEmail, c.CustomerPhone,"","","", c.Address,
-            c.City, c.Zila, c.State, c.Country, c.PostalCode, c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList();
+        _drawerCustomers = customers.Select(c => new CustomerDto()
+        {
+            Id = c.Id,
+            CustomerName = c.CustomerName,
+            CustomerEmail = c.CustomerEmail,
+            CustomerPhone = c.CustomerPhone,
+            Address = c.Address,
+            City = c.City,
+            Zila = c.Zila,
+            State = c.State,
+            Country = c.Country,
+            PostalCode = c.PostalCode,
+            CreditLimit = c.CreditLimit,
+            PaymentTerms = c.PaymentTerms,
+            IsActive = c.IsActive,
+            IsTaxExempt = c.IsTaxExempt
+        }).ToList();
         _drawerProducts = products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
 
         _editModel = new CreateSalesOrderDtoModels();

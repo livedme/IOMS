@@ -84,17 +84,46 @@
         font-weight: 600;
     }
 
+    .dashboard-topbar {
+        width: 100%;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 14px;
+    }
+
+    .dashboard-title-wrap {
+        min-width: 240px;
+        padding-top: 2px;
+    }
+
+    .dashboard-actions-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+        margin-left: auto;
+    }
+
+    .quick-actions-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 12px;
+        width: 100%;
+    }
+
     .quick-btn {
         border-radius: 10px;
         background: #f8fafc;
         border: 1px solid #eef2f7;
-        padding: 10px 12px;
+        padding: 4px;
         display: flex;
         align-items: center;
         gap: 10px;
         cursor: pointer;
-        transition: 0.15s;
-        width: 100%;
+        transition: 0.15s;        
     }
 
         .quick-btn:hover {
@@ -103,14 +132,21 @@
         }
 
     .quick-icon {
-        width: 38px;
-        height: 38px;
+        width: 28px;
+        height: 28px;
         border-radius: 9px;
         display: flex;
         align-items: center;
         justify-content: center;
         color: #fff;
         flex-shrink: 0;
+    }
+
+    .filter-row {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
     }
 
     .tx-row {
@@ -188,25 +224,25 @@
     }
 </style>
 
-<div style="background:#f5f7fb; margin:-24px; padding:0px 20px 18px  20px;">
+<div style="background:#f5f7fb; margin:-24px; padding:0px 20px 18px 20px;">
     @* ── Header ── *@
-    <div class="d-flex flex-wrap align-center justify-space-between mb-3" style="gap:12px;">
-        <div>
+    <div class="dashboard-topbar">
+        <div class="dashboard-title-wrap">
             <MudText Typo="Typo.h5" Style="font-weight:800; letter-spacing:-0.5px;">Dashboard</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary" Style="font-size:0.84rem;">Welcome back! Here's what's happening with your business today.</MudText>
         </div>
-        <div class="d-flex align-center flex-column" style="gap:10px; flex-wrap:wrap;">
-            <div class="d-flex">
-                <MudGrid Spacing="2">
-                    <MudItem xs="2"><div class="quick-btn" @onclick='() => Nav.NavigateTo("/orders/sales/create")'><div class="quick-icon" style="background:#10b981;"><MudIcon Icon="@Icons.Material.Filled.PointOfSale" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b; line-height:1.1;">New Sale (POS)</span></div></MudItem>
-                    <MudItem xs="2"><div class="quick-btn" @onclick='() => Nav.NavigateTo("/products/create")'><div class="quick-icon" style="background:#0ea5e9;"><MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Add Product</span></div></MudItem>
-                    <MudItem xs="2"><div class="quick-btn" @onclick='() => Nav.NavigateTo("/orders/purchase/create")'><div class="quick-icon" style="background:#8b5cf6;"><MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">New Purchase</span></div></MudItem>
-                    <MudItem xs="2"><div class="quick-btn" @onclick='() => Nav.NavigateTo("/customers/create")'><div class="quick-icon" style="background:#f59e0b;"><MudIcon Icon="@Icons.Material.Filled.GroupAdd" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Add Customer</span></div></MudItem>
-                    <MudItem xs="2"><div class="quick-btn" @onclick='() => Nav.NavigateTo("/inventory/transfer")'><div class="quick-icon" style="background:#14b8a6;"><MudIcon Icon="@Icons.Material.Filled.SyncAlt" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Stock Transfer</span></div></MudItem>
-                    <MudItem xs="2"><div class="quick-btn" @onclick='() => Nav.NavigateTo("/reports")'><div class="quick-icon" style="background:#6366f1;"><MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Generate Report</span></div></MudItem>
-                </MudGrid>
+
+        <div class="dashboard-actions-panel">
+            <div class="quick-actions-grid">
+                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/orders/sales")'><div class="quick-icon" style="background:#10b981;"><MudIcon Icon="@Icons.Material.Outlined.PointOfSale" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b; line-height:1.1;">New Sale</span></div>
+                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/products")'><div class="quick-icon" style="background:#0ea5e9;"><MudIcon Icon="@Icons.Material.Outlined.Add" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Add Product</span></div>
+                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/orders/purchase")'><div class="quick-icon" style="background:#8b5cf6;"><MudIcon Icon="@Icons.Material.Outlined.ShoppingCart" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">New Purchase</span></div>
+                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/customers")'><div class="quick-icon" style="background:#f59e0b;"><MudIcon Icon="@Icons.Material.Outlined.GroupAdd" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Add Customer</span></div>
+                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/inventory/transfers")'><div class="quick-icon" style="background:#14b8a6;"><MudIcon Icon="@Icons.Material.Outlined.SyncAlt" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Stock Transfer</span></div>
+                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/reports/trial-balance")'><div class="quick-icon" style="background:#6366f1;"><MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Generate Report</span></div>
             </div>
-            <div class="d-flex">
+
+            <div class="filter-row">
                 <MudPaper Elevation="0" Class="d-flex align-center px-3 py-1" Style="border:1px solid #e2e8f0; border-radius:10px; background:#fff; height:36px;">
                     <MudIcon Icon="@Icons.Material.Outlined.CalendarToday" Size="Size.Small" Style="font-size:16px;" Class="mr-2" Color="Color.Secondary" />
                     <MudSelect T="string" Value="@_dateRange" ValueChanged="@OnDateRangeChanged" Dense="true" Variant="Variant.Text" DisableUnderLine="true" Style="min-width:175px; font-size:0.84rem;">
@@ -341,7 +377,7 @@
                 </MudGrid>
 
                 @* Row: Sales Overview + Sales by Category + Top Selling *@
-                <MudGrid Spacing="2" Class="mb-3">
+                <MudGrid Spacing="2" Class="mb-3" Style="width: 100%;">
                     <MudItem xs="12" md="5">
                         <div class="dash-card" style="height:100%;">
                             <div class="dash-card-header">
@@ -443,7 +479,7 @@
                 </MudGrid>
 
                 @* Row: Daily Sales by Store + Inventory Status + Payment Methods *@
-                <MudGrid Spacing="2" Class="mb-3">
+                <MudGrid Spacing="2" Class="mb-3" Style="width: 100%;">
                     <MudItem xs="12" md="4">
                         <div class="dash-card" style="height:100%;">
                             <div class="dash-card-header">

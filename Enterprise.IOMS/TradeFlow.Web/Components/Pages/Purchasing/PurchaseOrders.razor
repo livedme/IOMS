@@ -185,8 +185,7 @@
 
         var parameters = new DialogParameters<PurchaseOrderDialog>
         {
-            { x => x.Suppliers, suppliers.Select(c => new SupplierDto(c.Id, c.SupplierName, c.SupplierEmail, c.SupplierPhone, c.ContactPersonName, c.ContactPersonPhone, c.ContactPersonEmail, c.Address, c.City, c.Zila,
-c.State, c.Country, c.PostalCode, null, 10, 1, false)).ToList() },
+            { x => x.Suppliers, suppliers.Select(c => new SupplierDto(){ Id = c.Id, SupplierName = c.SupplierName, SupplierEmail = c.SupplierEmail, SupplierPhone = c.SupplierPhone, ContactPersonName = c.ContactPersonName, ContactPersonPhone = c.ContactPersonPhone, ContactPersonEmail = c.ContactPersonEmail, Address = c.Address, City = c.City, Zila = c.Zila, State = c.State, Country = c.Country, PostalCode = c.PostalCode,  IsActive = false }).ToList() },
             { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.CostPrice)).ToList() },
             { x => x.WareHouses, wareHouse.Select(p => (p.Id, p.Name)).ToList() },
             {x=>x.dataModel, dataModel }

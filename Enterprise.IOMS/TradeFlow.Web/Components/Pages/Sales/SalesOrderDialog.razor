@@ -315,7 +315,7 @@
             var previousCustomer = dataModel.CustomerDdlControl.SelectedItem;
             var parameters = new DialogParameters<CustomerDialog>
             {
-                { x => x.Customer, new CustomerDto(Guid.Empty, string.Empty, string.Empty, string.Empty,string.Empty,string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty,  0, string.Empty, false, false) }
+                { x => x.Customer, new CustomerDto(){ Id = Guid.Empty, CustomerName = string.Empty, CustomerEmail = string.Empty, CustomerPhone = string.Empty, Address = string.Empty, City = string.Empty, Zila = string.Empty, State = string.Empty, Country = string.Empty, PostalCode = string.Empty, CreditLimit = 0, PaymentTerms = string.Empty, IsActive = false, IsTaxExempt = false } }
                 //{ x => x.Customer, Customers.Where(c => c.Id != Guid.Empty).FirstOrDefault() }
             };
 
@@ -325,7 +325,7 @@
 
             await dataModel.CustomerDdlControl.ControlRef.ResetAsync();
 
-            if (result != null && !result.Canceled && result.Data is CreateCustomerDto dto)
+            if (result != null && !result.Canceled && result.Data is CustomerDto dto)
             {
                 var newCustomer = new IOMS.Domain.Entities.Customer
                 {
@@ -352,7 +352,26 @@
                 DbContext.Customers.Add(newCustomer);
                 await DbContext.SaveChangesAsync();
                 var latestCustomer = await DbContext.Customers.ToListAsync();
-                Customers = latestCustomer.Select(c => new CustomerDto(c.Id, c.CustomerName, c.CustomerEmail, c.CustomerPhone, c.ContactPersonName, c.ContactPersonPhone, c.ContactPersonEmail, c.Address, c.City, c.Zila, c.State, c.Country, c.PostalCode, c.CreditLimit, c.PaymentTerms, c.IsActive, c.IsTaxExempt)).ToList();
+                Customers = latestCustomer.Select(c => new CustomerDto()
+                {
+                    Id = c.Id,
+                    CustomerName = c.CustomerName,
+                    CustomerEmail = c.CustomerEmail,
+                    CustomerPhone = c.CustomerPhone,
+                    ContactPersonName = c.ContactPersonName,
+                    ContactPersonPhone = c.ContactPersonPhone,
+                    ContactPersonEmail = c.ContactPersonEmail,
+                    Address = c.Address,
+                    City = c.City,
+                    Zila = c.Zila,
+                    State = c.State,
+                    Country = c.Country,
+                    PostalCode = c.PostalCode,
+                    CreditLimit = c.CreditLimit,
+                    PaymentTerms = c.PaymentTerms,
+                    IsActive = c.IsActive,
+                    IsTaxExempt = c.IsTaxExempt
+                }).ToList();
 
                 cust = new ControlItemsDto(){ Id = newCustomer.Id, Name = newCustomer.CustomerName };
 

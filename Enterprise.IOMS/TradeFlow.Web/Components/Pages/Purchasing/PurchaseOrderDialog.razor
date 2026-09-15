@@ -296,7 +296,7 @@
     protected override void OnInitialized()
     {
         //if (dataModel.SupplierDdlControl.SelectedItem!=null && dataModel.SupplierDdlControl.SelectedItem.Id == Guid.Empty && Suppliers.Count > 0)
-         //   dataModel.SupplierDdlControl.SelectedItem = Suppliers.Select(x => new ControlItemsDto() { Id = x.Id, Name = x.SupplierName, IsSelected = false }).First();
+        //   dataModel.SupplierDdlControl.SelectedItem = Suppliers.Select(x => new ControlItemsDto() { Id = x.Id, Name = x.SupplierName, IsSelected = false }).First();
 
         if (dataModel.SupplierDdlControl.SelectedItem != null && dataModel.SupplierDdlControl.SelectedItem.Id != Guid.Empty)
         {
@@ -352,7 +352,7 @@
 
             await dataModel.SupplierDdlControl.ControlRef.ResetAsync();
 
-            if (result != null && !result.Canceled && result.Data is CreateSupplierDto dto)
+            if (result != null && !result.Canceled && result.Data is SupplierDto dto)
             {
                 var newCustomer = new IOMS.Domain.Entities.Supplier
                 {
@@ -377,7 +377,7 @@
                 DbContext.Suppliers.Add(newCustomer);
                 await DbContext.SaveChangesAsync();
                 var latestSuppliers = await DbContext.Suppliers.ToListAsync();
-                Suppliers = latestSuppliers.Select(c => new SupplierDto(c.Id, c.SupplierName, c.SupplierEmail, c.SupplierPhone, c.ContactPersonName, c.ContactPersonPhone, c.ContactPersonEmail, c.Address, c.City, c.Zila, c.State, c.Country, c.PostalCode, null, 10, 1, false)).ToList();
+                Suppliers = latestSuppliers.Select(c => new SupplierDto() {Id= c.Id, SupplierName = c.SupplierName, SupplierEmail = c.SupplierEmail, SupplierPhone = c.SupplierPhone, ContactPersonName = c.ContactPersonName, ContactPersonPhone = c.ContactPersonPhone, ContactPersonEmail = c.ContactPersonEmail, Address = c.Address, City = c.City, Zila = c.Zila, State = c.State, Country = c.Country, PostalCode = c.PostalCode,  IsActive = false }).ToList();
 
                 cust = new ControlItemsDto(){ Id = newCustomer.Id, Name = newCustomer.SupplierName, IsSelected = false };
 

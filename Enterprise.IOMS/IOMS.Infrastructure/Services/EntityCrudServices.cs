@@ -296,18 +296,18 @@ public class ProductService : IProductService
     }
 }
 
-public class CustomerSupplierService : ICustomerSupplierService
+public class CustomerService : ICustomerService
 {
     private readonly ApplicationDbContext _db;
     private readonly IMapper _mapper;
 
-    public CustomerSupplierService(ApplicationDbContext db, IMapper mapper)
+    public CustomerService(ApplicationDbContext db, IMapper mapper)
     {
         _db = db;
         _mapper = mapper;
     }
 
-    public async Task<PagedResult<CustomerDto>> GetCustomersAsync(string? search, int page, int pageSize)
+    public async Task<PagedResult<CustomerDto>> GetCustomersAsync(string? search, int page=1, int pageSize=100)
     {
         var query = _db.Customers.AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
@@ -323,7 +323,7 @@ public class CustomerSupplierService : ICustomerSupplierService
         return customer == null ? null : _mapper.Map<CustomerDto>(customer);
     }
 
-    public async Task<Guid> CreateCustomerAsync(CreateCustomerDto dto)
+    public async Task<Guid> CreateCustomerAsync(CustomerDto dto)
     {
         var customer = new Customer
         {
@@ -343,14 +343,15 @@ public class CustomerSupplierService : ICustomerSupplierService
             TaxJurisdictionId = dto.TaxJurisdictionId,
             DefaultPriceListId = dto.DefaultPriceListId,
             DefaultCurrencyId = dto.DefaultCurrencyId,
-            IsTaxExempt = dto.IsTaxExempt
+            IsTaxExempt = dto.IsTaxExempt,
+            IsActive = dto.IsActive
         };
         _db.Customers.Add(customer);
         await _db.SaveChangesAsync();
         return customer.Id;
     }
 
-    public async Task UpdateCustomerAsync(Guid id, CreateCustomerDto dto)
+    public async Task UpdateCustomerAsync(Guid id, CustomerDto dto)
     {
         var customer = await _db.Customers.FindAsync(id) ?? throw new KeyNotFoundException("Customer not found");
         customer.CustomerName = dto.CustomerName; customer.CustomerEmail = dto.CustomerEmail; customer.CustomerPhone = dto.CustomerPhone;
@@ -359,6 +360,7 @@ public class CustomerSupplierService : ICustomerSupplierService
         customer.Country = dto.Country; customer.PostalCode = dto.PostalCode;
         customer.CreditLimit = dto.CreditLimit; customer.PaymentTerms = dto.PaymentTerms;
         customer.IsTaxExempt = dto.IsTaxExempt;
+        customer.IsActive = dto.IsActive;
         await _db.SaveChangesAsync();
     }
 
@@ -369,7 +371,18 @@ public class CustomerSupplierService : ICustomerSupplierService
         await _db.SaveChangesAsync();
     }
 
-    public async Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search, int page, int pageSize)
+}
+public class SupplierService : ISupplierService
+{
+    private readonly ApplicationDbContext _db;
+    private readonly IMapper _mapper;
+
+    public SupplierService(ApplicationDbContext db, IMapper mapper)
+    {
+        _db = db;
+        _mapper = mapper;
+    }
+    public async Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search="", int page=1, int pageSize=100)
     {
         var query = _db.Suppliers.AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
@@ -385,15 +398,19 @@ public class CustomerSupplierService : ICustomerSupplierService
         return supplier == null ? null : _mapper.Map<SupplierDto>(supplier);
     }
 
-    public async Task<Guid> CreateSupplierAsync(CreateSupplierDto dto)
+    public async Task<Guid> CreateSupplierAsync(SupplierDto dto)
     {
         var supplier = new Supplier
         {
             SupplierName = dto.SupplierName,
             SupplierEmail = dto.SupplierEmail,
             SupplierPhone = dto.SupplierPhone,
+            ContactPersonName = dto.ContactPersonName,
+            ContactPersonEmail = dto.ContactPersonEmail,
+            ContactPersonPhone = dto.ContactPersonPhone,
             Address = dto.Address,
             City = dto.City,
+            Zila = dto.Zila,
             State = dto.State,
             Country = dto.Country,
             PostalCode = dto.PostalCode,
@@ -401,16 +418,18 @@ public class CustomerSupplierService : ICustomerSupplierService
             DefaultCurrencyId = dto.DefaultCurrencyId,
             LeadTimeDays = dto.LeadTimeDays
         };
+
         _db.Suppliers.Add(supplier);
         await _db.SaveChangesAsync();
         return supplier.Id;
     }
 
-    public async Task UpdateSupplierAsync(Guid id, CreateSupplierDto dto)
+    public async Task UpdateSupplierAsync(Guid id, SupplierDto dto)
     {
         var supplier = await _db.Suppliers.FindAsync(id) ?? throw new KeyNotFoundException("Supplier not found");
         supplier.SupplierName = dto.SupplierName; supplier.SupplierEmail = dto.SupplierEmail; supplier.SupplierPhone = dto.SupplierPhone;
-        supplier.Address = dto.Address; supplier.City = dto.City; supplier.State = dto.State;
+        supplier.ContactPersonName = dto.ContactPersonName; supplier.ContactPersonEmail = dto.ContactPersonEmail; supplier.ContactPersonPhone = dto.ContactPersonPhone;
+        supplier.Address = dto.Address; supplier.City = dto.City; supplier.State = dto.State; supplier.Zila = dto.Zila;
         supplier.Country = dto.Country; supplier.PostalCode = dto.PostalCode;
         supplier.PaymentTerms = dto.PaymentTerms; supplier.LeadTimeDays = dto.LeadTimeDays;
         await _db.SaveChangesAsync();

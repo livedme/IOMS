@@ -2,8 +2,7 @@
 @rendermode InteractiveServer
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using IOMS.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+@inject ICustomerService CustomerService
 
 <PageTitle>Customers - IOMS</PageTitle>
 
@@ -33,9 +32,9 @@
             <MudTh>Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>@context.Name</MudTd>
-            <MudTd>@context.Email</MudTd>
-            <MudTd>@context.Phone</MudTd>
+            <MudTd>@context.CustomerName</MudTd>
+            <MudTd>@context.CustomerEmail</MudTd>
+            <MudTd>@context.CustomerPhone</MudTd>
             <MudTd>@context.City</MudTd>
             <MudTd Style="text-align:right">@context.CreditLimit.ToString("C")</MudTd>
             <MudTd>
@@ -47,17 +46,15 @@
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
                                OnClick="@(() => OpenEdit(context))" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                               OnClick="@(() => Delete(context.Id))" />
+                               OnClick="@(() => Delete(context))" />
             </MudTd>
         </RowTemplate>
     </MudTable>
 </MudPaper>
 
 @code {
-    private record CustomerListItem(Guid Id, string Name, string? Email, string? Phone,
-        string? City, decimal CreditLimit, bool IsActive);
 
-    private List<CustomerListItem> _items = new();
+    private List<CustomerDto> _items = new();
     private string _searchString = "";
     private bool _loading = true;
 
@@ -66,88 +63,70 @@
     private async Task LoadData()
     {
         _loading = true;
-        var query = DbContext.Customers.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(_searchString))
-            query = query.Where(c => c.CustomerName.Contains(_searchString) || c.CustomerEmail!.Contains(_searchString));
+        var query =await CustomerService.GetCustomersAsync(_searchString);
 
-        var data = await query.OrderBy(c => c.CustomerName).Take(100).ToListAsync();
-        _items = data.Select(c => new CustomerListItem(c.Id, c.CustomerName, c.CustomerEmail, c.CustomerPhone, c.City, c.CreditLimit, c.IsActive)).ToList();
+
+        var data = query.Items.OrderBy(c => c.CustomerName).Take(100).ToList();
+        _items = data.Select(dto => new CustomerDto
+        {
+            Id = dto.Id,
+            CustomerName = dto.CustomerName,
+            CustomerEmail = dto.CustomerEmail,
+            CustomerPhone = dto.CustomerPhone,
+            ContactPersonName = dto.ContactPersonName,
+            ContactPersonPhone = dto.ContactPersonPhone,
+            ContactPersonEmail = dto.ContactPersonEmail,
+            Address = dto.Address,
+            City = dto.City,
+            State = dto.State,
+            Country = dto.Country,
+            PostalCode = dto.PostalCode,
+            CreditLimit = dto.CreditLimit,
+            PaymentTerms = dto.PaymentTerms,
+            IsTaxExempt = dto.IsTaxExempt,
+            IsActive = dto.IsActive
+        }).ToList();
         _loading = false;
     }
 
     private async Task OpenCreate()
     {
-        var dialog = await DialogService.ShowAsync<CustomerDialog>("New Customer",
+        var parameters = new DialogParameters<CustomerDialog> { { x => x.Customer, new CustomerDto() } };
+        var dialog = await DialogService.ShowAsync<CustomerDialog>("New Customer", parameters,      
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
-        if (result != null && !result.Canceled && result.Data is CreateCustomerDto dto)
+        if (result != null && !result.Canceled && result.Data is CustomerDto dto)
         {
-            DbContext.Customers.Add(new IOMS.Domain.Entities.Customer
-            {
-                CustomerName = dto.CustomerName,
-                CustomerEmail = dto.CustomerEmail,
-                CustomerPhone = dto.CustomerPhone,
-                ContactPersonName = dto.ContactPersonName,
-                ContactPersonEmail = dto.ContactPersonEmail,
-                ContactPersonPhone = dto.ContactPersonPhone,
-                Address = dto.Address,
-                City = dto.City,
-                Zila = dto.Zila,
-                State = dto.State,
-                Country = dto.Country,
-                PostalCode = dto.PostalCode,
-                CreditLimit = dto.CreditLimit,
-                PaymentTerms = dto.PaymentTerms,
-                IsTaxExempt = dto.IsTaxExempt
-            });
-            await DbContext.SaveChangesAsync();
+            await CustomerService.CreateCustomerAsync(dto);
             Snackbar.Add("Customer created", Severity.Success);
             await LoadData();
         }
     }
 
-    private async Task OpenEdit(CustomerListItem item)
+    private async Task OpenEdit(CustomerDto entity)
     {
-        var entity = await DbContext.Customers.FindAsync(item.Id);
         if (entity == null) return;
 
-        var dto = new CustomerDto(entity.Id, entity.CustomerName, entity.CustomerEmail, entity.CustomerPhone, entity.ContactPersonName, entity.ContactPersonEmail, entity.ContactPersonPhone, 
-            entity.Address, entity.City, entity.Zila, entity.State, entity.Country, entity.PostalCode, entity.CreditLimit, entity.PaymentTerms, entity.IsActive, entity.IsTaxExempt);
-
-        var parameters = new DialogParameters<CustomerDialog> { { x => x.Customer, dto } };
+        var parameters = new DialogParameters<CustomerDialog> { { x => x.Customer, entity } };
         var dialog = await DialogService.ShowAsync<CustomerDialog>("Edit Customer", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
-        if (result != null && !result.Canceled && result.Data is CreateCustomerDto updated)
+        if (result != null && !result.Canceled && result.Data is CustomerDto updated)
         {
-            entity.CustomerName = updated.CustomerName;
-            entity.CustomerEmail = updated.CustomerEmail;
-            entity.CustomerPhone = updated.CustomerPhone;
-            entity.ContactPersonName = updated.ContactPersonName;
-            entity.ContactPersonEmail = updated.ContactPersonEmail;
-            entity.ContactPersonPhone = updated.ContactPersonPhone;
-            entity.Address = updated.Address;
-            entity.City = updated.City;
-            entity.Zila = updated.Zila;
-            entity.State = updated.State;
-            entity.Country = updated.Country;
-            entity.PostalCode = updated.PostalCode;
-            entity.CreditLimit = updated.CreditLimit;
-            entity.PaymentTerms = updated.PaymentTerms;
-            entity.IsTaxExempt = updated.IsTaxExempt;
-            await DbContext.SaveChangesAsync();
+            await CustomerService.UpdateCustomerAsync(updated.Id, updated);
             Snackbar.Add("Customer updated", Severity.Success);
             await LoadData();
         }
     }
 
-    private async Task Delete(Guid id)
+    private async Task Delete(CustomerDto entity)
     {
         var confirm = await DialogService.ShowMessageBoxAsync("Confirm", "Delete this customer?", "Delete", "Cancel");
         if (confirm == true)
-        {
-            var entity = await DbContext.Customers.FindAsync(id);
-            if (entity != null) { entity.IsDeleted = true; await DbContext.SaveChangesAsync(); await LoadData(); }
+        {   
+            await CustomerService.DeleteCustomerAsync(entity.Id);
+            Snackbar.Add($"Customer {entity.CustomerName} deleted", Severity.Warning);
+            await LoadData(); 
         }
     }
 }
