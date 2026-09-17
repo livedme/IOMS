@@ -145,9 +145,18 @@ public interface IPurchaseReturnService
 {
     Task<PagedResult<PurchaseReturnDto>> GetPurchaseReturns(string? search, PurchaseReturnStatus? status, int page, int pageSize);
     Task<PurchaseReturnDto> GetPurchaseReturnById(Guid id);
-    Task<Guid> CreatePurchaseReturn(CreatePurchaseReturnDto dto);
+    Task<Guid> CreatePurchaseReturn(PurchaseReturnDto dto);
     Task ApprovePurchaseReturn(Guid id);
     Task CompletePurchaseReturn(Guid id);
+}
+
+public interface ISalesReturnService
+{
+    Task<PagedResult<SalesReturnDto>> GetSalesReturns(string? search, SalesReturnStatus? status, int page, int pageSize);
+    Task<SalesReturnDto> GetSalesReturnById(Guid id);
+    Task<Guid> CreateSalesReturn(SalesReturnDto dto);
+    Task ApproveSalesReturn(Guid id);
+    Task CompleteSalesReturn(Guid id);
 }
 
 public interface IRfqService
@@ -278,8 +287,8 @@ public interface IProductService
     Task<Guid> CreateBrandAsync(CreateBrandDto dto);
     Task<bool> UpdateBrandAsync(Guid id, CreateBrandDto dto);
     Task<bool> DeleteBrandAsync(Guid id);
-    
-    
+
+
     Task<PagedResult<CategoryDto>> GetCategoriesAsync(string? search, int page, int pageSize);
     Task<List<CategoryDto>> GetAllCategoriesAsync();
     Task<Guid> CreateCategoryAsync(CreateCategoryDto dto);
@@ -292,16 +301,16 @@ public interface IProductService
 
 public interface ICustomerService
 {
-    Task<PagedResult<CustomerDto>> GetCustomersAsync(string? search, int page=1, int pageSize=100);
+    Task<PagedResult<CustomerDto>> GetCustomersAsync(string? search, int page = 1, int pageSize = 100);
     Task<CustomerDto?> GetCustomerByIdAsync(Guid id);
     Task<Guid> CreateCustomerAsync(CustomerDto dto);
     Task UpdateCustomerAsync(Guid id, CustomerDto dto);
-    Task DeleteCustomerAsync(Guid id);   
+    Task DeleteCustomerAsync(Guid id);
 }
 
 public interface ISupplierService
 {
-    Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search="", int page=1, int pageSize=100);
+    Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search = "", int page = 1, int pageSize = 100);
     Task<SupplierDto?> GetSupplierByIdAsync(Guid id);
     Task<Guid> CreateSupplierAsync(SupplierDto dto);
     Task UpdateSupplierAsync(Guid id, SupplierDto dto);

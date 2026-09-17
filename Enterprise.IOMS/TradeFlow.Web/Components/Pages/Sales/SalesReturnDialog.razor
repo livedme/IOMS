@@ -1,0 +1,138 @@
+@using IOMS.Application.DTOs
+@using IOMS.Application.Interfaces
+@inject IOrderService OrderService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>New Sales Return</TitleContent>
+    <DialogContent>
+           <MudGrid>
+                <MudItem xs="12" sm="6">
+        <MudAutocomplete T="ControlItemsDto" Label="Sales Order" Required="true"
+                         @bind-Value="salesReturnDto.SalesReturnDdlControl.SelectedItem"
+                         @bind-Text="salesReturnDto.SalesReturnDdlControl.SelectedText" @bind-Value:after="OnSalesOrderChanged"
+                         SearchFunc="SearchSalesOrder" ToStringFunc="@(order => order?.Name ?? string.Empty)"
+                         ResetValueOnEmptyText="true" CoerceText="true" Clearable="true" Class="mb-5" ShrinkLabel="true"
+                         Variant="Variant.Outlined" Margin="Margin.Dense" />
+                         </MudItem>
+                         <MudItem xs="12" sm="6">
+                             Customer
+                         </MudItem>
+                          <MudItem xs="12">
+        <MudTable Items="@salesReturnDto.ItemsLine" Dense="true" Elevation="0" Class="product-item-list"
+                  FixedHeader="true" ContainerClass="mud-table-container mb-5">
+            <HeaderContent>
+                <MudTh>Product</MudTh>
+                <MudTh Style="width:120px;">Qty</MudTh>
+                <MudTh Style="width:180px;text-align:right;padding-right:40px;">Unit Price</MudTh>
+                <MudTh Style="width:180px;text-align:right;padding-right:40px;">Line Total</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <div class="d-flex align-items-center">
+                        <MudCheckBox @bind-Value="context.IsSelected" Class="me-1" />
+                        @context.ProductName
+                    </div>
+                </MudTd>
+                <MudTd>
+                    <MudNumericField T="int" Value="context.Quantity"
+                                     ValueChanged="@(value => UpdateLineTotal(context, value, context.UnitPrice))" Min="1"
+                                     Margin="Margin.Dense" Variant="Variant.Outlined" />
+                </MudTd>
+                <MudTd>
+                    <MudNumericField T="decimal" Value="context.UnitPrice"
+                                     ValueChanged="@(value => UpdateLineTotal(context, context.Quantity, value))" Format="N2" Min="1"
+                                     Margin="Margin.Dense" Variant="Variant.Outlined" />
+                </MudTd>
+                <MudTd Style="text-align:right;">@context.LineTotal.ToString("C")</MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd><strong>Total</strong></MudTd>
+                <MudTd></MudTd>
+                <MudTd></MudTd>
+                <MudTd Style="text-align:right;"><strong>@salesReturnDto.ItemsLine.Where(item =>
+                                                                                    item.IsSelected).Sum(item => item.LineTotal).ToString("C")</strong></MudTd>
+                </FooterContent>
+            </MudTable>
+            </MudItem>
+             <MudItem xs="12">
+            <RichTextField Label="Reason" @bind-Value="salesReturnDto.Reason" Lines="2" Class="mt-2" />
+            </MudItem>
+             </MudGrid>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Create</MudButton>
+        </DialogActions>
+    </MudDialog>
+    <style>
+    .product-item-list .mud-table-row .mud-table-cell{
+        font-weight: normal;
+    }
+</style>
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    private List<SalesOrderDto> salesOrders = new();
+    private SalesReturnDto salesReturnDto = new();
+    private CustomerDto customer= new();    
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await OrderService.GetSalesOrders(null, null, 1, 200);
+        salesOrders = result.Items;
+    }
+
+    private Task<IEnumerable<ControlItemsDto>> SearchSalesOrder(string text, CancellationToken _)
+    {
+        var results = salesOrders
+            .Where(order => string.IsNullOrWhiteSpace(text) || order.OrderNumber.Contains(text, StringComparison.OrdinalIgnoreCase))
+            .Select(order => new ControlItemsDto { Id = order.Id, Name = order.OrderNumber, IsSelected = false });
+        return Task.FromResult<IEnumerable<ControlItemsDto>>(results);
+    }
+
+    private async Task OnSalesOrderChanged()
+    {
+        if (salesReturnDto.SalesReturnDdlControl.SelectedItem is null)
+            return;
+
+        SalesOrderDto? detail = await OrderService.GetSalesOrderById(salesReturnDto.SalesReturnDdlControl.SelectedItem.Id);
+        if (detail is null)
+        {
+            salesReturnDto.ItemsLine = new List<SalesReturnItemDto>();
+            return;
+        }
+        customer = detail.Customer;
+
+        salesReturnDto.ItemsLine = detail.Items.Select(item => new SalesReturnItemDto
+        {
+            ProductId = item.ProductId,
+            ProductName = item.ProductName,
+            Quantity = item.Quantity,
+            UnitPrice = item.UnitPrice,
+            LineTotal = item.Quantity * item.UnitPrice
+        }).ToList();
+    }
+
+    private static void UpdateLineTotal(SalesReturnItemDto item, int quantity, decimal unitPrice)
+    {
+        item.Quantity = quantity;
+        item.UnitPrice = unitPrice;
+        item.LineTotal = quantity * unitPrice;
+    }
+
+    private void Submit()
+    {
+        if (salesReturnDto.SalesReturnDdlControl.SelectedItem is null)
+        {
+            Snackbar.Add("Select a sales order.", Severity.Warning);
+            return;
+        }
+
+        salesReturnDto.SalesOrderId = salesReturnDto.SalesReturnDdlControl.SelectedItem.Id;
+        salesReturnDto.SalesOrderNumber = salesReturnDto.SalesReturnDdlControl.SelectedItem.Name;
+        salesReturnDto.TotalAmount = salesReturnDto.ItemsLine.Where(item => item.IsSelected).Sum(item => item.LineTotal);
+        MudDialog.Close(DialogResult.Ok(salesReturnDto));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

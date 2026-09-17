@@ -51,7 +51,7 @@ public class PurchaseReturnService : IPurchaseReturnService
         return _mapper.Map<PurchaseReturnDto>(ret);
     }
 
-    public async Task<Guid> CreatePurchaseReturn(CreatePurchaseReturnDto dto)
+    public async Task<Guid> CreatePurchaseReturn(PurchaseReturnDto dto)
     {
         var po = await _context.PurchaseOrders.FindAsync(dto.PurchaseOrderId)
             ?? throw new EntityNotFoundException("PurchaseOrder", dto.PurchaseOrderId);
@@ -64,7 +64,9 @@ public class PurchaseReturnService : IPurchaseReturnService
             Status = PurchaseReturnStatus.Draft
         };
 
-        foreach (var item in dto.Items)
+        var items= dto.ItemsLine.Where(i => i.IsSelected).ToList();
+
+        foreach (var item in items)
         {
             ret.Items.Add(new PurchaseReturnItem
             {

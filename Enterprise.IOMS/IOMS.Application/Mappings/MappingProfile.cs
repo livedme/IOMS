@@ -1,6 +1,7 @@
 using AutoMapper;
 using IOMS.Application.DTOs;
 using IOMS.Domain.Entities;
+using static IOMS.Application.DTOs.PurchaseReturnDto;
 
 namespace IOMS.Application.Mappings;
 
@@ -206,6 +207,11 @@ public class MappingProfile : Profile
             .ForMember(d => d.PurchaseOrderNumber, o => o.MapFrom(s => s.PurchaseOrder.OrderNumber));
 
         CreateMap<PurchaseReturnItem, PurchaseReturnItemDto>()
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name));
+
+        CreateMap<SalesReturn, SalesReturnDto>()
+            .ForMember(d => d.SalesOrderNumber, o => o.MapFrom(s => s.SalesOrder.OrderNumber));
+        CreateMap<SalesReturnItem, SalesReturnItemDto>()
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name));
 
         // RFQ

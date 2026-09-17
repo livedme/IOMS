@@ -71,6 +71,11 @@ public enum PurchaseReturnStatus
     Draft, Approved, Shipped, Completed, Cancelled
 }
 
+public enum SalesReturnStatus
+{
+    Draft, Approved, Received, Completed, Cancelled
+}
+
 public enum RfqStatus
 {
     Draft, Sent, Received, Awarded, Closed, Cancelled

@@ -1,6 +1,7 @@
 @using IOMS.Application.DTOs
 @using IOMS.Application.Interfaces
 @using IOMS.Infrastructure.Data
+@using static IOMS.Application.DTOs.PurchaseReturnDto
 @inject IPurchaseReturnService PurchaseReturnService
 @inject ApplicationDbContext DbContext
 @inject ISnackbar Snackbar
@@ -8,71 +9,151 @@
 <MudDialog>
     <TitleContent>New Purchase Return</TitleContent>
     <DialogContent>
-        <MudSelect T="Guid" Label="Purchase Order" @bind-Value="_poId" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
-            @foreach (var po in _purchaseOrders)
-            {
-                <MudSelectItem Value="@po.Id">@po.OrderNumber</MudSelectItem>
-            }
-        </MudSelect>
-        <RichTextField Label="Reason" @bind-Value="_reason" Lines="2" Class="mt-2" />
-        <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Return Items</MudText>
-        @for (int i = 0; i < _items.Count; i++)
-        {
-            var idx = i;
-            <MudGrid>
-                <MudItem xs="5">
-                    <MudSelect T="Guid" Label="Product" Value="_items[idx].ProductId" ValueChanged="@(v => _items[idx] = _items[idx] with { ProductId = v })" Variant="Variant.Outlined" Margin="Margin.Dense">
-                        @foreach (var p in _products)
-                        {
-                            <MudSelectItem Value="@p.Id">@p.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="3">
-                    <MudNumericField T="int" Label="Qty" Value="_items[idx].Quantity" ValueChanged="@(v => _items[idx] = _items[idx] with { Quantity = v })" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-                </MudItem>
-                <MudItem xs="3">
-                    <MudNumericField T="decimal" Label="Unit Cost" Value="_items[idx].UnitCost" ValueChanged="@(v => _items[idx] = _items[idx] with { UnitCost = v })" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-                </MudItem>
-                <MudItem xs="1" Class="d-flex align-center">
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => _items.RemoveAt(idx)" />
-                </MudItem>
-            </MudGrid>
-        }
-        <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="() => _items.Add(new(Guid.Empty, 1, 0))">Add Item</MudButton>
+         <MudAutocomplete T="ControlItemsDto"
+                         @ref="purchaseReturnDto.PurchaseReturnDdlControl.ControlRef"
+                         Label="PurchaseOrder"
+                                 Required="true"
+                         @key="purchaseReturnDto.PurchaseReturnDdlControl.SelectedIndex"
+                         @bind-Value="purchaseReturnDto.PurchaseReturnDdlControl.SelectedItem"
+                         @bind-Text="purchaseReturnDto.PurchaseReturnDdlControl.SelectedText"
+                         @bind-Value:after="OnPurchaseOrderChanged"
+                         SearchFunc="SearchPurchaseOrder"
+                                 ToStringFunc="@(c => c?.Name ?? "")"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true"
+                                 Clearable="true" Class="mb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        
+
+        <MudTable Items="@purchaseReturnDto.ItemsLine" Dense="true" Elevation="0" Class="product-item-list" FixedHeader="true" ContainerClass="mud-table-container mb-5">
+            <HeaderContent>                
+                <MudTh Style="width:auto;">Product</MudTh>
+                <MudTh Style="width:120px;">Qty</MudTh>
+                <MudTh Style="width:180px;text-align: right;padding-right: 40px;">Unit Price</MudTh>
+                <MudTh Style="width: 180px;text-align: right;padding-right: 40px;">Line Total</MudTh>               
+            </HeaderContent>
+            <RowTemplate>                                
+                <MudTd Style="width:auto;">
+                    <div class="d-flex align-items-center">
+                        <MudCheckBox @bind-Value="context.IsSelected" Class="me-1" />
+                        @context.ProductName
+                    </div>
+                </MudTd>
+                    <MudTd Class="px-0" Style="width:auto;">
+                        <MudNumericField T="int" Value="context.Quantity" ValueChanged="@(value => UpdateLineTotal(context, value, context.UnitCost))" Min="1" Class="p-0 m-0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd Style="width:auto;">
+                    <MudNumericField T="decimal" Value="context.UnitCost" ValueChanged="@(value => UpdateLineTotal(context, context.Quantity, value))" Format="N2" Class="p-0 m-0" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudTd>                
+                    <MudTd Style="width:auto; text-align:right;"> 
+                        @* @{
+                            CalculateLineTotal(context);
+                        } *@
+                        <div>@context.LineTotal.ToString("C")</div>
+                    </MudTd>                      
+            </RowTemplate>
+            <FooterContent>
+                <MudTd><strong>Total</strong></MudTd>
+                <MudTd></MudTd>
+                <MudTd></MudTd>
+                @{
+                    purchaseReturnDto.TotalAmount = purchaseReturnDto.ItemsLine.Where(item => item.IsSelected).Sum(item => item.LineTotal);
+                }
+                <MudTd Style="text-align:right;"><strong>@purchaseReturnDto.ItemsLine.Where(item => item.IsSelected).Sum(item => item.LineTotal).ToString("C") @purchaseReturnDto.TotalAmount</strong></MudTd>
+            </FooterContent>
+        </MudTable>
+@* 
+        <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="() => _items.Add(new(Guid.Empty, 1, 0))">Add Item</MudButton> *@
+        <MudHidden Label="Total Amount" @bind-Value="purchaseReturnDto.TotalAmount" Min="0" ShrinkLabel="true" Class="mt-4" Variant="Variant.Outlined" Margin="Margin.Dense" />
+
+        <RichTextField Label="Reason" @bind-Value="purchaseReturnDto.Reason" Lines="2" Class="mt-2" />        
+
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Create</MudButton>
     </DialogActions>
 </MudDialog>
-
+<style>
+    .product-item-list .mud-table-row .mud-table-cell{
+        font-weight: normal;
+    }
+</style>
+@inject IPurchaseService PurchaseService
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
-
     private List<PurchaseOrder> _purchaseOrders = new();
-    private List<Product> _products = new();
-    private Guid _poId;
-    private string? _reason;
-    private List<CreatePurchaseReturnItemDto> _items = new() { new(Guid.Empty, 1, 0) };
+    private PurchaseReturnDto purchaseReturnDto = new PurchaseReturnDto();
 
     protected override async Task OnInitializedAsync()
     {
         _purchaseOrders = await DbContext.PurchaseOrders.OrderByDescending(p => p.PurchaseDate).Take(50).ToListAsync();
-        _products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
+        //_products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
+    }
+    private Task<IEnumerable<ControlItemsDto>> SearchPurchaseOrder(string text, CancellationToken _)
+    {
+        IEnumerable<ControlItemsDto> baseResults;
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            baseResults = _purchaseOrders.Where(c => c.Id != Guid.Empty).Select(c => new ControlItemsDto() { Id = c.Id, Name = c.OrderNumber, IsSelected = false });
+        }
+        else
+        {
+            baseResults = _purchaseOrders.Where(c =>
+                c.Id != Guid.Empty &&
+                (c.OrderNumber.Contains(text, StringComparison.OrdinalIgnoreCase)))
+                .Select(c => new ControlItemsDto() { Id = c.Id, Name = c.OrderNumber, IsSelected = false });
+        }
+
+        //var results = new[] { AddNewCustomerOption }.Concat(baseResults).DistinctBy(c => c.Id);
+        var results = baseResults.DistinctBy(c => c.Id);
+
+        return Task.FromResult(results);
+    }
+    private void CalculateLineTotal(PurchaseReturnItemDto context)
+    {
+        context.LineTotal = context.Quantity * context.UnitCost;
+
+        //        _purchaseOrders[index].Line.TotalPrice = ((dataModel.ProductObj.UnitPrice * dataModel.ProductObj.Quantity) - dataModel.ProductObj.TotalDiscount);
+    }
+    private void UpdateLineTotal(PurchaseReturnItemDto item, int quantity, decimal unitCost)
+    {
+        item.Quantity = quantity;
+        item.UnitCost = unitCost;
+        CalculateLineTotal(item);
+    }
+    private async Task OnPurchaseOrderChanged()
+    {
+        if (purchaseReturnDto.PurchaseReturnDdlControl.SelectedItem != null)
+        {
+            PurchaseOrderDto detail = await PurchaseService.GetPurchaseOrderById(purchaseReturnDto.PurchaseReturnDdlControl.SelectedItem?.Id ?? Guid.Empty);
+            purchaseReturnDto.ItemsLine = detail.Items.Select(i => new PurchaseReturnItemDto
+                {
+                    ProductId = i.ProductId,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    UnitCost = i.UnitPrice,
+                    LineTotal = i.Quantity * i.UnitPrice,
+                }).ToList();
+
+        }
+
     }
 
     private async Task Submit()
     {
         try
         {
-            var validItems = _items.Where(i => i.ProductId != Guid.Empty).ToList();
-            await PurchaseReturnService.CreatePurchaseReturn(new CreatePurchaseReturnDto(_poId, _reason, validItems));
-            Snackbar.Add("Purchase return created.", Severity.Success);
-            MudDialog.Close(DialogResult.Ok(true));
+            if (purchaseReturnDto.PurchaseReturnDdlControl.SelectedItem != null)
+            {
+                purchaseReturnDto.PurchaseOrderId = purchaseReturnDto.PurchaseReturnDdlControl.SelectedItem?.Id ?? Guid.Empty;
+                                purchaseReturnDto.PurchaseOrderNumber = purchaseReturnDto.PurchaseReturnDdlControl.SelectedItem?.Name ?? string.Empty;
+            }
+            MudDialog.Close(DialogResult.Ok(purchaseReturnDto));
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 
     private void Cancel() => MudDialog.Cancel();
+
 }

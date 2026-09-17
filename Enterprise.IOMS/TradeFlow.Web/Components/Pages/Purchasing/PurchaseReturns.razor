@@ -79,9 +79,46 @@
 
     private async Task OpenCreate()
     {
-        var dialog = await DialogService.ShowAsync<PurchaseReturnDialog>("New Purchase Return");
+        var dialog = await DialogService.ShowAsync<PurchaseReturnDialog>("New Purchase Return",
+                new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+
         var result = await dialog.Result;
-        if (result != null && !result.Canceled) await Load();
+        
+        if (result != null && !result.Canceled && result.Data is PurchaseReturnDto dto)
+        {
+
+            await PurchaseReturnService.CreatePurchaseReturn(dto);
+
+           //  if (dto.Id == Guid.Empty)
+           //  {   
+           //      await ProductService.CreateProductAsync(dto);
+           //  }
+           //  else
+           //  {
+           //      await ProductService.UpdateProductDetailsAsync(dto);
+           //      var entity = await DbContext.Products.FindAsync(dto.Id);
+           //      if (entity == null) return;
+
+           //      entity.Name = dto.Name;
+           //      entity.SKU = dto.SKU;
+           //      entity.Barcode = dto.Barcode;
+           //      entity.Description = dto.Description;
+           //      entity.CostPrice = dto.CostPrice;
+           //      entity.SellingPrice = dto.SellingPrice;
+           //      entity.WholeSellingPrice = dto.WholeSellingPrice;
+           //      entity.ReorderStockLevel = dto.ReorderStockLevel;
+           //      entity.MinOrderQuantity = dto.MinOrderQuantity;
+           //      entity.CategoryId = dto.CategoryId;
+           //      entity.BrandId = dto.BrandId;
+           //      entity.ImageUrl = dto.ImageUrl;
+           //      entity.Model = dto.Model;
+           //  }
+
+           // await DbContext.SaveChangesAsync();
+            Snackbar.Add(dto.Id == Guid.Empty ? "Product return created successfully" : "Product return updated successfully", Severity.Success);
+            await Load();
+        }
+
     }
 
     private async Task Approve(Guid id)

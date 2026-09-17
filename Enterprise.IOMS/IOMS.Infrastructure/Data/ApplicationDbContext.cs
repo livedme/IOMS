@@ -82,6 +82,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Returns
     public DbSet<PurchaseReturn> PurchaseReturns => Set<PurchaseReturn>();
     public DbSet<PurchaseReturnItem> PurchaseReturnItems => Set<PurchaseReturnItem>();
+    public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
+    public DbSet<SalesReturnItem> SalesReturnItems => Set<SalesReturnItem>();
 
     // Kitting
     public DbSet<Kit> Kits => Set<Kit>();

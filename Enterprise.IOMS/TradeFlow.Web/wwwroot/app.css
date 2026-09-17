@@ -346,7 +346,7 @@ h1:focus {
     width: 100%;
     overflow-y: auto;
     border: 1px solid #c4c4c4;
-    border-bottom: 0px;
+    /*border-bottom: 0px;*/
     padding-bottom: 10px;
 }
 .c-border-color {

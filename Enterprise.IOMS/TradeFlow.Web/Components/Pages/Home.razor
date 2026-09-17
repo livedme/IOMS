@@ -242,7 +242,7 @@
                 <div class="quick-btn" @onclick='() => Nav.NavigateTo("/reports/trial-balance")'><div class="quick-icon" style="background:#6366f1;"><MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Generate Report</span></div>
             </div>
 
-            <div class="filter-row">
+            <div class="filter-row my-5">
                 <MudPaper Elevation="0" Class="d-flex align-center px-3 py-1" Style="border:1px solid #e2e8f0; border-radius:10px; background:#fff; height:36px;">
                     <MudIcon Icon="@Icons.Material.Outlined.CalendarToday" Size="Size.Small" Style="font-size:16px;" Class="mr-2" Color="Color.Secondary" />
                     <MudSelect T="string" Value="@_dateRange" ValueChanged="@OnDateRangeChanged" Dense="true" Variant="Variant.Text" DisableUnderLine="true" Style="min-width:175px; font-size:0.84rem;">

@@ -73,6 +73,29 @@ public class PurchaseReturnItem : BaseEntity
     public decimal LineTotal { get; set; }
 }
 
+public class SalesReturn : BaseEntity
+{
+    public string ReturnNumber { get; set; } = string.Empty;
+    public Guid SalesOrderId { get; set; }
+    public SalesOrder SalesOrder { get; set; } = null!;
+    public SalesReturnStatus Status { get; set; } = SalesReturnStatus.Draft;
+    public decimal TotalAmount { get; set; }
+    public string? Reason { get; set; }
+    public string? Notes { get; set; }
+    public ICollection<SalesReturnItem> Items { get; set; } = new List<SalesReturnItem>();
+}
+
+public class SalesReturnItem : BaseEntity
+{
+    public Guid SalesReturnId { get; set; }
+    public SalesReturn SalesReturn { get; set; } = null!;
+    public Guid ProductId { get; set; }
+    public Product Product { get; set; } = null!;
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal LineTotal { get; set; }
+}
+
 public class Kit : BaseEntity
 {
     public Guid ProductId { get; set; }

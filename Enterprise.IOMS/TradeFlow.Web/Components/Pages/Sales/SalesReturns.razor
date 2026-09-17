@@ -1,0 +1,93 @@
+@page "/orders/sales-returns"
+@rendermode InteractiveServer
+@using IOMS.Application.DTOs
+@using IOMS.Application.Interfaces
+@using IOMS.Domain.Enums
+@inject ISalesReturnService SalesReturnService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Sales Returns - IOMS</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Sales Returns</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreate"
+           Class="mb-4">New Return</MudButton>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudTable Items="@returns" Dense="true" Hover="true" Striped="true" Loading="@loading" Elevation="0">
+        <HeaderContent>
+            <MudTh>Return #</MudTh>
+            <MudTh>SO #</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh Style="text-align:right">Total</MudTh>
+            <MudTh>Reason</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><strong>@context.ReturnNumber</strong></MudTd>
+            <MudTd>@context.SalesOrderNumber</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small">@context.Status</MudChip>
+            </MudTd>
+            <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
+            <MudTd>@context.Reason</MudTd>
+            <MudTd>
+                @if (context.Status == SalesReturnStatus.Draft)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small"
+                                   Title="Approve" OnClick="() => Approve(context.Id)" />
+                }
+                @if (context.Status == SalesReturnStatus.Approved)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Done" Color="Color.Primary" Size="Size.Small"
+                                   Title="Complete" OnClick="() => Complete(context.Id)" />
+                }
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<SalesReturnDto> returns = new();
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        loading = true;
+        var result = await SalesReturnService.GetSalesReturns(null, null, 1, 100);
+        returns = result.Items;
+        loading = false;
+    }
+
+    private async Task OpenCreate()
+    {
+        var dialog = await DialogService.ShowAsync<SalesReturnDialog>("New Sales Return",
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled && result.Data is SalesReturnDto dto)
+        {
+            await SalesReturnService.CreateSalesReturn(dto);
+            Snackbar.Add("Sales return created successfully.", Severity.Success);
+            await Load();
+        }
+    }
+
+    private async Task Approve(Guid id)
+    {
+        await SalesReturnService.ApproveSalesReturn(id);
+        await Load();
+    }
+
+    private async Task Complete(Guid id)
+    {
+        await SalesReturnService.CompleteSalesReturn(id);
+        await Load();
+    }
+}

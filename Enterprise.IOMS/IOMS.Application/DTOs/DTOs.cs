@@ -389,17 +389,17 @@ public record StocktakeVarianceDto(Guid StocktakeId, string WarehouseName,
     List<StocktakeItemDto> Items, int TotalVariance, decimal ValueVariance);
 
 // Purchase Returns
-public record PurchaseReturnDto(Guid Id, string ReturnNumber, Guid PurchaseOrderId,
-    string PurchaseOrderNumber, PurchaseReturnStatus Status, decimal TotalAmount,
-    string? Reason, List<PurchaseReturnItemDto> Items);
+//public record PurchaseReturnDto(Guid Id, string ReturnNumber, Guid PurchaseOrderId,
+//    string PurchaseOrderNumber, PurchaseReturnStatus Status, decimal TotalAmount,
+//    string? Reason, List<PurchaseReturnItemDto> Items);
 
-public record PurchaseReturnItemDto(Guid Id, Guid ProductId, string ProductName,
-    int Quantity, decimal UnitCost, decimal LineTotal);
+//public record PurchaseReturnItemDto(Guid Id, Guid ProductId, string ProductName,
+//    int Quantity, decimal UnitCost, decimal LineTotal);
 
-public record CreatePurchaseReturnDto(Guid PurchaseOrderId, string? Reason,
-    List<CreatePurchaseReturnItemDto> Items);
+//public record CreatePurchaseReturnDto(Guid PurchaseOrderId, string? Reason,
+//    List<CreatePurchaseReturnItemDto> Items);
 
-public record CreatePurchaseReturnItemDto(Guid ProductId, int Quantity, decimal UnitCost);
+//public record CreatePurchaseReturnItemDto(Guid ProductId, int Quantity, decimal UnitCost);
 
 // RFQ
 public record RfqRequestDto(Guid Id, string RfqNumber, RfqStatus Status, DateTime? RequiredDate,
