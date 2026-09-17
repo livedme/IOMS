@@ -9,6 +9,8 @@
 <MudDialog>
     <TitleContent>New Purchase Return</TitleContent>
     <DialogContent>
+        <MudGrid>
+           <MudItem xs="12" sm="6">
          <MudAutocomplete T="ControlItemsDto"
                          @ref="purchaseReturnDto.PurchaseReturnDdlControl.ControlRef"
                          Label="PurchaseOrder"
@@ -23,7 +25,19 @@
                                  CoerceText="true"
                                  Clearable="true" Class="mb-5" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
         
-
+                                    </MudItem>
+            <MudItem xs="12" sm="6">
+                @if (supplierDto != null)
+                {
+                    <strong>Supplier Info</strong>
+                    <MudText>@supplierDto.SupplierName</MudText>
+                    <MudText>@supplierDto.SupplierEmail</MudText>
+                    <MudText>@supplierDto.SupplierPhone</MudText>
+                }
+            </MudItem>
+             
+               <MudItem xs="12" sm="12">
+                   <MudText Typo="Typo.h6" Class="mt-4 mb-2">Item Line</MudText>
         <MudTable Items="@purchaseReturnDto.ItemsLine" Dense="true" Elevation="0" Class="product-item-list" FixedHeader="true" ContainerClass="mud-table-container mb-5">
             <HeaderContent>                
                 <MudTh Style="width:auto;">Product</MudTh>
@@ -60,13 +74,17 @@
                 }
                 <MudTd Style="text-align:right;"><strong>@purchaseReturnDto.ItemsLine.Where(item => item.IsSelected).Sum(item => item.LineTotal).ToString("C") @purchaseReturnDto.TotalAmount</strong></MudTd>
             </FooterContent>
-        </MudTable>
+        </MudTable>  
+        </MudItem>
+        <MudItem xs="12" sm="12">
 @* 
         <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="() => _items.Add(new(Guid.Empty, 1, 0))">Add Item</MudButton> *@
         <MudHidden Label="Total Amount" @bind-Value="purchaseReturnDto.TotalAmount" Min="0" ShrinkLabel="true" Class="mt-4" Variant="Variant.Outlined" Margin="Margin.Dense" />
-
+        </MudItem>
+           <MudItem xs="12" sm="12">
         <RichTextField Label="Reason" @bind-Value="purchaseReturnDto.Reason" Lines="2" Class="mt-2" />        
-
+        </MudItem>
+         </MudGrid>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
@@ -79,11 +97,14 @@
     }
 </style>
 @inject IPurchaseService PurchaseService
+@inject ISupplierService SupplierService
+
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     private List<PurchaseOrder> _purchaseOrders = new();
     private PurchaseReturnDto purchaseReturnDto = new PurchaseReturnDto();
-
+    private SupplierDto supplierDto = null;
+    
     protected override async Task OnInitializedAsync()
     {
         _purchaseOrders = await DbContext.PurchaseOrders.OrderByDescending(p => p.PurchaseDate).Take(50).ToListAsync();
@@ -127,7 +148,10 @@
         if (purchaseReturnDto.PurchaseReturnDdlControl.SelectedItem != null)
         {
             PurchaseOrderDto detail = await PurchaseService.GetPurchaseOrderById(purchaseReturnDto.PurchaseReturnDdlControl.SelectedItem?.Id ?? Guid.Empty);
-            purchaseReturnDto.ItemsLine = detail.Items.Select(i => new PurchaseReturnItemDto
+
+            if (detail is not null)
+            {
+                purchaseReturnDto.ItemsLine = detail.Items.Select(i => new PurchaseReturnItemDto
                 {
                     ProductId = i.ProductId,
                     ProductName = i.ProductName,
@@ -135,7 +159,10 @@
                     UnitCost = i.UnitPrice,
                     LineTotal = i.Quantity * i.UnitPrice,
                 }).ToList();
+                
+              supplierDto= await SupplierService.GetSupplierByIdAsync(detail.SupplierId);
 
+            }
         }
 
     }
