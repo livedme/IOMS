@@ -24,8 +24,8 @@
                     <MudText>@customer.CustomerPhone</MudText>
                 }
             </MudItem>
-            <MudItem xs="12">
-                <MudText Typo="Typo.h6" Class="mt-4 mb-2">Item Line</MudText>
+            <MudItem xs="12" Class="mt-0 pt-0">
+                <MudText Typo="Typo.h6" Class="mt-0 mb-2">Item Line</MudText>
                 <MudTable Items="@salesReturnDto.ItemsLine" Dense="true" Elevation="0" Class="product-item-list"
                           FixedHeader="true" ContainerClass="mud-table-container mb-5">
                     <HeaderContent>
@@ -58,14 +58,20 @@
                         <MudTd></MudTd>
                         <MudTd></MudTd>
                         <MudTd Style="text-align:right;">
+                             @{
+                                    salesReturnDto.TotalAmount = salesReturnDto.ItemsLine.Where(item => item.IsSelected).Sum(item => item.LineTotal);
+                                }
+
                             <strong>
-                                @salesReturnDto.ItemsLine.Where(item =>item.IsSelected).Sum(item => item.LineTotal).ToString("C")
+                                @salesReturnDto.TotalAmount.ToString("C")
                             </strong>
                         </MudTd>
                     </FooterContent>
                 </MudTable>
             </MudItem>
-            <MudItem xs="12">
+            <MudItem xs="12"> 
+                 <MudHidden Label="Total Amount" @bind-Value="salesReturnDto.TotalAmount" Min="0" ShrinkLabel="true" Class="mt-4" Variant="Variant.Outlined" Margin="Margin.Dense" />
+
                 <RichTextField Label="Reason" @bind-Value="salesReturnDto.Reason" Lines="2" Class="mt-2" />
             </MudItem>
         </MudGrid>

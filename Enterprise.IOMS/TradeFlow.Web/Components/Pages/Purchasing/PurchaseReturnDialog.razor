@@ -36,8 +36,8 @@
                 }
             </MudItem>
              
-               <MudItem xs="12" sm="12">
-                   <MudText Typo="Typo.h6" Class="mt-4 mb-2">Item Line</MudText>
+               <MudItem xs="12" sm="12" Class="mt-0 pt-0">
+                <MudText Typo="Typo.h6" Class="mt-0 mb-2">Item Line</MudText>
         <MudTable Items="@purchaseReturnDto.ItemsLine" Dense="true" Elevation="0" Class="product-item-list" FixedHeader="true" ContainerClass="mud-table-container mb-5">
             <HeaderContent>                
                 <MudTh Style="width:auto;">Product</MudTh>
@@ -64,7 +64,7 @@
                         } *@
                         <div>@context.LineTotal.ToString("C")</div>
                     </MudTd>                      
-            </RowTemplate>
+            </RowTemplate> 
             <FooterContent>
                 <MudTd><strong>Total</strong></MudTd>
                 <MudTd></MudTd>
@@ -72,16 +72,12 @@
                 @{
                     purchaseReturnDto.TotalAmount = purchaseReturnDto.ItemsLine.Where(item => item.IsSelected).Sum(item => item.LineTotal);
                 }
-                <MudTd Style="text-align:right;"><strong>@purchaseReturnDto.ItemsLine.Where(item => item.IsSelected).Sum(item => item.LineTotal).ToString("C") @purchaseReturnDto.TotalAmount</strong></MudTd>
+                <MudTd Style="text-align:right;"><strong>@purchaseReturnDto.TotalAmount.ToString("C")</strong></MudTd>
             </FooterContent>
         </MudTable>  
         </MudItem>
-        <MudItem xs="12" sm="12">
-@* 
-        <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="() => _items.Add(new(Guid.Empty, 1, 0))">Add Item</MudButton> *@
-        <MudHidden Label="Total Amount" @bind-Value="purchaseReturnDto.TotalAmount" Min="0" ShrinkLabel="true" Class="mt-4" Variant="Variant.Outlined" Margin="Margin.Dense" />
-        </MudItem>
            <MudItem xs="12" sm="12">
+               <MudHidden Label="Total Amount" @bind-Value="purchaseReturnDto.TotalAmount" Min="0" ShrinkLabel="true" Class="mt-4" Variant="Variant.Outlined" Margin="Margin.Dense" />
         <RichTextField Label="Reason" @bind-Value="purchaseReturnDto.Reason" Lines="2" Class="mt-2" />        
         </MudItem>
          </MudGrid>
