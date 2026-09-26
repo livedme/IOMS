@@ -8,453 +8,280 @@
 
 <PageTitle>@(_product?.Name ?? "Product Detail") - IOMS</PageTitle>
 
+<style>
+    .tm-page { background: #eef1f6; margin: -24px; padding: 14px 14px 18px 14px; min-height: 100vh; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+    .tm-card { background: #fff; border: 1px solid #e8ebf1; border-radius: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.05); }
+    /* breadcrumb like screenshot */
+    .pd-crumb { font-size: 14px; margin: 2px 2px 10px 2px; color: #adb5bd; }
+    .pd-crumb .pd-link { color: #0d6efd; cursor: pointer; text-decoration: none; }
+    .pd-crumb .pd-sep { margin: 0 8px; color: #adb5bd; }
+    .pd-toprow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .pd-toprow .pd-crumb { margin: 0; }
+    .pd-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+    .act-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 9px 14px; font-size: 12px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; border: 1px solid #1f2937; background: #fff; color: #111827; cursor: pointer; white-space: nowrap; }
+    .act-btn:hover { background: #f3f4f6; }
+    .act-btn-primary { background: #2f6bff; border-color: #2f6bff; color: #fff; }
+    .act-btn-primary:hover { background: #1d4ed8; color: #fff; }
+    /* hero exactly like screenshot */
+    .pd-hero { display: flex; align-items: flex-start; gap: 28px; padding: 16px 20px; margin-bottom: 10px; }
+    .pd-img { width: 160px; height: 120px; min-width: 160px; background: #EEF2FF; border: 1.5px dashed #C7CEF0; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .pd-img span { font-size: 44px; color: #8F9EC7; line-height: 1; }
+    .pd-img img { width: 100%; height: 100%; object-fit: contain; }
+    .pd-main { flex: 1; min-width: 0; }
+    .pd-title { font-size: 22px; font-weight: 800; color: #101a33; margin: 0; line-height: 1.2; }
+    .pd-sku-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .pd-sku-lbl { color: #7c3aed; font-size: 13px; font-weight: 500; }
+    .pd-sku-val { color: #111; font-size: 13px; font-weight: 700; }
+    .pd-barcode { background: #F8F9FC; border: 1px solid #E0E4F0; border-radius: 4px; padding: 4px 10px; font-family: monospace; letter-spacing: 2px; font-size: 11px; color: #111827; }
+    .pd-active { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 13px; font-weight: 700; color: #111; }
+    .pd-active i { width: 8px; height: 8px; border-radius: 50%; background: #06D6A0; display: inline-block; }
+    .pd-stats { display: flex; align-items: flex-start; margin-top: 2px; }
+    .pd-main { padding-top: 2px; }
+    .pd-stat { text-align: center; padding: 0 20px; }
+    .pd-stat + .pd-stat { border-left: 1px solid #e9ecf1; }
+    .pd-stat-lbl { font-size: 12px; color: #7c3aed; margin-bottom: 6px; }
+    .pd-stat-val { font-size: 20px; font-weight: 800; color: #111; line-height: 1.2; }
+    .pd-stat-val.green { color: #065f46; background: #34d399; padding: 2px 8px; border-radius: 3px; display: inline-block; }
+    @@media (max-width: 1000px) { .pd-hero { flex-wrap: wrap; } .pd-stats { flex-wrap: wrap; } .pd-stat { padding: 8px 16px; } }
+    /* tabs */
+    .tm-tabs-card { padding: 0 0 12px 0; }
+    .tm-tabs { display: flex; gap: 6px; padding: 10px 12px 0 12px; border-bottom: 1px solid #e5e7eb; overflow-x: auto; }
+    .tm-tab { border: none; background: #f3f4f6; padding: 9px 16px; font-size: 12.5px; font-weight: 600; color: #374151; cursor: pointer; border-radius: 4px 4px 0 0; white-space: nowrap; }
+    .tm-tab.active { background: #fff; color: #2563eb; border-bottom: 2px solid #2563eb; border-radius: 0; }
+    .tm-section-title { font-size: 14px; font-weight: 700; color: #111827; padding: 12px 16px 6px 16px; margin: 0; }
+    .tm-toolbar { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 16px 0 16px; }
+    .tm-btn { border-radius: 6px; padding: 7px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; border: 1px solid #dfe3ea; background: #fff; color: #374151; }
+    .tm-btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .tm-btn-primary:hover { background: #1d4ed8; }
+    /* overview */
+    .ov-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; padding: 6px 18px 14px 18px; }
+    @@media (max-width: 900px) { .ov-grid { grid-template-columns: 1fr; } }
+    .ov-label { font-size: 12px; color: #6b7280; margin-top: 12px; }
+    .ov-value { font-size: 14px; font-weight: 600; color: #111827; margin-top: 2px; }
+    .ov-desc { font-size: 13.5px; color: #374151; margin-top: 4px; }
+    .ov-divider { border: none; border-top: 1px solid #eef0f4; margin: 8px 0 0 0; }
+    .ov-cards { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; padding: 10px 16px 4px 16px; }
+    @@media (max-width: 1000px) { .ov-cards { grid-template-columns: repeat(2,1fr); } }
+    .ov-card { border: 1px solid #e8ebf1; border-radius: 10px; padding: 14px; text-align: center; background: #fff; }
+    .ov-card .n { font-size: 22px; font-weight: 800; color: #111827; }
+    .ov-card .l { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    table.tm-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.8px; }
+    .tm-table-wrap { padding: 8px 12px; overflow-x: auto; }
+    table.tm-table thead th { text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: #6b7280; text-transform: uppercase; padding: 10px 12px; background: #f8fafc; white-space: nowrap; }
+    table.tm-table thead th:first-child { border-radius: 8px 0 0 8px; } table.tm-table thead th:last-child { border-radius: 0 8px 8px 0; }
+    table.tm-table tbody td { padding: 10px 12px; color: #374151; border-bottom: 1px solid #f0f2f5; white-space: nowrap; vertical-align: middle; }
+    .tm-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid; }
+    .tm-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .tm-pill-green { background: #dcfce7; color: #15803d; border-color: #bbf7d0; } .tm-pill-green .tm-dot { background: #16a34a; }
+    .tm-pill-red { background: #fee2e2; color: #b91c1c; border-color: #fecaca; } .tm-pill-red .tm-dot { background: #dc2626; }
+    .tm-pill-amber { background: #fef3c7; color: #b45309; border-color: #fde68a; } .tm-pill-amber .tm-dot { background: #d97706; }
+    .tm-pill-blue { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; } .tm-pill-blue .tm-dot { background: #2563eb; }
+    .tm-pill-purple { background: #ede9fe; color: #6d28d9; border-color: #ddd6fe; } .tm-pill-purple .tm-dot { background: #7c3aed; }
+    .tm-pill-gray { background: #f3f4f6; color: #4b5563; border-color: #e5e7eb; } .tm-pill-gray .tm-dot { background: #9ca3af; }
+    .tm-strong { font-weight: 700; color: #111827; } .tm-green { color: #16a34a; font-weight: 700; } .tm-red { color: #dc2626; font-weight: 700; }
+    .tm-bottom { display: flex; gap: 10px; padding: 12px 2px 0 2px; }
+    .tm-loading { padding: 30px; text-align: center; color: #6b7280; font-size: 13px; }
+</style>
+
 @if (_loading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+    <div class="tm-page"><div class="tm-card"><div class="tm-loading">Loading product...</div></div></div>
 }
 else if (_product == null)
 {
-    <MudAlert Severity="Severity.Error">Product not found.</MudAlert>
+    <div class="tm-page"><div class="tm-card"><div class="tm-loading">Product not found.</div></div></div>
 }
 else
 {
-    <MudBreadcrumbs Items="_breadcrumbs" Class="mb-3 pa-0" />
-
-    @* ── Top Product Header Card ── *@
-    <MudPaper Elevation="2" Class="pa-4 mb-4" Style="border-radius:12px;">
-        <MudGrid AlignItems="AlignItems.Center">
-            @* Product Image *@
-            <MudItem xs="12" sm="2">
-                @if (!string.IsNullOrEmpty(_product.ImageUrl))
-                {
-                    <MudImage Src="@_product.ImageUrl" Alt="@_product.Name"
-                              Style="width:100%;max-width:160px;height:120px;object-fit:contain;border-radius:8px;" />
-                }
-                else
-                {
-                    <div style="width:160px;height:120px;background:#EEF2FF;border:1.5px dashed #C7CEF0;
-                        border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                        <MudIcon Icon="@Icons.Material.Outlined.Inventory2"
-                                 Style="font-size:3rem;color:#8F9EC7;" />
-                    </div>
-                }
-            </MudItem>
-
-            @* Product Core Info *@
-            <MudItem xs="12" sm="6">
-                <MudText Typo="Typo.h5" Style="font-weight:800;line-height:1.2;">@_product.Name</MudText>
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-1">
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">SKU:</MudText>
-                    <MudText Typo="Typo.body2" Style="font-weight:600;">@_product.SKU</MudText>
-                    @if (!string.IsNullOrEmpty(_product.Barcode))
-                    {
-                        <MudPaper Elevation="0" Class="px-2 py-1"
-                                  Style="background:#F8F9FC;border:1px solid #E0E4F0;border-radius:4px;">
-                            <MudText Typo="Typo.caption" Style="font-family:monospace;letter-spacing:2px;font-size:0.7rem;">
-                                | | | @_product.Barcode | | |
-                            </MudText>
-                        </MudPaper>
-                    }
-                </MudStack>
-                <MudGrid Class="mt-2" Spacing="2">                   
-                    <MudItem>
-                        @* <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText> *@
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <div style="width:8px;height:8px;border-radius:50%;background:#06D6A0;"></div>
-                            <MudText Typo="Typo.body2" Style="font-weight:600;">Active</MudText>
-                        </MudStack>
-                    </MudItem>
-                </MudGrid>
-            </MudItem>
-
-            @* Price / Cost / Margin *@
-            <MudItem xs="12" sm="4">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
-                   
-                    <div style="text-align:center;padding:0 16px;">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Cost</MudText>
-                        <MudText Typo="Typo.h6" Style="font-weight:800;">@_product.CostPrice.ToString("C")</MudText>
-                    </div>
-                    <MudDivider Vertical="true" Style="height:40px;" />
-                    <div style="text-align:center;padding:0 16px;">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Sell Price</MudText>
-                        <MudText Typo="Typo.h6" Style="font-weight:800;">@_product.SellingPrice.ToString("C")</MudText>
-                    </div>
-                    <MudDivider Vertical="true" Style="height:40px;" />
-                    <div style="text-align:center;padding:0 16px;">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Whole Sell Price</MudText>
-                        <MudText Typo="Typo.h6" Style="font-weight:800;">@_product.WholeSellingPrice.ToString("C")</MudText>
-                    </div>
-                    <MudDivider Vertical="true" Style="height:40px;" />
-                    <div style="text-align:center;padding:0 16px;">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Margin</MudText>
-                        <MudText Typo="Typo.h6" Style="font-weight:800;color:#06D6A0;">@Margin%</MudText>
-                    </div>
-                </MudStack>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
-
-    
-
-    @* ── Tabs ── *@
-    <MudPaper Elevation="2" Class="mt-4" Style="border-radius:12px;">
-        <div class="row">
-            <div class="col-md-9">
-            @* Action Buttons *@
-            <div class="mt-4 d-flex flex-wrap gap-2">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Add" OnClick="AddStock">
-                    Add Stock
-                </MudButton>
-                <MudButton Variant="Variant.Outlined"
-                           StartIcon="@Icons.Material.Outlined.Tune" OnClick="AdjustStock">
-                    Adjust Stock
-                </MudButton>
-                <MudButton Variant="Variant.Outlined"
-                           StartIcon="@Icons.Material.Outlined.SwapHoriz" OnClick="TransferStock">
-                    Transfer Stock
-                </MudButton>
-                <MudButton Variant="Variant.Outlined"
-                           StartIcon="@Icons.Material.Outlined.ShoppingCartCheckout"
-                           OnClick="GoCreatePurchaseOrder">
-                    Create Purchase Order
-                </MudButton>
-                <MudButton Variant="Variant.Outlined"
-                           StartIcon="@Icons.Material.Outlined.Receipt"
-                           OnClick="GoCreateSalesOrder">
-                    Create Sales Order
-                </MudButton>
-            </div>
-
-            <MudTabs Elevation="0" Rounded="false" ApplyEffectsToContainer="true" PanelClass="pa-4"
-                     ActiveTabClass="mud-tab-active" TabHeaderClass="px-2">
-                @* Overview Tab *@
-                <MudTabPanel Text="Overview">
-                    <MudGrid>
-                            <MudItem xs="12" sm="6">
-                                <MudStack Spacing="5" Class="ps-3">
-                                    <div style="padding:12px 0;">  
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Product Details:</MudText>
-                                        <MudText Typo="Typo.body2">@_product.Description</MudText>
-                                    </div>
-                                </MudStack>
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <MudStack Spacing="0">
-                                    <div style="padding:8px 0;">
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Category</MudText>
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
-                                            @if (!string.IsNullOrEmpty(_parentCategoryName))
-                                            {
-                                                <MudText Typo="Typo.body2" Style="font-weight:500;">@_parentCategoryName</MudText>
-                                                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small"
-                                                         Style="color:#9EA8C8;" />
-                                            }
-                                            <MudText Typo="Typo.body2" Style="font-weight:600;">@_product.Category?.Name</MudText>
-                                        </MudStack>
-                                        <MudDivider />
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Model</MudText>
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@(_product.Model ?? "—")</MudText>
-                                        <MudDivider />
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Brand</MudText>
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@(_product.Brand?.Name ?? "—")</MudText>
-                                        <MudDivider />
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Whole Selling Price</MudText>
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.WholeSellingPrice</MudText>
-                                        <MudDivider />
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Reorder Level</MudText>
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.ReorderStockLevel</MudText>
-                                        <MudDivider />
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Minimum Order Quantity</MudText>
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">@_product.MinOrderQuantity</MudText>
-                                        <MudDivider />
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Lead Time</MudText>
-                                        <MudText Typo="Typo.body1" Style="font-weight:600;">
-                                            @(_preferredSupplier?.LeadTimeDays > 0
-                                                ? $"{_preferredSupplier.LeadTimeDays} days"
-                                                : "N/A")
-                                        </MudText>
-                                    </div>
-                                </MudStack>
-                            </MudItem>
-                            <MudItem xs="12" sm="12">
-                                <MudStack Spacing="0" Class="ps-3">
-                                    <div style="padding:12px 0;">
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Preferred Supplier</MudText>
-                                        @if (_preferredSupplier != null)
-                                        {
-                                            <MudLink Href="@($"/suppliers/{_preferredSupplier.Id}")"
-                                                     Style="font-weight:600;color:#4361EE;">
-                                                @_preferredSupplier.SupplierName
-                                            </MudLink>
-                                        }
-                                        else
-                                        {
-                                            <MudText Typo="Typo.body1" Style="font-weight:600;">N/A</MudText>
-                                        }
-                                    </div>
-                                </MudStack>
-                            </MudItem>
-                    </MudGrid>
-                </MudTabPanel>
-
-                @* Inventory Transactions Tab *@
-                <MudTabPanel Text="Inventory Transactions">
-                    <MudTable Items="@_movements" Dense="true" Hover="true" Elevation="0" Striped="true">
-                        <HeaderContent>
-                            <MudTh>Date</MudTh>
-                            <MudTh>Warehouse</MudTh>
-                            <MudTh>Type</MudTh>
-                            <MudTh Style="text-align:right">Quantity</MudTh>
-                            <MudTh>Reference</MudTh>
-                            <MudTh>Notes</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd>@context.MovementDate.ToString("yyyy-MM-dd")</MudTd>
-                            <MudTd>@context.Warehouse?.Name</MudTd>
-                            <MudTd>
-                                <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.Type</MudChip>
-                            </MudTd>
-                            <MudTd Style="text-align:right">
-                                <MudText Color="@(context.Quantity >= 0 ? Color.Success : Color.Error)">
-                                    @(context.Quantity > 0 ? "+" : "")@context.Quantity
-                                </MudText>
-                            </MudTd>
-                            <MudTd>@context.Reference</MudTd>
-                            <MudTd>@context.Notes</MudTd>
-                        </RowTemplate>
-                        <NoRecordsContent>
-                            <MudText Align="Align.Center" Class="py-4">No inventory transactions found.</MudText>
-                        </NoRecordsContent>
-                    </MudTable>
-                </MudTabPanel>
-
-                @* Sales Orders Tab *@
-                <MudTabPanel Text="Sales Orders">
-                    <MudTable Items="@_salesOrderLines" Dense="true" Hover="true" Elevation="0" Striped="true">
-                        <HeaderContent>
-                            <MudTh>Order #</MudTh>
-                            <MudTh>Customer</MudTh>
-                            <MudTh>Date</MudTh>
-                            <MudTh>Status</MudTh>
-                            <MudTh Style="text-align:right">Qty</MudTh>
-                            <MudTh Style="text-align:right">Unit Price</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd>
-                                <MudLink Href="@($"/orders/sales/{context.OrderId}")">@context.OrderNumber</MudLink>
-                            </MudTd>
-                            <MudTd>@context.CustomerName</MudTd>
-                            <MudTd>@context.OrderDate.ToString("yyyy-MM-dd")</MudTd>
-                            <MudTd>
-                                <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.Status</MudChip>
-                            </MudTd>
-                            <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                            <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
-                        </RowTemplate>
-                        <NoRecordsContent>
-                            <MudText Align="Align.Center" Class="py-4">No sales orders found.</MudText>
-                        </NoRecordsContent>
-                    </MudTable>
-                </MudTabPanel>
-
-                @* Purchase Orders Tab *@
-                <MudTabPanel Text="Purchase Orders">
-                    <MudTable Items="@_purchaseOrderLines" Dense="true" Hover="true" Elevation="0" Striped="true">
-                        <HeaderContent>
-                            <MudTh>Order #</MudTh>
-                            <MudTh>Supplier</MudTh>
-                            <MudTh>Date</MudTh>
-                            <MudTh>Status</MudTh>
-                            <MudTh Style="text-align:right">Qty</MudTh>
-                            <MudTh Style="text-align:right">Unit Price</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd>
-                                <MudLink Href="@($"/orders/purchase/{context.OrderId}")">@context.OrderNumber</MudLink>
-                            </MudTd>
-                            <MudTd>@context.SupplierName</MudTd>
-                            <MudTd>@context.OrderDate.ToString("yyyy-MM-dd")</MudTd>
-                            <MudTd>
-                                <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.Status</MudChip>
-                            </MudTd>
-                            <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                            <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
-                        </RowTemplate>
-                        <NoRecordsContent>
-                            <MudText Align="Align.Center" Class="py-4">No purchase orders found.</MudText>
-                        </NoRecordsContent>
-                    </MudTable>
-                </MudTabPanel>
-
-                @* Analytics Tab *@
-                <MudTabPanel Text="Analytics">
-                    <MudGrid Spacing="3">
-                        <MudItem xs="12" sm="3">
-                            <MudPaper Elevation="1" Class="pa-4" Style="text-align:center;border-radius:10px;">
-                                <MudIcon Icon="@Icons.Material.Outlined.PointOfSale"
-                                         Style="color:#4361EE;font-size:2rem;" Class="mb-2" />
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Last 30 Days Sales</MudText>
-                                <MudText Typo="Typo.h4" Style="font-weight:800;">@_last30DaysSales</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">units sold</MudText>
-                            </MudPaper>
-                        </MudItem>
-                        <MudItem xs="12" sm="3">
-                            <MudPaper Elevation="1" Class="pa-4" Style="text-align:center;border-radius:10px;">
-                                <MudIcon Icon="@Icons.Material.Outlined.Inventory2"
-                                         Style="color:#06D6A0;font-size:2rem;" Class="mb-2" />
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Available</MudText>
-                                <MudText Typo="Typo.h4" Style="font-weight:800;">@_totalAvailable</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">units in stock</MudText>
-                            </MudPaper>
-                        </MudItem>
-                        <MudItem xs="12" sm="3">
-                            <MudPaper Elevation="1" Class="pa-4" Style="text-align:center;border-radius:10px;">
-                                <MudIcon Icon="@Icons.Material.Outlined.Lock"
-                                         Style="color:#EF476F;font-size:2rem;" Class="mb-2" />
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Reserved</MudText>
-                                <MudText Typo="Typo.h4" Style="font-weight:800;">
-                                    @_inventories.Sum(x => x.ReservedQuantity)
-                                </MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">units reserved</MudText>
-                            </MudPaper>
-                        </MudItem>
-                        <MudItem xs="12" sm="3">
-                            <MudPaper Elevation="1" Class="pa-4" Style="text-align:center;border-radius:10px;">
-                                <MudIcon Icon="@Icons.Material.Outlined.AttachMoney"
-                                         Style="color:#FFD166;font-size:2rem;" Class="mb-2" />
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Stock Value (Cost)</MudText>
-                                <MudText Typo="Typo.h5" Style="font-weight:800;">
-                                    @((_totalAvailable * _product.CostPrice).ToString("C"))
-                                </MudText>
-                            </MudPaper>
-                        </MudItem>
-                    </MudGrid>
-                </MudTabPanel>
-            </MudTabs>    
+<div class="tm-page">
+    <div class="pd-toprow">
+        <div class="pd-crumb"><span class="pd-link" @onclick="GoBack">Products</span><span class="pd-sep">/</span><span>@_product.Name</span></div>
+        <div class="pd-actions">
+            <button class="act-btn act-btn-primary" @onclick="AddStock">+&nbsp; Add Stock</button>
+            <button class="act-btn" @onclick="AdjustStock">☰&nbsp; Adjust Stock</button>
+            <button class="act-btn" @onclick="TransferStock">↩&nbsp; Transfer Stock</button>
+            <button class="act-btn" @onclick="GoCreatePurchaseOrder">🛒&nbsp; Create Purchase Order</button>
+            <button class="act-btn" @onclick="GoCreateSalesOrder">🧾&nbsp; Create Sales Order</button>
         </div>
-            <div class="col-md-3 float-end">
-            @* ── Warehouse Cards + Quick Insights ── *@
-            <MudGrid>
-                <MudItem xs="12" md="12">
-                    @* Warehouse Stock Cards *@
-                    <MudGrid>
-                        @foreach (var (inv, idx) in _inventories.Select((x, i) => (x, i)))
-                        {
-                            var (headerBg, headerFg) = GetWarehouseCardColors(idx);
-                            <MudItem xs="12">
-                                <MudPaper Elevation="3" Style="border-radius:12px;overflow:hidden;">
-                                    <div style="@($"background:{headerBg};padding:12px 16px;")">
-                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                            <MudIcon Icon="@Icons.Material.Outlined.Warehouse"
-                                                     Style="@($"color:{headerFg};font-size:1.2rem;")" />
-                                            <MudText Style="@($"color:{headerFg};font-weight:700;font-size:0.95rem;")">
-                                                @inv.Warehouse.Name
-                                            </MudText>
-                                        </MudStack>
-                                    </div>
-                                    <div style="padding:16px 20px;">
-                                        <MudStack Row="true" Justify="Justify.FlexStart" Spacing="6">
-                                            <div>
-                                                <MudText Typo="Typo.h4" Style="font-weight:900;line-height:1;">
-                                                    @inv.AvailableQuantity
-                                                </MudText>
-                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Available</MudText>
-                                            </div>
-                                            @if (inv.ReservedQuantity > 0)
-                                            {
-                                                <div>
-                                                    <MudText Typo="Typo.h4"
-                                                             Style="font-weight:900;line-height:1;color:#EF476F;">
-                                                        @inv.ReservedQuantity
-                                                    </MudText>
-                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Reserved</MudText>
-                                                </div>
-                                            }
-                                        </MudStack>
-                                    </div>
-                                </MudPaper>
-                            </MudItem>
-                        }
-                        @if (!_inventories.Any())
-                        {
-                            <MudItem xs="12">
-                                <MudAlert Severity="Severity.Info">No stock records found for this product.</MudAlert>
-                            </MudItem>
-                        }
-                    </MudGrid>
-                </MudItem>
+    </div>
 
-                @* Quick Insights Panel *@
-                <MudItem xs="12" md="12">
-                    <MudPaper Elevation="2" Class="pa-3" Style="border-radius:12px;height:100%;">
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-                            <MudText Typo="Typo.subtitle1" Style="font-weight:700;">Quick Insights</MudText>
-                            <MudIconButton Icon="@Icons.Material.Outlined.MoreHoriz" Size="Size.Small" />
-                        </MudStack>
-
-                        @if (_totalAvailable <= _product.ReorderStockLevel)
-                        {
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                                <MudIcon Icon="@Icons.Material.Outlined.Warning"
-                                         Style="color:#FFD166;font-size:1.1rem;" />
-                                <MudText Typo="Typo.body2">Low Stock Alert</MudText>
-                            </MudStack>
-                        }
-
-                        @if (_isFastMoving)
-                        {
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                                <MudIcon Icon="@Icons.Material.Outlined.LocalFireDepartment"
-                                         Style="color:#EF476F;font-size:1.1rem;" />
-                                <MudText Typo="Typo.body2">Fast Moving Item</MudText>
-                            </MudStack>
-                        }
-                        else
-                        {
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                                <MudIcon Icon="@Icons.Material.Outlined.TrendingDown"
-                                         Style="color:#06D6A0;font-size:1.1rem;" />
-                                <MudText Typo="Typo.body2">Slow Moving Item</MudText>
-                            </MudStack>
-                        }
-
-                        <MudDivider Class="my-2" />
-
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-                            <MudIcon Icon="@Icons.Material.Outlined.BarChart"
-                                     Style="color:#4361EE;font-size:1.1rem;" />
-                            <MudText Typo="Typo.body2">Last 30 Days Sales</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.h6" Style="font-weight:800;padding-left:24px;">
-                            @_last30DaysSales <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:inline;">units</MudText>
-                        </MudText>
-                    </MudPaper>
-                </MudItem>
-            </MudGrid>
-            </div>
+    <!-- Hero exactly like screenshot -->
+    <div class="tm-card pd-hero">
+        <div class="pd-img">
+            @if (!string.IsNullOrEmpty(_product.ImageUrl))
+            {
+                <img src="@_product.ImageUrl" alt="@_product.Name" />
+            }
+            else
+            {
+                <span>🗄</span>
+            }
         </div>
-    </MudPaper>
+        <div class="pd-main">
+            <h2 class="pd-title">@_product.Name</h2>
+            <div class="pd-sku-row">
+                <span class="pd-sku-lbl">SKU:</span>
+                <span class="pd-sku-val">@_product.SKU</span>
+                <span class="pd-barcode">| | | @_product.Barcode | | |</span>
+            </div>
+            <div class="pd-active"><i></i>Active</div>
+        </div>
+        <div class="pd-stats">
+            <div class="pd-stat"><div class="pd-stat-lbl">Cost</div><div class="pd-stat-val">@_product.CostPrice.ToString("C")</div></div>
+            <div class="pd-stat"><div class="pd-stat-lbl">Sell Price</div><div class="pd-stat-val">@_product.SellingPrice.ToString("C")</div></div>
+            <div class="pd-stat"><div class="pd-stat-lbl">Whole Sell Price</div><div class="pd-stat-val">@_product.WholeSellingPrice.ToString("C")</div></div>
+            <div class="pd-stat"><div class="pd-stat-lbl">Margin</div><div class="pd-stat-val green">@Margin%</div></div>
+        </div>
+    </div>
 
-    @* ── Bottom Actions ── *@
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mt-4">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Check" OnClick="SaveChanges">
-            Save Changes
-        </MudButton>
-        <MudButton Variant="Variant.Outlined" Color="Color.Error"
-                   StartIcon="@Icons.Material.Outlined.Delete" OnClick="DeleteProduct">
-            Delete Product
-        </MudButton>
-        <MudMenu Label="Export Data" Variant="Variant.Outlined" Color="Color.Default"
-                 StartIcon="@Icons.Material.Outlined.FileDownload"
-                 EndIcon="@Icons.Material.Filled.ArrowDropDown">
-            <MudMenuItem>Export as CSV</MudMenuItem>
-            <MudMenuItem>Export as PDF</MudMenuItem>
-            <MudMenuItem>Export as Excel</MudMenuItem>
-        </MudMenu>
-    </MudStack>
+    <div class="tm-card tm-tabs-card">
+        <div class="tm-tabs">
+            <button class="tm-tab @(_activeTab == "overview" ? "active" : "")" @onclick='() => _activeTab = "overview"'>OVERVIEW</button>
+            <button class="tm-tab @(_activeTab == "stock" ? "active" : "")" @onclick='() => _activeTab = "stock"'>📦 STOCK (@_inventories.Count)</button>
+            <button class="tm-tab @(_activeTab == "trans" ? "active" : "")" @onclick='() => _activeTab = "trans"'>⛽ TRANSACTIONS (@_movements.Count)</button>
+            <button class="tm-tab @(_activeTab == "sales" ? "active" : "")" @onclick='() => _activeTab = "sales"'>🧾 SALES ORDERS (@_salesOrderLines.Count)</button>
+            <button class="tm-tab @(_activeTab == "purchase" ? "active" : "")" @onclick='() => _activeTab = "purchase"'>📥 PURCHASE ORDERS (@_purchaseOrderLines.Count)</button>
+        </div>
+
+        @if (_activeTab == "overview")
+        {
+            <div class="ov-cards">
+                <div class="ov-card"><div class="n">@_totalAvailable</div><div class="l">Total Available</div></div>
+                <div class="ov-card"><div class="n">@_inventories.Sum(x => x.ReservedQuantity)</div><div class="l">Total Reserved</div></div>
+                <div class="ov-card"><div class="n">@_last30DaysSales</div><div class="l">Last 30 Days Sales</div></div>
+                <div class="ov-card"><div class="n">@((_totalAvailable * _product.CostPrice).ToString("C"))</div><div class="l">Stock Value (Cost)</div></div>
+            </div>
+            <div class="ov-grid">
+                <div>
+                    <div class="ov-label">Product Details:</div>
+                    <div class="ov-desc">@(_product.Description ?? "-")</div>
+                    <div class="ov-label">Status</div>
+                    <div class="ov-value"><span class="@GetStockPillClass()"><span class="tm-dot"></span>@GetStockStatus()</span></div>
+                    <hr class="ov-divider" />
+                    <div class="ov-label">Preferred Supplier</div>
+                    <div class="ov-value">@(_preferredSupplier?.SupplierName ?? "N/A")</div>
+                    <hr class="ov-divider" />
+                    <div class="ov-label">Origin Country / Manufacturer</div>
+                    <div class="ov-value">@(_product.OriginCountry ?? "-") / @(_product.OriginManufacturer ?? "-")</div>
+                </div>
+                <div>
+                    <div class="ov-label">Category</div>
+                    <div class="ov-value">@(!string.IsNullOrEmpty(_parentCategoryName) ? _parentCategoryName + " > " : "")@(_product.Category?.Name ?? "-")</div>
+                    <hr class="ov-divider" />
+                    <div class="ov-label">Brand</div>
+                    <div class="ov-value">@(_product.Brand?.Name ?? "-")</div>
+                    <hr class="ov-divider" />
+                    <div class="ov-label">Model</div>
+                    <div class="ov-value">@(_product.Model ?? "-")</div>
+                    <hr class="ov-divider" />
+                    <div class="ov-label">Whole Selling Price</div>
+                    <div class="ov-value">@_product.WholeSellingPrice.ToString("C")</div>
+                    <hr class="ov-divider" />
+                    <div class="ov-label">Reorder Level</div>
+                    <div class="ov-value">@_product.ReorderStockLevel</div>
+                    <hr class="ov-divider" />
+                    <div class="ov-label">Minimum Order Quantity</div>
+                    <div class="ov-value">@_product.MinOrderQuantity</div>
+                </div>
+            </div>
+        }
+        else if (_activeTab == "stock")
+        {
+            <h4 class="tm-section-title">Stock</h4>
+            <div class="tm-table-wrap">
+                <table class="tm-table">
+                    <thead><tr><th>Warehouse</th><th>Available</th><th>Reserved</th><th>Stock Value</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @if (!_inventories.Any()) { <tr><td colspan="5" style="text-align:center;color:#6b7280">No stock records found.</td></tr> }
+                        else { @foreach (var inv in _inventories) {
+                            <tr>
+                                <td class="tm-strong">@inv.Warehouse.Name</td>
+                                <td>@inv.AvailableQuantity</td>
+                                <td>@inv.ReservedQuantity</td>
+                                <td>@((inv.AvailableQuantity * _product.CostPrice).ToString("C"))</td>
+                                <td><span class="@(inv.AvailableQuantity <= _product.ReorderStockLevel ? "tm-pill tm-pill-amber" : "tm-pill tm-pill-green")"><span class="tm-dot"></span>@(inv.AvailableQuantity <= 0 ? "Out" : inv.AvailableQuantity <= _product.ReorderStockLevel ? "Low" : "In Stock")</span></td>
+                            </tr>
+                        } }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else if (_activeTab == "trans")
+        {
+            <h4 class="tm-section-title">Transactions</h4>
+            <div class="tm-table-wrap">
+                <table class="tm-table">
+                    <thead><tr><th>Date</th><th>Warehouse</th><th>Type</th><th>Quantity</th><th>Reference</th><th>Notes</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @if (!_movements.Any()) { <tr><td colspan="7" style="text-align:center;color:#6b7280">No inventory transactions found.</td></tr> }
+                        else { @foreach (var m in _movements) {
+                            <tr>
+                                <td>@m.MovementDate.ToString("dd MMM yyyy")</td>
+                                <td>@m.Warehouse?.Name</td>
+                                <td>@m.Type</td>
+                                <td class="@(m.Quantity >= 0 ? "tm-green" : "tm-red")">@(m.Quantity > 0 ? "+" : "")@m.Quantity</td>
+                                <td>@m.Reference</td>
+                                <td>@m.Notes</td>
+                                <td><span class="tm-pill tm-pill-green"><span class="tm-dot"></span>Completed</span></td>
+                            </tr>
+                        } }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else if (_activeTab == "sales")
+        {
+            <h4 class="tm-section-title">Sales Orders</h4>
+            <div class="tm-table-wrap">
+                <table class="tm-table">
+                    <thead><tr><th>Order No.</th><th>Customer</th><th>Date</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @if (!_salesOrderLines.Any()) { <tr><td colspan="7" style="text-align:center;color:#6b7280">No sales orders found.</td></tr> }
+                        else { @foreach (var s in _salesOrderLines) {
+                            <tr>
+                                <td class="tm-strong">@s.OrderNumber</td>
+                                <td>@s.CustomerName</td>
+                                <td>@s.OrderDate.ToString("dd MMM yyyy")</td>
+                                <td>@s.Quantity</td>
+                                <td>@s.UnitPrice.ToString("C")</td>
+                                <td class="tm-green">@((s.Quantity * s.UnitPrice).ToString("C"))</td>
+                                <td><span class="tm-pill @GetOrderPill(s.Status)"><span class="tm-dot"></span>@s.Status</span></td>
+                            </tr>
+                        } }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <h4 class="tm-section-title">Purchase Orders</h4>
+            <div class="tm-table-wrap">
+                <table class="tm-table">
+                    <thead><tr><th>Order No.</th><th>Supplier</th><th>Date</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @if (!_purchaseOrderLines.Any()) { <tr><td colspan="7" style="text-align:center;color:#6b7280">No purchase orders found.</td></tr> }
+                        else { @foreach (var p in _purchaseOrderLines) {
+                            <tr>
+                                <td class="tm-strong">@p.OrderNumber</td>
+                                <td>@p.SupplierName</td>
+                                <td>@p.OrderDate.ToString("dd MMM yyyy")</td>
+                                <td>@p.Quantity</td>
+                                <td>@p.UnitPrice.ToString("C")</td>
+                                <td class="tm-green">@((p.Quantity * p.UnitPrice).ToString("C"))</td>
+                                <td><span class="tm-pill @GetOrderPill(p.Status)"><span class="tm-dot"></span>@p.Status</span></td>
+                            </tr>
+                        } }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="tm-bottom">
+        <button class="tm-btn tm-btn-primary" @onclick="SaveChanges">✔ Save Changes</button>
+        <button class="tm-btn" style="color:#dc2626;border-color:#fecaca" @onclick="DeleteProduct">🗑 Delete Product</button>
+    </div>
+</div>
 }
 
 @code {
@@ -462,6 +289,7 @@ else
 
     private Product? _product;
     private bool _loading = true;
+    private string _activeTab = "overview";
     private List<Inventory> _inventories = new();
     private List<StockMovement> _movements = new();
     private List<SalesOrderLineView> _salesOrderLines = new();
@@ -471,13 +299,40 @@ else
     private bool _isFastMoving;
     private int _last30DaysSales;
     private int _totalAvailable;
-    private List<BreadcrumbItem> _breadcrumbs = new();
 
     private int Margin => _product is { SellingPrice: > 0 }
         ? (int)((_product.SellingPrice - _product.CostPrice) / _product.SellingPrice * 100)
         : 0;
 
     protected override async Task OnInitializedAsync() => await LoadProduct();
+
+    private string GetStockStatus()
+    {
+        if (_product == null) return "-";
+        var total = _totalAvailable;
+        if (total <= 0) return "Out of Stock";
+        if (total <= _product.ReorderStockLevel) return "Low Stock";
+        return "In Stock";
+    }
+
+    private string GetStockPillClass()
+    {
+        var s = GetStockStatus();
+        return s == "In Stock" ? "tm-pill tm-pill-green" : s == "Low Stock" ? "tm-pill tm-pill-amber" : "tm-pill tm-pill-red";
+    }
+
+    private string GetOrderPill(string status)
+    {
+        var s = (status ?? "").ToLower();
+        if (s.Contains("complet") || s.Contains("deliver")) return "tm-pill-green";
+        if (s.Contains("cancel")) return "tm-pill-red";
+        if (s.Contains("load") || s.Contains("pend")) return "tm-pill-amber";
+        if (s.Contains("assign") || s.Contains("approv")) return "tm-pill-blue";
+        if (s.Contains("route") || s.Contains("process")) return "tm-pill-purple";
+        return "tm-pill-gray";
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/products");
 
     private async Task LoadProduct()
     {
@@ -502,7 +357,6 @@ else
 
                 _totalAvailable = _inventories.Sum(i => i.AvailableQuantity);
 
-                // Stock movements
                 _movements = await DbContext.StockMovements
                     .Include(m => m.Warehouse)
                     .Where(m => m.ProductId == Id)
@@ -510,7 +364,6 @@ else
                     .Take(50)
                     .ToListAsync();
 
-                // Last 30 days sales
                 var cutoff = DateTime.UtcNow.AddDays(-30);
                 _last30DaysSales = await DbContext.SalesOrderItems
                     .Where(x => x.ProductId == Id && x.SalesOrder.OrderDate >= cutoff)
@@ -518,7 +371,6 @@ else
 
                 _isFastMoving = _last30DaysSales > 20;
 
-                // Preferred supplier (most recent PO)
                 var latestSupplierId = await DbContext.PurchaseOrderItems
                     .Where(x => x.ProductId == Id)
                     .OrderByDescending(x => x.PurchaseOrder)
@@ -528,7 +380,6 @@ else
                 if (latestSupplierId.HasValue)
                     _preferredSupplier = await DbContext.Suppliers.FindAsync(latestSupplierId.Value);
 
-                // Sales order lines
                 _salesOrderLines = await DbContext.SalesOrderItems
                     .Include(x => x.SalesOrder)
                         .ThenInclude(o => o.Customer)
@@ -545,7 +396,6 @@ else
                         x.UnitPrice))
                     .ToListAsync();
 
-                // Purchase order lines
                 _purchaseOrderLines = await DbContext.PurchaseOrderItems
                     .Include(x => x.PurchaseOrder)
                         .ThenInclude(o => o.Supplier)
@@ -561,12 +411,6 @@ else
                         x.Quantity,
                         x.UnitPrice))
                     .ToListAsync();
-
-                _breadcrumbs = new List<BreadcrumbItem>
-                {
-                    new("Products", href: "/products"),
-                    new(_product.Name, href: null, disabled: true)
-                };
             }
         }
         catch (Exception ex)
@@ -575,13 +419,6 @@ else
         }
         _loading = false;
     }
-
-    private static (string bg, string fg) GetWarehouseCardColors(int index) => (index % 3) switch
-    {
-        0 => ("#1B7A50", "#FFFFFF"),
-        1 => ("#E8893A", "#FFFFFF"),
-        _ => ("#4361EE", "#FFFFFF")
-    };
 
     private Task AddStock()
     {

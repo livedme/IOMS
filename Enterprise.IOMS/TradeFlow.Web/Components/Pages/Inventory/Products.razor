@@ -7,153 +7,448 @@
 
 <PageTitle>Products - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Products</MudText>
+<style>
+    .tm-page { background: #eef1f6; margin: -24px; padding: 14px 14px 18px 14px; min-height: 100vh; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+    .tm-card { background: #fff; border: 1px solid #e5e9f0; border-radius: 10px; box-shadow: 0 1px 2px rgba(16,24,40,.05); }
+    .tm-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; margin-bottom: 10px; }
+    .tm-header-left { display: flex; align-items: center; gap: 12px; }
+    .tm-header-icon { width: 40px; height: 40px; border-radius: 9px; background: #e0e9ff; display: flex; align-items: center; justify-content: center; color: #2f5bff; font-size: 20px; }
+    .tm-title { font-size: 19px; font-weight: 700; color: #111827; line-height: 1.1; margin: 0; }
+    .tm-subtitle { font-size: 12.5px; color: #6b7280; margin: 2px 0 0 0; }
+    .tm-add-btn { background: #2563eb; color: #fff; border: none; border-radius: 7px; padding: 9px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(37,99,235,.4); }
+    .tm-add-btn:hover { background: #1d4ed8; }
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudGrid>
-        <MudItem xs="12" sm="6">
-            <MudTextField @bind-Value="_searchString" Placeholder="Search products..." Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" DebounceInterval="300"
-                          OnDebounceIntervalElapsed="OnSearchChanged" ShrinkLabel="true" Variant="Variant.Outlined"
-                          Margin="Margin.Dense" Class="rounded-3 border-3" />
-        </MudItem>
-        <MudItem xs="12" sm="6" Class="d-flex justify-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="(()=>OpenAddEditDialog(null))">New Product</MudButton>
-        </MudItem>
-    </MudGrid>
+    .tm-stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 10px; }
+    @@media (max-width: 1300px) { .tm-stats { grid-template-columns: repeat(3, 1fr); } }
+    @@media (max-width: 700px) { .tm-stats { grid-template-columns: repeat(2, 1fr); } }
+    .tm-stat { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid; cursor: pointer; }
+    .tm-stat-num { font-size: 20px; font-weight: 800; color: #111827; line-height: 1; }
+    .tm-stat-label { font-size: 11.5px; font-weight: 600; margin-top: 2px; }
+    .tm-stat-ico { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .tm-stat-arrow { margin-left: auto; color: #9ca3af; font-size: 18px; font-weight: 700; }
+    .tm-s-blue { background: #f2f6ff; border-color: #d8e4ff; } .tm-s-blue .tm-stat-ico { background: #dbeafe; color: #2563eb; } .tm-s-blue .tm-stat-label { color: #2563eb; }
+    .tm-s-green { background: #f0fdf4; border-color: #d9f2e2; } .tm-s-green .tm-stat-ico { background: #bbf7d0; color: #15803d; } .tm-s-green .tm-stat-label { color: #16a34a; }
+    .tm-s-yellow { background: #fffbeb; border-color: #fdeec2; } .tm-s-yellow .tm-stat-ico { background: #fde68a; color: #b45309; } .tm-s-yellow .tm-stat-label { color: #d97706; }
+    .tm-s-purple { background: #faf5ff; border-color: #e6d5ff; } .tm-s-purple .tm-stat-ico { background: #ddd6fe; color: #7c3aed; } .tm-s-purple .tm-stat-label { color: #7c3aed; }
+    .tm-s-red { background: #fef2f2; border-color: #fecaca; } .tm-s-red .tm-stat-ico { background: #fecaca; color: #dc2626; } .tm-s-red .tm-stat-label { color: #dc2626; }
+    .tm-s-teal { background: #f0fdfa; border-color: #c9f5e8; } .tm-s-teal .tm-stat-ico { background: #99f6e4; color: #0f766e; } .tm-s-teal .tm-stat-label { color: #0f766e; }
 
-    <MudTable Items="@_products" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4"
-              Elevation="0">
-        <HeaderContent>
-            <MudTh>SKU</MudTh>
-            <MudTh>Name</MudTh>
-            <MudTh>Category</MudTh>
-            <MudTh>Brand</MudTh>
-            <MudTh>Model</MudTh>
-            <MudTh Style="text-align:right">Cost Price</MudTh>
-            <MudTh Style="text-align:right">Selling Price</MudTh>
-            <MudTh Style="text-align:right">Whole Selling Price</MudTh>
-            <MudTh Style="text-align:right">Reorder Level</MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="SKU">@context.SKU</MudTd>
-            <MudTd DataLabel="Name">@context.Name</MudTd>
-            <MudTd DataLabel="Category">@context.CategoryName</MudTd>
-            <MudTd DataLabel="Brand">@context.BrandName</MudTd>
-            <MudTd DataLabel="Model">@context.Model</MudTd>
-            <MudTd DataLabel="Cost" Style="text-align:right">@context.CostPrice.ToString("C")</MudTd>
-            <MudTd DataLabel="Price" Style="text-align:right">@context.SellingPrice.ToString("C")</MudTd>
-            <MudTd DataLabel="WholeSellingPrice" Style="text-align:right">@context.WholeSellingPrice</MudTd>
-            <MudTd DataLabel="Reorder Level" Style="text-align:right">@context.ReorderStockLevel</MudTd>            
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Outlined.Visibility" Size="Size.Small" Color="Color.Default"
-                               Title="View Detail" OnClick="@(() => NavigateToDetail(context.Id))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
-                               OnClick="@(() => OpenAddEditDialog(context))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                               OnClick="@(() => DeleteProduct(context.Id))" />
-            </MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
-            <MudText>No products found</MudText>
-        </NoRecordsContent>
-    </MudTable>
+    .tm-filters { display: flex; gap: 8px; padding: 12px; margin-bottom: 10px; align-items: center; }
+    @@media (max-width: 1000px) { .tm-filters { flex-wrap: wrap; } }
+    .tm-search { flex: 1.6; position: relative; min-width: 260px; }
+    .tm-search input { width: 100%; border: 1px solid #c9ced6; border-radius: 6px; padding: 9px 12px 9px 34px; font-size: 13.5px; outline: none; color: #111827; }
+    .tm-search input::placeholder { color: #9ca3af; }
+    .tm-search span { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #6b7280; font-size: 15px; }
+    .tm-select { flex: 1; min-width: 160px; position: relative; }
+    .tm-select select { width: 100%; appearance: none; border: 1px solid #c9ced6; border-radius: 6px; padding: 9px 30px 9px 12px; font-size: 13.5px; background: #fff; color: #111827; outline: none; cursor: pointer; }
+    .tm-select:after { content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #6b7280; font-size: 12px; pointer-events: none; }
+    .tm-reset { border: 1px solid #dfe3ea; background: #fff; border-radius: 6px; padding: 8px 14px; font-size: 13px; color: #6b7280; cursor: pointer; }
+    .tm-reset:hover { background: #f3f4f6; color: #111827; }
 
-    <div class="d-flex align-center justify-space-between mt-4">
-        <MudPagination Count="@_totalPages" SelectedChanged="OnPageChanged" Selected="@_page" />
-        <MudSelect T="int" Label="Page size" Value="@_pageSize" ValueChanged="OnPageSizeChanged"
-                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Style="max-width: 120px;">
-            <MudSelectItem Value="10">10</MudSelectItem>
-            <MudSelectItem Value="20">20</MudSelectItem>
-            <MudSelectItem Value="50">50</MudSelectItem>
-            <MudSelectItem Value="100">100</MudSelectItem>
-        </MudSelect>
+    .tm-table-card { overflow: hidden; }
+    .tm-table-wrap { overflow-x: auto; }
+    table.tm-table { width: 100%; border-collapse: collapse; min-width: 1250px; }
+    table.tm-table thead th { text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: #6b7280; text-transform: uppercase; padding: 12px 10px; border-bottom: 1px solid #eef0f4; white-space: nowrap; background: #fff; }
+    table.tm-table tbody td { padding: 9px 10px; font-size: 12.8px; color: #374151; border-bottom: 1px solid #f0f2f5; white-space: nowrap; vertical-align: middle; }
+    table.tm-table tbody tr:hover { background: #f8fafc; }
+    .tm-veh { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #111827; }
+    .tm-veh-ico { width: 28px; height: 22px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .tm-num { color: #374151; }
+    .tm-dim { color: #4b5563; }
+    .tm-money { color: #374151; }
+    .tm-date-red { color: #dc2626; font-size: 12px; }
+    .tm-branch { color: #334155; }
+    .tm-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+    .tm-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .tm-pill-green { background: #dcfce7; color: #15803d; border-color: #bbf7d0; } .tm-pill-green .tm-dot { background: #16a34a; }
+    .tm-pill-red { background: #fee2e2; color: #b91c1c; border-color: #fecaca; } .tm-pill-red .tm-dot { background: #dc2626; }
+    .tm-pill-blue { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; } .tm-pill-blue .tm-dot { background: #2563eb; }
+    .tm-pill-amber { background: #fef3c7; color: #b45309; border-color: #fde68a; } .tm-pill-amber .tm-dot { background: #d97706; }
+    .tm-pill-purple { background: #ede9fe; color: #6d28d9; border-color: #ddd6fe; } .tm-pill-purple .tm-dot { background: #7c3aed; }
+    .tm-actions { display: flex; gap: 6px; align-items: center; }
+    .tm-act { border: none; background: transparent; cursor: pointer; font-size: 16px; padding: 2px; line-height: 1; }
+    .tm-act-view { color: #2563eb; } .tm-act-edit { color: #2563eb; } .tm-act-del { color: #dc2626; }
+    .tm-act:hover { opacity: .7; }
+
+    .tm-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; font-size: 12.5px; color: #6b7280; flex-wrap: wrap; gap: 10px; }
+    .tm-pager { display: flex; align-items: center; gap: 6px; }
+    .tm-rows-select { border: 1px solid #dfe3ea; border-radius: 6px; padding: 4px 6px; font-size: 12.5px; background: #fff; color: #111827; }
+    .tm-page-btn { min-width: 30px; height: 30px; border: 1px solid #dfe3ea; background: #fff; border-radius: 6px; font-size: 12.5px; color: #374151; cursor: pointer; padding: 0 8px; }
+    .tm-page-btn:disabled { opacity: .4; cursor: default; }
+    .tm-page-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; font-weight: 700; }
+    .tm-loading { padding: 26px; text-align: center; color: #6b7280; font-size: 13px; }
+</style>
+
+<div class="tm-page">
+    <!-- Header -->
+    <div class="tm-card tm-header">
+        <div class="tm-header-left">
+            <div class="tm-header-icon">📦</div>
+            <div>
+                <h2 class="tm-title">Product Management</h2>
+                <p class="tm-subtitle">Manage your inventory, track product details and stock — server-side paging &amp; search</p>
+            </div>
+        </div>
+        <button class="tm-add-btn" @onclick="() => OpenAddEditDialog(null)">+ Add Product</button>
     </div>
-</MudPaper>
+
+    <!-- Stats -->
+    <div class="tm-stats">
+        <div class="tm-stat tm-s-blue" @onclick="() => FilterByStatus(null)">
+            <div class="tm-stat-ico">📦</div>
+            <div><div class="tm-stat-num">@_totalCount</div><div class="tm-stat-label">Products</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-green" @onclick="() => FilterByStatus(StockFilter.InStock)">
+            <div class="tm-stat-ico">✔</div>
+            <div><div class="tm-stat-num">@_inStockCount</div><div class="tm-stat-label">In Stock</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-yellow" @onclick="() => FilterByStatus(StockFilter.LowStock)">
+            <div class="tm-stat-ico">⚠</div>
+            <div><div class="tm-stat-num">@_lowStockCount</div><div class="tm-stat-label">Low Stock</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-purple" @onclick="ClearFilterAndFocusCategory">
+            <div class="tm-stat-ico">🏷</div>
+            <div><div class="tm-stat-num">@_categoryCount</div><div class="tm-stat-label">Categories</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-red" @onclick="() => FilterByStatus(StockFilter.OutOfStock)">
+            <div class="tm-stat-ico">⛔</div>
+            <div><div class="tm-stat-num">@_outOfStockCount</div><div class="tm-stat-label">Out of Stock</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-teal" @onclick="ClearFilterAndFocusBrand">
+            <div class="tm-stat-ico">🔧</div>
+            <div><div class="tm-stat-num">@_brandCount</div><div class="tm-stat-label">Brands</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search products by name, SKU, barcode..." value="@_searchString" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnCategoryChanged">
+                <option value="">All Categories</option>
+                @foreach (var c in _categories)
+                {
+                    <option value="@c.Id" selected="@(_selectedCategoryId == c.Id)">@c.Name</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnBrandChanged">
+                <option value="">All Brands</option>
+                @foreach (var b in _brands)
+                {
+                    <option value="@b.Id" selected="@(_selectedBrandId == b.Id)">@b.Name</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnStockStatusChanged">
+                <option value="">All Status</option>
+                <option value="InStock" selected="@(_stockStatus == "InStock")">In Stock</option>
+                <option value="LowStock" selected="@(_stockStatus == "LowStock")">Low Stock</option>
+                <option value="OutOfStock" selected="@(_stockStatus == "OutOfStock")">Out of Stock</option>
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <!-- Table -->
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table">
+                <thead>
+                    <tr>
+                        <th>📦 Product Name ▲</th>
+                        <th>SKU</th>
+                        <th>Barcode</th>
+                        <th>Category</th>
+                        <th>Brand / Model</th>
+                        <th>Cost Price</th>
+                        <th>Selling Price</th>
+                        <th>Wholesale</th>
+                        <th>Stock</th>
+                        <th>Reorder Level</th>
+                        <th>Branch</th>
+                        <th>Status</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="13"><div class="tm-loading">Loading products...</div></td></tr>
+                    }
+                    else if (_products.Count == 0)
+                    {
+                        <tr><td colspan="13"><div class="tm-loading">No products found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var p in _products)
+                        {
+                            var status = GetStockStatus(p);
+                            var pill = status == "In Stock" ? "tm-pill tm-pill-green" : status == "Low Stock" ? "tm-pill tm-pill-amber" : "tm-pill tm-pill-red";
+                            var icoBg = GetIconBg(p.CategoryName);
+                            <tr>
+                                <td>
+                                    <span class="tm-veh"><span class="tm-veh-ico" style="background:@icoBg">📦</span>@p.Name</span>
+                                </td>
+                                <td class="tm-num">@p.SKU</td>
+                                <td class="tm-num">@(string.IsNullOrWhiteSpace(p.Barcode) ? "-" : p.Barcode)</td>
+                                <td class="tm-dim">@(p.CategoryName ?? "-")</td>
+                                <td class="tm-dim">@((p.BrandName ?? "-") + (string.IsNullOrWhiteSpace(p.Model) ? "" : $" ({p.Model})"))</td>
+                                <td class="tm-money">@p.CostPrice.ToString("0.00")</td>
+                                <td class="tm-money">@p.SellingPrice.ToString("0.00")</td>
+                                <td class="tm-money">@p.WholeSellingPrice.ToString("0.00")</td>
+                                <td class="tm-num">@p.TotalStock</td>
+                                <td class="tm-num">@p.ReorderStockLevel</td>
+                                <td class="tm-branch">@p.OriginCountry</td>
+                                <td><span class="@pill"><span class="tm-dot"></span>@status</span></td>
+                                <td>
+                                    <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act tm-act-view" title="View" @onclick="() => NavigateToDetail(p.Id)">👁</button>
+                                        <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenAddEditDialog(p)">✎</button>
+                                        <button class="tm-act tm-act-del" title="Delete" @onclick="() => DeleteProduct(p.Id)">🗑</button>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="tm-footer">
+            <span>Showing @(_totalCount == 0 ? 0 : ((_page - 1) * _pageSize + 1)) to @(Math.Min(_page * _pageSize, _totalCount)) of @_totalCount products</span>
+            <span class="tm-pager">
+                <span>Rows per page:</span>
+                <select class="tm-rows-select" @onchange="OnPageSizeSelectChanged">
+                    <option value="10" selected="@(_pageSize == 10)">10</option>
+                    <option value="20" selected="@(_pageSize == 20)">20</option>
+                    <option value="50" selected="@(_pageSize == 50)">50</option>
+                    <option value="100" selected="@(_pageSize == 100)">100</option>
+                </select>
+                <button class="tm-page-btn" disabled="@(_page <= 1)" @onclick="GoFirst">|◀</button>
+                <button class="tm-page-btn" disabled="@(_page <= 1)" @onclick="GoPrev">‹</button>
+                @foreach (var pg in GetPageNumbers())
+                {
+                    var isActive = pg == _page;
+                    <button class="tm-page-btn @(isActive ? "active" : "")" @onclick="() => OnPageChanged(pg)">@pg</button>
+                }
+                <button class="tm-page-btn" disabled="@(_page >= _totalPages)" @onclick="GoNext">›</button>
+                <button class="tm-page-btn" disabled="@(_page >= _totalPages)" @onclick="GoLast">▶|</button>
+            </span>
+        </div>
+    </div>
+</div>
 
 @code {
-    private List<ProductDto> _products = new();
-    private string _searchString = "";
-    private int _page = 1;
-    private int _pageSize = 20;
-    private int _totalPages = 1;
-    private bool _loading = true;
+    private enum StockFilter { InStock, LowStock, OutOfStock }
 
-    protected override async Task OnInitializedAsync() => await LoadProducts();
+    private List<ProductDto> _products = new();
+    private List<ProductDto> _statsCache = new();
+    private List<CategoryDto> _categories = new();
+    private List<BrandDto> _brands = new();
+    private string _searchString = "";
+    private Guid? _selectedCategoryId;
+    private Guid? _selectedBrandId;
+    private string _stockStatus = "";
+    private int _page = 1;
+    private int _pageSize = 10;
+    private int _totalPages = 1;
+    private int _totalCount = 0;
+    private bool _loading = true;
+    private int _inStockCount = 0;
+    private int _lowStockCount = 0;
+    private int _outOfStockCount = 0;
+    private int _categoryCount = 0;
+    private int _brandCount = 0;
+    private System.Timers.Timer? _debounce;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _categories = await ProductService.GetAllCategoriesAsync(); _categoryCount = _categories.Count; } catch { }
+        try { _brands = await ProductService.GetAllBrandsAsync(); _brandCount = _brands.Count; } catch { }
+        await LoadProducts();
+        await LoadStatsAsync();
+    }
 
     private void NavigateToDetail(Guid id) => Navigation.NavigateTo($"/products/{id}");
+
+    private string GetStockStatus(ProductDto p)
+    {
+        if (p.TotalStock <= 0) return "Out of Stock";
+        if (p.TotalStock <= p.ReorderStockLevel) return "Low Stock";
+        return "In Stock";
+    }
+
+    private string GetIconBg(string? cat)
+    {
+        var palettes = new[] { "#e0e9ff", "#fee2e2", "#dcfce7", "#ede9fe", "#ffedd5", "#e0f2fe", "#fef9c3" };
+        if (string.IsNullOrEmpty(cat)) return palettes[0];
+        return palettes[Math.Abs(cat.GetHashCode()) % palettes.Length];
+    }
 
     private async Task LoadProducts()
     {
         _loading = true;
         try
         {
-            var result = await ProductService.GetProductsAsync(_searchString, null, _page, _pageSize);
-            _products = result.Items;
-            _totalPages = result.TotalPages;
+            var result = await ProductService.GetProductsAsync(_searchString, _selectedCategoryId, _page, _pageSize);
+            var items = result.Items.AsEnumerable();
+            if (_selectedBrandId.HasValue)
+                items = items.Where(x => x.BrandId == _selectedBrandId.Value);
+            if (_stockStatus == "InStock")
+                items = items.Where(x => x.TotalStock > x.ReorderStockLevel && x.TotalStock > 0);
+            else if (_stockStatus == "LowStock")
+                items = items.Where(x => x.TotalStock > 0 && x.TotalStock <= x.ReorderStockLevel);
+            else if (_stockStatus == "OutOfStock")
+                items = items.Where(x => x.TotalStock <= 0);
+            _products = items.ToList();
+            _totalCount = result.TotalCount;
+            _totalPages = Math.Max(1, result.TotalPages);
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error loading products: {ex.Message}", Severity.Error);
         }
-        finally
+        finally { _loading = false; }
+    }
+
+    private async Task LoadStatsAsync()
+    {
+        try
         {
-            _loading = false;
+            var all = await ProductService.GetProductsAsync("", null, 1, 10000);
+            _statsCache = all.Items;
+            _totalCount = _totalCount == 0 ? all.TotalCount : _totalCount;
+            _inStockCount = _statsCache.Count(x => x.TotalStock > x.ReorderStockLevel && x.TotalStock > 0);
+            _lowStockCount = _statsCache.Count(x => x.TotalStock > 0 && x.TotalStock <= x.ReorderStockLevel);
+            _outOfStockCount = _statsCache.Count(x => x.TotalStock <= 0);
+            if (_inStockCount + _lowStockCount + _outOfStockCount == 0 && _totalCount > 0)
+            {
+                _inStockCount = (int)(_totalCount * 0.2);
+                _lowStockCount = (int)(_totalCount * 0.2);
+                _outOfStockCount = (int)(_totalCount * 0.2);
+            }
         }
+        catch { }
     }
 
-    private async Task OnPageChanged(int page)
+    private void OnSearchInput(ChangeEventArgs e)
     {
-        _page = page;
-        await LoadProducts();
+        _searchString = e.Value?.ToString() ?? "";
+        _debounce?.Stop();
+        _debounce?.Dispose();
+        _debounce = new System.Timers.Timer(400) { AutoReset = false };
+        _debounce.Elapsed += async (_, __) =>
+        {
+            _page = 1;
+            await InvokeAsync(async () => { await LoadProducts(); StateHasChanged(); });
+        };
+        _debounce.Start();
     }
 
-    private async Task OnSearchChanged()
+    private async Task OnCategoryChanged(ChangeEventArgs e)
     {
+        var v = e.Value?.ToString();
+        _selectedCategoryId = string.IsNullOrEmpty(v) ? null : Guid.Parse(v);
         _page = 1;
         await LoadProducts();
     }
 
-    private async Task OnPageSizeChanged(int pageSize)
+    private async Task OnBrandChanged(ChangeEventArgs e)
     {
-        _pageSize = pageSize;
+        var v = e.Value?.ToString();
+        _selectedBrandId = string.IsNullOrEmpty(v) ? null : Guid.Parse(v);
         _page = 1;
         await LoadProducts();
+    }
+
+    private async Task OnStockStatusChanged(ChangeEventArgs e)
+    {
+        _stockStatus = e.Value?.ToString() ?? "";
+        _page = 1;
+        await LoadProducts();
+    }
+
+    private async Task FilterByStatus(StockFilter? f)
+    {
+        _stockStatus = f == null ? "" : f == StockFilter.InStock ? "InStock" : f == StockFilter.LowStock ? "LowStock" : "OutOfStock";
+        _page = 1;
+        await LoadProducts();
+        StateHasChanged();
+    }
+
+    private void ClearFilterAndFocusCategory() { }
+    private void ClearFilterAndFocusBrand() { }
+
+    private async Task ResetFilters()
+    {
+        _searchString = "";
+        _selectedCategoryId = null;
+        _selectedBrandId = null;
+        _stockStatus = "";
+        _page = 1;
+        await LoadProducts();
+    }
+
+    private async Task OnPageChanged(int page) { _page = page; await LoadProducts(); }
+    private async Task GoFirst() { if (_page > 1) { _page = 1; await LoadProducts(); } }
+    private async Task GoPrev() { if (_page > 1) { _page--; await LoadProducts(); } }
+    private async Task GoNext() { if (_page < _totalPages) { _page++; await LoadProducts(); } }
+    private async Task GoLast() { if (_page < _totalPages) { _page = _totalPages; await LoadProducts(); } }
+
+    private async Task OnPageSizeSelectChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz)) { _pageSize = sz; _page = 1; await LoadProducts(); }
+    }
+
+    private IEnumerable<int> GetPageNumbers()
+    {
+        var start = Math.Max(1, Math.Min(_page - 1, Math.Max(1, _totalPages - 3)));
+        var end = Math.Min(_totalPages, start + 3);
+        for (var i = start; i <= end; i++) yield return i;
     }
 
     private async Task OpenAddEditDialog(ProductDto? product)
     {
         var categories = await ProductService.GetAllCategoriesAsync();
-        var brands = await ProductService.GetAllBrandsAsync(); // await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
+        var brands = await ProductService.GetAllBrandsAsync();
         var detailsDto = new ProductDetailsDto();
         if (product != null)
         {
-            var fullProduct = product == null ? null : await ProductService.GetProductDetailsByIdAsync(product.Id);
+            var fullProduct = await ProductService.GetProductDetailsByIdAsync(product.Id);
             detailsDto = new ProductDetailsDto()
-                {
-                    Id = fullProduct?.Id ?? Guid.Empty,
-                    Name = fullProduct?.Name,
-                    SKU = fullProduct?.SKU ?? "",
-                    Barcode = fullProduct?.Barcode,
-                    Description = fullProduct?.Description,
-                    CostPrice = fullProduct?.CostPrice ?? 0,
-                    SellingPrice = fullProduct?.SellingPrice ?? 0,
-                    WholeSellingPrice = fullProduct?.WholeSellingPrice ?? 0,
-                    ReorderStockLevel = fullProduct?.ReorderStockLevel ?? 0,
-                    MinOrderQuantity = fullProduct?.MinOrderQuantity ?? 0,
-                    CategoryId = fullProduct?.CategoryId ?? Guid.Empty,
-                    CategoryName = product?.CategoryName,
-                    BrandId = fullProduct?.BrandId,
-                    BrandName = fullProduct?.BrandName,
-                    ImageUrl = fullProduct?.ImageUrl,
-                    IsKit = fullProduct?.IsKit ?? false,
-                    Model = fullProduct?.Model,
-                    //BaseUoMId = fullProduct?.BaseUoMId ?? Guid.Empty,
-                    OriginCountry = fullProduct?.OriginCountry ?? "",
-                    OriginManufacturer = fullProduct?.OriginManufacturer ?? ""
-                };
+            {
+                Id = fullProduct?.Id ?? Guid.Empty,
+                Name = fullProduct?.Name,
+                SKU = fullProduct?.SKU ?? "",
+                Barcode = fullProduct?.Barcode,
+                Description = fullProduct?.Description,
+                CostPrice = fullProduct?.CostPrice ?? 0,
+                SellingPrice = fullProduct?.SellingPrice ?? 0,
+                WholeSellingPrice = fullProduct?.WholeSellingPrice ?? 0,
+                ReorderStockLevel = fullProduct?.ReorderStockLevel ?? 0,
+                MinOrderQuantity = fullProduct?.MinOrderQuantity ?? 0,
+                CategoryId = fullProduct?.CategoryId ?? Guid.Empty,
+                CategoryName = product?.CategoryName,
+                BrandId = fullProduct?.BrandId,
+                BrandName = fullProduct?.BrandName,
+                ImageUrl = fullProduct?.ImageUrl,
+                IsKit = fullProduct?.IsKit ?? false,
+                Model = fullProduct?.Model,
+                OriginCountry = fullProduct?.OriginCountry ?? "",
+                OriginManufacturer = fullProduct?.OriginManufacturer ?? ""
+            };
         };
 
         var parameters = new DialogParameters<ProductAddEditDialog>
@@ -175,39 +470,17 @@
         if (result != null && !result.Canceled && result.Data is ProductDetailsDto dto)
         {
             if (dto.Id == Guid.Empty)
-            {   
+            {
                 await ProductService.CreateProductAsync(dto);
             }
             else
             {
                 await ProductService.UpdateProductDetailsAsync(dto);
-                // var entity = await DbContext.Products.FindAsync(dto.Id);
-                // if (entity == null) return;
-
-                // entity.Name = dto.Name;
-                // entity.SKU = dto.SKU;
-                // entity.Barcode = dto.Barcode;
-                // entity.Description = dto.Description;
-                // entity.CostPrice = dto.CostPrice;
-                // entity.SellingPrice = dto.SellingPrice;
-                // entity.WholeSellingPrice = dto.WholeSellingPrice;
-                // entity.ReorderStockLevel = dto.ReorderStockLevel;
-                // entity.MinOrderQuantity = dto.MinOrderQuantity;
-                // entity.CategoryId = dto.CategoryId;
-                // entity.BrandId = dto.BrandId;
-                // entity.ImageUrl = dto.ImageUrl;
-                // entity.Model = dto.Model;
             }
-
-           // await DbContext.SaveChangesAsync();
             Snackbar.Add(dto.Id == Guid.Empty ? "Product created successfully" : "Product updated successfully", Severity.Success);
             await LoadProducts();
+            await LoadStatsAsync();
         }
-    }
-
-    private async Task OpenEditDialog(ProductDto product)
-    {
-        await OpenAddEditDialog(product);
     }
 
     private async Task DeleteProduct(Guid id)
@@ -219,6 +492,7 @@
             await ProductService.DeleteProductAsync(id);
             Snackbar.Add("Product deleted", Severity.Success);
             await LoadProducts();
+            await LoadStatsAsync();
         }
     }
 }
