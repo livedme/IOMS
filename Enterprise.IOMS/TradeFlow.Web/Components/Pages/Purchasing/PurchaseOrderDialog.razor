@@ -1,4 +1,4 @@
-@using IOMS.Infrastructure.Data
+@using TradeFlow.Infrastructure.Data
 @using TradeFlow.Web.Components.Pages.Inventory
 <style>
     .mud-table-container {
@@ -354,7 +354,7 @@
 
             if (result != null && !result.Canceled && result.Data is SupplierDto dto)
             {
-                var newCustomer = new IOMS.Domain.Entities.Supplier
+                var newCustomer = new TradeFlow.Domain.Entities.Supplier
                 {
                     SupplierName = dto.SupplierName,
                     SupplierEmail = dto.SupplierEmail,
@@ -472,7 +472,7 @@
 
             if (result != null && !result.Canceled && result.Data is ProductDetailsDto dto)
             {
-                var product = new IOMS.Domain.Entities.Product
+                var product = new TradeFlow.Domain.Entities.Product
                 {
                     Name = dto.Name,
                     SKU = dto.SKU,

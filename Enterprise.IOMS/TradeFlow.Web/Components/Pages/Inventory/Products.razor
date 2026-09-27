@@ -170,7 +170,7 @@
             <table class="tm-table">
                 <thead>
                     <tr>
-                        <th>📦 Product Name ▲</th>
+                        <th>Product Name ▲</th>
                         <th>SKU</th>
                         <th>Barcode</th>
                         <th>Category</th>
@@ -203,7 +203,7 @@
                             var icoBg = GetIconBg(p.CategoryName);
                             <tr>
                                 <td>
-                                    <span class="tm-veh"><span class="tm-veh-ico" style="background:@icoBg">📦</span>@p.Name</span>
+                                    <span class="tm-veh">@p.Name</span>
                                 </td>
                                 <td class="tm-num">@p.SKU</td>
                                 <td class="tm-num">@(string.IsNullOrWhiteSpace(p.Barcode) ? "-" : p.Barcode)</td>

@@ -1,6 +1,6 @@
-﻿using IOMS.Application.DTOs;
-using IOMS.Domain.Entities;
-using IOMS.Infrastructure.Data;
+﻿using TradeFlow.Application.DTOs;
+using TradeFlow.Domain.Entities;
+using TradeFlow.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace TradeFlow.Web.Utility

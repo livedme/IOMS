@@ -1,7 +1,7 @@
 <Solution>
-  <Project Path="IOMS.Application/IOMS.Application.csproj" />
-  <Project Path="IOMS.Domain/IOMS.Domain.csproj" />
-  <Project Path="IOMS.Infrastructure/IOMS.Infrastructure.csproj" />
-  <Project Path="IOMS.Shared/IOMS.Shared.csproj" />
+  <Project Path="TradeFlow.Application/TradeFlow.Application.csproj" />
+  <Project Path="TradeFlow.Domain/TradeFlow.Domain.csproj" />
+  <Project Path="TradeFlow.Infrastructure/TradeFlow.Infrastructure.csproj" />
+  <Project Path="TradeFlow.Shared/TradeFlow.Shared.csproj" />
   <Project Path="TradeFlow.Web/TradeFlow.Web.csproj" Id="0a2ec851-1fd9-4715-a92c-fabaefe48373" />
 </Solution>

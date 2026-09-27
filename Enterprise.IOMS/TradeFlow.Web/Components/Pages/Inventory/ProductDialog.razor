@@ -1,4 +1,4 @@
-@using IOMS.Infrastructure.Data
+@using TradeFlow.Infrastructure.Data
 @using TradeFlow.Web.Utility
 @using MudBlazor
 
@@ -230,7 +230,7 @@
                 var parent = await DbContext.Categories.FindAsync(dto.ParentCategoryId);
                 var path = parent == null ? dto.Name : parent.ParentCategory == null ? $"{parent.Name} > {dto.Name}" : $"{parent.ParentCategory.Name} > {parent.Name} > {dto.Name}";
 
-                var category = new IOMS.Domain.Entities.Category
+                var category = new TradeFlow.Domain.Entities.Category
                     {
                         Name = dto.Name,
                         Path = path,
@@ -299,7 +299,7 @@
 
             if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
             {
-                var entity = new IOMS.Domain.Entities.Brand
+                var entity = new TradeFlow.Domain.Entities.Brand
                 {
                     Name = dto.Name,
                     BrandCode = dto.BrandCode,

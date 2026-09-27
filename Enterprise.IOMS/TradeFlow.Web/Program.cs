@@ -1,7 +1,7 @@
-using IOMS.Application;
-using IOMS.Domain.Entities;
-using IOMS.Infrastructure;
-using IOMS.Infrastructure.Data;
+using TradeFlow.Application;
+using TradeFlow.Domain.Entities;
+using TradeFlow.Infrastructure;
+using TradeFlow.Infrastructure.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

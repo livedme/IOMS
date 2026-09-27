@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using IOMS.Infrastructure.Data
+@using TradeFlow.Infrastructure.Data
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext DbContext
 
@@ -134,7 +134,7 @@
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateWarehouseDto dto)
         {
-            DbContext.Warehouses.Add(new IOMS.Domain.Entities.Warehouse
+            DbContext.Warehouses.Add(new TradeFlow.Domain.Entities.Warehouse
             { Name = dto.Name, Code = dto.Code, Location = dto.Location, Address = dto.Address });
             await DbContext.SaveChangesAsync();
             Snackbar.Add("Warehouse created", Severity.Success);

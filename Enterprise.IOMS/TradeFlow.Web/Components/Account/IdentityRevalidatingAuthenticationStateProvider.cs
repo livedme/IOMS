@@ -1,4 +1,4 @@
-using IOMS.Domain.Entities;
+using TradeFlow.Domain.Entities;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;

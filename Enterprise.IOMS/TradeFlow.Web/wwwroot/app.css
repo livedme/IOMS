@@ -1438,3 +1438,7 @@ table.tm-table {
     font-size: 13px;
     color: #334155;
 }
+.mud-nav-link .mud-nav-link-text {
+    font-size: 13px;
+    color: #b3b1b1;
+}

@@ -1,5 +1,5 @@
 @page "/categories"
-@using IOMS.Infrastructure.Data
+@using TradeFlow.Infrastructure.Data
 @rendermode InteractiveServer
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -336,7 +336,7 @@
 
         if (result != null && !result.Canceled && result.Data is CreateCategoryDto dto)
         {
-            DbContext.Categories.Add(new IOMS.Domain.Entities.Category
+            DbContext.Categories.Add(new TradeFlow.Domain.Entities.Category
             {
                 Name = dto.Name,
                 Description = dto.Description,

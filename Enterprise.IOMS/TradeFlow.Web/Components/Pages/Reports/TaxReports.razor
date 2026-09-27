@@ -1,6 +1,6 @@
 @page "/reports/tax"
 @rendermode InteractiveServer
-@using IOMS.Infrastructure.Data
+@using TradeFlow.Infrastructure.Data
 @inject ApplicationDbContext DbContext
 @using Microsoft.EntityFrameworkCore
 
@@ -115,17 +115,17 @@
         var from = _fromDate ?? DateTime.Today.AddMonths(-3);
         var to = _toDate ?? DateTime.Today;
 
-        _outputTax = await DbContext.Set<IOMS.Domain.Entities.Invoice>()
+        _outputTax = await DbContext.Set<TradeFlow.Domain.Entities.Invoice>()
             .Where(i => !i.IsDeleted && i.InvoiceDate >= from && i.InvoiceDate <= to)
             .SumAsync(i => i.TaxAmount);
 
-        _inputTax = await DbContext.Set<IOMS.Domain.Entities.PurchaseOrder>()
+        _inputTax = await DbContext.Set<TradeFlow.Domain.Entities.PurchaseOrder>()
             .Where(p => !p.IsDeleted && p.PurchaseDate >= from && p.PurchaseDate <= to)
             .SumAsync(p => p.TaxAmount);
 
         _netTax = _outputTax - _inputTax;
 
-        _taxByRate = await DbContext.Set<IOMS.Domain.Entities.TaxRate>()
+        _taxByRate = await DbContext.Set<TradeFlow.Domain.Entities.TaxRate>()
             .Where(t => !t.IsDeleted)
             .Select(t => new TaxRateRow
             {
@@ -149,10 +149,10 @@
         }
 
         // Monthly tax trend
-        var invoices = await DbContext.Set<IOMS.Domain.Entities.Invoice>()
+        var invoices = await DbContext.Set<TradeFlow.Domain.Entities.Invoice>()
             .Where(i => !i.IsDeleted && i.InvoiceDate >= from && i.InvoiceDate <= to)
             .ToListAsync();
-        var purchases = await DbContext.Set<IOMS.Domain.Entities.PurchaseOrder>()
+        var purchases = await DbContext.Set<TradeFlow.Domain.Entities.PurchaseOrder>()
             .Where(p => !p.IsDeleted && p.PurchaseDate >= from && p.PurchaseDate <= to)
             .ToListAsync();
 

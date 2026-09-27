@@ -25,10 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\IOMS.Application\IOMS.Application.csproj" />
-    <ProjectReference Include="..\IOMS.Domain\IOMS.Domain.csproj" />
-    <ProjectReference Include="..\IOMS.Infrastructure\IOMS.Infrastructure.csproj" />
-    <ProjectReference Include="..\IOMS.Shared\IOMS.Shared.csproj" />
+    <ProjectReference Include="..\TradeFlow.Application\TradeFlow.Application.csproj" />
+    <ProjectReference Include="..\TradeFlow.Domain\TradeFlow.Domain.csproj" />
+    <ProjectReference Include="..\TradeFlow.Infrastructure\TradeFlow.Infrastructure.csproj" />
+    <ProjectReference Include="..\TradeFlow.Shared\TradeFlow.Shared.csproj" />
   </ItemGroup>
 
 </Project>
