@@ -1,0 +1,36 @@
+<DashboardCardShell Title="Inventory Status" ViewAllHref="/products" FillHeight="true">
+    <div style="padding:12px 14px;">
+        @{
+            var invTotal = Math.Max(Status.TotalProducts, 1);
+            var invItems = new[]
+            {
+                (Label: "In Stock", Count: Status.InStock, Pct: Status.InStockPct, Color: "#22c55e", Icon: Icons.Material.Filled.CheckCircle),
+                (Label: "Low Stock", Count: Status.LowStock, Pct: Status.LowStockPct, Color: "#f59e0b", Icon: Icons.Material.Filled.Warning),
+                (Label: "Out of Stock", Count: Status.OutOfStock, Pct: Status.OutOfStockPct, Color: "#ef4444", Icon: Icons.Material.Filled.Error)
+            };
+        }
+        <div class="mcard-grid">
+            @foreach (var inv in invItems)
+            {
+                var w = (double)inv.Count / invTotal * 100;
+                <div class="mcard">
+                    <div class="mcard-head">
+                        <div class="mcard-ico" style="background:@inv.Color;">
+                            <MudIcon Icon="@inv.Icon" Size="Size.Small" Style="font-size:15px; color:#fff;" />
+                        </div>
+                        <div class="mcard-label">@inv.Label</div>
+                    </div>
+                    <div class="mcard-val">@inv.Count.ToString("N0")</div>
+                    <div class="mcard-sub">@inv.Pct.ToString("0.0")% of @Status.TotalProducts.ToString("N0")</div>
+                    <div class="mcard-track"><div class="mcard-fill" style="width:@w.ToString("0")%; background:@inv.Color;"></div></div>
+                </div>
+            }
+        </div>
+    </div>
+</DashboardCardShell>
+
+@code {
+    private static readonly InventoryStatusDto Empty = new(0, 0, 0, 0, 0, 0, 0);
+
+    [Parameter] public InventoryStatusDto Status { get; set; } = Empty;
+}

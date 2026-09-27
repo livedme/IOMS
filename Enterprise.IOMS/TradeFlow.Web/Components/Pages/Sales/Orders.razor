@@ -3,92 +3,158 @@
 @inject IOrderService OrderService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject NavigationManager Nav
 @using IOMS.Infrastructure.Data
 @inject ApplicationDbContext DbContext
 
 <PageTitle>Sales Orders - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Sales Orders</MudText>
+<div class="tm-page">
+    <TmPageHeader Icon="🧾" Title="Sales Orders" Subtitle="Track customer orders from approval through delivery">
+        <Actions>
+            <button class="tm-reset" @onclick="LoadOrders">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="OpenCreate">+ New Sales Order</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudGrid>
-        <MudItem xs="12" sm="4">
-            <MudTextField @bind-Value="_search" Placeholder="Search orders..." Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadOrders" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
-                @foreach (var status in Enum.GetValues<OrderStatus>())
-                {
-                    <MudSelectItem Value="@((OrderStatus?)status)">@status</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="4" Class="d-flex justify-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreate">New Sales Order</MudButton>
-        </MudItem>
-    </MudGrid>
+    <div class="tm-stats">
+        <TmStatTile Icon="🧾" Number="@_totalCount" Label="Orders" Tone="blue" />
+        <TmStatTile Icon="⏳" Number="@_pendingCount" Label="Pending" Tone="yellow" OnClick="@(() => PickStatus(OrderStatus.Pending))" />
+        <TmStatTile Icon="⚙️" Number="@_approvedCount" Label="Approved" Tone="purple" OnClick="@(() => PickStatus(OrderStatus.Approved))" />
+        <TmStatTile Icon="🚚" Number="@_shippedCount" Label="Shipped" Tone="teal" OnClick="@(() => PickStatus(OrderStatus.Shipped))" />
+        <TmStatTile Icon="✅" Number="@_deliveredCount" Label="Delivered" Tone="green" OnClick="@(() => PickStatus(OrderStatus.Delivered))" />
+        <TmStatTile Icon="💰" Number="@_pageValue" Label="Page Value" Tone="red" />
+    </div>
 
-    <MudTable Items="@_orders.Items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
-        <HeaderContent>
-            <MudTh>Order #</MudTh>
-            <MudTh>Customer</MudTh>
-            <MudTh>Date</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh Style="text-align:right">Total</MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.OrderNumber</MudTd>
-            <MudTd>@context.Customer.CustomerName</MudTd>
-            <MudTd>@context.OrderDate.ToString("yyyy-MM-dd")</MudTd>
-            <MudTd>
-                <MudChip T="string" Color="@CommonUtility.GetStatusColor(context.Status)" Size="Size.Small">@context.Status</MudChip>
-            </MudTd>
-            <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Info"
-                               OnClick="@(() => ViewOrder(context.Id))" />
-                @if (context.Status == OrderStatus.Pending)
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search by order number or customer..." value="@_search" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnStatusChanged">
+                <option value="" selected="@(_statusFilter == null)">All Status</option>
+                @foreach (OrderStatus s in Enum.GetValues<OrderStatus>())
                 {
-                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success"
-                                   OnClick="@(() => Approve(context.Id))" />
+                    <option value="@s" selected="@(_statusFilter == s)">@s</option>
                 }
-                @if (context.Status != OrderStatus.Cancelled && context.Status != OrderStatus.Delivered)
-                {
-                    <MudIconButton Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" Color="Color.Error"
-                                   OnClick="@(() => Cancel(context.Id))" />
-                }
-            </MudTd>
-        </RowTemplate>
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
-    </MudTable>
-</MudPaper>
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:950px">
+                <thead>
+                    <tr>
+                        <th>🧾 Order #</th>
+                        <th>👤 Customer</th>
+                        <th>🏬 Branch</th>
+                        <th>📅 Date</th>
+                        <th>Status</th>
+                        <th style="text-align:right">Total</th>
+                        <th style="text-align:right">Due</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="8"><div class="tm-loading">Loading orders...</div></td></tr>
+                    }
+                    else if (_orders.Items.Count == 0)
+                    {
+                        <tr><td colspan="8"><div class="tm-loading">No sales orders found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var o in _orders.Items)
+                        {
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🧾</span>@o.OrderNumber</span></td>
+                                <td class="tm-branch">@(o.Customer?.CustomerName ?? "-")</td>
+                                <td class="tm-dim">@(o.Branch?.Name ?? "-")</td>
+                                <td class="tm-dim">@o.OrderDate.ToString("dd MMM yyyy")</td>
+                                <td><span class="@GetStatusPill(o.Status)"><span class="tm-dot"></span>@o.Status</span></td>
+                                <td style="text-align:right" class="tm-money">@o.TotalAmount.ToString("N0")</td>
+                                <td style="text-align:right">
+                                    <span style="font-weight:700; color:@(o.DueAmount > 0 ? "#dc2626" : "#15803d")">
+                                        @(o.DueAmount > 0 ? o.DueAmount.ToString("N0") : "-")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act tm-act-view" title="View" @onclick="() => ViewOrder(o.Id)">👁</button>
+                                        @if (o.Status == OrderStatus.Pending)
+                                        {
+                                            <button class="tm-act" style="color:#16a34a" title="Approve" @onclick="() => Approve(o.Id)">✔</button>
+                                        }
+                                        @if (o.Status != OrderStatus.Cancelled && o.Status != OrderStatus.Delivered)
+                                        {
+                                            <button class="tm-act tm-act-del" title="Cancel" @onclick="() => Cancel(o.Id)">✕</button>
+                                        }
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <TmPager Total="@_totalCount" Page="@_page" PageSize="@_pageSize" ItemNoun="orders"
+                  PageChanged="@OnPageChanged" PageSizeChanged="@OnPageSizeChanged" />
+    </div>
+</div>
 
 <SalesOrderViewPanel @ref="_orderPanel" OnOrderUpdated="LoadOrders" />
 
 @code {
-    private PagedResult<SalesOrderDto> _orders = new(new(), 0, 1, 25);
+    private PagedResult<SalesOrderDto> _orders = new(new(), 0, 1, 10);
     private string _search = "";
-    private List<OrderStatus?> _statusFilters;
+    private List<OrderStatus?> _statusFilters = new();
     private OrderStatus? _statusFilter;
     private bool _loading = true;
     private int _page = 1;
+    private int _pageSize = 10;
+    private int _totalCount;
+    private int _pendingCount, _approvedCount, _shippedCount, _deliveredCount;
+    private decimal _pageValue;
     private SalesOrderViewPanel _orderPanel = default!;
+    private System.Timers.Timer? _debounce;
 
     protected override async Task OnInitializedAsync() => await LoadOrders();
 
     private async Task LoadOrders()
     {
         _loading = true;
-        try { _orders = await OrderService.GetSalesOrders(_search, _statusFilters, _page, 25); }
+        try
+        {
+            _statusFilters = _statusFilter.HasValue ? new List<OrderStatus?> { _statusFilter.Value } : new List<OrderStatus?>();
+            _orders = await OrderService.GetSalesOrders(_search, _statusFilters, _page, _pageSize);
+            _totalCount = _orders.TotalCount;
+            _pageValue = _orders.Items.Sum(o => o.TotalAmount);
+        }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        _loading = false;
+        finally { _loading = false; }
+    }
+
+    private async Task LoadCountsAsync()
+    {
+        try
+        {
+            var all = await OrderService.GetSalesOrders("", new List<OrderStatus?>(), 1, 500);
+            var items = all.Items;
+            _pendingCount = items.Count(o => o.Status == OrderStatus.Pending);
+            _approvedCount = items.Count(o => o.Status == OrderStatus.Approved);
+            _shippedCount = items.Count(o => o.Status == OrderStatus.Shipped);
+            _deliveredCount = items.Count(o => o.Status == OrderStatus.Delivered);
+        }
+        catch { }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) await LoadCountsAsync();
     }
 
     private async Task Approve(Guid id)
@@ -98,6 +164,7 @@
             await OrderService.ApproveOrder(id);
             Snackbar.Add("Order approved successfully", Severity.Success);
             await LoadOrders();
+            await LoadCountsAsync();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
@@ -112,12 +179,64 @@
                 await OrderService.CancelOrder(id, "Cancelled by user");
                 Snackbar.Add("Order cancelled", Severity.Warning);
                 await LoadOrders();
+                await LoadCountsAsync();
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
     }
 
     private async Task ViewOrder(Guid id) => await _orderPanel.OpenAsync(id);
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        _page = 1;
+        _debounce?.Stop();
+        _debounce?.Dispose();
+        _debounce = new System.Timers.Timer(350) { AutoReset = false };
+        _debounce.Elapsed += async (_, __) =>
+        {
+            await LoadOrders();
+            await InvokeAsync(StateHasChanged);
+        };
+        _debounce.Start();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString();
+        _statusFilter = string.IsNullOrEmpty(v) ? null : Enum.Parse<OrderStatus>(v);
+        _page = 1;
+        await LoadOrders();
+    }
+
+    private async Task PickStatus(OrderStatus s)
+    {
+        _statusFilter = _statusFilter == s ? null : s;
+        _page = 1;
+        await LoadOrders();
+    }
+
+    private async Task ResetFilters()
+    {
+        _search = "";
+        _statusFilter = null;
+        _page = 1;
+        await LoadOrders();
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        _page = page;
+        await LoadOrders();
+    }
+
+    private async Task OnPageSizeChanged(int size)
+    {
+        _pageSize = size;
+        _page = 1;
+        await LoadOrders();
+    }
 
     private async Task OpenCreate()
     {
@@ -138,13 +257,22 @@
         {
             try
             {
-                var orderId = await OrderService.CreateSalesOrder(dto);
+                await OrderService.CreateSalesOrder(dto);
                 Snackbar.Add("Sales order created successfully", Severity.Success);
                 await LoadOrders();
+                await LoadCountsAsync();
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
     }
 
-  
+    private static string GetStatusPill(OrderStatus s) => s switch
+    {
+        OrderStatus.Pending => "tm-pill tm-pill-amber",
+        OrderStatus.Approved => "tm-pill tm-pill-blue",
+        OrderStatus.Shipped => "tm-pill tm-pill-purple",
+        OrderStatus.Delivered => "tm-pill tm-pill-green",
+        OrderStatus.Cancelled => "tm-pill tm-pill-red",
+        _ => "tm-pill tm-pill-blue"
+    };
 }

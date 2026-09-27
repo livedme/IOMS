@@ -8,44 +8,133 @@
 
 <PageTitle>Kits - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Kit Management</MudText>
+<div class="tm-page">
+    <TmPageHeader Icon="🧩" Title="Kit Management" Subtitle="Build, assemble and disassemble product kits">
+        <Actions>
+            <button class="tm-reset" @onclick="Load">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="OpenCreate">+ New Kit</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-           OnClick="OpenCreate" Class="mb-4">New Kit</MudButton>
+    <div class="tm-stats">
+        <TmStatTile Icon="🧩" Number="@_kits.Count" Label="Total Kits" Tone="blue" />
+        <TmStatTile Icon="✔" Number="@_activeCount" Label="Active" Tone="green" />
+        <TmStatTile Icon="✕" Number="@(_kits.Count - _activeCount)" Label="Inactive" Tone="red" />
+        <TmStatTile Icon="🔩" Number="@_totalComponents" Label="Components" Tone="purple" />
+        <TmStatTile Icon="📦" Number="@_avgComponents" Label="Avg Components" Tone="yellow" />
+        <TmStatTile Icon="🏷️" Number="@_singleCompCount" Label="Single-Item Kits" Tone="teal" />
+    </div>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudTable Items="@_kits" Dense="true" Hover="true" Striped="true" Loading="@_loading" Elevation="0">
-        <HeaderContent>
-            <MudTh>Kit Product</MudTh>
-            <MudTh>SKU</MudTh>
-            <MudTh>Components</MudTh>
-            <MudTh>Active</MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd><strong>@context.ProductName</strong></MudTd>
-            <MudTd>@context.ProductSKU</MudTd>
-            <MudTd>@context.Components.Count</MudTd>
-            <MudTd><MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)" Color="@(context.IsActive ? Color.Success : Color.Error)" /></MudTd>
-            <MudTd>
-                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => OpenAssemble(context)">Assemble</MudButton>
-                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Warning" OnClick="() => OpenDisassemble(context)">Disassemble</MudButton>
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-</MudPaper>
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search by kit name or SKU..." value="@_search" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnActiveChanged">
+                <option value="" selected="@(_activeFilter == "")">All Kits</option>
+                <option value="active" selected="@(_activeFilter == "active")">Active Only</option>
+                <option value="inactive" selected="@(_activeFilter == "inactive")">Inactive Only</option>
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:880px">
+                <thead>
+                    <tr>
+                        <th>🧩 Kit Product</th>
+                        <th>SKU</th>
+                        <th style="text-align:right">Components</th>
+                        <th>Component Preview</th>
+                        <th>Status</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="6"><div class="tm-loading">Loading kits...</div></td></tr>
+                    }
+                    else if (Paged.Count == 0)
+                    {
+                        <tr><td colspan="6"><div class="tm-loading">No kits found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var k in Paged)
+                        {
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🧩</span>@k.ProductName</span></td>
+                                <td class="tm-num">@k.ProductSKU</td>
+                                <td style="text-align:right" class="tm-num">@k.Components.Count</td>
+                                <td class="tm-dim" style="max-width:320px; overflow:hidden; text-overflow:ellipsis;">
+                                    @(k.Components.Count == 0
+                                        ? "-"
+                                        : string.Join(", ", k.Components.Take(3).Select(c => $"{c.ComponentProductName} ×{c.Quantity}"))
+                                          + (k.Components.Count > 3 ? $" +{k.Components.Count - 3} more" : ""))
+                                </td>
+                                <td>
+                                    <span class="tm-pill @(k.IsActive ? "tm-pill-green" : "tm-pill-red")">
+                                        <span class="tm-dot"></span>@(k.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act" style="color:#16a34a" title="Assemble" @onclick="() => OpenAssemble(k)">🔧</button>
+                                        <button class="tm-act" style="color:#d97706" title="Disassemble" @onclick="() => OpenDisassemble(k)">🔩</button>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="kits"
+                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+    </div>
+</div>
 
 @code {
     private List<KitDto> _kits = new();
     private bool _loading = true;
+    private string _search = "";
+    private string _activeFilter = "";
+    private int _page = 1;
+    private int _pageSize = 10;
+    private int _activeCount, _totalComponents, _avgComponents, _singleCompCount;
 
     protected override async Task OnInitializedAsync() => await Load();
+
+    private List<KitDto> Filtered => _kits.Where(k =>
+        (string.IsNullOrWhiteSpace(_search)
+            || (k.ProductName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (k.ProductSKU?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))
+        && (_activeFilter switch
+        {
+            "active" => k.IsActive,
+            "inactive" => !k.IsActive,
+            _ => true
+        })).ToList();
+
+    private List<KitDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
 
     private async Task Load()
     {
         _loading = true;
-        _kits = await KitService.GetKits();
-        _loading = false;
+        try
+        {
+            _kits = await KitService.GetKits();
+            _activeCount = _kits.Count(k => k.IsActive);
+            _totalComponents = _kits.Sum(k => k.Components.Count);
+            _avgComponents = _kits.Count == 0 ? 0 : (int)Math.Round(_kits.Average(k => (double)k.Components.Count));
+            _singleCompCount = _kits.Count(k => k.Components.Count == 1);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
     }
 
     private async Task OpenCreate()
@@ -69,5 +158,30 @@
         var dialog = await DialogService.ShowAsync<KitAssemblyDialog>("Disassemble Kit", parameters);
         var result = await dialog.Result;
         if (result != null && !result.Canceled) { Snackbar.Add("Kit disassembled.", Severity.Success); await Load(); }
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        _page = 1;
+    }
+
+    private void OnActiveChanged(ChangeEventArgs e)
+    {
+        _activeFilter = e.Value?.ToString() ?? "";
+        _page = 1;
+    }
+
+    private void ResetFilters()
+    {
+        _search = "";
+        _activeFilter = "";
+        _page = 1;
+    }
+
+    private void OnPageSizeChanged(int size)
+    {
+        _pageSize = size;
+        _page = 1;
     }
 }

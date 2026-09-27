@@ -6,68 +6,173 @@
 
 <PageTitle>Suppliers - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Suppliers</MudText>
+<div class="tm-page">
+    <TmPageHeader Icon="🏭" Title="Suppliers" Subtitle="Manage vendor contacts, payment terms and lead times">
+        <Actions>
+            <button class="tm-reset" @onclick="LoadData">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="OpenCreate">+ New Supplier</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudGrid>
-        <MudItem xs="12" sm="8">
-            <MudTextField @bind-Value="_searchString" Placeholder="Search suppliers..." Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadData" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="4" Class="d-flex justify-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreate">New Supplier</MudButton>
-        </MudItem>
-    </MudGrid>
+    <div class="tm-stats">
+        <TmStatTile Icon="🏭" Number="@_items.Count" Label="Suppliers" Tone="blue" />
+        <TmStatTile Icon="✔" Number="@CountOf(true)" Label="Active" Tone="green" OnClick="@(() => PickActive(true))" />
+        <TmStatTile Icon="⏸" Number="@CountOf(false)" Label="Inactive" Tone="red" OnClick="@(() => PickActive(false))" />
+        <TmStatTile Icon="📧" Number="@CountWithEmail" Label="With Email" Tone="purple" />
+        <TmStatTile Icon="⏱" Number="@_avgLeadTime" Label="Avg Lead Time" Tone="yellow" />
+        <TmStatTile Icon="⭐" Number="@_avgRating" Label="Avg Rating" Tone="teal" />
+    </div>
 
-    <MudTable Items="@_items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
-        <HeaderContent>
-            <MudTh>Name</MudTh>
-            <MudTh>Email</MudTh>
-            <MudTh>Phone</MudTh>
-            <MudTh>Contact Person</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.SupplierName</MudTd>
-            <MudTd>@context.SupplierEmail</MudTd>
-            <MudTd>@context.SupplierPhone</MudTd>
-            <MudTd>
-@context.ContactPersonName, 
-                @context.ContactPersonEmail,
-                @context.ContactPersonPhone
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search by supplier, contact, email or phone..." value="@_searchString" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnStatusChanged">
+                <option value="" selected="@(_activeFilter == null)">All Status</option>
+                <option value="active" selected="@(_activeFilter == true)">Active</option>
+                <option value="inactive" selected="@(_activeFilter == false)">Inactive</option>
+            </select>
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnCityChanged">
+                <option value="" selected="@(string.IsNullOrEmpty(_cityFilter))">All Cities</option>
+                @foreach (var c in Cities)
+                {
+                    <option value="@c" selected="@(_cityFilter == c)">@c</option>
+                }
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
 
-</MudTd>            
-            <MudTd>
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Default)" Size="Size.Small">
-                    @(context.IsActive ? "Active" : "Inactive")
-                </MudChip>
-            </MudTd>
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
-                               OnClick="@(() => OpenEdit(context))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                               OnClick="@(() => Delete(context))" />
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-</MudPaper>
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:1050px">
+                <thead>
+                    <tr>
+                        <th>🏭 Supplier</th>
+                        <th>📧 Email</th>
+                        <th>📞 Phone</th>
+                        <th>👤 Contact Person</th>
+                        <th>📍 City</th>
+                        <th>💳 Terms</th>
+                        <th>Status</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="8"><div class="tm-loading">Loading suppliers...</div></td></tr>
+                    }
+                    else if (Paged.Count == 0)
+                    {
+                        <tr><td colspan="8"><div class="tm-loading">No suppliers found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var s in Paged)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="tm-veh">
+                                        <span class="tm-veh-ico" style="background:#fef3c7">@GetInitials(s.SupplierName)</span>
+                                        <span>
+                                            @s.SupplierName
+                                            @if (!string.IsNullOrWhiteSpace(s.Country))
+                                            {
+                                                <span class="tm-dim" style="display:block;font-weight:400;font-size:11.5px">@s.Country</span>
+                                            }
+                                        </span>
+                                    </span>
+                                </td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(s.SupplierEmail) ? "-" : s.SupplierEmail)</td>
+                                <td class="tm-num">@(string.IsNullOrWhiteSpace(s.SupplierPhone) ? "-" : s.SupplierPhone)</td>
+                                <td class="tm-branch">
+                                    @(string.IsNullOrWhiteSpace(s.ContactPersonName) ? "-" : s.ContactPersonName)
+                                    @if (!string.IsNullOrWhiteSpace(s.ContactPersonEmail))
+                                    {
+                                        <span class="tm-dim" style="display:block;font-size:11.5px">@s.ContactPersonEmail</span>
+                                    }
+                                </td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(s.City) ? "-" : s.City)</td>
+                                <td>
+                                    <span class="tm-pill tm-pill-blue"><span class="tm-dot"></span>@(string.IsNullOrWhiteSpace(s.PaymentTerms) ? "-" : s.PaymentTerms)</span>
+                                </td>
+                                <td>
+                                    <span class="@(s.IsActive ? "tm-pill tm-pill-green" : "tm-pill tm-pill-red")">
+                                        <span class="tm-dot"></span>@(s.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenEdit(s)">✎</button>
+                                        <button class="tm-act tm-act-del" title="Delete" @onclick="() => Delete(s)">🗑</button>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="suppliers"
+                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+    </div>
+</div>
 
 @code {
     private List<SupplierDto> _items = new();
     private string _searchString = "";
+    private bool? _activeFilter;
+    private string _cityFilter = "";
     private bool _loading = true;
+    private int _page = 1;
+    private int _pageSize = 10;
+
+    private List<string> Cities => _items
+        .Select(s => s.City)
+        .Where(c => !string.IsNullOrWhiteSpace(c))
+        .Select(c => c!)
+        .Distinct()
+        .OrderBy(c => c)
+        .ToList();
+
+    private int CountWithEmail => _items.Count(s => !string.IsNullOrWhiteSpace(s.SupplierEmail));
+
+    private string _avgLeadTime => _items.Count == 0
+        ? "0"
+        : Math.Round(_items.Average(s => s.LeadTimeDays), 0).ToString("0");
+
+    private string _avgRating => _items.Count == 0
+        ? "0.0"
+        : _items.Average(s => (double)s.Rating).ToString("0.0");
+
+    private List<SupplierDto> Filtered => _items.Where(s =>
+        (_activeFilter == null || s.IsActive == _activeFilter.Value)
+        && (string.IsNullOrWhiteSpace(_cityFilter) || s.City == _cityFilter)
+        && (string.IsNullOrWhiteSpace(_searchString)
+            || (s.SupplierName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (s.SupplierEmail?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (s.SupplierPhone?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (s.ContactPersonName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
+
+    private List<SupplierDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+
+    private int CountOf(bool active) => _items.Count(s => s.IsActive == active);
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
     private async Task LoadData()
     {
         _loading = true;
-        var query =await SupplierService.GetSuppliersAsync(search: _searchString);      
-        var data=query.Items.OrderBy(s => s.SupplierName).Take(100).ToList();
-        _items = data.Select(s => new SupplierDto()
+        try
+        {
+            var query = await SupplierService.GetSuppliersAsync(search: _searchString);
+            var data = query.Items.OrderBy(s => s.SupplierName).Take(500).ToList();
+            _items = data.Select(s => new SupplierDto()
             {
                 Id = s.Id,
                 SupplierName = s.SupplierName,
@@ -88,8 +193,9 @@
                 Rating = s.Rating,
                 IsActive = s.IsActive
             }).ToList();
-
-        _loading = false;
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
     }
 
     private async Task OpenCreate()
@@ -100,24 +206,6 @@
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is SupplierDto dto)
         {
-            var model = new IOMS.Domain.Entities.Supplier
-                {
-                    SupplierName = dto.SupplierName,
-                    SupplierEmail = dto.SupplierEmail,
-                    SupplierPhone = dto.SupplierPhone,
-                    ContactPersonName = dto.ContactPersonName,
-                    ContactPersonEmail = dto.ContactPersonEmail,
-                    ContactPersonPhone = dto.ContactPersonPhone,
-                    Address = dto.Address,
-                    City = dto.City,
-                    Zila = dto.Zila,
-                    State = dto.State,
-                    Country = dto.Country,
-                    PostalCode = dto.PostalCode,
-                    PaymentTerms = dto.PaymentTerms,
-                    LeadTimeDays = dto.LeadTimeDays
-                };
-
             await SupplierService.CreateSupplierAsync(dto);
             Snackbar.Add("Supplier created", Severity.Success);
             await LoadData();
@@ -134,12 +222,7 @@
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is SupplierDto updated)
         {
-            // entity.SupplierName = updated.SupplierName; entity.SupplierEmail = updated.SupplierEmail; entity.SupplierPhone = updated.SupplierPhone;
-            // entity.Address = updated.Address; entity.City = updated.City; entity.State = updated.State;
-            //  entity.Country = updated.Country; entity.PostalCode = updated.PostalCode;
-            //  entity.DefaultCurrencyId = updated.DefaultCurrencyId; entity.PaymentTerms = updated.PaymentTerms; entity.LeadTimeDays = updated.LeadTimeDays;
             await SupplierService.UpdateSupplierAsync(updated.Id, updated);
-            //            await DbContext.SaveChangesAsync();
             Snackbar.Add("Supplier updated", Severity.Success);
             await LoadData();
         }
@@ -152,7 +235,59 @@
         {
             await SupplierService.DeleteSupplierAsync(supplier.Id);
             Snackbar.Add($" Supplier {supplier.SupplierName} deleted", Severity.Warning);
-            await LoadData(); 
+            await LoadData();
         }
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _searchString = e.Value?.ToString() ?? "";
+        _page = 1;
+    }
+
+    private void OnStatusChanged(ChangeEventArgs e)
+    {
+        _activeFilter = e.Value?.ToString() switch
+        {
+            "active" => true,
+            "inactive" => false,
+            _ => null
+        };
+        _page = 1;
+    }
+
+    private void OnCityChanged(ChangeEventArgs e)
+    {
+        _cityFilter = e.Value?.ToString() ?? "";
+        _page = 1;
+    }
+
+    private void PickActive(bool active)
+    {
+        _activeFilter = _activeFilter == active ? null : active;
+        _page = 1;
+    }
+
+    private void ResetFilters()
+    {
+        _searchString = "";
+        _activeFilter = null;
+        _cityFilter = "";
+        _page = 1;
+    }
+
+    private void OnPageSizeChanged(int size)
+    {
+        _pageSize = size;
+        _page = 1;
+    }
+
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 1
+            ? parts[0][..1].ToUpperInvariant()
+            : (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
     }
 }

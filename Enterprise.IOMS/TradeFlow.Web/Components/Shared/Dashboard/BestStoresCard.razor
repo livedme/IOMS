@@ -1,0 +1,32 @@
+<DashboardCardShell Title="Best Performing Stores" ViewAllHref="/branches" FillHeight="true">
+    <div style="padding:8px 0;">
+        <div style="display:flex; color:#64748b; font-size:0.72rem; font-weight:700; padding:6px 14px; border-bottom:1px solid #f1f5f9;">
+            <span style="flex:1;">Store</span><span style="width:80px; text-align:right;">Sales</span><span style="width:70px; text-align:right;">Growth</span>
+        </div>
+        @if (!Items.Any())
+        {
+            <div style="padding:12px 14px;">
+                <MudAlert Severity="Severity.Info" Dense="true">No store performance data.</MudAlert>
+            </div>
+        }
+        else
+        {
+            @foreach (var s in Items)
+            {
+                <div style="display:flex; align-items:center; padding:10px 14px; border-bottom:1px solid #f8fafc; font-size:0.83rem;">
+                    <span style="flex:1; display:flex; align-items:center; gap:8px; font-weight:600; color:#1e293b;">
+                        <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Small" Style="font-size:16px; color:#6366f1;" /> @s.StoreName
+                    </span>
+                    <span style="width:80px; text-align:right; font-weight:700;">@s.Sales.ToString("C0")</span>
+                    <span style="width:70px; text-align:right; color:#16a34a; font-weight:700; display:flex; align-items:center; justify-content:flex-end; gap:2px;">
+                        <MudIcon Icon="@(s.GrowthPct >= 0 ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)" Size="Size.Small" Style="font-size:13px; color:#16a34a;" />@s.GrowthPct.ToString("0.0")%
+                    </span>
+                </div>
+            }
+        }
+    </div>
+</DashboardCardShell>
+
+@code {
+    [Parameter] public IReadOnlyList<BestStoreDto> Items { get; set; } = Array.Empty<BestStoreDto>();
+}

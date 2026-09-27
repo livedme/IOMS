@@ -6,75 +6,164 @@
 
 <PageTitle>Journal Entries - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Journal Entries</MudText>
+<div class="tm-page">
+    <TmPageHeader Icon="📓" Title="Journal Entries" Subtitle="Record double-entry transactions and reverse posted entries">
+        <Actions>
+            <button class="tm-reset" @onclick="LoadEntries">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="OpenCreate">+ New Journal Entry</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudGrid>
-        <MudItem xs="12" sm="8">
-            <MudTextField @bind-Value="_search" Placeholder="Search by reference..." Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadEntries" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="4" Class="d-flex justify-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreate">New Journal Entry</MudButton>
-        </MudItem>
-    </MudGrid>
+    <div class="tm-stats">
+        <TmStatTile Icon="📓" Number="@_totalCount" Label="Entries" Tone="blue" />
+        <TmStatTile Icon="🤖" Number="@_autoCount" Label="Auto Posted" Tone="purple" OnClick="@(() => PickAuto(true))" />
+        <TmStatTile Icon="✍" Number="@(_totalCount - _autoCount)" Label="Manual" Tone="yellow" OnClick="@(() => PickAuto(false))" />
+        <TmStatTile Icon="↩️" Number="@_reversedCount" Label="Reversed" Tone="red" OnClick="@(() => PickReversed())" />
+        <TmStatTile Icon="💰" Number="@_pageDebits" Label="Page Debits" Tone="teal" />
+        <TmStatTile Icon="📅" Label="This Month" Number="@_thisMonthCount" Tone="green" />
+    </div>
 
-    <MudTable Items="@_entries.Items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
-        <HeaderContent>
-            <MudTh>Reference</MudTh>
-            <MudTh>Date</MudTh>
-            <MudTh>Description</MudTh>
-            <MudTh Style="text-align:right">Total</MudTh>
-            <MudTh>Auto</MudTh>
-            <MudTh>Reversed</MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd><strong>@context.Reference</strong></MudTd>
-            <MudTd>@context.EntryDate.ToString("yyyy-MM-dd")</MudTd>
-            <MudTd>@context.Description</MudTd>
-            <MudTd Style="text-align:right">@context.Lines.Sum(l => l.Debit).ToString("C")</MudTd>
-            <MudTd>
-                @if (context.IsAutoPosted)
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.AutoMode" Size="Size.Small" Color="Color.Info" />
-                }
-            </MudTd>
-            <MudTd>
-                @if (context.IsReversed)
-                {
-                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Reversed</MudChip>
-                }
-            </MudTd>
-            <MudTd>
-                @if (!context.IsReversed)
-                {
-                    <MudIconButton Icon="@Icons.Material.Filled.Undo" Size="Size.Small" Color="Color.Warning"
-                                   OnClick="@(() => Reverse(context.Id))" />
-                }
-            </MudTd>
-        </RowTemplate>
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
-    </MudTable>
-</MudPaper>
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search by reference or description..." value="@_search" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnFlagChanged">
+                <option value="" selected="@(_flag == JournalFlag.All)">All Entries</option>
+                <option value="auto" selected="@(_flag == JournalFlag.Auto)">Auto Posted</option>
+                <option value="manual" selected="@(_flag == JournalFlag.Manual)">Manual</option>
+                <option value="reversed" selected="@(_flag == JournalFlag.Reversed)">Reversed</option>
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:1000px">
+                <thead>
+                    <tr>
+                        <th>📓 Reference</th>
+                        <th>📅 Date</th>
+                        <th>Description</th>
+                        <th style="text-align:right">Lines</th>
+                        <th style="text-align:right">Debit</th>
+                        <th style="text-align:right">Credit</th>
+                        <th>Type</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="8"><div class="tm-loading">Loading journal entries...</div></td></tr>
+                    }
+                    else if (Paged.Count == 0)
+                    {
+                        <tr><td colspan="8"><div class="tm-loading">No journal entries found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var j in Paged)
+                        {
+                            var debit = j.Lines.Sum(l => l.Debit);
+                            var credit = j.Lines.Sum(l => l.Credit);
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">📓</span>@j.Reference</span></td>
+                                <td class="tm-dim">@j.EntryDate.ToString("dd MMM yyyy")</td>
+                                <td class="tm-branch">@(string.IsNullOrWhiteSpace(j.Description) ? "-" : j.Description)</td>
+                                <td style="text-align:right" class="tm-num">@j.Lines.Count</td>
+                                <td style="text-align:right" class="tm-money">@debit.ToString("N0")</td>
+                                <td style="text-align:right" class="tm-money">@credit.ToString("N0")</td>
+                                <td>
+                                    @if (j.IsReversed)
+                                    {
+                                        <span class="tm-pill tm-pill-red"><span class="tm-dot"></span>Reversed</span>
+                                    }
+                                    else if (j.IsAutoPosted)
+                                    {
+                                        <span class="tm-pill tm-pill-purple"><span class="tm-dot"></span>Auto</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tm-pill tm-pill-blue"><span class="tm-dot"></span>Manual</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="tm-actions" style="justify-content:flex-end">
+                                        @if (!j.IsReversed)
+                                        {
+                                            <button class="tm-act" style="color:#d97706" title="Reverse Entry" @onclick="() => Reverse(j.Id)">↩</button>
+                                        }
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="journal entries"
+                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+    </div>
+</div>
 
 @code {
-    private PagedResult<JournalEntryDto> _entries = new(new(), 0, 1, 25);
+    private enum JournalFlag { All, Auto, Manual, Reversed }
+
+    private PagedResult<JournalEntryDto> _entries = new(new(), 0, 1, 10);
     private string _search = "";
+    private JournalFlag _flag = JournalFlag.All;
     private bool _loading = true;
+    private int _page = 1;
+    private int _pageSize = 10;
+    private int _totalCount;
+    private int _autoCount;
+    private int _reversedCount;
+    private int _thisMonthCount;
+    private decimal _pageDebits;
+    private System.Timers.Timer? _debounce;
+
+    private List<JournalEntryDto> Filtered => _entries.Items.Where(j =>
+        (_flag == JournalFlag.All
+            || (_flag == JournalFlag.Auto && j.IsAutoPosted)
+            || (_flag == JournalFlag.Manual && !j.IsAutoPosted)
+            || (_flag == JournalFlag.Reversed && j.IsReversed))
+        && (string.IsNullOrWhiteSpace(_search)
+            || j.Reference.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || (j.Description?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
+
+    private List<JournalEntryDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
 
     protected override async Task OnInitializedAsync() => await LoadEntries();
 
     private async Task LoadEntries()
     {
         _loading = true;
-        try { _entries = await AccountingService.GetJournalEntries(_search, 1, 25); }
+        try
+        {
+            _entries = await AccountingService.GetJournalEntries(_search, _page, _pageSize);
+            _totalCount = _entries.TotalCount;
+            _pageDebits = _entries.Items.Sum(j => j.Lines.Sum(l => l.Debit));
+            await LoadCountsAsync();
+        }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        _loading = false;
+        finally { _loading = false; }
+    }
+
+    private async Task LoadCountsAsync()
+    {
+        try
+        {
+            var all = await AccountingService.GetJournalEntries("", 1, 1000);
+            var items = all.Items;
+            _autoCount = items.Count(j => j.IsAutoPosted);
+            _reversedCount = items.Count(j => j.IsReversed);
+            var now = DateTime.Now;
+            _thisMonthCount = items.Count(j => j.EntryDate.Year == now.Year && j.EntryDate.Month == now.Month);
+        }
+        catch { }
     }
 
     private async Task Reverse(Guid id)
@@ -110,5 +199,53 @@
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        _page = 1;
+        _debounce?.Stop();
+        _debounce?.Dispose();
+        _debounce = new System.Timers.Timer(350) { AutoReset = false };
+        _debounce.Elapsed += async (_, __) =>
+        {
+            await LoadEntries();
+            await InvokeAsync(StateHasChanged);
+        };
+        _debounce.Start();
+    }
+
+    private void OnFlagChanged(ChangeEventArgs e)
+    {
+        _flag = e.Value?.ToString() switch
+        {
+            "auto" => JournalFlag.Auto,
+            "manual" => JournalFlag.Manual,
+            "reversed" => JournalFlag.Reversed,
+            _ => JournalFlag.All
+        };
+        _page = 1;
+    }
+
+    private void PickAuto(bool auto) =>
+        _flag = _flag == (auto ? JournalFlag.Auto : JournalFlag.Manual)
+            ? JournalFlag.All
+            : (auto ? JournalFlag.Auto : JournalFlag.Manual);
+
+    private void PickReversed() =>
+        _flag = _flag == JournalFlag.Reversed ? JournalFlag.All : JournalFlag.Reversed;
+
+    private void ResetFilters()
+    {
+        _search = "";
+        _flag = JournalFlag.All;
+        _page = 1;
+    }
+
+    private void OnPageSizeChanged(int size)
+    {
+        _pageSize = size;
+        _page = 1;
     }
 }

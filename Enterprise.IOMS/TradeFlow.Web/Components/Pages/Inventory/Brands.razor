@@ -7,99 +7,347 @@
 
 <PageTitle>Brands - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Brands</MudText>
+<div class="tm-page">
+    <!-- Header -->
+    <div class="tm-card tm-header">
+        <div class="tm-header-left">
+            <div class="tm-header-icon">🔧</div>
+            <div>
+                <h2 class="tm-title">Brand Management</h2>
+                <p class="tm-subtitle">Manage your brands, origin details and linked products</p>
+            </div>
+        </div>
+        <button class="tm-add-btn" @onclick="OpenCreateDialog">+ Add Brand</button>
+    </div>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudGrid>
-        <MudItem xs="12" sm="8">
-            <MudTextField @bind-Value="_searchString" Placeholder="Search brands..." Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadBrands" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="4" Class="d-flex justify-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreateDialog">New Brand</MudButton>
-        </MudItem>
-    </MudGrid>
+    <!-- Stats -->
+    <div class="tm-stats">
+        <div class="tm-stat tm-s-blue" @onclick="ResetFilters">
+            <div class="tm-stat-ico">🔧</div>
+            <div><div class="tm-stat-num">@_brandCount</div><div class="tm-stat-label">Brands</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-green" @onclick='() => FilterByStatus("Active")'>
+            <div class="tm-stat-ico">✔</div>
+            <div><div class="tm-stat-num">@_activeCount</div><div class="tm-stat-label">Active</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-red" @onclick='() => FilterByStatus("Inactive")'>
+            <div class="tm-stat-ico">⛔</div>
+            <div><div class="tm-stat-num">@_inactiveCount</div><div class="tm-stat-label">Inactive</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-teal" @onclick="FilterByWithProducts">
+            <div class="tm-stat-ico">📦</div>
+            <div><div class="tm-stat-num">@_withProductsCount</div><div class="tm-stat-label">With Products</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-purple" @onclick="FilterByWithLogo">
+            <div class="tm-stat-ico">🖼</div>
+            <div><div class="tm-stat-num">@_withLogoCount</div><div class="tm-stat-label">With Logo</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-yellow" @onclick="ResetFilters">
+            <div class="tm-stat-ico">🌐</div>
+            <div><div class="tm-stat-num">@_countryCount</div><div class="tm-stat-label">Countries</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+    </div>
 
-    <MudTable Items="@_brands" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4"
-              Elevation="0">
-        <HeaderContent>
-            <MudTh>Name</MudTh>
-            <MudTh>Code</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh>Origin Company</MudTh>
-            <MudTh>Origin Country</MudTh>
-            <MudTh>Founded</MudTh>
-            <MudTh>Description</MudTh>
-            <MudTh>Products</MudTh>
-            <MudTh>Created</MudTh>
-            <MudTh>Updated</MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Name">@context.Name</MudTd>
-            <MudTd DataLabel="Code">@context.BrandCode</MudTd>
-            <MudTd DataLabel="Status">@context.Status</MudTd>
-            <MudTd DataLabel="Origin Company">@context.OriginCompany</MudTd>
-            <MudTd DataLabel="Origin Country">@context.OriginCountry</MudTd>
-            <MudTd DataLabel="Founded">@context.FoundedYear</MudTd>
-            <MudTd DataLabel="Description">@context.Description</MudTd>
-            <MudTd DataLabel="Products">@context.ProductCount</MudTd>
-            <MudTd DataLabel="Created">@FormatDate(context.CreatedAt)</MudTd>
-            <MudTd DataLabel="Updated">@FormatDate(context.UpdatedAt)</MudTd>
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
-                               OnClick="@(() => OpenEditDialog(context))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                               OnClick="@(() => DeleteBrand(context.Id))" />
-            </MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
-            <MudText>No brands found</MudText>
-        </NoRecordsContent>
-    </MudTable>
-</MudPaper>
+    <!-- Filters -->
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search brands by name, code, company, country..." value="@_searchString" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnStatusChanged">
+                <option value="">All Status</option>
+                <option value="Active" selected="@(_status == "Active")">Active</option>
+                <option value="Inactive" selected="@(_status == "Inactive")">Inactive</option>
+            </select>
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnCountryChanged">
+                <option value="">All Countries</option>
+                @foreach (var c in _countries)
+                {
+                    <option value="@c" selected="@(_country == c)">@c</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnProductsChanged">
+                <option value="">All Brands</option>
+                <option value="with" selected="@(_productFilter == "with")">With Products</option>
+                <option value="without" selected="@(_productFilter == "without")">Without Products</option>
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <!-- Table -->
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table">
+                <thead>
+                    <tr>
+                        <th>🔧 Brand Name</th>
+                        <th>Code</th>
+                        <th>Status</th>
+                        <th>Origin Company</th>
+                        <th>Origin Country</th>
+                        <th>Founded</th>
+                        <th>Description</th>
+                        <th>Products</th>
+                        <th>Created</th>
+                        <th>Updated</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="11"><div class="tm-loading">Loading brands...</div></td></tr>
+                    }
+                    else if (_brands.Count == 0)
+                    {
+                        <tr><td colspan="11"><div class="tm-loading">No brands found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var b in _brands)
+                        {
+                            var pill = IsActive(b) ? "tm-pill tm-pill-green" : "tm-pill tm-pill-red";
+                            var icoBg = GetIconBg(b.Name);
+                            <tr>
+                                <td>
+                                    <span class="tm-veh"><span class="tm-veh-ico" style="background:@icoBg">🔧</span>@b.Name</span>
+                                </td>
+                                <td class="tm-num">@(string.IsNullOrWhiteSpace(b.BrandCode) ? "-" : b.BrandCode)</td>
+                                <td><span class="@pill"><span class="tm-dot"></span>@b.Status</span></td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(b.OriginCompany) ? "-" : b.OriginCompany)</td>
+                                <td class="tm-branch">@(string.IsNullOrWhiteSpace(b.OriginCountry) ? "-" : b.OriginCountry)</td>
+                                <td class="tm-num">@(b.FoundedYear?.ToString() ?? "-")</td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(b.Description) ? "-" : Truncate(b.Description, 60))</td>
+                                <td class="tm-num">@(b.ProductCount ?? 0)</td>
+                                <td class="tm-num">@FormatDate(b.CreatedAt)</td>
+                                <td class="tm-num">@FormatDate(b.UpdatedAt)</td>
+                                <td>
+                                    <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenEditDialog(b)">✎</button>
+                                        <button class="tm-act tm-act-del" title="Delete" @onclick="() => DeleteBrand(b.Id)">🗑</button>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="tm-footer">
+            <span>Showing @(_totalCount == 0 ? 0 : ((_page - 1) * _pageSize + 1)) to @(Math.Min(_page * _pageSize, _totalCount)) of @_totalCount brands</span>
+            <span class="tm-pager">
+                <span>Rows per page:</span>
+                <select class="tm-rows-select" @onchange="OnPageSizeSelectChanged">
+                    <option value="10" selected="@(_pageSize == 10)">10</option>
+                    <option value="20" selected="@(_pageSize == 20)">20</option>
+                    <option value="50" selected="@(_pageSize == 50)">50</option>
+                    <option value="100" selected="@(_pageSize == 100)">100</option>
+                </select>
+                <button class="tm-page-btn" disabled="@(_page <= 1)" @onclick="GoFirst">|◀</button>
+                <button class="tm-page-btn" disabled="@(_page <= 1)" @onclick="GoPrev">‹</button>
+                @foreach (var pg in GetPageNumbers())
+                {
+                    var isActive = pg == _page;
+                    <button class="tm-page-btn @(isActive ? "active" : "")" @onclick="() => OnPageChanged(pg)">@pg</button>
+                }
+                <button class="tm-page-btn" disabled="@(_page >= _totalPages)" @onclick="GoNext">›</button>
+                <button class="tm-page-btn" disabled="@(_page >= _totalPages)" @onclick="GoLast">▶|</button>
+            </span>
+        </div>
+    </div>
+</div>
 
 @code {
+    private List<BrandDto> _allBrands = new();
     private List<BrandDto> _brands = new();
+    private List<string> _countries = new();
     private string _searchString = "";
+    private string _status = "";
+    private string _country = "";
+    private string _productFilter = "";
+    private bool _logoOnly = false;
+    private int _page = 1;
+    private int _pageSize = 10;
+    private int _totalPages = 1;
+    private int _totalCount = 0;
     private bool _loading = true;
+    private int _brandCount = 0;
+    private int _activeCount = 0;
+    private int _inactiveCount = 0;
+    private int _withProductsCount = 0;
+    private int _withLogoCount = 0;
+    private int _countryCount = 0;
+    private System.Timers.Timer? _debounce;
 
     protected override async Task OnInitializedAsync() => await LoadBrands();
+
+    private static bool IsActive(BrandDto b) => string.Equals(b.Status, "Active", StringComparison.OrdinalIgnoreCase);
+
+    private static string Truncate(string value, int max)
+        => value.Length <= max ? value : value[..max] + "…";
+
+    private string GetIconBg(string? name)
+    {
+        var palettes = new[] { "#e0e9ff", "#fee2e2", "#dcfce7", "#ede9fe", "#ffedd5", "#e0f2fe", "#fef9c3" };
+        if (string.IsNullOrEmpty(name)) return palettes[0];
+        return palettes[Math.Abs(name.GetHashCode()) % palettes.Length];
+    }
 
     private async Task LoadBrands()
     {
         _loading = true;
 
-        _brands = await ProductService.GetAllBrandsAsync();
+        try
+        {
+            _allBrands = await ProductService.GetAllBrandsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading brands: {ex.Message}", Severity.Error);
+            _allBrands = new List<BrandDto>();
+        }
+
+        _brandCount = _allBrands.Count;
+        _activeCount = _allBrands.Count(IsActive);
+        _inactiveCount = _allBrands.Count - _activeCount;
+        _withProductsCount = _allBrands.Count(b => (b.ProductCount ?? 0) > 0);
+        _withLogoCount = _allBrands.Count(b => !string.IsNullOrWhiteSpace(b.LogoUrl));
+        _countries = _allBrands
+            .Select(b => b.OriginCountry)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c!)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
+        _countryCount = _countries.Count;
+
+        var items = _allBrands.AsEnumerable();
 
         if (!string.IsNullOrWhiteSpace(_searchString))
-            _brands = _brands.Where(b => b.Name.Contains(_searchString)
-                || (b.BrandCode != null && b.BrandCode.Contains(_searchString))
-                || (b.Description != null && b.Description.Contains(_searchString))
-                || (b.OriginCompany != null && b.OriginCompany.Contains(_searchString))
-                || (b.OriginCountry != null && b.OriginCountry.Contains(_searchString))).ToList();
-
-
-        _brands = _brands.Select(b => new BrandDto(b.Id, b.Name, b.BrandCode, b.Description,0)
         {
-            Id = b.Id,
-            Name = b.Name,
-            BrandCode = b.BrandCode,
-            Description = b.Description,
-            LogoUrl = b.LogoUrl,
-            Status = b.Status,
-            CreatedAt = b.CreatedAt,
-            UpdatedAt = b.UpdatedAt,
-            OriginCompany = b.OriginCompany,
-            OriginCountry = b.OriginCountry,
-            FoundedYear = b.FoundedYear,
-            ProductCount = b.ProductCount,
+            items = items.Where(b =>
+                b.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                || (b.BrandCode != null && b.BrandCode.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                || (b.Description != null && b.Description.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                || (b.OriginCompany != null && b.OriginCompany.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                || (b.OriginCountry != null && b.OriginCountry.Contains(_searchString, StringComparison.OrdinalIgnoreCase)));
+        }
 
-        }).ToList();
+        if (!string.IsNullOrEmpty(_status))
+            items = items.Where(b => string.Equals(b.Status, _status, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(_country))
+            items = items.Where(b => string.Equals(b.OriginCountry, _country, StringComparison.OrdinalIgnoreCase));
+
+        if (_productFilter == "with")
+            items = items.Where(b => (b.ProductCount ?? 0) > 0);
+        else if (_productFilter == "without")
+            items = items.Where(b => (b.ProductCount ?? 0) == 0);
+
+        if (_logoOnly)
+            items = items.Where(b => !string.IsNullOrWhiteSpace(b.LogoUrl));
+
+        var filtered = items.ToList();
+        _totalCount = filtered.Count;
+        _totalPages = Math.Max(1, (int)Math.Ceiling(_totalCount / (double)_pageSize));
+        if (_page > _totalPages) _page = _totalPages;
+        _brands = filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
 
         _loading = false;
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _searchString = e.Value?.ToString() ?? "";
+        _debounce?.Stop();
+        _debounce?.Dispose();
+        _debounce = new System.Timers.Timer(400) { AutoReset = false };
+        _debounce.Elapsed += async (_, __) =>
+        {
+            _page = 1;
+            await InvokeAsync(async () => { await LoadBrands(); StateHasChanged(); });
+        };
+        _debounce.Start();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        _status = e.Value?.ToString() ?? "";
+        _page = 1;
+        await LoadBrands();
+    }
+
+    private async Task OnCountryChanged(ChangeEventArgs e)
+    {
+        _country = e.Value?.ToString() ?? "";
+        _page = 1;
+        await LoadBrands();
+    }
+
+    private async Task OnProductsChanged(ChangeEventArgs e)
+    {
+        _productFilter = e.Value?.ToString() ?? "";
+        _page = 1;
+        await LoadBrands();
+    }
+
+    private async Task FilterByStatus(string status)
+    {
+        _status = status;
+        _page = 1;
+        await LoadBrands();
+        StateHasChanged();
+    }
+
+    private async Task FilterByWithProducts() => await OnProductsChanged(new ChangeEventArgs { Value = "with" });
+
+    private async Task FilterByWithLogo()
+    {
+        _logoOnly = !_logoOnly;
+        _page = 1;
+        await LoadBrands();
+        StateHasChanged();
+    }
+
+    private async Task ResetFilters()
+    {
+        _searchString = "";
+        _status = "";
+        _country = "";
+        _productFilter = "";
+        _logoOnly = false;
+        _page = 1;
+        await LoadBrands();
+    }
+
+    private async Task OnPageChanged(int page) { _page = page; await LoadBrands(); }
+    private async Task GoFirst() { if (_page > 1) { _page = 1; await LoadBrands(); } }
+    private async Task GoPrev() { if (_page > 1) { _page--; await LoadBrands(); } }
+    private async Task GoNext() { if (_page < _totalPages) { _page++; await LoadBrands(); } }
+    private async Task GoLast() { if (_page < _totalPages) { _page = _totalPages; await LoadBrands(); } }
+
+    private async Task OnPageSizeSelectChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz)) { _pageSize = sz; _page = 1; await LoadBrands(); }
+    }
+
+    private IEnumerable<int> GetPageNumbers()
+    {
+        var start = Math.Max(1, Math.Min(_page - 1, Math.Max(1, _totalPages - 3)));
+        var end = Math.Min(_totalPages, start + 3);
+        for (var i = start; i <= end; i++) yield return i;
     }
 
     private async Task OpenCreateDialog()
@@ -151,7 +399,7 @@
 
     private async Task DeleteBrand(Guid id)
     {
-        var confirm = await DialogService.ShowMessageBoxAsync("Confirm", "Delete this brand?", "Delete", "Cancel");
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm Delete", "Are you sure you want to delete this brand?", "Delete", "Cancel");
         if (confirm == true)
         {
             var result = await ProductService.DeleteBrandAsync(id);

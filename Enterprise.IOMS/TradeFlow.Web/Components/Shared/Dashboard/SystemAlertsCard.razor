@@ -1,0 +1,36 @@
+<DashboardCardShell Title="System Alerts" ViewAllHref="/alerts">
+    <div>
+        @if (!Items.Any())
+        {
+            <div style="padding:12px 14px;">
+                <MudAlert Severity="Severity.Success" Dense="true">No active alerts.</MudAlert>
+            </div>
+        }
+        @foreach (var al in Items)
+        {
+            var (bg, icon) = GetAlertStyle(al.AlertType);
+            <div class="alert-row">
+                <div style="width:30px;height:30px;border-radius:50%;background:@bg;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <MudIcon Icon="@icon" Size="Size.Small" Style="color:white; font-size:15px;" />
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:0.80rem; color:#1e293b; line-height:1.2;">@al.Title</div>
+                    <div style="font-size:0.72rem; color:#64748b;">@al.TimeAgo</div>
+                </div>
+            </div>
+        }
+    </div>
+</DashboardCardShell>
+
+@code {
+    [Parameter] public IReadOnlyList<SystemAlertDto> Items { get; set; } = Array.Empty<SystemAlertDto>();
+
+    private static (string bg, string icon) GetAlertStyle(string t) => t switch
+    {
+        "error" => ("#ef4444", Icons.Material.Filled.Warning),
+        "warning" => ("#f59e0b", Icons.Material.Filled.Schedule),
+        "info" => ("#3b82f6", Icons.Material.Filled.PersonAdd),
+        "success" => ("#10b981", Icons.Material.Filled.CheckCircle),
+        _ => ("#64748b", Icons.Material.Filled.Notifications)
+    };
+}

@@ -1,0 +1,24 @@
+@inject NavigationManager Nav
+
+<div class="dash-card" style="@(FillHeight ? "height:100%;" : null)">
+    <div class="dash-card-header">
+        <span class="dash-card-title">@Title</span>
+        <div class="d-flex align-center" style="gap:10px;">
+            @HeaderExtra
+            @if (!string.IsNullOrEmpty(ViewAllHref))
+            {
+                <a class="viewall-link" @onclick='() => Nav.NavigateTo(ViewAllHref)'>@ViewAllText</a>
+            }
+        </div>
+    </div>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? ViewAllHref { get; set; }
+    [Parameter] public string ViewAllText { get; set; } = "View All";
+    [Parameter] public bool FillHeight { get; set; }
+    [Parameter] public RenderFragment? HeaderExtra { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,45 @@
+<DashboardCardShell Title="Sales by Category" ViewAllHref="/products" FillHeight="true">
+    <div style="padding:12px 14px;">
+        @if (Items.Any())
+        {
+            decimal maxCat = Items.Max(c => c.Amount);
+            <div class="mcard-grid">
+                @foreach (var c in Items)
+                {
+                    var color = GetCategoryColor(c.Category);
+                    var w = maxCat <= 0 ? 0 : (double)c.Amount / (double)maxCat * 100;
+                    <div class="mcard">
+                        <div class="mcard-head">
+                            <div class="mcard-ico" style="background:@color;">
+                                <MudIcon Icon="@Icons.Material.Filled.Label" Size="Size.Small" Style="font-size:15px; color:#fff;" />
+                            </div>
+                            <div class="mcard-label" title="@c.Category">@c.Category</div>
+                        </div>
+                        <div class="mcard-val">@c.Amount.ToString("C0")</div>
+                        <div class="mcard-sub">@c.Percentage.ToString("0.0")% of sales</div>
+                        <div class="mcard-track"><div class="mcard-fill" style="width:@w.ToString("0")%; background:@color;"></div></div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">No category data.</MudAlert>
+        }
+    </div>
+</DashboardCardShell>
+
+@code {
+    [Parameter] public IReadOnlyList<SalesByCategoryDto> Items { get; set; } = Array.Empty<SalesByCategoryDto>();
+
+    private static string GetCategoryColor(string cat) => cat switch
+    {
+        "Electronics" => "#3b82f6",
+        "Fashion" => "#f59e0b",
+        "Home & Living" => "#22c55e",
+        "Home &amp; Living" => "#22c55e",
+        "Health & Beauty" => "#a855f7",
+        "Sports" => "#06b6d4",
+        _ => "#94a3b8"
+    };
+}

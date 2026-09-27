@@ -1,0 +1,20 @@
+<div class="tm-stat tm-s-@Tone @(OnClick.HasDelegate ? "tm-stat-clickable" : "")" @onclick="@(() => OnClick.InvokeAsync())">
+    <div class="tm-stat-ico">@Icon</div>
+    <div>
+        <div class="tm-stat-num">@Number</div>
+        <div class="tm-stat-label">@Label</div>
+    </div>
+    @if (OnClick.HasDelegate)
+    {
+        <div class="tm-stat-arrow">›</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Icon { get; set; } = "";
+    [Parameter] public object Number { get; set; } = "";
+    [Parameter] public string Label { get; set; } = "";
+    /// <summary>One of: blue, green, yellow, purple, red, teal</summary>
+    [Parameter] public string Tone { get; set; } = "blue";
+    [Parameter] public EventCallback OnClick { get; set; }
+}

@@ -1,0 +1,59 @@
+<div class="tm-footer">
+    <span>@Summary</span>
+    <span class="tm-pager">
+        <span>Rows per page:</span>
+        <select class="tm-rows-select" @onchange="OnPageSizeChanged">
+            <option value="10" selected="@(PageSize == 10)">10</option>
+            <option value="20" selected="@(PageSize == 20)">20</option>
+            <option value="50" selected="@(PageSize == 50)">50</option>
+            <option value="100" selected="@(PageSize == 100)">100</option>
+        </select>
+        <button class="tm-page-btn" disabled="@(Page <= 1)" @onclick="() => PageChanged.InvokeAsync(1)" title="First">|◀</button>
+        <button class="tm-page-btn" disabled="@(Page <= 1)" @onclick="() => PageChanged.InvokeAsync(Page - 1)" title="Previous">‹</button>
+        @foreach (var pg in PageNumbers)
+        {
+            <button class="tm-page-btn @(pg == Page ? "active" : "")" @onclick="() => PageChanged.InvokeAsync(pg)">@pg</button>
+        }
+        <button class="tm-page-btn" disabled="@(Page >= TotalPages)" @onclick="() => PageChanged.InvokeAsync(Page + 1)" title="Next">›</button>
+        <button class="tm-page-btn" disabled="@(Page >= TotalPages)" @onclick="() => PageChanged.InvokeAsync(TotalPages)" title="Last">▶|</button>
+    </span>
+</div>
+
+@code {
+    [Parameter] public int Total { get; set; }
+    [Parameter] public int Page { get; set; } = 1;
+    [Parameter] public int PageSize { get; set; } = 10;
+    [Parameter] public string ItemNoun { get; set; } = "records";
+    [Parameter] public EventCallback<int> PageChanged { get; set; }
+    [Parameter] public EventCallback<int> PageSizeChanged { get; set; }
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(Total / (double)PageSize));
+
+    private string Summary
+    {
+        get
+        {
+            if (Total == 0) return $"No {ItemNoun}";
+            var safe = Math.Min(Math.Max(Page, 1), TotalPages);
+            var from = ((safe - 1) * PageSize) + 1;
+            var to = Math.Min(safe * PageSize, Total);
+            return $"Showing {from} to {to} of {Total} {ItemNoun}";
+        }
+    }
+
+    private IEnumerable<int> PageNumbers
+    {
+        get
+        {
+            var start = Math.Max(1, Math.Min(Page - 1, Math.Max(1, TotalPages - 3)));
+            var end = Math.Min(TotalPages, start + 3);
+            for (var i = start; i <= end; i++) yield return i;
+        }
+    }
+
+    private void OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+            PageSizeChanged.InvokeAsync(sz);
+    }
+}

@@ -2,269 +2,16 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject IDashboardService DashboardService
-@inject NavigationManager Nav
 
 <PageTitle>Dashboard - IOMS</PageTitle>
 
-<style>
-    .dash-bg {
-        background: #f5f7fb;
-    }
-
-    .kpi-card {
-        border-radius: 14px;
-        padding: 16px 18px;
-        position: relative;
-        overflow: hidden;
-        min-height: 110px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        border: 1px solid rgba(0,0,0,0.06);
-    }
-
-    .kpi-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-    }
-
-    .kpi-value {
-        font-size: 1.55rem;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        line-height: 1;
-        margin: 6px 0 4px;
-    }
-
-    .kpi-label {
-        font-size: 0.78rem;
-        color: #4b5563;
-        font-weight: 600;
-    }
-
-    .kpi-trend {
-        font-size: 0.72rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 3px;
-    }
-
-    .dash-card {
-        border-radius: 14px;
-        background: #fff;
-        border: 1px solid #eef2f7;
-        overflow: hidden;
-    }
-
-    .dash-card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 14px 16px 10px;
-        border-bottom: 1px solid #f1f5f9;
-    }
-
-    .dash-card-title {
-        font-weight: 700;
-        font-size: 0.95rem;
-        color: #1e293b;
-    }
-
-    .viewall-link {
-        font-size: 0.78rem;
-        color: #4361ee;
-        cursor: pointer;
-        text-decoration: none;
-        font-weight: 600;
-    }
-
-    .dashboard-topbar {
-        width: 100%;
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 18px;
-        margin-bottom: 14px;
-    }
-
-    .dashboard-title-wrap {
-        min-width: 240px;
-        padding-top: 2px;
-    }
-
-    .dashboard-actions-panel {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 10px;
-        margin-left: auto;
-    }
-
-    .quick-actions-grid {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 12px;
-        width: 100%;
-    }
-
-    .quick-btn {
-        border-radius: 10px;
-        background: #f8fafc;
-        border: 1px solid #eef2f7;
-        padding: 4px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        cursor: pointer;
-        transition: 0.15s;        
-    }
-
-        .quick-btn:hover {
-            background: #eef2ff;
-            border-color: #c7d2fe;
-        }
-
-    .quick-icon {
-        width: 28px;
-        height: 28px;
-        border-radius: 9px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        flex-shrink: 0;
-    }
-
-    .filter-row {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .tx-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 14px;
-        border-bottom: 1px solid #f8fafc;
-    }
-
-        .tx-row:last-child {
-            border-bottom: none;
-        }
-
-    .alert-row {
-        display: flex;
-        gap: 10px;
-        padding: 10px 14px;
-        align-items: flex-start;
-        border-bottom: 1px solid #f8fafc;
-    }
-
-    .donut-center {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%,-55%);
-        text-align: center;
-        pointer-events: none;
-    }
-
-    .store-bar {
-        height: 36px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font-weight: 700;
-        font-size: 0.8rem;
-    }
-
-    .top-rank {
-        width: 26px;
-        height: 26px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.72rem;
-        font-weight: 800;
-        background: #f1f5f9;
-        color: #334155;
-        flex-shrink: 0;
-    }
-
-    .progress-track {
-        height: 6px;
-        background: #eef2f7;
-        border-radius: 99px;
-        overflow: hidden;
-        flex: 1;
-    }
-
-    .progress-fill {
-        height: 100%;
-        border-radius: 99px;
-    }
-
-    .status-chip {
-        font-size: 0.68rem;
-        font-weight: 700;
-        padding: 2px 8px;
-        border-radius: 99px;
-    }
-</style>
-
 <div style="background:#f5f7fb; margin:-24px; padding:0px 20px 18px 20px;">
-    @* ── Header ── *@
-    <div class="dashboard-topbar">
-        <div class="dashboard-title-wrap">
-            <MudText Typo="Typo.h5" Style="font-weight:800; letter-spacing:-0.5px;">Dashboard</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Style="font-size:0.84rem;">Welcome back! Here's what's happening with your business today.</MudText>
-        </div>
-
-        <div class="dashboard-actions-panel">
-            <div class="quick-actions-grid">
-                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/orders/sales")'><div class="quick-icon" style="background:#10b981;"><MudIcon Icon="@Icons.Material.Outlined.PointOfSale" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b; line-height:1.1;">New Sale</span></div>
-                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/products")'><div class="quick-icon" style="background:#0ea5e9;"><MudIcon Icon="@Icons.Material.Outlined.Add" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Add Product</span></div>
-                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/orders/purchase")'><div class="quick-icon" style="background:#8b5cf6;"><MudIcon Icon="@Icons.Material.Outlined.ShoppingCart" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">New Purchase</span></div>
-                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/customers")'><div class="quick-icon" style="background:#f59e0b;"><MudIcon Icon="@Icons.Material.Outlined.GroupAdd" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Add Customer</span></div>
-                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/inventory/transfers")'><div class="quick-icon" style="background:#14b8a6;"><MudIcon Icon="@Icons.Material.Outlined.SyncAlt" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Stock Transfer</span></div>
-                <div class="quick-btn" @onclick='() => Nav.NavigateTo("/reports/trial-balance")'><div class="quick-icon" style="background:#6366f1;"><MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Small" /></div><span style="font-size:0.76rem; font-weight:700; color:#1e293b;">Generate Report</span></div>
-            </div>
-
-            <div class="filter-row my-5">
-                <MudPaper Elevation="0" Class="d-flex align-center px-3 py-1" Style="border:1px solid #e2e8f0; border-radius:10px; background:#fff; height:36px;">
-                    <MudIcon Icon="@Icons.Material.Outlined.CalendarToday" Size="Size.Small" Style="font-size:16px;" Class="mr-2" Color="Color.Secondary" />
-                    <MudSelect T="string" Value="@_dateRange" ValueChanged="@OnDateRangeChanged" Dense="true" Variant="Variant.Text" DisableUnderLine="true" Style="min-width:175px; font-size:0.84rem;">
-                        <MudSelectItem Value="@("Apr 29, 2025 - May 5, 2025")">Apr 29, 2025 - May 5, 2025</MudSelectItem>
-                        <MudSelectItem Value="@("Last 7 Days")">Last 7 Days</MudSelectItem>
-                        <MudSelectItem Value="@("Last 30 Days")">Last 30 Days</MudSelectItem>
-                        <MudSelectItem Value="@("This Month")">This Month</MudSelectItem>
-                    </MudSelect>
-                </MudPaper>
-                <MudPaper Elevation="0" Class="d-flex align-center px-3 py-1" Style="border:1px solid #e2e8f0; border-radius:10px; background:#fff; height:36px;">
-                    <MudIcon Icon="@Icons.Material.Outlined.Storefront" Size="Size.Small" Class="mr-2" Color="Color.Secondary" />
-                    <MudSelect T="string" Value="@_storeFilter" ValueChanged="@OnStoreChanged" Dense="true" Variant="Variant.Text" DisableUnderLine="true" Style="min-width:110px; font-size:0.84rem;">
-                        <MudSelectItem Value="@("All Stores")">All Stores</MudSelectItem>
-                        <MudSelectItem Value="@("Dhaka")">Dhaka</MudSelectItem>
-                        <MudSelectItem Value="@("Chattogram")">Chattogram</MudSelectItem>
-                        <MudSelectItem Value="@("Sylhet")">Sylhet</MudSelectItem>
-                        <MudSelectItem Value="@("Khulna")">Khulna</MudSelectItem>
-                    </MudSelect>
-                </MudPaper>
-            </div>
-        </div>
-    </div>
+    <DashboardHeader Title="Dashboard"
+                     Subtitle="Welcome back! Here's what's happening with your business today."
+                     DateRange="@_dateRange"
+                     StoreFilter="@_storeFilter"
+                     DateRangeChanged="@OnDateRangeChanged"
+                     StoreFilterChanged="@OnStoreFilterChanged" />
 
     @if (_loading)
     {
@@ -280,415 +27,73 @@
     else
     {
         <MudGrid Spacing="3">
-            @* ── Main 9 col ── *@
             <MudItem xs="12" lg="9">
-                @* KPI 6 cards *@
-                <MudGrid Spacing="2" Class="mb-3">
-                    <MudItem xs="12" sm="6" md="4" lg="2">
-                        <div class="kpi-card" style="background:#93c5fd; background:linear-gradient(135deg,#a8c9ff 0%,#8fb8ff 100%);">
-                            <div class="d-flex align-center justify-space-between">
-                                <div class="kpi-icon" style="background:#2563eb;"><MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Style="color:white;" /></div>
-                                <MudText Class="kpi-label" Style="color:#1e3a5f;">Total Sales</MudText>
-                            </div>
-                            <div>
-                                <div class="kpi-value" style="color:#0f2040;">@_extKpis!.TotalSales.ToString("C0")</div>
-                                <div class="kpi-trend" style="color:@(_extKpis.TotalSalesGrowth >= 0 ? "#0f5b2e" : "#991b1b")">
-                                    <MudIcon Icon="@(_extKpis.TotalSalesGrowth >= 0 ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)" Size="Size.Small" Style="font-size:13px;" />
-                                    @Math.Abs(_extKpis.TotalSalesGrowth).ToString("0.0")% vs last week
-                                </div>
-                            </div>
-                        </div>
-                    </MudItem>
-                    <MudItem xs="12" sm="6" md="4" lg="2">
-                        <div class="kpi-card" style="background:linear-gradient(135deg,#b8f0c8 0%,#86efac 100%);">
-                            <div class="d-flex align-center justify-space-between">
-                                <div class="kpi-icon" style="background:#16a34a;"><MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Small" Style="color:white;" /></div>
-                                <MudText Class="kpi-label" Style="color:#14532d;">Today's Sales</MudText>
-                            </div>
-                            <div>
-                                <div class="kpi-value" style="color:#052e16;">@_extKpis.TodaysSales.ToString("C0")</div>
-                                <div class="kpi-trend" style="color:@(_extKpis.TodaysSalesGrowth >= 0 ? "#0f5b2e" : "#991b1b")">
-                                    <MudIcon Icon="@(_extKpis.TodaysSalesGrowth >= 0 ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)" Size="Size.Small" Style="font-size:13px;" />
-                                    @Math.Abs(_extKpis.TodaysSalesGrowth).ToString("0.0")% vs yesterday
-                                </div>
-                            </div>
-                        </div>
-                    </MudItem>
-                    <MudItem xs="12" sm="6" md="4" lg="2">
-                        <div class="kpi-card" style="background:linear-gradient(135deg,#c4b5fd 0%,#a78bfa 100%);">
-                            <div class="d-flex align-center justify-space-between">
-                                <div class="kpi-icon" style="background:#7c3aed;"><MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Small" Style="color:white;" /></div>
-                                <MudText Class="kpi-label" Style="color:#4c1d95;">Total Orders</MudText>
-                            </div>
-                            <div>
-                                <div class="kpi-value" style="color:#2e1065;">@_extKpis.TotalOrders.ToString("N0")</div>
-                                <div class="kpi-trend" style="color:@(_extKpis.TotalOrdersGrowth >= 0 ? "#0f5b2e" : "#991b1b")">
-                                    <MudIcon Icon="@(_extKpis.TotalOrdersGrowth >= 0 ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)" Size="Size.Small" Style="font-size:13px;" />
-                                    @Math.Abs(_extKpis.TotalOrdersGrowth).ToString("0.0")% vs last week
-                                </div>
-                            </div>
-                        </div>
-                    </MudItem>
-                    <MudItem xs="12" sm="6" md="4" lg="2">
-                        <div class="kpi-card" style="background:linear-gradient(135deg,#fed7aa 0%,#fdba74 100%);">
-                            <div class="d-flex align-center justify-space-between">
-                                <div class="kpi-icon" style="background:#ea580c;"><MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Small" Style="color:white;" /></div>
-                                <MudText Class="kpi-label" Style="color:#7c2d12;">Total Profit</MudText>
-                            </div>
-                            <div>
-                                <div class="kpi-value" style="color:#431407;">@_extKpis.TotalProfit.ToString("C0")</div>
-                                <div class="kpi-trend" style="color:@(_extKpis.TotalProfitGrowth >= 0 ? "#0f5b2e" : "#991b1b")">
-                                    <MudIcon Icon="@(_extKpis.TotalProfitGrowth >= 0 ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)" Size="Size.Small" Style="font-size:13px;" />
-                                    @Math.Abs(_extKpis.TotalProfitGrowth).ToString("0.0")% vs last week
-                                </div>
-                            </div>
-                        </div>
-                    </MudItem>
-                    <MudItem xs="12" sm="6" md="4" lg="2">
-                        <div class="kpi-card" style="background:linear-gradient(135deg,#99f6e4 0%,#5eead4 100%);">
-                            <div class="d-flex align-center justify-space-between">
-                                <div class="kpi-icon" style="background:#0d9488;"><MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" Style="color:white;" /></div>
-                                <MudText Class="kpi-label" Style="color:#134e4a;">Inventory Value</MudText>
-                            </div>
-                            <div>
-                                <div class="kpi-value" style="color:#042f2e;">@_extKpis.InventoryValue.ToString("C0")</div>
-                                <div class="kpi-trend" style="color:@(_extKpis.InventoryValueGrowth >= 0 ? "#0f5b2e" : "#991b1b")">
-                                    <MudIcon Icon="@(_extKpis.InventoryValueGrowth >= 0 ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)" Size="Size.Small" Style="font-size:13px;" />
-                                    @Math.Abs(_extKpis.InventoryValueGrowth).ToString("0.0")% vs last week
-                                </div>
-                            </div>
-                        </div>
-                    </MudItem>
-                    <MudItem xs="12" sm="6" md="4" lg="2">
-                        <div class="kpi-card" style="background:linear-gradient(135deg,#fca5a5 0%,#f87171 100%);">
-                            <div class="d-flex align-center justify-space-between">
-                                <div class="kpi-icon" style="background:#dc2626;"><MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" Style="color:white;" /></div>
-                                <MudText Class="kpi-label" Style="color:#7f1d1d;">Low Stock Items</MudText>
-                            </div>
-                            <div>
-                                <div class="kpi-value" style="color:#450a0a;">@_extKpis.LowStockItems</div>
-                                <div class="kpi-trend" style="color:@(_extKpis.LowStockGrowth >= 0 ? "#991b1b" : "#0f5b2e")">
-                                    <MudIcon Icon="@(_extKpis.LowStockGrowth >= 0 ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)" Size="Size.Small" Style="font-size:13px;" />
-                                    @Math.Abs(_extKpis.LowStockGrowth).ToString("0.0")% vs last week
-                                </div>
-                            </div>
-                        </div>
-                    </MudItem>
-                </MudGrid>
+                <DashboardKpiRow Kpis="@_extKpis" />
 
-                @* Row: Sales Overview + Sales by Category + Top Selling *@
                 <MudGrid Spacing="2" Class="mb-3" Style="width: 100%;">
-                    <MudItem xs="12" md="5">
-                        <div class="dash-card" style="height:100%;">
-                            <div class="dash-card-header">
-                                <span class="dash-card-title">Sales Overview</span>
-                                <MudSelect T="string" Value="@_overviewRange" ValueChanged="@OnOverviewRangeChanged" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:110px; background:#f8fafc; border-radius:8px; font-size:0.8rem;" DisableUnderLine="false">
-                                    <MudSelectItem Value="@("Last 7 Days")">Last 7 Days</MudSelectItem>
-                                    <MudSelectItem Value="@("Last 30 Days")">Last 30 Days</MudSelectItem>
-                                    <MudSelectItem Value="@("Last 12 Months")">Last 12 Months</MudSelectItem>
-                                </MudSelect>
-                            </div>
-                            <div style="padding:10px 14px 6px;">
-                                @if (_salesOverview.Any())
-                                {
-                                    <MudChart T="double" ChartType="ChartType.Line" ChartSeries="@_overviewSeries" XAxisLabels="@_overviewLabels" Width="100%" Height="220px" ChartOptions="@_lineOptions" />
-                                    <div class="d-flex align-center justify-center mt-1" style="gap:14px;">
-                                        <span style="display:flex; align-items:center; gap:6px; font-size:0.78rem;"><span style="width:10px;height:10px;border-radius:50%;background:#3b82f6;display:inline-block;"></span> Total Sales</span>
-                                        <span style="display:flex; align-items:center; gap:6px; font-size:0.78rem;"><span style="width:10px;height:10px;border-radius:50%;background:#22c55e;display:inline-block;"></span> Profit</span>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <MudAlert Severity="Severity.Info" Dense="true">No sales data yet.</MudAlert>
-                                }
-                            </div>
-                        </div>
-                    </MudItem>
-                    <MudItem xs="12" md="3">
-                        <div class="dash-card" style="height:100%;">
-                            <div class="dash-card-header">
-                                <span class="dash-card-title">Sales by Category</span>
-                                <a class="viewall-link" @onclick='() => Nav.NavigateTo("/products")'>View All</a>
-                            </div>
-                            <div style="position:relative; padding:10px 14px;">
-                                @if (_salesByCategory.Any())
-                                {
-                                    <div style="position:relative;">
-                                        <MudChart T="double" ChartType="ChartType.Donut" InputData="@_categoryData" InputLabels="@_categoryLabels" Width="100%" Height="200px" ChartOptions="@_donutOptions" />
-                                        <div class="donut-center">
-                                            <div style="font-weight:800; font-size:0.95rem; color:#1e293b;">@_extKpis!.TotalSales.ToString("C0")</div>
-                                            <div style="font-size:0.68rem; color:#64748b;">Total Sales</div>
-                                        </div>
-                                    </div>
-                                    <div style="margin-top:6px;">
-                                        @foreach (var c in _salesByCategory)
-                                        {
-                                            var color = GetCategoryColor(c.Category);
-                                            <div class="d-flex align-center justify-space-between" style="padding:3px 0;">
-                                                <span style="display:flex; align-items:center; gap:7px; font-size:0.78rem; color:#334155;"><span style="width:9px;height:9px;border-radius:50%;background:@color;display:inline-block;"></span> @c.Category</span>
-                                                <span style="font-size:0.78rem; color:#64748b; font-weight:600;">@c.Percentage.ToString("0.0")%</span>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                else
-                                {
-                                    <MudAlert Severity="Severity.Info" Dense="true">No category data.</MudAlert>
-                                }
-                            </div>
-                        </div>
-                    </MudItem>
-                    <MudItem xs="12" md="4">
-                        <div class="dash-card" style="height:100%;">
-                            <div class="dash-card-header">
-                                <span class="dash-card-title">Top Selling Products</span>
-                                <a class="viewall-link" @onclick='() => Nav.NavigateTo("/products")'>View All</a>
-                            </div>
-                            <div style="padding:6px 14px 10px;">
-                                @if (_topProducts.Any())
-                                {
-                                    int rank = 1;
-                                    double maxRev = _topProducts.Max(x => (double)x.Revenue);
-                                    foreach (var p in _topProducts.Take(5))
-                                    {
-                                        var widthPct = maxRev == 0 ? 0 : (double)p.Revenue / maxRev * 100;
-                                        <div class="d-flex align-center" style="gap:10px; padding:8px 0; border-bottom:1px solid #f8fafc;">
-                                            <div class="top-rank">@rank</div>
-                                            <MudAvatar Size="Size.Medium" Style="width:36px;height:36px; background:#f1f5f9; border:1px solid #e2e8f0;">
-                                                <MudIcon Icon="@Icons.Material.Filled.Smartphone" Size="Size.Small" Color="Color.Secondary" />
-                                            </MudAvatar>
-                                            <div style="flex:1; min-width:0;">
-                                                <div style="font-weight:700; font-size:0.83rem; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@p.ProductName</div>
-                                                <div style="font-size:0.72rem; color:#64748b;">@p.UnitsSold sold</div>
-                                                <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
-                                                    <div class="progress-track"><div class="progress-fill" style="width:@widthPct.ToString("0")%; background:#3b82f6;"></div></div>
-                                                    <span style="font-size:0.76rem; font-weight:700; color:#334155;">@p.Revenue.ToString("C0")</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        rank++;
-                                    }
-                                }
-                                else
-                                {
-                                    <MudAlert Severity="Severity.Info" Dense="true">No product sales data yet.</MudAlert>
-                                }
-                            </div>
-                        </div>
+                    <MudItem xs="12">
+                        <SalesOverviewCard Points="@_salesOverview" Range="@_overviewRange" RangeChanged="@OnOverviewRangeChanged" />
                     </MudItem>
                 </MudGrid>
 
-                @* Row: Daily Sales by Store + Inventory Status + Payment Methods *@
+                <MudGrid Spacing="2" Class="mb-3" Style="width: 100%;">
+                    <MudItem xs="12" md="6">
+                        <SalesByCategoryCard Items="@_salesByCategory" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <TopProductsCard Items="@_topProducts" />
+                    </MudItem>
+                </MudGrid>
+
                 <MudGrid Spacing="2" Class="mb-3" Style="width: 100%;">
                     <MudItem xs="12" md="4">
-                        <div class="dash-card" style="height:100%;">
-                            <div class="dash-card-header">
-                                <span class="dash-card-title">Daily Sales by Store</span>
-                                <a class="viewall-link" @onclick='() => Nav.NavigateTo("/orders/sales")'>View All</a>
-                            </div>
-                            <div style="padding:14px;">
-                                @if (_dailyByStore.Any())
-                                {
-                                    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_storeSeries" XAxisLabels="@_storeLabels" Width="100%" Height="200px" ChartOptions="@_barOptions" />
-                                }
-                                else
-                                {
-                                    <MudAlert Severity="Severity.Info" Dense="true">No store data.</MudAlert>
-                                }
-                            </div>
-                        </div>
+                        <StoreSalesCard Items="@_dailyByStore" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <div class="dash-card" style="height:100%;">
-                            <div class="dash-card-header">
-                                <span class="dash-card-title">Inventory Status</span>
-                                <a class="viewall-link" @onclick='() => Nav.NavigateTo("/products")'>View All</a>
-                            </div>
-                            <div style="position:relative; padding:10px 14px;">
-                                <div style="position:relative;">
-                                    <MudChart T="double" ChartType="ChartType.Donut" InputData="@_inventoryData" InputLabels="@_inventoryLabels" Width="100%" Height="190px" ChartOptions="@_donutOptions2" />
-                                    <div class="donut-center">
-                                        <div style="font-weight:800; font-size:1rem; color:#1e293b;">@_inventoryStatus!.TotalProducts.ToString("N0")</div>
-                                        <div style="font-size:0.68rem; color:#64748b;">Total Products</div>
-                                    </div>
-                                </div>
-                                <div style="margin-top:4px;">
-                                    <div class="d-flex align-center justify-space-between" style="padding:3px 0;"><span style="display:flex; align-items:center; gap:7px; font-size:0.78rem;"><span style="width:9px;height:9px;border-radius:50%;background:#22c55e;display:inline-block;"></span> In Stock</span><span style="font-size:0.78rem; font-weight:600;">@_inventoryStatus!.InStock.ToString("N0") (@_inventoryStatus.InStockPct.ToString("0.0")%)</span></div>
-                                    <div class="d-flex align-center justify-space-between" style="padding:3px 0;"><span style="display:flex; align-items:center; gap:7px; font-size:0.78rem;"><span style="width:9px;height:9px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> Low Stock</span><span style="font-size:0.78rem; font-weight:600;">@_inventoryStatus.LowStock.ToString("N0") (@_inventoryStatus.LowStockPct.ToString("0.0")%)</span></div>
-                                    <div class="d-flex align-center justify-space-between" style="padding:3px 0;"><span style="display:flex; align-items:center; gap:7px; font-size:0.78rem;"><span style="width:9px;height:9px;border-radius:50%;background:#ef4444;display:inline-block;"></span> Out of Stock</span><span style="font-size:0.78rem; font-weight:600;">@_inventoryStatus.OutOfStock.ToString("N0") (@_inventoryStatus.OutOfStockPct.ToString("0.0")%)</span></div>
-                                </div>
-                            </div>
-                        </div>
+                        <InventoryStatusCard Status="@_inventoryStatus" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <div class="dash-card" style="height:100%;">
-                            <div class="dash-card-header">
-                                <span class="dash-card-title">Payment Methods</span>
-                                <a class="viewall-link" @onclick='() => Nav.NavigateTo("/finance")'>View All</a>
-                            </div>
-                            <div style="position:relative; padding:10px 14px;">
-                                <div style="position:relative;">
-                                    <MudChart T="double" ChartType="ChartType.Donut" InputData="@_paymentData" InputLabels="@_paymentLabels" Width="100%" Height="190px" ChartOptions="@_donutOptions3" />
-                                    <div class="donut-center">
-                                        <div style="font-weight:800; font-size:0.95rem; color:#1e293b;">@_extKpis!.TotalSales.ToString("C0")</div>
-                                        <div style="font-size:0.68rem; color:#64748b;">Total Sales</div>
-                                    </div>
-                                </div>
-                                <div style="margin-top:4px;">
-                                    @foreach (var pm in _paymentMethods)
-                                    {
-                                        var col = GetPaymentColor(pm.Method);
-                                        <div class="d-flex align-center justify-space-between" style="padding:3px 0;"><span style="display:flex; align-items:center; gap:7px; font-size:0.78rem;"><span style="width:9px;height:9px;border-radius:50%;background:@col;display:inline-block;"></span> @pm.Method</span><span style="font-size:0.78rem; font-weight:600;">@pm.Percentage.ToString("0.0")%</span></div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
+                        <PaymentMethodsCard Items="@_paymentMethods" />
                     </MudItem>
                 </MudGrid>
 
-                @* Row: Recent Orders + Best Performing Stores + Promo *@
                 <MudGrid Spacing="2">
                     <MudItem xs="12" md="7">
-                        <div class="dash-card">
-                            <div class="dash-card-header">
-                                <span class="dash-card-title">Recent Orders</span>
-                                <a class="viewall-link" @onclick='() => Nav.NavigateTo("/orders/sales")'>View All</a>
-                            </div>
-                            <div style="overflow-x:auto;">
-                                <table style="width:100%; border-collapse:collapse; font-size:0.82rem;">
-                                    <thead>
-                                        <tr style="background:#f8fafc; color:#64748b; font-size:0.74rem; text-align:left;">
-                                            <th style="padding:8px 14px; font-weight:700;">Order #</th>
-                                            <th style="padding:8px 10px; font-weight:700;">Customer</th>
-                                            <th style="padding:8px 10px; font-weight:700;">Store</th>
-                                            <th style="padding:8px 10px; font-weight:700;">Date</th>
-                                            <th style="padding:8px 10px; font-weight:700;">Status</th>
-                                            <th style="padding:8px 14px; font-weight:700; text-align:right;">Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var o in _recentOrdersExt)
-                                        {
-                                            var (bg, fg) = GetStatusChip(o.Status);
-                                            <tr style="border-bottom:1px solid #f1f5f9;">
-                                                <td style="padding:9px 14px; font-weight:700; color:#1e293b;">@o.OrderNumber</td>
-                                                <td style="padding:9px 10px; color:#334155;">@o.Customer</td>
-                                                <td style="padding:9px 10px; color:#64748b;">@o.Store</td>
-                                                <td style="padding:9px 10px; color:#64748b; white-space:nowrap;">@o.Date.ToString("dd MMM yyyy hh:mm tt")</td>
-                                                <td style="padding:9px 10px;"><span class="status-chip" style="background:@bg; color:@fg;">● @o.Status</span></td>
-                                                <td style="padding:9px 14px; text-align:right; font-weight:700; color:#1e293b;">@o.Amount.ToString("C")</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                        <RecentOrdersCard Items="@_recentOrdersExt" />
                     </MudItem>
                     <MudItem xs="12" md="3">
-                        <div class="dash-card" style="height:100%;">
-                            <div class="dash-card-header">
-                                <span class="dash-card-title">Best Performing Stores</span>
-                                <a class="viewall-link" @onclick='() => Nav.NavigateTo("/branches")'>View All</a>
-                            </div>
-                            <div style="padding:8px 0;">
-                                <div style="display:flex; color:#64748b; font-size:0.72rem; font-weight:700; padding:6px 14px; border-bottom:1px solid #f1f5f9;">
-                                    <span style="flex:1;">Store</span><span style="width:80px; text-align:right;">Sales</span><span style="width:70px; text-align:right;">Growth</span>
-                                </div>
-                                @foreach (var s in _bestStores)
-                                {
-                                    <div style="display:flex; align-items:center; padding:10px 14px; border-bottom:1px solid #f8fafc; font-size:0.83rem;">
-                                        <span style="flex:1; display:flex; align-items:center; gap:8px; font-weight:600; color:#1e293b;">
-                                            <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Small" Style="font-size:16px; color:#6366f1;" /> @s.StoreName
-                                        </span>
-                                        <span style="width:80px; text-align:right; font-weight:700;">@s.Sales.ToString("C0")</span>
-                                        <span style="width:70px; text-align:right; color:#16a34a; font-weight:700; display:flex; align-items:center; justify-content:flex-end; gap:2px;"><MudIcon Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Style="font-size:13px; color:#16a34a;" />@s.GrowthPct.ToString("0.0")%</span>
-                                    </div>
-                                }
-                            </div>
-                        </div>
+                        <BestStoresCard Items="@_bestStores" />
                     </MudItem>
                     <MudItem xs="12" md="2">
-                        <div class="dash-card" style="height:100%; background:linear-gradient(135deg,#e0f2fe 0%,#dbeafe 50%,#eff6ff 100%); display:flex; flex-direction:column; justify-content:space-between; padding:16px;">
-                            <div>
-                                <div style="font-weight:800; font-size:0.95rem; color:#1e3a5f; line-height:1.2;">Grow Your Retail Business</div>
-                                <div style="font-size:0.74rem; color:#475569; margin-top:6px; line-height:1.4;">Better insights. Higher sales. Happier customers.</div>
-                            </div>
-                            <div style="margin-top:12px;">
-                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Style="border-radius:8px; text-transform:none; font-weight:700;" EndIcon="@Icons.Material.Filled.ArrowForward" OnClick="@(() => Nav.NavigateTo("/analytics"))">Explore Analytics</MudButton>
-                                <div style="margin-top:12px; display:flex; justify-content:center;">
-                                    <MudIcon Icon="@Icons.Material.Filled.Person" Style="font-size:56px; color:#94a3b8; opacity:0.7;" />
-                                </div>
-                            </div>
-                        </div>
+                        <AnalyticsPromoCard />
                     </MudItem>
                 </MudGrid>
             </MudItem>
 
-            @* ── Right Sidebar 3 col ── *@
             <MudItem xs="12" lg="3">
-                @* Recent Transactions *@
-                <div class="dash-card mb-3">
-                    <div class="dash-card-header">
-                        <span class="dash-card-title">Recent Transactions</span>
-                        <a class="viewall-link" @onclick='() => Nav.NavigateTo("/finance")'>View All</a>
-                    </div>
-                    <div>
-                        @foreach (var tx in _recentTx)
-                        {
-                            var (icon, bg) = GetTxIcon(tx.Type);
-                            var (sBg, sFg) = GetTxStatusStyle(tx.Status);
-                            <div class="tx-row">
-                                <div style="width:34px;height:34px;border-radius:50%;background:@bg;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><MudIcon Icon="@icon" Size="Size.Small" Style="color:white; font-size:16px;" /></div>
-                                <div style="flex:1; min-width:0;">
-                                    <div style="font-weight:700; font-size:0.82rem; color:#1e293b;">@tx.Number</div>
-                                    <div style="font-size:0.72rem; color:#64748b;">@tx.TimeAgo</div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div style="font-weight:800; font-size:0.83rem; color:#1e293b;">@tx.Amount.ToString("C")</div>
-                                    <span style="font-size:0.68rem; font-weight:700; padding:1px 7px; border-radius:99px; background:@sBg; color:@sFg;">@tx.Status</span>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-
-                @* System Alerts *@
-                <div class="dash-card">
-                    <div class="dash-card-header">
-                        <span class="dash-card-title">System Alerts</span>
-                        <a class="viewall-link" @onclick='() => Nav.NavigateTo("/alerts")'>View All</a>
-                    </div>
-                    <div>
-                        @foreach (var al in _alerts)
-                        {
-                            var (bg, icon) = GetAlertStyle(al.AlertType);
-                            <div class="alert-row">
-                                <div style="width:30px;height:30px;border-radius:50%;background:@bg;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><MudIcon Icon="@icon" Size="Size.Small" Style="color:white; font-size:15px;" /></div>
-                                <div style="flex:1; min-width:0;">
-                                    <div style="font-weight:600; font-size:0.80rem; color:#1e293b; line-height:1.2;">@al.Title</div>
-                                    <div style="font-size:0.72rem; color:#64748b;">@al.TimeAgo</div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
+                <div class="mb-3"><RecentTransactionsCard Items="@_recentTx" /></div>
+                <SystemAlertsCard Items="@_alerts" />
             </MudItem>
         </MudGrid>
     }
 </div>
 
 @code {
+    private static readonly DashboardExtendedKpiDto EmptyExtendedKpis = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    private static readonly InventoryStatusDto EmptyInventoryStatus = new(0, 0, 0, 0, 0, 0, 0);
+    private static readonly DashboardKpiDto EmptyKpis = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
     private bool _loading = true;
     private string _dateRange = "Apr 29, 2025 - May 5, 2025";
     private string _storeFilter = "All Stores";
     private string _overviewRange = "Last 7 Days";
 
     private DashboardKpiDto? _kpis;
-    private DashboardExtendedKpiDto? _extKpis;
+    private DashboardExtendedKpiDto _extKpis = EmptyExtendedKpis;
     private List<SalesOverviewPointDto> _salesOverview = new();
     private List<SalesByCategoryDto> _salesByCategory = new();
     private List<PaymentMethodBreakdownDto> _paymentMethods = new();
-    private InventoryStatusDto? _inventoryStatus;
+    private InventoryStatusDto _inventoryStatus = EmptyInventoryStatus;
     private List<DailySalesByStoreDto> _dailyByStore = new();
     private List<BestStoreDto> _bestStores = new();
     private List<TopProductDto> _topProducts = new();
@@ -696,158 +101,55 @@
     private List<SystemAlertDto> _alerts = new();
     private List<RecentOrderExtendedDto> _recentOrdersExt = new();
 
-    // Chart
-    private List<ChartSeries<double>> _overviewSeries = new();
-    private string[] _overviewLabels = Array.Empty<string>();
-    private ChartOptions _lineOptions = new() { ShowLegend = false };
-    private ChartOptions _barOptions = new() { ShowLegend = false };
-    private ChartOptions _donutOptions = new() { ShowLegend = false };
-    private ChartOptions _donutOptions2 = new() { ShowLegend = false };
-    private ChartOptions _donutOptions3 = new() { ShowLegend = false };
-
-    private double[] _categoryData = Array.Empty<double>();
-    private string[] _categoryLabels = Array.Empty<string>();
-    private double[] _paymentData = Array.Empty<double>();
-    private string[] _paymentLabels = Array.Empty<string>();
-    private double[] _inventoryData = Array.Empty<double>();
-    private string[] _inventoryLabels = Array.Empty<string>();
-
-    private List<ChartSeries<double>> _storeSeries = new();
-    private string[] _storeLabels = Array.Empty<string>();
-
     protected override async Task OnInitializedAsync()
+    {
+        _kpis = await SafeAsync(() => DashboardService.GetDashboardKPIs(), EmptyKpis, "GetDashboardKPIs");
+        _extKpis = await SafeAsync(() => DashboardService.GetExtendedKpis(), EmptyExtendedKpis, "GetExtendedKpis");
+        _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(7), new List<SalesOverviewPointDto>(), "GetSalesOverview");
+        _salesByCategory = await SafeAsync(() => DashboardService.GetSalesByCategory(), new List<SalesByCategoryDto>(), "GetSalesByCategory");
+        _paymentMethods = await SafeAsync(() => DashboardService.GetPaymentMethodBreakdown(), new List<PaymentMethodBreakdownDto>(), "GetPaymentMethodBreakdown");
+        _inventoryStatus = await SafeAsync(() => DashboardService.GetInventoryStatus(), EmptyInventoryStatus, "GetInventoryStatus");
+        _dailyByStore = await SafeAsync(() => DashboardService.GetDailySalesByStore(), new List<DailySalesByStoreDto>(), "GetDailySalesByStore");
+        _bestStores = await SafeAsync(() => DashboardService.GetBestPerformingStores(), new List<BestStoreDto>(), "GetBestPerformingStores");
+        _topProducts = await SafeAsync(() => DashboardService.GetTopProducts(5), new List<TopProductDto>(), "GetTopProducts");
+        _recentTx = await SafeAsync(() => DashboardService.GetRecentTransactions(5), new List<RecentTransactionDto>(), "GetRecentTransactions");
+        _alerts = await SafeAsync(() => DashboardService.GetSystemAlerts(5), new List<SystemAlertDto>(), "GetSystemAlerts");
+        _recentOrdersExt = await SafeAsync(() => DashboardService.GetRecentOrdersExtended(5), new List<RecentOrderExtendedDto>(), "GetRecentOrdersExtended");
+
+        _loading = false;
+    }
+
+    private async Task<T> SafeAsync<T>(Func<Task<T>> call, T fallback, string label)
     {
         try
         {
-            _kpis = await DashboardService.GetDashboardKPIs();
-            _extKpis = await DashboardService.GetExtendedKpis();
-            _salesOverview = await DashboardService.GetSalesOverview(7);
-            _salesByCategory = await DashboardService.GetSalesByCategory();
-            _paymentMethods = await DashboardService.GetPaymentMethodBreakdown();
-            _inventoryStatus = await DashboardService.GetInventoryStatus();
-            _dailyByStore = await DashboardService.GetDailySalesByStore();
-            _bestStores = await DashboardService.GetBestPerformingStores();
-            _topProducts = await DashboardService.GetTopProducts(5);
-            _recentTx = await DashboardService.GetRecentTransactions(5);
-            _alerts = await DashboardService.GetSystemAlerts(5);
-            _recentOrdersExt = await DashboardService.GetRecentOrdersExtended(5);
-
-            BuildOverviewChart();
-            BuildCategoryChart();
-            BuildPaymentChart();
-            BuildInventoryChart();
-            BuildStoreChart();
-
-            _loading = false;
+            return await call();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Dashboard error: {ex.Message}");
-            _loading = false;
+            Console.WriteLine($"Dashboard '{label}' failed: {ex.GetType().Name}: {ex.Message}");
+            return fallback;
         }
     }
 
-    private void BuildOverviewChart()
+    private async Task OnDateRangeChanged(string v)
     {
-        if (!_salesOverview.Any()) return;
-        _overviewLabels = _salesOverview.Select(x => x.Label).ToArray();
-        _overviewSeries = new List<ChartSeries<double>>
-        {
-            new() { Name = "Total Sales", Data = _salesOverview.Select(x => (double)x.TotalSales).ToArray() },
-            new() { Name = "Profit", Data = _salesOverview.Select(x => (double)x.Profit).ToArray() }
-        };
+        _dateRange = v;
+        if (v.Contains("30")) { _salesOverview = await DashboardService.GetSalesOverview(30); }
+        else if (v.Contains("7") || v.Contains("Apr")) { _salesOverview = await DashboardService.GetSalesOverview(7); }
     }
 
-    private void BuildCategoryChart()
+    private Task OnStoreFilterChanged(string v)
     {
-        if (!_salesByCategory.Any()) return;
-        _categoryLabels = _salesByCategory.Select(c => c.Category).ToArray();
-        _categoryData = _salesByCategory.Select(c => (double)c.Amount).ToArray();
+        _storeFilter = v;
+        return Task.CompletedTask;
     }
 
-    private void BuildPaymentChart()
-    {
-        if (!_paymentMethods.Any()) return;
-        _paymentLabels = _paymentMethods.Select(p => p.Method).ToArray();
-        _paymentData = _paymentMethods.Select(p => (double)p.Amount).ToArray();
-    }
-
-    private void BuildInventoryChart()
-    {
-        if (_inventoryStatus == null) return;
-        _inventoryLabels = new[] { "In Stock", "Low Stock", "Out of Stock" };
-        _inventoryData = new double[] { _inventoryStatus.InStock, _inventoryStatus.LowStock, _inventoryStatus.OutOfStock };
-    }
-
-    private void BuildStoreChart()
-    {
-        if (!_dailyByStore.Any()) return;
-        _storeLabels = _dailyByStore.Select(s => s.StoreName).ToArray();
-        _storeSeries = new List<ChartSeries<double>>
-        {
-            new() { Name = "Sales", Data = _dailyByStore.Select(s => (double)s.Sales).ToArray() }
-        };
-    }
-
-    private async Task OnDateRangeChanged(string v) { _dateRange = v; if (v.Contains("30")) { _salesOverview = await DashboardService.GetSalesOverview(30); BuildOverviewChart(); } else if (v.Contains("7") || v.Contains("Apr")) { _salesOverview = await DashboardService.GetSalesOverview(7); BuildOverviewChart(); } }
-    private void OnStoreChanged(string v) => _storeFilter = v;
     private async Task OnOverviewRangeChanged(string v)
     {
         _overviewRange = v;
         int days = v.Contains("30") ? 30 : v.Contains("12") ? 12 : 7;
         if (days == 12) { var m = await DashboardService.GetMonthlySalesData(12); _salesOverview = m.Select(x => new SalesOverviewPointDto(x.Period, x.Amount, x.Amount * 0.26m)).ToList(); }
         else _salesOverview = await DashboardService.GetSalesOverview(days);
-        BuildOverviewChart();
     }
-
-    private static string GetCategoryColor(string cat) => cat switch
-    {
-        "Electronics" => "#3b82f6",
-        "Fashion" => "#f59e0b",
-        "Home & Living" => "#22c55e",
-        "Home &amp; Living" => "#22c55e",
-        "Health & Beauty" => "#a855f7",
-        "Sports" => "#06b6d4",
-        _ => "#94a3b8"
-    };
-    private static string GetPaymentColor(string m) => m switch
-    {
-        "Cash" => "#3b82f6",
-        "Card" => "#22c55e",
-        "Mobile Payment" => "#f59e0b",
-        "Bank Transfer" => "#a855f7",
-        _ => "#94a3b8"
-    };
-    private static (string bg, string fg) GetStatusChip(string s) => s switch
-    {
-        "Completed" => ("#dcfce7", "#166534"),
-        "Processing" => ("#dbeafe", "#1e40af"),
-        "Shipped" => ("#e0e7ff", "#3730a3"),
-        "Pending" => ("#fef9c3", "#854d0e"),
-        _ => ("#f1f5f9", "#334155")
-    };
-    private static (string icon, string bg) GetTxIcon(string type) => type switch
-    {
-        "Sale" => (Icons.Material.Filled.PointOfSale, "#10b981"),
-        "Purchase" => (Icons.Material.Filled.ShoppingBag, "#0ea5e9"),
-        "Return" => (Icons.Material.Filled.AssignmentReturn, "#ef4444"),
-        "Payment" => (Icons.Material.Filled.Payments, "#8b5cf6"),
-        _ => (Icons.Material.Filled.Receipt, "#64748b")
-    };
-    private static (string bg, string fg) GetTxStatusStyle(string s) => s switch
-    {
-        "Completed" => ("#dcfce7", "#166534"),
-        "Received" => ("#dbeafe", "#1e40af"),
-        "Refunded" => ("#fee2e2", "#991b1b"),
-        "Cash" => ("#f1f5f9", "#334155"),
-        _ => ("#f1f5f9", "#475569")
-    };
-    private static (string bg, string icon) GetAlertStyle(string t) => t switch
-    {
-        "error" => ("#ef4444", Icons.Material.Filled.Warning),
-        "warning" => ("#f59e0b", Icons.Material.Filled.Schedule),
-        "info" => ("#3b82f6", Icons.Material.Filled.PersonAdd),
-        "success" => ("#10b981", Icons.Material.Filled.CheckCircle),
-        _ => ("#64748b", Icons.Material.Filled.Notifications)
-    };
 }

@@ -6,85 +6,215 @@
 @inject NavigationManager Navigation
 
 <PageTitle>RFQ Requests</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-4">Request for Quotation (RFQ)</MudText>
 
-<MudPaper Class="pa-4 mb-4">
-    <MudGrid>
-        <MudItem xs="12" sm="6">
-            <MudTextField @bind-Value="_search" Label="Search" Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          OnKeyUp="@(async _ => await LoadData())" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudSelect @bind-Value="_statusFilter" Label="Status" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+<div class="tm-page">
+    <TmPageHeader Icon="📨" Title="Request for Quotation (RFQ)" Subtitle="Request supplier quotes, compare responses and award orders">
+        <Actions>
+            <button class="tm-reset" @onclick="LoadData">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="OpenCreate">+ New RFQ</button>
+        </Actions>
+    </TmPageHeader>
+
+    <div class="tm-stats">
+        <TmStatTile Icon="📨" Number="@_totalCount" Label="RFQs" Tone="blue" />
+        <TmStatTile Icon="📝" Number="@CountOf(RfqStatus.Draft)" Label="Draft" Tone="purple" OnClick="@(() => PickStatus(RfqStatus.Draft))" />
+        <TmStatTile Icon="📤" Number="@CountOf(RfqStatus.Sent)" Label="Sent" Tone="yellow" OnClick="@(() => PickStatus(RfqStatus.Sent))" />
+        <TmStatTile Icon="📥" Number="@CountOf(RfqStatus.Received)" Label="Responses In" Tone="teal" OnClick="@(() => PickStatus(RfqStatus.Received))" />
+        <TmStatTile Icon="🏆" Number="@CountOf(RfqStatus.Awarded)" Label="Awarded" Tone="green" OnClick="@(() => PickStatus(RfqStatus.Awarded))" />
+        <TmStatTile Icon="🔄" Number="@_rfqs.Count(r => r.Status != RfqStatus.Closed)" Label="Open" Tone="red" />
+    </div>
+
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search by RFQ number..." value="@_search" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnStatusChanged">
+                <option value="" selected="@(_statusFilter == null)">All Status</option>
                 @foreach (RfqStatus s in Enum.GetValues<RfqStatus>())
                 {
-                    <MudSelectItem Value="@((RfqStatus?)s)">@s</MudSelectItem>
+                    <option value="@s" selected="@(_statusFilter == s)">@s</option>
                 }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       OnClick="OpenCreate" StartIcon="@Icons.Material.Filled.Add">New RFQ</MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
 
-<MudTable Items="_rfqs" Hover="true" Striped="true" Loading="_loading">
-    <HeaderContent>
-        <MudTh>RFQ #</MudTh>
-        <MudTh>Status</MudTh>
-        <MudTh>Required Date</MudTh>
-        <MudTh>Items</MudTh>
-        <MudTh>Responses</MudTh>
-        <MudTh>Actions</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="RFQ #">@context.RfqNumber</MudTd>
-        <MudTd DataLabel="Status">
-            <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip>
-        </MudTd>
-        <MudTd DataLabel="Required Date">@(context.RequiredDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
-        <MudTd DataLabel="Items">@context.Items.Count</MudTd>
-        <MudTd DataLabel="Responses">@context.SupplierResponses.Count</MudTd>
-        <MudTd DataLabel="Actions">
-            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
-                           OnClick="@(() => Navigation.NavigateTo($"/quotes/rfq/{context.Id}"))" />
-        </MudTd>
-    </RowTemplate>
-</MudTable>
-
-<MudPagination Class="mt-4" Count="_totalPages" SelectedChanged="OnPageChanged" Selected="_page" />
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:1000px">
+                <thead>
+                    <tr>
+                        <th>📨 RFQ #</th>
+                        <th>Status</th>
+                        <th>📅 Required Date</th>
+                        <th style="text-align:right">Items</th>
+                        <th style="text-align:right">Responses</th>
+                        <th style="text-align:right">Best Quote</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="7"><div class="tm-loading">Loading RFQs...</div></td></tr>
+                    }
+                    else if (_rfqs.Count == 0)
+                    {
+                        <tr><td colspan="7"><div class="tm-loading">No RFQs found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var r in _rfqs)
+                        {
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">📨</span>@r.RfqNumber</span></td>
+                                <td><span class="@GetStatusPill(r.Status)"><span class="tm-dot"></span>@r.Status</span></td>
+                                <td>
+                                    @if (r.RequiredDate.HasValue)
+                                    {
+                                        var isSoon = r.RequiredDate.Value <= DateTime.Today.AddDays(3);
+                                        <span class="@(isSoon ? "tm-date-red" : "tm-dim")">@r.RequiredDate.Value.ToString("dd MMM yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tm-dim">-</span>
+                                    }
+                                </td>
+                                <td style="text-align:right" class="tm-num">@r.Items.Count</td>
+                                <td style="text-align:right">
+                                    <span class="@(r.SupplierResponses.Count > 0 ? "tm-pill tm-pill-green" : "tm-pill tm-pill-amber")">
+                                        <span class="tm-dot"></span>@r.SupplierResponses.Count
+                                    </span>
+                                </td>
+                                <td style="text-align:right" class="tm-money">@BestQuote(r)</td>
+                                <td>
+                                    <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act tm-act-view" title="View" @onclick="() => ViewRfq(r.Id)">👁</button>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <TmPager Total="@_totalCount" Page="@_page" PageSize="@_pageSize" ItemNoun="RFQs"
+                  PageChanged="@OnPageChanged" PageSizeChanged="@OnPageSizeChanged" />
+    </div>
+</div>
 
 @code {
     private List<RfqRequestDto> _rfqs = new();
     private string? _search;
     private RfqStatus? _statusFilter;
     private int _page = 1;
-    private int _totalPages = 1;
+    private int _pageSize = 20;
+    private int _totalCount;
+    private int _draftCount, _sentCount, _receivedCount, _awardedCount;
     private bool _loading;
+    private System.Timers.Timer? _debounce;
 
-    protected override async Task OnInitializedAsync() => await LoadData();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        await LoadCountsAsync();
+    }
 
     private async Task LoadData()
     {
         _loading = true;
         try
         {
-            var result = await RfqService.GetRfqRequests(_search, _statusFilter, _page, 20);
+            var result = await RfqService.GetRfqRequests(_search, _statusFilter, _page, _pageSize);
             _rfqs = result.Items;
-            _totalPages = result.TotalPages;
+            _totalCount = result.TotalCount;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
     }
+
+    private async Task LoadCountsAsync()
+    {
+        try
+        {
+            var all = await RfqService.GetRfqRequests(null, null, 1, 500);
+            var items = all.Items;
+            _draftCount = items.Count(r => r.Status == RfqStatus.Draft);
+            _sentCount = items.Count(r => r.Status == RfqStatus.Sent);
+            _receivedCount = items.Count(r => r.Status == RfqStatus.Received);
+            _awardedCount = items.Count(r => r.Status == RfqStatus.Awarded);
+        }
+        catch { }
+    }
+
+    private int CountOf(RfqStatus s) => s switch
+    {
+        RfqStatus.Draft => _draftCount,
+        RfqStatus.Sent => _sentCount,
+        RfqStatus.Received => _receivedCount,
+        RfqStatus.Awarded => _awardedCount,
+        _ => 0
+    };
+
+    private static string BestQuote(RfqRequestDto r)
+    {
+        if (r.SupplierResponses == null || r.SupplierResponses.Count == 0) return "-";
+        var best = r.SupplierResponses.Min(x => x.QuotedPrice);
+        return best.ToString("N0");
+    }
+
+    private void ViewRfq(Guid id) => Navigation.NavigateTo("/quotes/rfq/" + id);
 
     private async Task OpenCreate()
     {
         var dialog = await DialogService.ShowAsync<RfqCreateDialog>("New RFQ",
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
-        if (result is not null && !result.Canceled) await LoadData();
+        if (result is not null && !result.Canceled)
+        {
+            await LoadData();
+            await LoadCountsAsync();
+        }
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString();
+        _page = 1;
+        _debounce?.Stop();
+        _debounce?.Dispose();
+        _debounce = new System.Timers.Timer(350) { AutoReset = false };
+        _debounce.Elapsed += async (_, __) =>
+        {
+            await LoadData();
+            await InvokeAsync(StateHasChanged);
+        };
+        _debounce.Start();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString();
+        _statusFilter = string.IsNullOrEmpty(v) ? null : Enum.Parse<RfqStatus>(v);
+        _page = 1;
+        await LoadData();
+    }
+
+    private async Task PickStatus(RfqStatus s)
+    {
+        _statusFilter = _statusFilter == s ? null : s;
+        _page = 1;
+        await LoadData();
+    }
+
+    private async Task ResetFilters()
+    {
+        _search = null;
+        _statusFilter = null;
+        _page = 1;
+        await LoadData();
     }
 
     private async Task OnPageChanged(int page)
@@ -93,4 +223,20 @@
         await LoadData();
     }
 
+    private async Task OnPageSizeChanged(int size)
+    {
+        _pageSize = size;
+        _page = 1;
+        await LoadData();
+    }
+
+    private static string GetStatusPill(RfqStatus s) => s switch
+    {
+        RfqStatus.Draft => "tm-pill tm-pill-purple",
+        RfqStatus.Sent => "tm-pill tm-pill-blue",
+        RfqStatus.Received => "tm-pill tm-pill-amber",
+        RfqStatus.Awarded => "tm-pill tm-pill-green",
+        RfqStatus.Closed => "tm-pill tm-pill-red",
+        _ => "tm-pill tm-pill-blue"
+    };
 }

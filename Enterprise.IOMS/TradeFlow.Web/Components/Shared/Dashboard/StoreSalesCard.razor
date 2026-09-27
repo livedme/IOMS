@@ -1,0 +1,33 @@
+<DashboardCardShell Title="Daily Sales by Store" ViewAllHref="/orders/sales" FillHeight="true">
+    <div style="padding:12px 14px;">
+        @if (Items.Any())
+        {
+            decimal maxStore = Items.Max(s => s.Sales);
+            <div class="mcard-grid">
+                @foreach (var s in Items)
+                {
+                    var w = maxStore <= 0 ? 0 : (double)s.Sales / (double)maxStore * 100;
+                    <div class="mcard">
+                        <div class="mcard-head">
+                            <div class="mcard-ico" style="background:#6366f1;">
+                                <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Small" Style="font-size:15px; color:#fff;" />
+                            </div>
+                            <div class="mcard-label" title="@s.StoreName">@s.StoreName</div>
+                        </div>
+                        <div class="mcard-val">@s.Sales.ToString("C0")</div>
+                        <div class="mcard-sub">Sales</div>
+                        <div class="mcard-track"><div class="mcard-fill" style="width:@w.ToString("0")%; background:linear-gradient(90deg,#6366f1,#a5b4fc);"></div></div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">No store data.</MudAlert>
+        }
+    </div>
+</DashboardCardShell>
+
+@code {
+    [Parameter] public IReadOnlyList<DailySalesByStoreDto> Items { get; set; } = Array.Empty<DailySalesByStoreDto>();
+}

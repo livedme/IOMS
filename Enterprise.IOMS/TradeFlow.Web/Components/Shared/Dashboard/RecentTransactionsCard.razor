@@ -1,0 +1,50 @@
+<DashboardCardShell Title="Recent Transactions" ViewAllHref="/finance">
+    <div>
+        @if (!Items.Any())
+        {
+            <div style="padding:12px 14px;">
+                <MudAlert Severity="Severity.Info" Dense="true">No recent transactions.</MudAlert>
+            </div>
+        }
+        @foreach (var tx in Items)
+        {
+            var (icon, bg) = GetTxIcon(tx.Type);
+            var (sBg, sFg) = GetTxStatusStyle(tx.Status);
+            <div class="tx-row">
+                <div style="width:34px;height:34px;border-radius:50%;background:@bg;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <MudIcon Icon="@icon" Size="Size.Small" Style="color:white; font-size:16px;" />
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; font-size:0.82rem; color:#1e293b;">@tx.Number</div>
+                    <div style="font-size:0.72rem; color:#64748b;">@tx.TimeAgo</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-weight:800; font-size:0.83rem; color:#1e293b;">@tx.Amount.ToString("C")</div>
+                    <span style="font-size:0.68rem; font-weight:700; padding:1px 7px; border-radius:99px; background:@sBg; color:@sFg;">@tx.Status</span>
+                </div>
+            </div>
+        }
+    </div>
+</DashboardCardShell>
+
+@code {
+    [Parameter] public IReadOnlyList<RecentTransactionDto> Items { get; set; } = Array.Empty<RecentTransactionDto>();
+
+    private static (string icon, string bg) GetTxIcon(string type) => type switch
+    {
+        "Sale" => (Icons.Material.Filled.PointOfSale, "#10b981"),
+        "Purchase" => (Icons.Material.Filled.ShoppingBag, "#0ea5e9"),
+        "Return" => (Icons.Material.Filled.AssignmentReturn, "#ef4444"),
+        "Payment" => (Icons.Material.Filled.Payments, "#8b5cf6"),
+        _ => (Icons.Material.Filled.Receipt, "#64748b")
+    };
+
+    private static (string bg, string fg) GetTxStatusStyle(string s) => s switch
+    {
+        "Completed" => ("#dcfce7", "#166534"),
+        "Received" => ("#dbeafe", "#1e40af"),
+        "Refunded" => ("#fee2e2", "#991b1b"),
+        "Cash" => ("#f1f5f9", "#334155"),
+        _ => ("#f1f5f9", "#475569")
+    };
+}

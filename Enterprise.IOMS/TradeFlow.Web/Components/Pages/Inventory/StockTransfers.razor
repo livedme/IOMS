@@ -7,77 +7,133 @@
 
 <PageTitle>Stock Transfers - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Stock Transfers</MudText>
+<div class="tm-page">
+    <TmPageHeader Icon="🚚" Title="Stock Transfers" Subtitle="Move stock between warehouses and review transfer history">
+        <Actions>
+            <button class="tm-add-btn" @onclick="Load">⟳ Refresh</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudPaper Elevation="2" Class="pa-4 mb-4">
-    <MudText Typo="Typo.h6" Class="mb-3">New Transfer</MudText>
-    <MudGrid>
-        <MudItem xs="12" sm="3">
-            <MudSelect T="Guid" Label="Product" @bind-Value="_transferProductId" Variant="Variant.Outlined" Margin="Margin.Dense">
+    <div class="tm-stats">
+        <TmStatTile Icon="🚚" Number="@_transfers.Count" Label="Transfers" Tone="blue" />
+        <TmStatTile Icon="📦" Number="@_distinctProducts" Label="Products Moved" Tone="purple" />
+        <TmStatTile Icon="⬆️" Number="@_totalUnits" Label="Total Units" Tone="green" />
+        <TmStatTile Icon="🏬" Number="@_warehouses.Count" Label="Warehouses" Tone="teal" />
+        <TmStatTile Icon="📅" Number="@_lastTransferText" Label="Last Transfer" Tone="yellow" />
+        <TmStatTile Icon="📥" Number="@_latestIn" Label="Latest In" Tone="green" />
+    </div>
+
+    <!-- New transfer form -->
+    <div class="tm-card tm-filters" style="flex-wrap:wrap">
+        <div class="tm-select">
+            <select @onchange="OnProductChanged">
+                <option value="">Select Product</option>
                 @foreach (var p in _products)
                 {
-                    <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
+                    <option value="@p.Id" selected="@(_transferProductId == p.Id)">@p.Name (@p.SKU)</option>
                 }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="2">
-            <MudSelect T="Guid" Label="From Warehouse" @bind-Value="_sourceWarehouseId" Variant="Variant.Outlined" Margin="Margin.Dense">
+            </select>
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnSourceChanged">
+                <option value="">From Warehouse</option>
                 @foreach (var w in _warehouses)
                 {
-                    <MudSelectItem Value="@w.Id">@w.Name</MudSelectItem>
+                    <option value="@w.Id" selected="@(_sourceWarehouseId == w.Id)">@w.Name</option>
                 }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="2">
-            <MudSelect T="Guid" Label="To Warehouse" @bind-Value="_targetWarehouseId" Variant="Variant.Outlined" Margin="Margin.Dense">
+            </select>
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnTargetChanged">
+                <option value="">To Warehouse</option>
                 @foreach (var w in _warehouses)
                 {
-                    <MudSelectItem Value="@w.Id">@w.Name</MudSelectItem>
+                    <option value="@w.Id" selected="@(_targetWarehouseId == w.Id)">@w.Name</option>
                 }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="2">
-            <MudNumericField T="int" Label="Quantity" @bind-Value="_transferQty" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="3" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExecuteTransfer">Transfer</MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+            </select>
+        </div>
+        <div class="tm-select" style="flex:0 0 130px; min-width:130px">
+            <input type="number" min="1" style="width:100%; border:1px solid #c9ced6; border-radius:6px; padding:9px 12px; font-size:13.5px; outline:none"
+                   value="@_transferQty" @onchange="OnQtyChanged" placeholder="Qty" />
+        </div>
+        <button class="tm-add-btn" @onclick="ExecuteTransfer">Transfer Stock</button>
+    </div>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudText Typo="Typo.h6" Class="mb-3">Recent Transfers</MudText>
-    <MudTable Items="@_transfers" Dense="true" Hover="true" Striped="true" Loading="@_loading" Elevation="0">
-        <HeaderContent>
-            <MudTh>Date</MudTh>
-            <MudTh>Product</MudTh>
-            <MudTh>Warehouse</MudTh>
-            <MudTh Style="text-align:right">Quantity</MudTh>
-            <MudTh>Reference</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.MovementDate.ToString("yyyy-MM-dd HH:mm")</MudTd>
-            <MudTd>@context.ProductName</MudTd>
-            <MudTd>@context.WarehouseName</MudTd>
-            <MudTd Style="text-align:right">
-                <MudText Color="@(context.Quantity >= 0 ? Color.Success : Color.Error)">
-                    @(context.Quantity > 0 ? "+" : "")@context.Quantity
-                </MudText>
-            </MudTd>
-            <MudTd>@context.Reference</MudTd>
-        </RowTemplate>
-        <PagerContent><MudTablePager /></PagerContent>
-    </MudTable>
-</MudPaper>
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search by product or reference..." value="@_search" @oninput="OnSearchInput" />
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:820px">
+                <thead>
+                    <tr>
+                        <th>📅 Date</th>
+                        <th>📦 Product</th>
+                        <th>Warehouse</th>
+                        <th style="text-align:right">Quantity</th>
+                        <th>Reference</th>
+                        <th>Direction</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="6"><div class="tm-loading">Loading transfers...</div></td></tr>
+                    }
+                    else if (Paged.Count == 0)
+                    {
+                        <tr><td colspan="6"><div class="tm-loading">No transfers found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var t in Paged)
+                        {
+                            var isIn = t.Quantity >= 0;
+                            <tr>
+                                <td class="tm-dim">@t.MovementDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">📦</span>@t.ProductName</span></td>
+                                <td class="tm-branch">@t.WarehouseName</td>
+                                <td style="text-align:right">
+                                    <span style="font-weight:700; color:@(isIn ? "#15803d" : "#dc2626")">
+                                        @(isIn ? "+" : "")@t.Quantity
+                                    </span>
+                                </td>
+                                <td class="tm-num">@(string.IsNullOrWhiteSpace(t.Reference) ? "-" : t.Reference)</td>
+                                <td>
+                                    <span class="tm-pill @(isIn ? "tm-pill-green" : "tm-pill-red")">
+                                        <span class="tm-dot"></span>@(isIn ? "Stock In" : "Stock Out")
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="transfers"
+                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+    </div>
+</div>
 
 @code {
     private record TransferDisplay(DateTime MovementDate, string ProductName, string WarehouseName, int Quantity, string? Reference);
+
     private List<TransferDisplay> _transfers = new();
     private List<Product> _products = new();
     private List<Warehouse> _warehouses = new();
     private Guid _transferProductId, _sourceWarehouseId, _targetWarehouseId;
     private int _transferQty = 1;
     private bool _loading = true;
+    private string _search = "";
+    private int _page = 1;
+    private int _pageSize = 10;
+    private int _distinctProducts, _totalUnits, _latestIn;
+    private string _lastTransferText = "-";
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,22 +142,43 @@
         await Load();
     }
 
+    private List<TransferDisplay> Filtered => _transfers.Where(t =>
+        string.IsNullOrWhiteSpace(_search)
+        || t.ProductName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+        || (t.Reference?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+
+    private List<TransferDisplay> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+
     private async Task Load()
     {
         _loading = true;
-        _transfers = await DbContext.StockMovements
-            .Include(m => m.Product).Include(m => m.Warehouse)
-            .Where(m => m.Type == StockMovementType.Transfer)
-            .OrderByDescending(m => m.MovementDate).Take(100)
-            .Select(m => new TransferDisplay(m.MovementDate, m.Product.Name, m.Warehouse.Name, m.Quantity, m.Reference))
-            .ToListAsync();
-        _loading = false;
+        try
+        {
+            _transfers = await DbContext.StockMovements
+                .Include(m => m.Product).Include(m => m.Warehouse)
+                .Where(m => m.Type == StockMovementType.Transfer)
+                .OrderByDescending(m => m.MovementDate).Take(100)
+                .Select(m => new TransferDisplay(m.MovementDate, m.Product.Name, m.Warehouse.Name, m.Quantity, m.Reference))
+                .ToListAsync();
+
+            _distinctProducts = _transfers.Select(t => t.ProductName).Distinct().Count();
+            _totalUnits = _transfers.Sum(t => Math.Abs(t.Quantity));
+            _latestIn = _transfers.FirstOrDefault(t => t.Quantity > 0)?.Quantity ?? 0;
+            _lastTransferText = _transfers.Count > 0 ? _transfers[0].MovementDate.ToString("dd MMM") : "-";
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
     }
 
     private async Task ExecuteTransfer()
     {
         try
         {
+            if (_transferProductId == Guid.Empty || _sourceWarehouseId == Guid.Empty || _targetWarehouseId == Guid.Empty)
+            {
+                Snackbar.Add("Please select a product, source and target warehouse.", Severity.Warning);
+                return;
+            }
             if (_sourceWarehouseId == _targetWarehouseId)
             {
                 Snackbar.Add("Source and target warehouses must be different.", Severity.Warning);
@@ -112,5 +189,35 @@
             await Load();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private void OnProductChanged(ChangeEventArgs e) => _transferProductId = ParseGuid(e.Value);
+    private void OnSourceChanged(ChangeEventArgs e) => _sourceWarehouseId = ParseGuid(e.Value);
+    private void OnTargetChanged(ChangeEventArgs e) => _targetWarehouseId = ParseGuid(e.Value);
+
+    private void OnQtyChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var q) && q > 0) _transferQty = q;
+    }
+
+    private static Guid ParseGuid(object? v) =>
+        Guid.TryParse(v?.ToString(), out var g) ? g : Guid.Empty;
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        _page = 1;
+    }
+
+    private void ResetFilters()
+    {
+        _search = "";
+        _page = 1;
+    }
+
+    private void OnPageSizeChanged(int size)
+    {
+        _pageSize = size;
+        _page = 1;
     }
 }

@@ -6,93 +6,242 @@
 
 <PageTitle>Customers - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Customers</MudText>
+<div class="tm-page">
+    <TmPageHeader Icon="👥" Title="Customer Management" Subtitle="Manage customer contacts, credit limits and account status">
+        <Actions>
+            <button class="tm-reset" @onclick="LoadData">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="OpenCreate">+ New Customer</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudGrid>
-        <MudItem xs="12" sm="8">
-            <MudTextField @bind-Value="_searchString" Placeholder="Search customers..." Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="LoadData" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="4" Class="d-flex justify-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreate">New Customer</MudButton>
-        </MudItem>
-    </MudGrid>
+    <div class="tm-stats">
+        <TmStatTile Icon="👥" Number="@_all.Count" Label="Customers" Tone="blue" />
+        <TmStatTile Icon="✔" Number="@_activeCount" Label="Active" Tone="green" OnClick="@(() => PickStatus("active"))" />
+        <TmStatTile Icon="✕" Number="@(_all.Count - _activeCount)" Label="Inactive" Tone="red" OnClick="@(() => PickStatus("inactive"))" />
+        <TmStatTile Icon="💰" Number="@TotalCreditLimit" Label="Total Credit Limit" Tone="purple" />
+        <TmStatTile Icon="🏙️" Number="@_cityCount" Label="Cities" Tone="teal" />
+        <TmStatTile Icon="⭐" Number="@_taxExemptCount" Label="Tax Exempt" Tone="yellow" />
+    </div>
 
-    <MudTable Items="@_items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
-        <HeaderContent>
-            <MudTh>Name</MudTh>
-            <MudTh>Email</MudTh>
-            <MudTh>Phone</MudTh>
-            <MudTh>City</MudTh>
-            <MudTh Style="text-align:right">Credit Limit</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.CustomerName</MudTd>
-            <MudTd>@context.CustomerEmail</MudTd>
-            <MudTd>@context.CustomerPhone</MudTd>
-            <MudTd>@context.City</MudTd>
-            <MudTd Style="text-align:right">@context.CreditLimit.ToString("C")</MudTd>
-            <MudTd>
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Default)" Size="Size.Small">
-                    @(context.IsActive ? "Active" : "Inactive")
-                </MudChip>
-            </MudTd>
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
-                               OnClick="@(() => OpenEdit(context))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                               OnClick="@(() => Delete(context))" />
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-</MudPaper>
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search by name, email or phone..." value="@_searchString" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnStatusChanged">
+                <option value="" selected="@(_statusFilter == "")">All Status</option>
+                <option value="active" selected="@(_statusFilter == "active")">Active Only</option>
+                <option value="inactive" selected="@(_statusFilter == "inactive")">Inactive Only</option>
+            </select>
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnCityChanged">
+                <option value="" selected="@(_cityFilter == "")">All Cities</option>
+                @foreach (var c in Cities)
+                {
+                    <option value="@c" selected="@(_cityFilter == c)">@c</option>
+                }
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:1050px">
+                <thead>
+                    <tr>
+                        <th>👤 Customer</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Contact Person</th>
+                        <th>City</th>
+                        <th style="text-align:right">Credit Limit</th>
+                        <th>Terms</th>
+                        <th>Status</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="9"><div class="tm-loading">Loading customers...</div></td></tr>
+                    }
+                    else if (Paged.Count == 0)
+                    {
+                        <tr><td colspan="9"><div class="tm-loading">No customers found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var c in Paged)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="tm-veh">
+                                        <span class="tm-veh-ico" style="background:@GetAvatarBg(c.CustomerName)">@GetInitials(c.CustomerName)</span>
+                                        @c.CustomerName
+                                    </span>
+                                </td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(c.CustomerEmail) ? "-" : c.CustomerEmail)</td>
+                                <td class="tm-num">@(string.IsNullOrWhiteSpace(c.CustomerPhone) ? "-" : c.CustomerPhone)</td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(c.ContactPersonName) ? "-" : c.ContactPersonName)</td>
+                                <td class="tm-branch">@(string.IsNullOrWhiteSpace(c.City) ? "-" : c.City)</td>
+                                <td style="text-align:right" class="tm-money">@c.CreditLimit.ToString("N0")</td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(c.PaymentTerms) ? "-" : c.PaymentTerms)</td>
+                                <td>
+                                    <span class="tm-pill @(c.IsActive ? "tm-pill-green" : "tm-pill-red")">
+                                        <span class="tm-dot"></span>@(c.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenEdit(c)">✎</button>
+                                        <button class="tm-act tm-act-del" title="Delete" @onclick="() => Delete(c)">🗑</button>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="customers"
+                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+    </div>
+</div>
 
 @code {
-
-    private List<CustomerDto> _items = new();
+    private List<CustomerDto> _all = new();
     private string _searchString = "";
+    private string _statusFilter = "";
+    private string _cityFilter = "";
     private bool _loading = true;
+    private int _page = 1;
+    private int _pageSize = 10;
+    private int _activeCount, _cityCount, _taxExemptCount;
+    private decimal TotalCreditLimit => _all.Sum(c => c.CreditLimit);
+    private List<string> Cities => _all.Select(c => c.City).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x).ToList();
+    private System.Timers.Timer? _debounce;
 
     protected override async Task OnInitializedAsync() => await LoadData();
+
+    private List<CustomerDto> Filtered => _all.Where(c =>
+        (string.IsNullOrWhiteSpace(_searchString)
+            || (c.CustomerName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (c.CustomerEmail?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (c.CustomerPhone?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false))
+        && (_statusFilter switch
+        {
+            "active" => c.IsActive,
+            "inactive" => !c.IsActive,
+            _ => true
+        })
+        && (string.IsNullOrEmpty(_cityFilter) || c.City == _cityFilter)).ToList();
+
+    private List<CustomerDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
 
     private async Task LoadData()
     {
         _loading = true;
-        var query =await CustomerService.GetCustomersAsync(_searchString);
-
-
-        var data = query.Items.OrderBy(c => c.CustomerName).Take(100).ToList();
-        _items = data.Select(dto => new CustomerDto
+        try
         {
-            Id = dto.Id,
-            CustomerName = dto.CustomerName,
-            CustomerEmail = dto.CustomerEmail,
-            CustomerPhone = dto.CustomerPhone,
-            ContactPersonName = dto.ContactPersonName,
-            ContactPersonPhone = dto.ContactPersonPhone,
-            ContactPersonEmail = dto.ContactPersonEmail,
-            Address = dto.Address,
-            City = dto.City,
-            State = dto.State,
-            Country = dto.Country,
-            PostalCode = dto.PostalCode,
-            CreditLimit = dto.CreditLimit,
-            PaymentTerms = dto.PaymentTerms,
-            IsTaxExempt = dto.IsTaxExempt,
-            IsActive = dto.IsActive
-        }).ToList();
-        _loading = false;
+            var query = await CustomerService.GetCustomersAsync(_searchString);
+            _all = query.Items.OrderBy(c => c.CustomerName).Take(500).Select(dto => new CustomerDto
+            {
+                Id = dto.Id,
+                CustomerName = dto.CustomerName,
+                CustomerEmail = dto.CustomerEmail,
+                CustomerPhone = dto.CustomerPhone,
+                ContactPersonName = dto.ContactPersonName,
+                ContactPersonPhone = dto.ContactPersonPhone,
+                ContactPersonEmail = dto.ContactPersonEmail,
+                Address = dto.Address,
+                City = dto.City,
+                State = dto.State,
+                Country = dto.Country,
+                PostalCode = dto.PostalCode,
+                CreditLimit = dto.CreditLimit,
+                PaymentTerms = dto.PaymentTerms,
+                IsTaxExempt = dto.IsTaxExempt,
+                IsActive = dto.IsActive
+            }).ToList();
+
+            _activeCount = _all.Count(c => c.IsActive);
+            _cityCount = Cities.Count;
+            _taxExemptCount = _all.Count(c => c.IsTaxExempt);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 1
+            ? parts[0][..1].ToUpperInvariant()
+            : (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
+    }
+
+    private static string GetAvatarBg(string? name)
+    {
+        var palettes = new[] { "#e0e9ff", "#fee2e2", "#dcfce7", "#ede9fe", "#ffedd5", "#e0f2fe", "#fef9c3" };
+        if (string.IsNullOrEmpty(name)) return palettes[0];
+        return palettes[Math.Abs(name.GetHashCode()) % palettes.Length];
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _searchString = e.Value?.ToString() ?? "";
+        _page = 1;
+        _debounce?.Stop();
+        _debounce?.Dispose();
+        _debounce = new System.Timers.Timer(350) { AutoReset = false };
+        _debounce.Elapsed += async (_, __) =>
+        {
+            await LoadData();
+            await InvokeAsync(StateHasChanged);
+        };
+        _debounce.Start();
+    }
+
+    private void OnStatusChanged(ChangeEventArgs e)
+    {
+        _statusFilter = e.Value?.ToString() ?? "";
+        _page = 1;
+    }
+
+    private void OnCityChanged(ChangeEventArgs e)
+    {
+        _cityFilter = e.Value?.ToString() ?? "";
+        _page = 1;
+    }
+
+    private void PickStatus(string s)
+    {
+        _statusFilter = _statusFilter == s ? "" : s;
+        _page = 1;
+    }
+
+    private void ResetFilters()
+    {
+        _searchString = "";
+        _statusFilter = "";
+        _cityFilter = "";
+        _page = 1;
+    }
+
+    private void OnPageSizeChanged(int size)
+    {
+        _pageSize = size;
+        _page = 1;
     }
 
     private async Task OpenCreate()
     {
         var parameters = new DialogParameters<CustomerDialog> { { x => x.Customer, new CustomerDto() } };
-        var dialog = await DialogService.ShowAsync<CustomerDialog>("New Customer", parameters,      
+        var dialog = await DialogService.ShowAsync<CustomerDialog>("New Customer", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CustomerDto dto)
@@ -123,10 +272,10 @@
     {
         var confirm = await DialogService.ShowMessageBoxAsync("Confirm", "Delete this customer?", "Delete", "Cancel");
         if (confirm == true)
-        {   
+        {
             await CustomerService.DeleteCustomerAsync(entity.Id);
             Snackbar.Add($"Customer {entity.CustomerName} deleted", Severity.Warning);
-            await LoadData(); 
+            await LoadData();
         }
     }
 }

@@ -6,75 +6,128 @@
 
 <PageTitle>Purchase Returns - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Purchase Returns</MudText>
+<div class="tm-page">
+    <TmPageHeader Icon="↩️" Title="Purchase Returns" Subtitle="Send goods back to suppliers and track refunds">
+        <Actions>
+            <button class="tm-reset" @onclick="Load">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="OpenCreate">+ New Return</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-           OnClick="OpenCreate" Class="mb-4">New Return</MudButton>
+    <div class="tm-stats">
+        <TmStatTile Icon="↩️" Number="@_returns.Count" Label="Returns" Tone="blue" />
+        <TmStatTile Icon="📝" Number="@CountOf(PurchaseReturnStatus.Draft)" Label="Draft" Tone="purple" OnClick="@(() => PickStatus(PurchaseReturnStatus.Draft))" />
+        <TmStatTile Icon="✔" Number="@CountOf(PurchaseReturnStatus.Approved)" Label="Approved" Tone="yellow" OnClick="@(() => PickStatus(PurchaseReturnStatus.Approved))" />
+        <TmStatTile Icon="🚚" Number="@CountOf(PurchaseReturnStatus.Shipped)" Label="Shipped" Tone="teal" OnClick="@(() => PickStatus(PurchaseReturnStatus.Shipped))" />
+        <TmStatTile Icon="✅" Number="@CountOf(PurchaseReturnStatus.Completed)" Label="Completed" Tone="green" OnClick="@(() => PickStatus(PurchaseReturnStatus.Completed))" />
+        <TmStatTile Icon="💰" Number="@TotalReturned" Label="Total Returned" Tone="red" />
+    </div>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudGrid>
-        <MudItem xs="12" sm="4">
-            <MudTextField @bind-Value="_search" Placeholder="Search..." Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          DebounceInterval="300" OnDebounceIntervalElapsed="Load" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudSelect Value="_statusFilter" Label="Status" Clearable="true"
-                       ValueChanged="@((PurchaseReturnStatus? v) => { _statusFilter = v; _ = Load(); })" Variant="Variant.Outlined" Margin="Margin.Dense">
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search by return number, PO number or reason..." value="@_search" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnStatusChanged">
+                <option value="" selected="@(_statusFilter == null)">All Status</option>
                 @foreach (PurchaseReturnStatus s in Enum.GetValues<PurchaseReturnStatus>())
                 {
-                    <MudSelectItem Value="@((PurchaseReturnStatus?)s)">@s</MudSelectItem>
+                    <option value="@s" selected="@(_statusFilter == s)">@s</option>
                 }
-            </MudSelect>
-        </MudItem>
-    </MudGrid>
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
 
-    <MudTable Items="@_returns" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
-        <HeaderContent>
-            <MudTh>Return #</MudTh>
-            <MudTh>PO #</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh Style="text-align:right">Total</MudTh>
-            <MudTh>Reason</MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd><strong>@context.ReturnNumber</strong></MudTd>
-            <MudTd>@context.PurchaseOrderNumber</MudTd>
-            <MudTd><MudChip T="string" Size="Size.Small" Color="@GetColor(context.Status)">@context.Status</MudChip></MudTd>
-            <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
-            <MudTd>@context.Reason</MudTd>
-            <MudTd>
-                @if (context.Status == PurchaseReturnStatus.Draft)
-                {
-                    <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small"
-                                   Title="Approve" OnClick="() => Approve(context.Id)" />
-                }
-                @if (context.Status == PurchaseReturnStatus.Approved)
-                {
-                    <MudIconButton Icon="@Icons.Material.Filled.Done" Color="Color.Primary" Size="Size.Small"
-                                   Title="Complete" OnClick="() => Complete(context.Id)" />
-                }
-            </MudTd>
-        </RowTemplate>
-        <PagerContent><MudTablePager /></PagerContent>
-    </MudTable>
-</MudPaper>
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:900px">
+                <thead>
+                    <tr>
+                        <th>↩️ Return #</th>
+                        <th>🧾 PO #</th>
+                        <th>Status</th>
+                        <th style="text-align:right">Total</th>
+                        <th>Reason</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="6"><div class="tm-loading">Loading purchase returns...</div></td></tr>
+                    }
+                    else if (Paged.Count == 0)
+                    {
+                        <tr><td colspan="6"><div class="tm-loading">No purchase returns found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var r in Paged)
+                        {
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#fef3c7">↩️</span>@r.ReturnNumber</span></td>
+                                <td class="tm-num">@(string.IsNullOrWhiteSpace(r.PurchaseOrderNumber) ? "-" : r.PurchaseOrderNumber)</td>
+                                <td><span class="@GetStatusPill(r.Status)"><span class="tm-dot"></span>@r.Status</span></td>
+                                <td style="text-align:right" class="tm-money">@r.TotalAmount.ToString("N0")</td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(r.Reason) ? "-" : r.Reason)</td>
+                                <td>
+                                    <span class="tm-actions" style="justify-content:flex-end">
+                                        @if (r.Status == PurchaseReturnStatus.Draft)
+                                        {
+                                            <button class="tm-act" style="color:#16a34a" title="Approve" @onclick="() => Approve(r.Id)">✔</button>
+                                        }
+                                        @if (r.Status == PurchaseReturnStatus.Approved)
+                                        {
+                                            <button class="tm-act tm-act-view" title="Complete" @onclick="() => Complete(r.Id)">✅</button>
+                                        }
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="purchase returns"
+                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+    </div>
+</div>
 
 @code {
     private List<PurchaseReturnDto> _returns = new();
     private string _search = "";
     private PurchaseReturnStatus? _statusFilter;
     private bool _loading = true;
+    private int _page = 1;
+    private int _pageSize = 10;
+
+    private decimal TotalReturned => _returns.Sum(r => r.TotalAmount);
+
+    private List<PurchaseReturnDto> Filtered => _returns.Where(r =>
+        (_statusFilter == null || r.Status == _statusFilter.Value)
+        && (string.IsNullOrWhiteSpace(_search)
+            || (r.ReturnNumber?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (r.PurchaseOrderNumber?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (r.Reason?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
+
+    private List<PurchaseReturnDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+
+    private int CountOf(PurchaseReturnStatus s) => _returns.Count(r => r.Status == s);
 
     protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load()
     {
         _loading = true;
-        var result = await PurchaseReturnService.GetPurchaseReturns(_search, _statusFilter, 1, 100);
-        _returns = result.Items;
-        _loading = false;
+        try
+        {
+            var result = await PurchaseReturnService.GetPurchaseReturns("", null, 1, 500);
+            _returns = result.Items;
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
     }
 
     private async Task OpenCreate()
@@ -83,42 +136,13 @@
                 new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
 
         var result = await dialog.Result;
-        
+
         if (result != null && !result.Canceled && result.Data is PurchaseReturnDto dto)
         {
-
             await PurchaseReturnService.CreatePurchaseReturn(dto);
-
-           //  if (dto.Id == Guid.Empty)
-           //  {   
-           //      await ProductService.CreateProductAsync(dto);
-           //  }
-           //  else
-           //  {
-           //      await ProductService.UpdateProductDetailsAsync(dto);
-           //      var entity = await DbContext.Products.FindAsync(dto.Id);
-           //      if (entity == null) return;
-
-           //      entity.Name = dto.Name;
-           //      entity.SKU = dto.SKU;
-           //      entity.Barcode = dto.Barcode;
-           //      entity.Description = dto.Description;
-           //      entity.CostPrice = dto.CostPrice;
-           //      entity.SellingPrice = dto.SellingPrice;
-           //      entity.WholeSellingPrice = dto.WholeSellingPrice;
-           //      entity.ReorderStockLevel = dto.ReorderStockLevel;
-           //      entity.MinOrderQuantity = dto.MinOrderQuantity;
-           //      entity.CategoryId = dto.CategoryId;
-           //      entity.BrandId = dto.BrandId;
-           //      entity.ImageUrl = dto.ImageUrl;
-           //      entity.Model = dto.Model;
-           //  }
-
-           // await DbContext.SaveChangesAsync();
-            Snackbar.Add(dto.Id == Guid.Empty ? "Product return created successfully" : "Product return updated successfully", Severity.Success);
+            Snackbar.Add(dto.Id == Guid.Empty ? "Purchase return created successfully" : "Purchase return updated successfully", Severity.Success);
             await Load();
         }
-
     }
 
     private async Task Approve(Guid id)
@@ -133,13 +157,45 @@
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 
-    private Color GetColor(PurchaseReturnStatus s) => s switch
+    private void OnSearchInput(ChangeEventArgs e)
     {
-        PurchaseReturnStatus.Draft => Color.Default,
-        PurchaseReturnStatus.Approved => Color.Info,
-        PurchaseReturnStatus.Shipped => Color.Warning,
-        PurchaseReturnStatus.Completed => Color.Success,
-        PurchaseReturnStatus.Cancelled => Color.Error,
-        _ => Color.Default
+        _search = e.Value?.ToString() ?? "";
+        _page = 1;
+    }
+
+    private void OnStatusChanged(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString();
+        _statusFilter = string.IsNullOrEmpty(v) ? null : Enum.Parse<PurchaseReturnStatus>(v);
+        _page = 1;
+    }
+
+    private void PickStatus(PurchaseReturnStatus s)
+    {
+        _statusFilter = _statusFilter == s ? null : s;
+        _page = 1;
+    }
+
+    private void ResetFilters()
+    {
+        _search = "";
+        _statusFilter = null;
+        _page = 1;
+    }
+
+    private void OnPageSizeChanged(int size)
+    {
+        _pageSize = size;
+        _page = 1;
+    }
+
+    private static string GetStatusPill(PurchaseReturnStatus s) => s switch
+    {
+        PurchaseReturnStatus.Draft => "tm-pill tm-pill-purple",
+        PurchaseReturnStatus.Approved => "tm-pill tm-pill-amber",
+        PurchaseReturnStatus.Shipped => "tm-pill tm-pill-blue",
+        PurchaseReturnStatus.Completed => "tm-pill tm-pill-green",
+        PurchaseReturnStatus.Cancelled => "tm-pill tm-pill-red",
+        _ => "tm-pill tm-pill-blue"
     };
 }

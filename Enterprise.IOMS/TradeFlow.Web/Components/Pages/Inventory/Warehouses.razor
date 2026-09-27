@@ -8,56 +8,123 @@
 
 <PageTitle>Warehouses - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Warehouses</MudText>
+<div class="tm-page">
+    <TmPageHeader Icon="🏬" Title="Warehouses" Subtitle="Manage storage locations, codes and warehouse addresses">
+        <Actions>
+            <button class="tm-reset" @onclick="LoadData">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="OpenCreate">+ New Warehouse</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudGrid>
-        <MudItem xs="12" sm="8" />
-        <MudItem xs="12" sm="4" Class="d-flex justify-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreate">New Warehouse</MudButton>
-        </MudItem>
-    </MudGrid>
+    <div class="tm-stats">
+        <TmStatTile Icon="🏬" Number="@_items.Count" Label="Warehouses" Tone="blue" />
+        <TmStatTile Icon="✔" Number="@CountOf(true)" Label="Active" Tone="green" OnClick="@(() => PickActive(true))" />
+        <TmStatTile Icon="⏸" Number="@CountOf(false)" Label="Inactive" Tone="red" OnClick="@(() => PickActive(false))" />
+        <TmStatTile Icon="📍" Number="@CountWithLocation" Label="With Location" Tone="purple" />
+        <TmStatTile Icon="🏷" Number="@_items.Select(w => w.Code).Distinct().Count()" Label="Unique Codes" Tone="teal" />
+    </div>
 
-    <MudTable Items="@_items" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
-        <HeaderContent>
-            <MudTh>Code</MudTh>
-            <MudTh>Name</MudTh>
-            <MudTh>Location</MudTh>
-            <MudTh>Address</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.Code</MudTd>
-            <MudTd>@context.Name</MudTd>
-            <MudTd>@context.Location</MudTd>
-            <MudTd>@context.Address</MudTd>
-            <MudTd>
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Default)" Size="Size.Small">
-                    @(context.IsActive ? "Active" : "Inactive")
-                </MudChip>
-            </MudTd>
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
-                               OnClick="@(() => OpenEdit(context))" />
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-</MudPaper>
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search by code, name or location..." value="@_search" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnStatusChanged">
+                <option value="" selected="@(_activeFilter == null)">All Status</option>
+                <option value="active" selected="@(_activeFilter == true)">Active</option>
+                <option value="inactive" selected="@(_activeFilter == false)">Inactive</option>
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:900px">
+                <thead>
+                    <tr>
+                        <th>🏬 Warehouse</th>
+                        <th>🏷 Code</th>
+                        <th>📍 Location</th>
+                        <th>🏠 Address</th>
+                        <th>Status</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="6"><div class="tm-loading">Loading warehouses...</div></td></tr>
+                    }
+                    else if (Paged.Count == 0)
+                    {
+                        <tr><td colspan="6"><div class="tm-loading">No warehouses found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var w in Paged)
+                        {
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🏬</span>@w.Name</span></td>
+                                <td><span class="tm-pill tm-pill-blue"><span class="tm-dot"></span>@(string.IsNullOrWhiteSpace(w.Code) ? "-" : w.Code)</span></td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(w.Location) ? "-" : w.Location)</td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(w.Address) ? "-" : w.Address)</td>
+                                <td>
+                                    <span class="@(w.IsActive ? "tm-pill tm-pill-green" : "tm-pill tm-pill-red")">
+                                        <span class="tm-dot"></span>@(w.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenEdit(w)">✎</button>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="warehouses"
+                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+    </div>
+</div>
 
 @code {
     private List<WarehouseDto> _items = new();
     private bool _loading = true;
+    private string _search = "";
+    private bool? _activeFilter;
+    private int _page = 1;
+    private int _pageSize = 10;
+
+    private int CountWithLocation => _items.Count(w => !string.IsNullOrWhiteSpace(w.Location));
+
+    private List<WarehouseDto> Filtered => _items.Where(w =>
+        (_activeFilter == null || w.IsActive == _activeFilter.Value)
+        && (string.IsNullOrWhiteSpace(_search)
+            || w.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || (w.Code?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (w.Location?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (w.Address?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
+
+    private List<WarehouseDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+
+    private int CountOf(bool active) => _items.Count(w => w.IsActive == active);
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
     private async Task LoadData()
     {
         _loading = true;
-        var data = await DbContext.Warehouses.OrderBy(w => w.Code).ToListAsync();
-        _items = data.Select(w => new WarehouseDto(w.Id, w.Name, w.Code, w.Location, w.Address, w.IsActive)).ToList();
-        _loading = false;
+        try
+        {
+            var data = await DbContext.Warehouses.OrderBy(w => w.Code).ToListAsync();
+            _items = data.Select(w => new WarehouseDto(w.Id, w.Name, w.Code, w.Location, w.Address, w.IsActive)).ToList();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
     }
 
     private async Task OpenCreate()
@@ -92,5 +159,41 @@
                 await LoadData();
             }
         }
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        _page = 1;
+    }
+
+    private void OnStatusChanged(ChangeEventArgs e)
+    {
+        _activeFilter = e.Value?.ToString() switch
+        {
+            "active" => true,
+            "inactive" => false,
+            _ => null
+        };
+        _page = 1;
+    }
+
+    private void PickActive(bool active)
+    {
+        _activeFilter = _activeFilter == active ? null : active;
+        _page = 1;
+    }
+
+    private void ResetFilters()
+    {
+        _search = "";
+        _activeFilter = null;
+        _page = 1;
+    }
+
+    private void OnPageSizeChanged(int size)
+    {
+        _pageSize = size;
+        _page = 1;
     }
 }

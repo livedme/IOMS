@@ -7,65 +7,328 @@
 
 <PageTitle>Categories - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Categories</MudText>
+<div class="tm-page">
+    <!-- Header -->
+    <div class="tm-card tm-header">
+        <div class="tm-header-left">
+            <div class="tm-header-icon">🏷</div>
+            <div>
+                <h2 class="tm-title">Category Management</h2>
+                <p class="tm-subtitle">Organise your product hierarchy — parent/child categories and product counts</p>
+            </div>
+        </div>
+        <button class="tm-add-btn" @onclick="OpenCreateDialog">+ Add Category</button>
+    </div>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudGrid>
-        <MudItem xs="12" sm="8">
-            <MudTextField @bind-Value="_searchString" Placeholder="Search categories..." Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="4" Class="d-flex justify-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreateDialog">New Category</MudButton>
-        </MudItem>
-    </MudGrid>
+    <!-- Stats -->
+    <div class="tm-stats">
+        <div class="tm-stat tm-s-blue" @onclick="ResetFilters">
+            <div class="tm-stat-ico">🏷</div>
+            <div><div class="tm-stat-num">@_categoryCount</div><div class="tm-stat-label">Categories</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-green" @onclick="() => FilterByLevel(0)">
+            <div class="tm-stat-ico">📂</div>
+            <div><div class="tm-stat-num">@_topLevelCount</div><div class="tm-stat-label">Top Level</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-purple" @onclick="() => FilterByLevel(1)">
+            <div class="tm-stat-ico">🌳</div>
+            <div><div class="tm-stat-num">@_subCategoryCount</div><div class="tm-stat-label">Sub Categories</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-teal" @onclick='() => OnProductsChanged(new ChangeEventArgs { Value = "with" })'>
+            <div class="tm-stat-ico">📦</div>
+            <div><div class="tm-stat-num">@_withProductsCount</div><div class="tm-stat-label">With Products</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-red" @onclick='() => OnProductsChanged(new ChangeEventArgs { Value = "without" })'>
+            <div class="tm-stat-ico">⛔</div>
+            <div><div class="tm-stat-num">@_withoutProductsCount</div><div class="tm-stat-label">Empty</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+        <div class="tm-stat tm-s-yellow" @onclick="ResetFilters">
+            <div class="tm-stat-ico">🪜</div>
+            <div><div class="tm-stat-num">@_maxDepth</div><div class="tm-stat-label">Max Depth</div></div>
+            <div class="tm-stat-arrow">›</div>
+        </div>
+    </div>
 
-    <MudTable Items="@_categories" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4"
-              Elevation="0">
-        <HeaderContent>
-            <MudTh>Name</MudTh>
-            <MudTh>Description</MudTh>
-            <MudTh>Parent</MudTh>
-            <MudTh>Path</MudTh>
-            <MudTh>Actions</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Name">@context.Name</MudTd>
-            <MudTd DataLabel="Description">@context.Description</MudTd>
-            <MudTd DataLabel="Parent">@context.ParentCategoryName</MudTd>
-            <MudTd DataLabel="Path">@context.Path</MudTd>
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
-                               OnClick="@(() => OpenEditDialog(context))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                               OnClick="@(() => DeleteCategory(context.Id))" />
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-</MudPaper>
+    <!-- Filters -->
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search categories by name, description, path..." value="@_searchString" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnParentChanged">
+                <option value="">All Parents</option>
+                <option value="root" selected="@(_parentFilter == "root")">Top Level Only</option>
+                @foreach (var c in _parents)
+                {
+                    <option value="@c.Id" selected="@(_parentFilter == c.Id.ToString())">@c.Name</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnProductsChanged">
+                <option value="">All Categories</option>
+                <option value="with" selected="@(_productFilter == "with")">With Products</option>
+                <option value="without" selected="@(_productFilter == "without")">Without Products</option>
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <!-- Table -->
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table">
+                <thead>
+                    <tr>
+                        <th>🏷 Category Name</th>
+                        <th>Description</th>
+                        <th>Parent</th>
+                        <th>Level</th>
+                        <th>Products</th>
+                        <th>Path</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="7"><div class="tm-loading">Loading categories...</div></td></tr>
+                    }
+                    else if (_categories.Count == 0)
+                    {
+                        <tr><td colspan="7"><div class="tm-loading">No categories found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var c in _categories)
+                        {
+                            var hasProducts = (c.ProductCount ?? 0) > 0;
+                            var pill = hasProducts ? "tm-pill tm-pill-green" : "tm-pill tm-pill-amber";
+                            var icoBg = GetIconBg(c.Name);
+                            <tr>
+                                <td>
+                                    <span class="tm-veh"><span class="tm-veh-ico" style="background:@icoBg">🏷</span>@c.Name</span>
+                                </td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(c.Description) ? "-" : Truncate(c.Description, 60))</td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(c.ParentCategoryName) ? "-" : c.ParentCategoryName)</td>
+                                <td class="tm-num">Level @GetLevel(c)</td>
+                                <td><span class="@pill"><span class="tm-dot"></span>@(c.ProductCount ?? 0)</span></td>
+                                <td class="tm-branch">@(string.IsNullOrWhiteSpace(c.Path) ? "-" : c.Path)</td>
+                                <td>
+                                    <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenEditDialog(c)">✎</button>
+                                        <button class="tm-act tm-act-del" title="Delete" @onclick="() => DeleteCategory(c.Id)">🗑</button>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="tm-footer">
+            <span>Showing @(_totalCount == 0 ? 0 : ((_page - 1) * _pageSize + 1)) to @(Math.Min(_page * _pageSize, _totalCount)) of @_totalCount categories</span>
+            <span class="tm-pager">
+                <span>Rows per page:</span>
+                <select class="tm-rows-select" @onchange="OnPageSizeSelectChanged">
+                    <option value="10" selected="@(_pageSize == 10)">10</option>
+                    <option value="20" selected="@(_pageSize == 20)">20</option>
+                    <option value="50" selected="@(_pageSize == 50)">50</option>
+                    <option value="100" selected="@(_pageSize == 100)">100</option>
+                </select>
+                <button class="tm-page-btn" disabled="@(_page <= 1)" @onclick="GoFirst">|◀</button>
+                <button class="tm-page-btn" disabled="@(_page <= 1)" @onclick="GoPrev">‹</button>
+                @foreach (var pg in GetPageNumbers())
+                {
+                    var isActive = pg == _page;
+                    <button class="tm-page-btn @(isActive ? "active" : "")" @onclick="() => OnPageChanged(pg)">@pg</button>
+                }
+                <button class="tm-page-btn" disabled="@(_page >= _totalPages)" @onclick="GoNext">›</button>
+                <button class="tm-page-btn" disabled="@(_page >= _totalPages)" @onclick="GoLast">▶|</button>
+            </span>
+        </div>
+    </div>
+</div>
 
 @code {
+    private List<CategoryDto> _allCategories = new();
     private List<CategoryDto> _categories = new();
+    private List<CategoryDto> _parents = new();
     private string _searchString = "";
+    private string _parentFilter = "";
+    private string _productFilter = "";
+    private int _levelFilter = -1;
+    private int _page = 1;
+    private int _pageSize = 10;
+    private int _totalPages = 1;
+    private int _totalCount = 0;
     private bool _loading = true;
+    private int _categoryCount = 0;
+    private int _topLevelCount = 0;
+    private int _subCategoryCount = 0;
+    private int _withProductsCount = 0;
+    private int _withoutProductsCount = 0;
+    private int _maxDepth = 0;
+    private System.Timers.Timer? _debounce;
 
     protected override async Task OnInitializedAsync() => await LoadCategories();
+
+    private static string Truncate(string value, int max)
+        => value.Length <= max ? value : value[..max] + "…";
+
+    private static int GetLevel(CategoryDto c)
+    {
+        if (string.IsNullOrWhiteSpace(c.Path)) return 1;
+        return c.Path.Count(ch => ch == '>') + 1;
+    }
+
+    private string GetIconBg(string? name)
+    {
+        var palettes = new[] { "#e0e9ff", "#fee2e2", "#dcfce7", "#ede9fe", "#ffedd5", "#e0f2fe", "#fef9c3" };
+        if (string.IsNullOrEmpty(name)) return palettes[0];
+        return palettes[Math.Abs(name.GetHashCode()) % palettes.Length];
+    }
 
     private async Task LoadCategories()
     {
         _loading = true;
-        var cats = await DbContext.Categories.Include(c => c.ParentCategory).OrderBy(c => c.Name).ToListAsync();
-        _categories = cats.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId,
-            c.ParentCategory?.Name, 0, c.Path)).ToList();
+
+        try
+        {
+            var cats = await DbContext.Categories
+                .Include(c => c.ParentCategory)
+                .Include(c => c.Products)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+            _allCategories = cats.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId,
+                c.ParentCategory?.Name, c.Products.Count, c.Path)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading categories: {ex.Message}", Severity.Error);
+            _allCategories = new List<CategoryDto>();
+        }
+
+        _categoryCount = _allCategories.Count;
+        _topLevelCount = _allCategories.Count(c => c.ParentCategoryId == null);
+        _subCategoryCount = _allCategories.Count - _topLevelCount;
+        _withProductsCount = _allCategories.Count(c => (c.ProductCount ?? 0) > 0);
+        _withoutProductsCount = _categoryCount - _withProductsCount;
+        _maxDepth = _allCategories.Count == 0 ? 0 : _allCategories.Max(GetLevel);
+        _parents = _allCategories.Where(c => c.ParentCategoryId != null).OrderBy(c => c.Name).ToList();
+
+        var items = _allCategories.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(_searchString))
+        {
+            items = items.Where(c =>
+                c.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase)
+                || (c.Description != null && c.Description.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                || (c.Path != null && c.Path.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                || (c.ParentCategoryName != null && c.ParentCategoryName.Contains(_searchString, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (_parentFilter == "root")
+            items = items.Where(c => c.ParentCategoryId == null);
+        else if (!string.IsNullOrEmpty(_parentFilter) && Guid.TryParse(_parentFilter, out var parentId))
+            items = items.Where(c => c.ParentCategoryId == parentId);
+
+        if (_levelFilter == 0)
+            items = items.Where(c => GetLevel(c) == 1);
+        else if (_levelFilter > 0)
+            items = items.Where(c => GetLevel(c) > 1);
+
+        if (_productFilter == "with")
+            items = items.Where(c => (c.ProductCount ?? 0) > 0);
+        else if (_productFilter == "without")
+            items = items.Where(c => (c.ProductCount ?? 0) == 0);
+
+        var filtered = items.ToList();
+        _totalCount = filtered.Count;
+        _totalPages = Math.Max(1, (int)Math.Ceiling(_totalCount / (double)_pageSize));
+        if (_page > _totalPages) _page = _totalPages;
+        _categories = filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+
         _loading = false;
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _searchString = e.Value?.ToString() ?? "";
+        _debounce?.Stop();
+        _debounce?.Dispose();
+        _debounce = new System.Timers.Timer(400) { AutoReset = false };
+        _debounce.Elapsed += async (_, __) =>
+        {
+            _page = 1;
+            await InvokeAsync(async () => { await LoadCategories(); StateHasChanged(); });
+        };
+        _debounce.Start();
+    }
+
+    private async Task OnParentChanged(ChangeEventArgs e)
+    {
+        _parentFilter = e.Value?.ToString() ?? "";
+        _levelFilter = -1;
+        _page = 1;
+        await LoadCategories();
+    }
+
+    private async Task OnProductsChanged(ChangeEventArgs e)
+    {
+        _productFilter = e.Value?.ToString() ?? "";
+        _page = 1;
+        await LoadCategories();
+    }
+
+    private async Task FilterByLevel(int level)
+    {
+        _levelFilter = _levelFilter == level ? -1 : level;
+        _parentFilter = "";
+        _page = 1;
+        await LoadCategories();
+        StateHasChanged();
+    }
+
+    private async Task ResetFilters()
+    {
+        _searchString = "";
+        _parentFilter = "";
+        _productFilter = "";
+        _levelFilter = -1;
+        _page = 1;
+        await LoadCategories();
+    }
+
+    private async Task OnPageChanged(int page) { _page = page; await LoadCategories(); }
+    private async Task GoFirst() { if (_page > 1) { _page = 1; await LoadCategories(); } }
+    private async Task GoPrev() { if (_page > 1) { _page--; await LoadCategories(); } }
+    private async Task GoNext() { if (_page < _totalPages) { _page++; await LoadCategories(); } }
+    private async Task GoLast() { if (_page < _totalPages) { _page = _totalPages; await LoadCategories(); } }
+
+    private async Task OnPageSizeSelectChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz)) { _pageSize = sz; _page = 1; await LoadCategories(); }
+    }
+
+    private IEnumerable<int> GetPageNumbers()
+    {
+        var start = Math.Max(1, Math.Min(_page - 1, Math.Max(1, _totalPages - 3)));
+        var end = Math.Min(_totalPages, start + 3);
+        for (var i = start; i <= end; i++) yield return i;
     }
 
     private async Task OpenCreateDialog()
     {
         var parameters = new DialogParameters<CategoryDialog>
         {
-            { x => x.AllCategories, _categories }
+            { x => x.AllCategories, _allCategories }
         };
         var dialog = await DialogService.ShowAsync<CategoryDialog>("New Category", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
@@ -90,7 +353,7 @@
         var parameters = new DialogParameters<CategoryDialog>
         {
             { x => x.Category, category },
-            { x => x.AllCategories, _categories }
+            { x => x.AllCategories, _allCategories }
         };
         var dialog = await DialogService.ShowAsync<CategoryDialog>("Edit Category", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
@@ -99,25 +362,24 @@
         if (result != null && !result.Canceled && result.Data is CreateCategoryDto dto)
         {
             var entity = await DbContext.Categories.FindAsync(category.Id);
-            var parent = await DbContext.Categories.FindAsync(dto.ParentCategoryId);
+            if (entity == null) return;
+
+            var parent = dto.ParentCategoryId == null ? null : await DbContext.Categories.FindAsync(dto.ParentCategoryId);
             var path = parent == null ? "" : parent.ParentCategory == null ? $"{parent.Name} > {entity.Name}" : $"{parent.ParentCategory.Name} > {parent.Name} > {entity.Name}";
 
-            if (entity != null)
-            {
-                entity.Name = dto.Name;
-                entity.Description = dto.Description;
-                entity.Path = path;
-                entity.ParentCategoryId = dto.ParentCategoryId;
-                await DbContext.SaveChangesAsync();
-                Snackbar.Add("Category updated", Severity.Success);
-                await LoadCategories();
-            }
+            entity.Name = dto.Name;
+            entity.Description = dto.Description;
+            entity.Path = path;
+            entity.ParentCategoryId = dto.ParentCategoryId;
+            await DbContext.SaveChangesAsync();
+            Snackbar.Add("Category updated", Severity.Success);
+            await LoadCategories();
         }
     }
 
     private async Task DeleteCategory(Guid id)
     {
-        var confirm = await DialogService.ShowMessageBoxAsync("Confirm", "Delete this category?", "Delete", "Cancel");
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm Delete", "Are you sure you want to delete this category?", "Delete", "Cancel");
         if (confirm == true)
         {
             var entity = await DbContext.Categories.FindAsync(id);

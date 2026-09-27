@@ -1,0 +1,73 @@
+<MudGrid Spacing="2" Class="mb-3">
+    <MudItem xs="12" sm="6" md="4" lg="2">
+        <KpiCard Label="Total Sales"
+                 Value="@Kpis.TotalSales.ToString("C0")"
+                 Icon="@Icons.Material.Filled.Lock"
+                 IconColor="#2563eb"
+                 Gradient="linear-gradient(135deg,#a8c9ff 0%,#8fb8ff 100%)"
+                 ValueColor="#0f2040"
+                 LabelColor="#1e3a5f"
+                 Growth="@Kpis.TotalSalesGrowth"
+                 IsPositive="@(Kpis.TotalSalesGrowth >= 0)" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4" lg="2">
+        <KpiCard Label="Today's Sales"
+                 Value="@Kpis.TodaysSales.ToString("C0")"
+                 Icon="@Icons.Material.Filled.ShoppingCart"
+                 IconColor="#16a34a"
+                 Gradient="linear-gradient(135deg,#b8f0c8 0%,#86efac 100%)"
+                 ValueColor="#052e16"
+                 LabelColor="#14532d"
+                 Growth="@Kpis.TodaysSalesGrowth"
+                 IsPositive="@(Kpis.TodaysSalesGrowth >= 0)"
+                 TrendLabel="vs yesterday" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4" lg="2">
+        <KpiCard Label="Total Orders"
+                 Value="@Kpis.TotalOrders.ToString("N0")"
+                 Icon="@Icons.Material.Filled.Inventory"
+                 IconColor="#7c3aed"
+                 Gradient="linear-gradient(135deg,#c4b5fd 0%,#a78bfa 100%)"
+                 ValueColor="#2e1065"
+                 LabelColor="#4c1d95"
+                 Growth="@Kpis.TotalOrdersGrowth"
+                 IsPositive="@(Kpis.TotalOrdersGrowth >= 0)" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4" lg="2">
+        <KpiCard Label="Total Profit"
+                 Value="@Kpis.TotalProfit.ToString("C0")"
+                 Icon="@Icons.Material.Filled.AccountBalanceWallet"
+                 IconColor="#ea580c"
+                 Gradient="linear-gradient(135deg,#fed7aa 0%,#fdba74 100%)"
+                 ValueColor="#431407"
+                 LabelColor="#7c2d12"
+                 Growth="@Kpis.TotalProfitGrowth"
+                 IsPositive="@(Kpis.TotalProfitGrowth >= 0)" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4" lg="2">
+        <KpiCard Label="Inventory Value"
+                 Value="@Kpis.InventoryValue.ToString("C0")"
+                 Icon="@Icons.Material.Filled.Inventory2"
+                 IconColor="#0d9488"
+                 Gradient="linear-gradient(135deg,#99f6e4 0%,#5eead4 100%)"
+                 ValueColor="#042f2e"
+                 LabelColor="#134e4a"
+                 Growth="@Kpis.InventoryValueGrowth"
+                 IsPositive="@(Kpis.InventoryValueGrowth >= 0)" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4" lg="2">
+        <KpiCard Label="Low Stock Items"
+                 Value="@Kpis.LowStockItems.ToString()"
+                 Icon="@Icons.Material.Filled.Warning"
+                 IconColor="#dc2626"
+                 Gradient="linear-gradient(135deg,#fca5a5 0%,#f87171 100%)"
+                 ValueColor="#450a0a"
+                 LabelColor="#7f1d1d"
+                 Growth="@Kpis.LowStockGrowth"
+                 IsPositive="@(Kpis.LowStockGrowth < 0)" />
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired] public DashboardExtendedKpiDto Kpis { get; set; } = default!;
+}

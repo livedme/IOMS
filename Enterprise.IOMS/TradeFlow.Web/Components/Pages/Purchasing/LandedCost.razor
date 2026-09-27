@@ -7,70 +7,119 @@
 
 <PageTitle>Landed Costs - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Landed Cost Management</MudText>
+<div class="tm-page">
+    <TmPageHeader Icon="⚓" Title="Landed Cost Management" Subtitle="Define cost components and allocate them across purchase orders">
+        <Actions>
+            <button class="tm-reset" @onclick="Load">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="() => _showAdd = true">+ Add Component</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudGrid>
-    <MudItem xs="12" md="5">
-        <MudPaper Elevation="2" Class="pa-4">
-            <MudText Typo="Typo.h6" Class="mb-3">Cost Components</MudText>
-            <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="() => _showAdd = true" Class="mb-2">Add Component</MudButton>
-            @if (_showAdd)
-            {
-                <MudGrid Class="mb-3">
-                    <MudItem xs="4"><MudTextField T="string" Label="Name" @bind-Value="_newName" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
-                    <MudItem xs="3"><MudTextField T="string" Label="Type" @bind-Value="_newType" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
-                    <MudItem xs="3"><MudNumericField T="decimal" Label="Rate" @bind-Value="_newRate" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
-                    <MudItem xs="2" Class="d-flex align-end">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="AddComponent">Save</MudButton>
-                    </MudItem>
-                </MudGrid>
-            }
-            <MudTable Items="@_components" Dense="true" Hover="true" Elevation="0">
-                <HeaderContent>
-                    <MudTh>Name</MudTh>
-                    <MudTh>Type</MudTh>
-                    <MudTh Style="text-align:right">Default Rate</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>@context.Name</MudTd>
-                    <MudTd>@context.Type</MudTd>
-                    <MudTd Style="text-align:right">@context.DefaultRate.ToString("P2")</MudTd>
-                </RowTemplate>
-            </MudTable>
-        </MudPaper>
-    </MudItem>
-    <MudItem xs="12" md="7">
-        <MudPaper Elevation="2" Class="pa-4">
-            <MudText Typo="Typo.h6" Class="mb-3">Cost Allocations</MudText>
-            <MudGrid Class="mb-3">
-                <MudItem xs="4">
-                    <MudSelect T="Guid?" Label="Filter by PO" Clearable="true" Value="_filterPoId" 
-                               ValueChanged="@(v => { _filterPoId = v; _ = LoadAllocations(); })" Variant="Variant.Outlined" Margin="Margin.Dense">
-                        @foreach (var po in _purchaseOrders)
+    <div class="tm-stats">
+        <TmStatTile Icon="🧩" Number="@_components.Count" Label="Components" Tone="blue" />
+        <TmStatTile Icon="📄" Number="@_allocations.Count" Label="Allocations" Tone="purple" />
+        <TmStatTile Icon="💰" Number="@TotalAllocated" Label="Total Allocated" Tone="teal" />
+        <TmStatTile Icon="📊" Number="@AvgRate" Label="Avg Default Rate" Tone="yellow" />
+        <TmStatTile Icon="📋" Number="@_purchaseOrders.Count" Label="Purchase Orders" Tone="green" />
+    </div>
+
+    @if (_showAdd)
+    {
+        <div class="tm-card tm-filters" style="flex-wrap:wrap">
+            <div class="tm-search" style="max-width:240px">
+                <span>🏷</span>
+                <input placeholder="Component name" @bind="_newName" />
+            </div>
+            <div class="tm-search" style="max-width:200px">
+                <span>🏷</span>
+                <input placeholder="Type" @bind="_newType" />
+            </div>
+            <div class="tm-search" style="max-width:200px">
+                <span>%</span>
+                <input placeholder="Default rate" @bind="_newRate" />
+            </div>
+            <button class="tm-add-btn" @onclick="AddComponent">Save Component</button>
+            <button class="tm-reset" @onclick="CancelAdd">Cancel</button>
+        </div>
+    }
+
+    <div class="tm-card tm-table-card" style="margin-bottom:10px">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:800px">
+                <thead>
+                    <tr>
+                        <th>🧩 Component</th>
+                        <th>Type</th>
+                        <th style="text-align:right">Default Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_components.Count == 0)
+                    {
+                        <tr><td colspan="3"><div class="tm-loading">No cost components defined</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var c in _components)
                         {
-                            <MudSelectItem Value="@((Guid?)po.Id)">@po.OrderNumber</MudSelectItem>
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🧩</span>@c.Name</span></td>
+                                <td><span class="tm-pill tm-pill-purple"><span class="tm-dot"></span>@(string.IsNullOrWhiteSpace(c.Type) ? "-" : c.Type)</span></td>
+                                <td style="text-align:right" class="tm-money">@c.DefaultRate.ToString("P2")</td>
+                            </tr>
                         }
-                    </MudSelect>
-                </MudItem>
-            </MudGrid>
-            <MudTable Items="@_allocations" Dense="true" Hover="true" Elevation="0">
-                <HeaderContent>
-                    <MudTh>PO #</MudTh>
-                    <MudTh>Component</MudTh>
-                    <MudTh Style="text-align:right">Amount</MudTh>
-                    <MudTh>Method</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>@(context.PurchaseOrderNumber ?? "-")</MudTd>
-                    <MudTd>@context.ComponentName</MudTd>
-                    <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
-                    <MudTd>@context.AllocationMethod</MudTd>
-                </RowTemplate>
-            </MudTable>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="tm-card tm-filters">
+        <div class="tm-select">
+            <select @onchange="OnPoChanged">
+                <option value="" selected="@(_filterPoId == null)">All Purchase Orders</option>
+                @foreach (var po in _purchaseOrders)
+                {
+                    <option value="@po.Id" selected="@(_filterPoId == po.Id)">@po.OrderNumber</option>
+                }
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ClearPoFilter">Clear PO Filter</button>
+    </div>
+
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:800px">
+                <thead>
+                    <tr>
+                        <th>🧾 PO #</th>
+                        <th>🧩 Component</th>
+                        <th style="text-align:right">Amount</th>
+                        <th>Allocation Method</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_allocations.Count == 0)
+                    {
+                        <tr><td colspan="4"><div class="tm-loading">No cost allocations found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var a in _allocations)
+                        {
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#fef3c7">🧾</span>@(a.PurchaseOrderNumber ?? "-")</span></td>
+                                <td class="tm-branch">@a.ComponentName</td>
+                                <td style="text-align:right" class="tm-money">@a.Amount.ToString("N0")</td>
+                                <td><span class="tm-pill tm-pill-blue"><span class="tm-dot"></span>@a.AllocationMethod</span></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 @code {
     private List<LandedCostComponentDto> _components = new();
@@ -81,21 +130,32 @@
     private string _newName = "", _newType = "";
     private decimal _newRate;
 
+    private string TotalAllocated => _allocations.Sum(a => a.Amount).ToString("N0");
+
+    private string AvgRate => _components.Count == 0
+        ? "0.00%"
+        : _components.Average(c => (double)c.DefaultRate).ToString("P2");
+
     protected override async Task OnInitializedAsync()
     {
-        _purchaseOrders = await DbContext.PurchaseOrders.OrderByDescending(p => p.PurchaseDate).Take(50).ToListAsync();
+        _purchaseOrders = await DbContext.PurchaseOrders.OrderByDescending(p => p.PurchaseDate).Take(100).ToListAsync();
         await Load();
     }
 
     private async Task Load()
     {
-        _components = await LandedCostService.GetComponents();
+        try
+        {
+            _components = await LandedCostService.GetComponents();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         await LoadAllocations();
     }
 
     private async Task LoadAllocations()
     {
-        _allocations = await LandedCostService.GetAllocations(_filterPoId);
+        try { _allocations = await LandedCostService.GetAllocations(_filterPoId); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 
     private async Task AddComponent()
@@ -109,5 +169,24 @@
             await Load();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private void CancelAdd()
+    {
+        _showAdd = false;
+        _newName = ""; _newType = ""; _newRate = 0;
+    }
+
+    private async Task OnPoChanged(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString();
+        _filterPoId = string.IsNullOrEmpty(v) ? null : Guid.Parse(v);
+        await LoadAllocations();
+    }
+
+    private async Task ClearPoFilter()
+    {
+        _filterPoId = null;
+        await LoadAllocations();
     }
 }

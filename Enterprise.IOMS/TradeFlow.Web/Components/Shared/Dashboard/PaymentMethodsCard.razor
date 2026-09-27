@@ -1,0 +1,52 @@
+<DashboardCardShell Title="Payment Methods" ViewAllHref="/finance" FillHeight="true">
+    <div style="padding:12px 14px;">
+        @if (Items.Any())
+        {
+            decimal maxPay = Items.Max(p => p.Amount);
+            <div class="mcard-grid">
+                @foreach (var pm in Items)
+                {
+                    var col = GetPaymentColor(pm.Method);
+                    var w = maxPay <= 0 ? 0 : (double)pm.Amount / (double)maxPay * 100;
+                    <div class="mcard">
+                        <div class="mcard-head">
+                            <div class="mcard-ico" style="background:@col;">
+                                <MudIcon Icon="@GetPaymentIcon(pm.Method)" Size="Size.Small" Style="font-size:15px; color:#fff;" />
+                            </div>
+                            <div class="mcard-label" title="@pm.Method">@pm.Method</div>
+                        </div>
+                        <div class="mcard-val">@pm.Amount.ToString("C0")</div>
+                        <div class="mcard-sub">@pm.Percentage.ToString("0.0")% of sales</div>
+                        <div class="mcard-track"><div class="mcard-fill" style="width:@w.ToString("0")%; background:@col;"></div></div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">No payment data.</MudAlert>
+        }
+    </div>
+</DashboardCardShell>
+
+@code {
+    [Parameter] public IReadOnlyList<PaymentMethodBreakdownDto> Items { get; set; } = Array.Empty<PaymentMethodBreakdownDto>();
+
+    private static string GetPaymentColor(string m) => m switch
+    {
+        "Cash" => "#3b82f6",
+        "Card" => "#22c55e",
+        "Mobile Payment" => "#f59e0b",
+        "Bank Transfer" => "#a855f7",
+        _ => "#94a3b8"
+    };
+
+    private static string GetPaymentIcon(string m) => m switch
+    {
+        "Cash" => Icons.Material.Filled.Payments,
+        "Card" => Icons.Material.Filled.CreditCard,
+        "Mobile Payment" => Icons.Material.Filled.Smartphone,
+        "Bank Transfer" => Icons.Material.Filled.AccountBalance,
+        _ => Icons.Material.Filled.Receipt
+    };
+}

@@ -6,55 +6,111 @@
 
 <PageTitle>Chart of Accounts - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Chart of Accounts</MudText>
+<div class="tm-page">
+    <TmPageHeader Icon="📚" Title="Chart of Accounts" Subtitle="Define your ledger structure, account types and hierarchies">
+        <Actions>
+            <button class="tm-reset" @onclick="LoadAccounts">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="OpenCreate">+ New Account</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudGrid>
-        <MudItem xs="12" sm="8">
-            <MudSelect @bind-Value="_typeFilter" Label="Account Type" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+    <div class="tm-stats">
+        <TmStatTile Icon="📚" Number="@_accounts.Count" Label="Accounts" Tone="blue" />
+        <TmStatTile Icon="💰" Number="@CountOf(AccountType.Asset)" Label="Assets" Tone="teal" OnClick="@(() => PickType(AccountType.Asset))" />
+        <TmStatTile Icon="📄" Number="@CountOf(AccountType.Liability)" Label="Liabilities" Tone="red" OnClick="@(() => PickType(AccountType.Liability))" />
+        <TmStatTile Icon="📈" Number="@CountOf(AccountType.Revenue)" Label="Revenue" Tone="green" OnClick="@(() => PickType(AccountType.Revenue))" />
+        <TmStatTile Icon="📉" Number="@CountOf(AccountType.Expense)" Label="Expenses" Tone="yellow" OnClick="@(() => PickType(AccountType.Expense))" />
+        <TmStatTile Icon="⚖" Number="@CountOf(AccountType.Equity)" Label="Equity" Tone="purple" OnClick="@(() => PickType(AccountType.Equity))" />
+    </div>
+
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search by code, name or parent account..." value="@_search" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnTypeChanged">
+                <option value="" selected="@(_typeFilter == null)">All Account Types</option>
                 @foreach (var type in Enum.GetValues<AccountType>())
                 {
-                    <MudSelectItem Value="@((AccountType?)type)">@type</MudSelectItem>
+                    <option value="@type" selected="@(_typeFilter == type)">@type</option>
                 }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="4" Class="d-flex justify-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreate">New Account</MudButton>
-        </MudItem>
-    </MudGrid>
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
 
-    <MudTable Items="@_accounts" Dense="true" Hover="true" Striped="true" Loading="@_loading" Class="mt-4" Elevation="0">
-        <HeaderContent>
-            <MudTh>Code</MudTh>
-            <MudTh>Name</MudTh>
-            <MudTh>Type</MudTh>
-            <MudTh>Parent</MudTh>
-            <MudTh Style="text-align:right">Balance</MudTh>
-            <MudTh>System</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd><strong>@context.Code</strong></MudTd>
-            <MudTd>@context.Name</MudTd>
-            <MudTd>
-                <MudChip T="string" Color="@GetTypeColor(context.AccountType)" Size="Size.Small">@context.AccountType</MudChip>
-            </MudTd>
-            <MudTd>@context.ParentAccountName</MudTd>
-            <MudTd Style="text-align:right">@context.Balance.ToString("C")</MudTd>
-            <MudTd>
-                @if (context.IsSystemAccount)
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning" />
-                }
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-</MudPaper>
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:950px">
+                <thead>
+                    <tr>
+                        <th>🔢 Code</th>
+                        <th>📚 Account Name</th>
+                        <th>Type</th>
+                        <th>🌳 Parent</th>
+                        <th style="text-align:right">Balance</th>
+                        <th>🔒 System</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="6"><div class="tm-loading">Loading accounts...</div></td></tr>
+                    }
+                    else if (Paged.Count == 0)
+                    {
+                        <tr><td colspan="6"><div class="tm-loading">No accounts found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var a in Paged)
+                        {
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🔢</span>@a.Code</span></td>
+                                <td class="tm-branch">@a.Name</td>
+                                <td><span class="@GetTypePill(a.AccountType)"><span class="tm-dot"></span>@a.AccountType</span></td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(a.ParentAccountName) ? "-" : a.ParentAccountName)</td>
+                                <td style="text-align:right" class="tm-money">@a.Balance.ToString("N0")</td>
+                                <td>
+                                    @if (a.IsSystemAccount)
+                                    {
+                                        <span class="tm-pill tm-pill-amber"><span class="tm-dot"></span>System</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tm-dim">-</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="accounts"
+                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+    </div>
+</div>
 
 @code {
     private List<AccountDto> _accounts = new();
     private AccountType? _typeFilter;
+    private string _search = "";
     private bool _loading = true;
+    private int _page = 1;
+    private int _pageSize = 10;
+
+    private List<AccountDto> Filtered => _accounts.Where(a =>
+        (_typeFilter == null || a.AccountType == _typeFilter.Value)
+        && (string.IsNullOrWhiteSpace(_search)
+            || a.Code.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || a.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || (a.ParentAccountName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
+
+    private List<AccountDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+
+    private int CountOf(AccountType t) => _accounts.Count(a => a.AccountType == t);
 
     protected override async Task OnInitializedAsync() => await LoadAccounts();
 
@@ -65,7 +121,7 @@
         {
             if (_typeFilter.HasValue)
             {
-                var result = await AccountingService.GetAccounts(null, _typeFilter, 1, 200);
+                var result = await AccountingService.GetAccounts(null, _typeFilter, 1, 500);
                 _accounts = result.Items;
             }
             else
@@ -74,7 +130,7 @@
             }
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        _loading = false;
+        finally { _loading = false; }
     }
 
     private async Task OpenCreate()
@@ -94,13 +150,48 @@
         }
     }
 
-    private Color GetTypeColor(AccountType type) => type switch
+    private void OnSearchInput(ChangeEventArgs e)
     {
-        AccountType.Asset => Color.Primary,
-        AccountType.Liability => Color.Warning,
-        AccountType.Equity => Color.Info,
-        AccountType.Revenue => Color.Success,
-        AccountType.Expense => Color.Error,
-        _ => Color.Default
+        _search = e.Value?.ToString() ?? "";
+        _page = 1;
+    }
+
+    private async Task OnTypeChanged(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString();
+        _typeFilter = string.IsNullOrEmpty(v) ? null : Enum.Parse<AccountType>(v);
+        _page = 1;
+        await LoadAccounts();
+    }
+
+    private async Task PickType(AccountType t)
+    {
+        _typeFilter = _typeFilter == t ? null : t;
+        _page = 1;
+        await LoadAccounts();
+    }
+
+    private async Task ResetFilters()
+    {
+        _search = "";
+        _typeFilter = null;
+        _page = 1;
+        await LoadAccounts();
+    }
+
+    private void OnPageSizeChanged(int size)
+    {
+        _pageSize = size;
+        _page = 1;
+    }
+
+    private static string GetTypePill(AccountType t) => t switch
+    {
+        AccountType.Asset => "tm-pill tm-pill-teal",
+        AccountType.Liability => "tm-pill tm-pill-red",
+        AccountType.Equity => "tm-pill tm-pill-purple",
+        AccountType.Revenue => "tm-pill tm-pill-green",
+        AccountType.Expense => "tm-pill tm-pill-amber",
+        _ => "tm-pill tm-pill-blue"
     };
 }
