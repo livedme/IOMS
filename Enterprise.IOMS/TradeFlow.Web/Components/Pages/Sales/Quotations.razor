@@ -3,8 +3,6 @@
 @inject IQuotationService QuotationService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using IOMS.Infrastructure.Data
-@inject ApplicationDbContext DbContext
 
 <PageTitle>Quotations - IOMS</PageTitle>
 
@@ -83,6 +81,7 @@
                                 <td style="text-align:right" class="tm-money">@q.TotalAmount.ToString("N0")</td>
                                 <td>
                                     <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act tm-act-view" title="View" @onclick="() => ViewQuote(q.Id)">👁</button>
                                         @if (q.Status == QuoteStatus.Draft || q.Status == QuoteStatus.Sent)
                                         {
                                             <button class="tm-act" style="color:#16a34a" title="Accept" @onclick="() => AcceptQuote(q.Id)">✔</button>
@@ -105,8 +104,117 @@
     </div>
 </div>
 
+<TmSlideDrawer @bind-Open="_drawerOpen" Title="@_drawerTitle" Width="1000px">
+    @if (_viewQuote == null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        var isExpired = _viewQuote.ValidUntil < DateTime.Today;
+        <div class="tm-info-card mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="text-muted small">Customer</div>
+                    <strong>@(string.IsNullOrWhiteSpace(_viewQuote.CustomerName) ? "-" : _viewQuote.CustomerName)</strong>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Quote Date</div>
+                    <strong>@_viewQuote.QuoteDate.ToString("dd-MMM-yyyy")</strong>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Valid Until</div>
+                    <strong class="@(isExpired ? "text-danger" : "")">@_viewQuote.ValidUntil.ToString("dd-MMM-yyyy")@(isExpired ? " (expired)" : "")</strong>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Status</div>
+                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_viewQuote.Status)" Size="Size.Small">
+                        @_viewQuote.Status
+                    </MudChip>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <table class="tm-slide-items">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th style="text-align:right">Qty</th>
+                            <th style="text-align:right">Unit Price</th>
+                            <th style="text-align:right">Disc %</th>
+                            <th style="text-align:right">Tax</th>
+                            <th style="text-align:right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_viewQuote.Items == null || _viewQuote.Items.Count == 0)
+                        {
+                            <tr><td colspan="8"><div class="tm-loading">No items on this quotation</div></td></tr>
+                        }
+                        else
+                        {
+                            @for (var i = 0; i < _viewQuote.Items.Count; i++)
+                            {
+                                var it = _viewQuote.Items[i];
+                                <tr>
+                                    <td>@(i + 1)</td>
+                                    <td>@it.ProductName</td>
+                                    <td>@it.ProductSKU</td>
+                                    <td style="text-align:right">@it.Quantity</td>
+                                    <td style="text-align:right">@it.UnitPrice.ToString("C")</td>
+                                    <td style="text-align:right">@it.DiscountPercent.ToString("N0")%</td>
+                                    <td style="text-align:right">@it.TaxAmount.ToString("C")</td>
+                                    <td style="text-align:right">@it.LineTotal.ToString("C")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-lg-4">
+                <div class="tm-summary-card">
+                    <h6 class="text-primary mb-3">QUOTE SUMMARY</h6>
+                    <div class="tm-summary-item"><span>Subtotal</span><strong>@_viewQuote.SubTotal.ToString("C")</strong></div>
+                    <div class="tm-summary-item"><span>Discount</span><strong>@_viewQuote.DiscountAmount.ToString("C")</strong></div>
+                    <div class="tm-summary-item"><span>Tax</span><strong>@_viewQuote.TaxAmount.ToString("C")</strong></div>
+                    <div class="pt-3 border-top mt-2">
+                        <div class="d-flex justify-content-between">
+                            <strong>TOTAL</strong>
+                            <span class="text-primary fw-bold fs-5">@_viewQuote.TotalAmount.ToString("C")</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_viewQuote.Notes))
+                {
+                    <MudField Label="Notes" Class="mt-3">@_viewQuote.Notes</MudField>
+                }
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            @if (_viewQuote.Status == QuoteStatus.Draft || _viewQuote.Status == QuoteStatus.Sent)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle"
+                           OnClick="@(() => AcceptAndRefresh(_viewQuote.Id))">Accept</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel"
+                           OnClick="@(() => RejectAndRefresh(_viewQuote.Id))">Reject</MudButton>
+            }
+            @if (_viewQuote.Status == QuoteStatus.Accepted)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ShoppingCart"
+                           OnClick="@(() => ConvertAndRefresh(_viewQuote.Id))">Convert to Order</MudButton>
+            }
+        </div>
+    }
+</TmSlideDrawer>
+
 @code {
-    private List<QuoteDisplayDto> _quotes = new();
+    private List<SalesQuoteDto> _quotes = new();
     private string _search = "";
     private QuoteStatus? _statusFilter;
     private bool _loading = true;
@@ -115,15 +223,20 @@
     private decimal TotalValue => _quotes.Sum(q => q.TotalAmount);
     private System.Timers.Timer? _debounce;
 
+    // ─── Drawer state ───
+    private bool _drawerOpen;
+    private string _drawerTitle = "";
+    private SalesQuoteDto? _viewQuote;
+
     protected override async Task OnInitializedAsync() => await Load();
 
-    private List<QuoteDisplayDto> Filtered => _quotes.Where(q =>
+    private List<SalesQuoteDto> Filtered => _quotes.Where(q =>
         (_statusFilter == null || q.Status == _statusFilter.Value)
         && (string.IsNullOrWhiteSpace(_search)
             || q.QuoteNumber.Contains(_search, StringComparison.OrdinalIgnoreCase)
             || q.CustomerName.Contains(_search, StringComparison.OrdinalIgnoreCase))).ToList();
 
-    private List<QuoteDisplayDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+    private List<SalesQuoteDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
 
     private int CountOf(QuoteStatus s) => _quotes.Count(q => q.Status == s);
 
@@ -132,30 +245,27 @@
         _loading = true;
         try
         {
-            var query = DbContext.SalesQuotes
-                .Include(q => q.Customer)
-                .Include(q => q.Items)
-                .AsQueryable();
-
-            if (_statusFilter.HasValue) query = query.Where(q => q.Status == _statusFilter.Value);
-            if (!string.IsNullOrWhiteSpace(_search))
-                query = query.Where(q => q.QuoteNumber.Contains(_search) || q.Customer.CustomerName.Contains(_search));
-
-            var data = await query.OrderByDescending(q => q.QuoteDate).Take(200).ToListAsync();
-            _quotes = data.Select(q => new QuoteDisplayDto
-            {
-                Id = q.Id,
-                QuoteNumber = q.QuoteNumber,
-                CustomerName = q.Customer?.CustomerName ?? "",
-                QuoteDate = q.QuoteDate,
-                ValidUntil = q.ValidUntil,
-                Status = q.Status,
-                TotalAmount = q.TotalAmount
-            }).ToList();
+            var result = await QuotationService.GetSalesQuotes(_search, _statusFilter, 1, 500);
+            _quotes = result.Items;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
     }
+
+    private async Task ViewQuote(Guid id)
+    {
+        _viewQuote = null;
+        _drawerTitle = "Loading…";
+        _drawerOpen = true;
+        try
+        {
+            _viewQuote = await QuotationService.GetSalesQuoteById(id);
+            _drawerTitle = $"Quote #{_viewQuote?.QuoteNumber}";
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private void CloseDrawer() => _drawerOpen = false;
 
     private async Task OpenCreateDialog()
     {
@@ -197,6 +307,31 @@
             await Load();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task AcceptAndRefresh(Guid id)
+    {
+        await AcceptQuote(id);
+        await ReloadView(id);
+    }
+
+    private async Task RejectAndRefresh(Guid id)
+    {
+        await RejectQuote(id);
+        await ReloadView(id);
+    }
+
+    private async Task ConvertAndRefresh(Guid id)
+    {
+        await ConvertToOrder(id);
+        await ReloadView(id);
+    }
+
+    private async Task ReloadView(Guid id)
+    {
+        if (!_drawerOpen) return;
+        var refreshed = await QuotationService.GetSalesQuoteById(id);
+        if (refreshed != null) _viewQuote = refreshed;
     }
 
     private void OnSearchInput(ChangeEventArgs e)
@@ -250,15 +385,4 @@
         QuoteStatus.Converted => "tm-pill tm-pill-green",
         _ => "tm-pill tm-pill-blue"
     };
-
-    private class QuoteDisplayDto
-    {
-        public Guid Id { get; set; }
-        public string QuoteNumber { get; set; } = "";
-        public string CustomerName { get; set; } = "";
-        public DateTime QuoteDate { get; set; }
-        public DateTime ValidUntil { get; set; }
-        public QuoteStatus Status { get; set; }
-        public decimal TotalAmount { get; set; }
-    }
 }

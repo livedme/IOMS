@@ -67,6 +67,37 @@ namespace TradeFlow.Web.Utility
             _ => Color.Default
         };
 
+        public static Color GetStatusColor(SalesReturnStatus status) => status switch
+        {
+            SalesReturnStatus.Draft => Color.Default,
+            SalesReturnStatus.Approved => Color.Info,
+            SalesReturnStatus.Received => Color.Warning,
+            SalesReturnStatus.Completed => Color.Success,
+            SalesReturnStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+
+        public static Color GetStatusColor(PurchaseReturnStatus status) => status switch
+        {
+            PurchaseReturnStatus.Draft => Color.Default,
+            PurchaseReturnStatus.Approved => Color.Info,
+            PurchaseReturnStatus.Shipped => Color.Warning,
+            PurchaseReturnStatus.Completed => Color.Success,
+            PurchaseReturnStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+
+        public static Color GetStatusColor(QuoteStatus status) => status switch
+        {
+            QuoteStatus.Draft => Color.Default,
+            QuoteStatus.Sent => Color.Info,
+            QuoteStatus.Accepted => Color.Success,
+            QuoteStatus.Rejected => Color.Error,
+            QuoteStatus.Expired => Color.Warning,
+            QuoteStatus.Converted => Color.Primary,
+            _ => Color.Default
+        };
+
          public static  Color GetStatusColor(RfqStatus s) => s switch
         {
             RfqStatus.Draft => Color.Default,

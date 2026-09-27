@@ -84,6 +84,7 @@
                                 </td>
                                 <td>
                                     <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act tm-act-view" title="View" @onclick="() => ViewOrder(po.Id)">👁</button>
                                         <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenCreateEdit(po.Id)">✎</button>
                                         <button class="tm-act" style="color:#16a34a" title="Approve" @onclick="() => Approve(po.Id)">✔</button>
                                         <button class="tm-act tm-act-view" title="Receive Goods" @onclick="() => ReceiveGoods(po)">📥</button>
@@ -102,6 +103,122 @@
     </div>
 </div>
 
+<TmSlideDrawer @bind-Open="_drawerOpen" Title="@_drawerTitle">
+    @if (_viewOrder == null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <div class="tm-info-card mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="text-muted small">Supplier</div>
+                    <strong>@(string.IsNullOrWhiteSpace(_viewOrder.SupplierName) ? "-" : _viewOrder.SupplierName)</strong>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Warehouse</div>
+                    <strong>@(string.IsNullOrWhiteSpace(_viewOrder.WarehouseName) ? "-" : _viewOrder.WarehouseName)</strong>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Purchase Date</div>
+                    <strong>@_viewOrder.PurchaseDate.ToString("dd-MMM-yyyy")</strong>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Status</div>
+                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_viewOrder.Status)" Size="Size.Small">
+                        @_viewOrder.Status
+                    </MudChip>
+                </div>
+            </div>
+            @if (_viewOrder.ExpectedDeliveryDate.HasValue)
+            {
+                <div class="mt-2">
+                    <div class="text-muted small">Expected Delivery</div>
+                    <strong>@_viewOrder.ExpectedDeliveryDate.Value.ToString("dd-MMM-yyyy")</strong>
+                </div>
+            }
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <MudTable Items="@_viewOrder.Items" Dense="true" Hover="true" Elevation="2">
+                    <HeaderContent>
+                        <MudTh>#</MudTh>
+                        <MudTh>Product</MudTh>
+                        <MudTh>SKU</MudTh>
+                        <MudTh Style="text-align:right">Qty</MudTh>
+                        <MudTh Style="text-align:right">Received</MudTh>
+                        <MudTh Style="text-align:right">Unit Price</MudTh>
+                        <MudTh Style="text-align:right">Discount</MudTh>
+                        <MudTh Style="text-align:right">Total</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@(_viewOrder.Items.IndexOf(context) + 1)</MudTd>
+                        <MudTd>@context.ProductName</MudTd>
+                        <MudTd>@context.ProductSKU</MudTd>
+                        <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                        <MudTd Style="text-align:right">
+                            <span style="color:@(context.ReceivedQuantity >= context.Quantity ? "#15803d" : "#d97706")">
+                                @context.ReceivedQuantity
+                            </span>
+                        </MudTd>
+                        <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
+                        <MudTd Style="text-align:right">@context.TotalDiscountAmount.ToString("C")</MudTd>
+                        <MudTd Style="text-align:right">@context.LineTotalPrice.ToString("C")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </div>
+            <div class="col-lg-4">
+                <div class="tm-summary-card">
+                    <h6 class="text-primary mb-3">PO SUMMARY</h6>
+                    <div class="tm-summary-item"><span>Subtotal</span><strong>@_viewOrder.SubTotal.ToString("C")</strong></div>
+                    <div class="tm-summary-item"><span>Discount</span><strong>@_viewOrder.DiscountAmount.ToString("C")</strong></div>
+                    <div class="tm-summary-item"><span>Labour</span><strong>@_viewOrder.LabourCharge.ToString("C")</strong></div>
+                    <div class="tm-summary-item"><span>Truck</span><strong>@_viewOrder.TruckCharge.ToString("C")</strong></div>
+                    <div class="tm-summary-item"><span>Tax</span><strong>@_viewOrder.TaxAmount.ToString("C")</strong></div>
+                    <div class="pt-3 border-top mt-2">
+                        <div class="d-flex justify-content-between">
+                            <strong>TOTAL</strong>
+                            <span class="text-primary fw-bold fs-5">@_viewOrder.TotalAmount.ToString("C")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <span class="text-muted">Paid</span>
+                            <span class="text-success fw-semibold">@_viewOrder.PaidAmount.ToString("C")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <span class="text-muted">Due</span>
+                            <span class="text-danger fw-semibold">@_viewOrder.DueAmount.ToString("C")</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_viewOrder.Notes))
+                {
+                    <MudField Label="Notes" Class="mt-3">@_viewOrder.Notes</MudField>
+                }
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="@(() => EditFromDrawer(_viewOrder.Id))">Edit</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="@(() => ReceiveFromDrawer(_viewOrder))">Receive Goods</MudButton>
+            @if (_viewOrder.Status == PurchaseOrderStatus.Draft)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle"
+                           OnClick="@(() => ApproveAndRefresh(_viewOrder.Id))">Approve</MudButton>
+            }
+            @if (_viewOrder.Status != PurchaseOrderStatus.Received && _viewOrder.Status != PurchaseOrderStatus.Cancelled)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel"
+                           OnClick="@(() => CancelAndRefresh(_viewOrder.Id))">Cancel PO</MudButton>
+            }
+        </div>
+    }
+</TmSlideDrawer>
+
 @code {
     private PagedResult<PurchaseOrderDto> _orders = new(new(), 0, 1, 10);
     private string _search = "";
@@ -113,6 +230,57 @@
     private decimal _pageValue;
     private int _draftCount, _approvedCount, _partialCount, _receivedCount;
     private System.Timers.Timer? _debounce;
+
+    // ─── Drawer state ───
+    private bool _drawerOpen;
+    private string _drawerTitle = "";
+    private PurchaseOrderDto? _viewOrder;
+
+    private async Task ViewOrder(Guid id)
+    {
+        _viewOrder = null;
+        _drawerTitle = "Loading…";
+        _drawerOpen = true;
+        try
+        {
+            _viewOrder = await PurchaseService.GetPurchaseOrderById(id);
+            _drawerTitle = $"PO #{_viewOrder?.OrderNumber}";
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private void CloseDrawer() => _drawerOpen = false;
+
+    private async Task EditFromDrawer(Guid id)
+    {
+        CloseDrawer();
+        await OpenCreateEdit(id);
+    }
+
+    private async Task ReceiveFromDrawer(PurchaseOrderDto po)
+    {
+        CloseDrawer();
+        await ReceiveGoods(po);
+    }
+
+    private async Task ApproveAndRefresh(Guid id)
+    {
+        await Approve(id);
+        await ReloadView(id);
+    }
+
+    private async Task CancelAndRefresh(Guid id)
+    {
+        await CancelPO(id);
+        await ReloadView(id);
+    }
+
+    private async Task ReloadView(Guid id)
+    {
+        if (!_drawerOpen) return;
+        var refreshed = await PurchaseService.GetPurchaseOrderById(id);
+        if (refreshed != null) _viewOrder = refreshed;
+    }
 
     protected override async Task OnInitializedAsync()
     {

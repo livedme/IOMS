@@ -115,7 +115,7 @@
                         </MudTd>
                         <MudTd Class="pe-0" Style="width:auto;">
                             @{
-                                CalculateLineTotal();
+                               CalculateLineTotal();
                             }
                             <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudTd>
@@ -708,7 +708,7 @@
         else _selectedSerialSet = _selectedSerialSet.Where(x => x != id).ToArray();
     }
 
-    private async Task CalculateLineTotal()
+    private void CalculateLineTotal()
     {
         dataModel.ProductObj.TotalDiscount = 0;
         if (dataModel.ProductObj.DiscountType == (int)DiscountType.Percentage)
@@ -723,7 +723,7 @@
         dataModel.ProductObj.TotalPrice = ((dataModel.ProductObj.UnitPrice * dataModel.ProductObj.Quantity) - dataModel.ProductObj.TotalDiscount);
     }
 
-    private async Task CalculationBalance()
+    private void CalculationBalance()
     {
         decimal totalVatAmount = 0;
         decimal vat = dataModel.TaxAmount;

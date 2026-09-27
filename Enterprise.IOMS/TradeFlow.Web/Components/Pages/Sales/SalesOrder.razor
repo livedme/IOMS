@@ -114,152 +114,111 @@
 </div>
 
     @* ─── Right-side Slider Drawer ─── *@
-<MudDrawer @bind-Open="_drawerOpen" Anchor="Anchor.End" Elevation="16" Variant="DrawerVariant.Temporary" Width="1150px" CloseOnOverlayClick="true" Class="bg-light-subtle text-black">
+<TmSlideDrawer @bind-Open="_drawerOpen" Title="@_drawerTitle">
 
-        <div class="d-flex align-center justify-space-between px-4"
-             style="min-height:56px;border-bottom:1px solid #e0e0e0;">
-            <MudText Typo="Typo.h6">@_drawerTitle</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="CloseDrawer" />
+    @if (_viewOrder == null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <div class="tm-info-card mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="text-muted small">Customer</div>
+                    <strong>@_viewOrder.Customer?.CustomerName</strong><br />
+                    <span class="small">@_viewOrder.Customer?.CustomerPhone</span><br />
+                    <span class="small">@_viewOrder.Customer?.CustomerEmail</span>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Order Date</div>
+                    <strong>@_viewOrder.OrderDate.ToString("dd-MMM-yyyy")</strong>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Status</div>
+                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_viewOrder.Status)" Size="Size.Small">
+                        @_viewOrder.Status
+                    </MudChip>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Branch</div>
+                    <strong>@_viewOrder.Branch?.Name</strong><br />
+                    <span class="small">@_viewOrder.Branch?.Location</span>
+                </div>
+            </div>
         </div>
 
-        <div style="overflow-y:auto;height:calc(100vh - 56px);padding:16px;">
-
-            @* ── VIEW mode ── *@
-            @if (_drawerMode == SliderMode.View)
-            {
-                @if (_viewOrder == null)
-                {
-                    <MudProgressCircular Indeterminate="true" />
-                }
-                else
-                {
-                    <div class="info-card mb-4">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <div class="text-muted small">Customer</div>
-                                <strong>@_viewOrder.Customer?.CustomerName</strong><br />
-                                <span class="small">@_viewOrder.Customer?.CustomerPhone</span><br />
-                                <span class="small">@_viewOrder.Customer?.CustomerEmail</span>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="text-muted small">Order Date</div>
-                                <strong>@_viewOrder.OrderDate.ToString("dd-MMM-yyyy")</strong>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="text-muted small">Status</div>
-                                <MudChip T="string" Color="@CommonUtility.GetStatusColor(_viewOrder.Status)" Size="Size.Small">
-                                    @_viewOrder.Status
-                                </MudChip>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="text-muted small">Branch</div>
-                                <strong>@_viewOrder.Branch?.Name</strong><br />
-                                <span class="small">@_viewOrder.Branch?.Location</span>
-                            </div>
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <MudTable Items="@_viewOrder.Items" Dense="true" Hover="true" Elevation="2">
+                    <HeaderContent>
+                        <MudTh>#</MudTh>
+                        <MudTh>Product</MudTh>
+                        <MudTh>SKU</MudTh>
+                        <MudTh Style="text-align:right">Qty</MudTh>
+                        <MudTh Style="text-align:right">Unit Price</MudTh>
+                        <MudTh Style="text-align:right">Discount</MudTh>
+                        <MudTh Style="text-align:right">Total</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@(_viewOrder.Items.IndexOf(context) + 1)</MudTd>
+                        <MudTd>@context.ProductName</MudTd>
+                        <MudTd>@context.ProductSKU</MudTd>
+                        <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                        <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
+                        <MudTd Style="text-align:right">@context.TotalDiscount.ToString("C")</MudTd>
+                        <MudTd Style="text-align:right">@context.LineTotalPrice.ToString("C")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </div>
+            <div class="col-lg-4">
+                <div class="tm-summary-card">
+                    <h6 class="text-primary mb-3">ORDER SUMMARY</h6>
+                    <div class="tm-summary-item"><span>Subtotal</span><strong>@_viewOrder.SubTotal.ToString("C")</strong></div>
+                    <div class="tm-summary-item"><span>Discount</span><strong>@_viewOrder.DiscountAmount.ToString("C")</strong></div>
+                    <div class="tm-summary-item"><span>Tax</span><strong>@_viewOrder.TaxAmount.ToString("C")</strong></div>
+                    <div class="tm-summary-item"><span>Labour</span><strong>@_viewOrder.LabourCharge.ToString("C")</strong></div>
+                    <div class="tm-summary-item"><span>Truck</span><strong>@_viewOrder.TruckCharge.ToString("C")</strong></div>
+                    <div class="pt-3 border-top mt-2">
+                        <div class="d-flex justify-content-between">
+                            <strong>TOTAL</strong>
+                            <span class="text-primary fw-bold fs-5">@_viewOrder.TotalAmount.ToString("C")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <span class="text-muted">Paid</span>
+                            <span class="text-success fw-semibold">@_viewOrder.PaidAmount.ToString("C")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <span class="text-muted">Due</span>
+                            <span class="text-danger fw-semibold">@_viewOrder.DueAmount.ToString("C")</span>
                         </div>
                     </div>
-
-                    <div class="row g-3">
-                        <div class="col-lg-8">
-                            <MudTable Items="@_viewOrder.Items" Dense="true" Hover="true" Elevation="2">
-                                <HeaderContent>
-                                    <MudTh>#</MudTh>
-                                    <MudTh>Product</MudTh>
-                                    <MudTh>SKU</MudTh>
-                                    <MudTh Style="text-align:right">Qty</MudTh>
-                                    <MudTh Style="text-align:right">Unit Price</MudTh>
-                                    <MudTh Style="text-align:right">Discount</MudTh>
-                                    <MudTh Style="text-align:right">Total</MudTh>
-                                </HeaderContent>
-                                <RowTemplate>
-                                    <MudTd>@(_viewOrder.Items.IndexOf(context) + 1)</MudTd>
-                                    <MudTd>@context.ProductName</MudTd>
-                                    <MudTd>@context.ProductSKU</MudTd>
-                                    <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                                    <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
-                                    <MudTd Style="text-align:right">@context.TotalDiscount.ToString("C")</MudTd>
-                                    <MudTd Style="text-align:right">@context.LineTotalPrice.ToString("C")</MudTd>
-                                </RowTemplate>
-                            </MudTable>
-                        </div>
-                        <div class="col-lg-4">
-                            <div class="summary-card">
-                                <h6 class="text-primary mb-3">ORDER SUMMARY</h6>
-                                <div class="summary-item"><span>Subtotal</span><strong>@_viewOrder.SubTotal.ToString("C")</strong>
-                                </div>
-                                <div class="summary-item">
-                                    <span>Discount</span><strong>@_viewOrder.DiscountAmount.ToString("C")</strong></div>
-                                    <div class="summary-item"><span>Tax</span><strong>@_viewOrder.TaxAmount.ToString("C")</strong></div>
-                                    <div class="summary-item"><span>Labour</span><strong>@_viewOrder.LabourCharge.ToString("C")</strong>
-                                    </div>
-                                    <div class="summary-item"><span>Truck</span><strong>@_viewOrder.TruckCharge.ToString("C")</strong>
-                                    </div>
-                                    <div class="pt-3 border-top mt-2">
-                                        <div class="d-flex justify-content-between">
-                                            <strong>TOTAL</strong>
-                                            <span class="text-primary fw-bold fs-5">@_viewOrder.TotalAmount.ToString("C")</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between mt-1">
-                                            <span class="text-muted">Paid</span>
-                                            <span class="text-success fw-semibold">@_viewOrder.PaidAmount.ToString("C")</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between mt-1">
-                                            <span class="text-muted">Due</span>
-                                            <span class="text-danger fw-semibold">@_viewOrder.DueAmount.ToString("C")</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        @if (!string.IsNullOrWhiteSpace(_viewOrder.Notes))
-                        {
-                            <MudField Label="Notes" Class="mt-3">@_viewOrder.Notes</MudField>
-                        }
-
-                        <div class="d-flex gap-2 mt-4">
-                            @if (_viewOrder.Status == OrderStatus.Pending)
-                            {
-                                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle"
-                                           OnClick="@(() => ApproveAndRefresh(_viewOrder.Id))">Approve</MudButton>
-                            }
-                            @if (_viewOrder.Status != OrderStatus.Cancelled && _viewOrder.Status != OrderStatus.Delivered)
-                            {
-                                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
-                                           OnClick="@(() => SwitchToEdit(_viewOrder))">Edit</MudButton>
-                                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel"
-                                           OnClick="@(() => CancelFromDrawer(_viewOrder.Id))">Cancel Order</MudButton>
-                            }
-                        </div>
-                    }
-                }
-
+                </div>
             </div>
-        </MudDrawer>
 
-        <style>
-            .info-card {
-                border: 1px solid #dee2e6;
-                border-radius: 12px;
-                padding: 20px;
-                background: #fff;
+            @if (!string.IsNullOrWhiteSpace(_viewOrder.Notes))
+            {
+                <MudField Label="Notes" Class="mt-3">@_viewOrder.Notes</MudField>
             }
 
-            .summary-card {
-                border: 1px solid #dee2e6;
-                border-radius: 12px;
-                padding: 20px;
-                background: #fff;
-            }
+            <div class="d-flex gap-2 mt-4">
+                @if (_viewOrder.Status == OrderStatus.Pending)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle"
+                               OnClick="@(() => ApproveAndRefresh(_viewOrder.Id))">Approve</MudButton>
+                }
+                @if (_viewOrder.Status != OrderStatus.Cancelled && _viewOrder.Status != OrderStatus.Delivered)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="@(() => SwitchToEdit(_viewOrder))">Edit</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel"
+                               OnClick="@(() => CancelFromDrawer(_viewOrder.Id))">Cancel Order</MudButton>
+                }
+            </div>
+        </div>
+    }
 
-            .summary-item {
-                display: flex;
-                justify-content: space-between;
-                padding: 8px 0;
-                border-bottom: 1px solid #e9ecef;
-                font-size: .9rem;
-            }
-        </style>
+</TmSlideDrawer>
 
 @code {
     // ─── List state ───
