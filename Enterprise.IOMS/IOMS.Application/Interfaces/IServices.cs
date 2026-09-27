@@ -99,6 +99,7 @@ public interface IShippingService
     Task<Guid> CreateShipment(CreateShipmentDto dto);
     Task UpdateShipmentStatus(Guid id, ShipmentStatus status);
     Task<PagedResult<ShipmentDto>> GetShipments(string? search, int page, int pageSize);
+    Task<PagedResult<DeliveryNoteDto>> GetDeliveryNotesPagedAsync(string? search, int page, int pageSize);
 }
 
 public interface IDashboardService
@@ -271,7 +272,8 @@ public interface IArchivalService
 
 public interface IProductService
 {
-    Task<PagedResult<ProductDto>> GetProductsAsync(string? search, Guid? categoryId, int page, int pageSize);
+    //Task<PagedResult<ProductDto>> GetProductsAsync(string? search, Guid? categoryId, int page, int pageSize);
+    Task<PagedResultNew<ProductDto>> GetProductsAsync(ProductPagedRequest request);
     Task<ProductDto?> GetProductByIdAsync(Guid id);
     Task<ProductDetailsDto?> GetProductDetailsByIdAsync(Guid id);
     Task<Guid> CreateProductAsync(ProductDetailsDto dto);

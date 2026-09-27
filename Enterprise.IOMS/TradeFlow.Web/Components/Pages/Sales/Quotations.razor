@@ -245,7 +245,7 @@
         _loading = true;
         try
         {
-            var result = await QuotationService.GetSalesQuotes(_search, _statusFilter, 1, 500);
+            var result = await QuotationService.GetSalesQuotes(_search, _statusFilter, _page, _pageSize);
             _quotes = result.Items;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

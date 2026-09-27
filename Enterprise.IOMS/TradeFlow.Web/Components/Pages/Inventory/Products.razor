@@ -93,51 +93,54 @@
     </div>
 
     <!-- Stats -->
-    <div class="tm-stats">
-        <div class="tm-stat tm-s-blue" @onclick="() => FilterByStatus(null)">
-            <div class="tm-stat-ico">📦</div>
-            <div><div class="tm-stat-num">@_totalCount</div><div class="tm-stat-label">Products</div></div>
-            <div class="tm-stat-arrow">›</div>
-        </div>
-        <div class="tm-stat tm-s-green" @onclick="() => FilterByStatus(StockFilter.InStock)">
-            <div class="tm-stat-ico">✔</div>
-            <div><div class="tm-stat-num">@_inStockCount</div><div class="tm-stat-label">In Stock</div></div>
-            <div class="tm-stat-arrow">›</div>
-        </div>
-        <div class="tm-stat tm-s-yellow" @onclick="() => FilterByStatus(StockFilter.LowStock)">
-            <div class="tm-stat-ico">⚠</div>
-            <div><div class="tm-stat-num">@_lowStockCount</div><div class="tm-stat-label">Low Stock</div></div>
-            <div class="tm-stat-arrow">›</div>
-        </div>
-        <div class="tm-stat tm-s-purple" @onclick="ClearFilterAndFocusCategory">
-            <div class="tm-stat-ico">🏷</div>
-            <div><div class="tm-stat-num">@_categoryCount</div><div class="tm-stat-label">Categories</div></div>
-            <div class="tm-stat-arrow">›</div>
-        </div>
-        <div class="tm-stat tm-s-red" @onclick="() => FilterByStatus(StockFilter.OutOfStock)">
-            <div class="tm-stat-ico">⛔</div>
-            <div><div class="tm-stat-num">@_outOfStockCount</div><div class="tm-stat-label">Out of Stock</div></div>
-            <div class="tm-stat-arrow">›</div>
-        </div>
-        <div class="tm-stat tm-s-teal" @onclick="ClearFilterAndFocusBrand">
-            <div class="tm-stat-ico">🔧</div>
-            <div><div class="tm-stat-num">@_brandCount</div><div class="tm-stat-label">Brands</div></div>
-            <div class="tm-stat-arrow">›</div>
-        </div>
-    </div>
+    @if (pagedResultNew.Stats != null && (pagedResultNew.Stats.Count > 0))
+    {
+        <div class="tm-stats">
+            <div class="tm-stat tm-s-blue" @onclick="() => FilterByStatus(null)">
+                <div class="tm-stat-ico">📦</div>
+                <div><div class="tm-stat-num">@pagedResultNew.Stats["TotalCount"]</div><div class="tm-stat-label">Products</div></div>
+                            <div class="tm-stat-arrow">›</div>
+                        </div>
+                        <div class="tm-stat tm-s-green" @onclick="() => FilterByStatus(StockFilter.InStock)">
+                            <div class="tm-stat-ico">✔</div>
+                            <div><div class="tm-stat-num">@pagedResultNew.Stats["InStockCount"]</div><div class="tm-stat-label">In Stock</div></div>
+                            <div class="tm-stat-arrow">›</div>
+                        </div>
+                        <div class="tm-stat tm-s-yellow" @onclick="() => FilterByStatus(StockFilter.LowStock)">
+                            <div class="tm-stat-ico">⚠</div>
+                            <div><div class="tm-stat-num">@pagedResultNew.Stats["LowStockCount"]</div><div class="tm-stat-label">Low Stock</div></div>
+                            <div class="tm-stat-arrow">›</div>
+                        </div>      
+                        <div class="tm-stat tm-s-red" @onclick="() => FilterByStatus(StockFilter.OutOfStock)">
+                            <div class="tm-stat-ico">⛔</div>
+                            <div><div class="tm-stat-num">@pagedResultNew.Stats["OutOfStockCount"]</div><div class="tm-stat-label">Out of Stock</div></div>
+                            <div class="tm-stat-arrow">›</div>
+                        </div>  
+                        <div class="tm-stat tm-s-purple" @onclick="ClearFilterAndFocusCategory">
+                            <div class="tm-stat-ico">🏷</div>
+                            <div><div class="tm-stat-num">@_categories.Count()</div><div class="tm-stat-label">Categories</div></div>
+                            <div class="tm-stat-arrow">›</div>
+                        </div>
+                        <div class="tm-stat tm-s-teal" @onclick="ClearFilterAndFocusBrand">
+                            <div class="tm-stat-ico">🔧</div>
+                            <div><div class="tm-stat-num">@_brands.Count()</div><div class="tm-stat-label">Brands</div></div>
+                            <div class="tm-stat-arrow">›</div>
+                        </div>
+                    </div>
+    }
 
     <!-- Filters -->
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search products by name, SKU, barcode..." value="@_searchString" @oninput="OnSearchInput" />
+            <input placeholder="Search products by name, SKU, barcode..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
             <select @onchange="OnCategoryChanged">
                 <option value="">All Categories</option>
                 @foreach (var c in _categories)
                 {
-                    <option value="@c.Id" selected="@(_selectedCategoryId == c.Id)">@c.Name</option>
+                    <option value="@c.Id" selected="@(pagedRequest.CategoryId == c.Id)">@c.Name</option>
                 }
             </select>
         </div>
@@ -146,16 +149,16 @@
                 <option value="">All Brands</option>
                 @foreach (var b in _brands)
                 {
-                    <option value="@b.Id" selected="@(_selectedBrandId == b.Id)">@b.Name</option>
+                    <option value="@b.Id" selected="@(pagedRequest.BrandId == b.Id)">@b.Name</option>
                 }
             </select>
         </div>
         <div class="tm-select">
             <select @onchange="OnStockStatusChanged">
                 <option value="">All Status</option>
-                <option value="InStock" selected="@(_stockStatus == "InStock")">In Stock</option>
-                <option value="LowStock" selected="@(_stockStatus == "LowStock")">Low Stock</option>
-                <option value="OutOfStock" selected="@(_stockStatus == "OutOfStock")">Out of Stock</option>
+                <option value="StockFilter.InStock" selected="@(pagedRequest.Status == StockFilter.InStock)">In Stock</option>
+                <option value="StockFilter.LowStock" selected="@(pagedRequest.Status == StockFilter.LowStock)">Low Stock</option>
+                <option value="StockFilter.OutOfStock" selected="@(pagedRequest.Status == StockFilter.OutOfStock)"> Out of Stock</option>
             </select>
         </div>
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
@@ -187,13 +190,13 @@
                     {
                         <tr><td colspan="13"><div class="tm-loading">Loading products...</div></td></tr>
                     }
-                    else if (_products.Count == 0)
+                    else if (pagedResultNew.Items.Count == 0)
                     {
                         <tr><td colspan="13"><div class="tm-loading">No products found</div></td></tr>
                     }
                     else
                     {
-                        @foreach (var p in _products)
+                        @foreach (var p in pagedResultNew.Items)
                         {
                             var status = GetStockStatus(p);
                             var pill = status == "In Stock" ? "tm-pill tm-pill-green" : status == "Low Stock" ? "tm-pill tm-pill-amber" : "tm-pill tm-pill-red";
@@ -226,8 +229,12 @@
                 </tbody>
             </table>
         </div>
+         <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <PaginationFooter CurrentPage="pagedResultNew.CurrentPage" PageSize="pagedResultNew.PageSize" TotalCount="pagedResultNew.TotalCount" TotalPages="pagedResultNew.TotalPages" ItemLabel="trucks" OnGoToPage="GoFirstPage" OnPrev="GoPrevPage" OnNext="GoNextPage" OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
+
         <div class="tm-footer">
-            <span>Showing @(_totalCount == 0 ? 0 : ((_page - 1) * _pageSize + 1)) to @(Math.Min(_page * _pageSize, _totalCount)) of @_totalCount products</span>
+            @* <span>Showing @(_totalCount == 0 ? 0 : ((_currentPage - 1) * _pageSize + 1)) to @(Math.Min(_currentPage * _pageSize, _totalCount)) of @_totalCount products</span>
             <span class="tm-pager">
                 <span>Rows per page:</span>
                 <select class="tm-rows-select" @onchange="OnPageSizeSelectChanged">
@@ -236,47 +243,65 @@
                     <option value="50" selected="@(_pageSize == 50)">50</option>
                     <option value="100" selected="@(_pageSize == 100)">100</option>
                 </select>
-                <button class="tm-page-btn" disabled="@(_page <= 1)" @onclick="GoFirst">|◀</button>
-                <button class="tm-page-btn" disabled="@(_page <= 1)" @onclick="GoPrev">‹</button>
+                <button class="tm-page-btn" disabled="@(_currentPage <= 1)" @onclick="GoFirstPage">|◀</button>
+                <button class="tm-page-btn" disabled="@(_currentPage <= 1)" @onclick="GoPrevPage">‹</button>
                 @foreach (var pg in GetPageNumbers())
                 {
-                    var isActive = pg == _page;
+                    var isActive = pg == _currentPage;
                     <button class="tm-page-btn @(isActive ? "active" : "")" @onclick="() => OnPageChanged(pg)">@pg</button>
                 }
-                <button class="tm-page-btn" disabled="@(_page >= _totalPages)" @onclick="GoNext">›</button>
-                <button class="tm-page-btn" disabled="@(_page >= _totalPages)" @onclick="GoLast">▶|</button>
-            </span>
+                <button class="tm-page-btn" disabled="@(_currentPage >= _totalPages)" @onclick="GoNextPage">›</button>
+                <button class="tm-page-btn" disabled="@(_currentPage >= _totalPages)" @onclick="GoLastPage">▶|</button>
+            </span> *@
         </div>
     </div>
 </div>
 
 @code {
-    private enum StockFilter { InStock, LowStock, OutOfStock }
-
-    private List<ProductDto> _products = new();
+    
+    //private List<ProductDto> _products = new();
     private List<ProductDto> _statsCache = new();
     private List<CategoryDto> _categories = new();
     private List<BrandDto> _brands = new();
-    private string _searchString = "";
-    private Guid? _selectedCategoryId;
-    private Guid? _selectedBrandId;
-    private string _stockStatus = "";
-    private int _page = 1;
-    private int _pageSize = 10;
-    private int _totalPages = 1;
-    private int _totalCount = 0;
-    private bool _loading = true;
-    private int _inStockCount = 0;
-    private int _lowStockCount = 0;
-    private int _outOfStockCount = 0;
-    private int _categoryCount = 0;
-    private int _brandCount = 0;
     private System.Timers.Timer? _debounce;
+     
+     // private string _searchString = "";
+    // private Guid? _selectedCategoryId;
+    // private Guid? _selectedBrandId;
+    // private string _stockStatus = "";
+    // private int _currentPage = 0;
+    // private int _pageSize = 10;
+    // private int _totalPages = 1;
+     private int _totalCount = 0;
+    // private bool _loading = true;
+     private int _inStockCount = 0;
+     private int _lowStockCount = 0;
+     private int _outOfStockCount = 0;
+     private int _categoryCount = 0;
+    // private int _brandCount = 0;
+    
+    // string _sortColumn = "VehicleName";
+    // bool _sortAsc = true;
+
+    private PagedResultNew<ProductDto> pagedResultNew = new();
+    private ProductPagedRequest pagedRequest = new();    
+
+    private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        try { _categories = await ProductService.GetAllCategoriesAsync(); _categoryCount = _categories.Count; } catch { }
-        try { _brands = await ProductService.GetAllBrandsAsync(); _brandCount = _brands.Count; } catch { }
+        try
+        {
+            _categories = await ProductService.GetAllCategoriesAsync();
+            //_categoryCount = _categories.Count; 
+        }
+        catch { }
+        try
+        {
+            _brands = await ProductService.GetAllBrandsAsync();
+            //_brandCount = _brands.Count;
+        }
+        catch { }
         await LoadProducts();
         await LoadStatsAsync();
     }
@@ -302,19 +327,43 @@
         _loading = true;
         try
         {
-            var result = await ProductService.GetProductsAsync(_searchString, _selectedCategoryId, _page, _pageSize);
-            var items = result.Items.AsEnumerable();
-            if (_selectedBrandId.HasValue)
-                items = items.Where(x => x.BrandId == _selectedBrandId.Value);
-            if (_stockStatus == "InStock")
-                items = items.Where(x => x.TotalStock > x.ReorderStockLevel && x.TotalStock > 0);
-            else if (_stockStatus == "LowStock")
-                items = items.Where(x => x.TotalStock > 0 && x.TotalStock <= x.ReorderStockLevel);
-            else if (_stockStatus == "OutOfStock")
-                items = items.Where(x => x.TotalStock <= 0);
-            _products = items.ToList();
-            _totalCount = result.TotalCount;
-            _totalPages = Math.Max(1, result.TotalPages);
+            // var result = await ProductService.GetProductsAsync(_searchString, _selectedCategoryId, _page, _pageSize);
+            // var items = result.Items.AsEnumerable();
+            // if (_selectedBrandId.HasValue)
+            //     items = items.Where(x => x.BrandId == _selectedBrandId.Value);
+            // if (_stockStatus == "InStock")
+            //     items = items.Where(x => x.TotalStock > x.ReorderStockLevel && x.TotalStock > 0);
+            // else if (_stockStatus == "LowStock")
+            //     items = items.Where(x => x.TotalStock > 0 && x.TotalStock <= x.ReorderStockLevel);
+            // else if (_stockStatus == "OutOfStock")
+            //     items = items.Where(x => x.TotalStock <= 0);
+            // _products = items.ToList();
+            // _totalCount = result.TotalCount;
+            // _totalPages = Math.Max(1, result.TotalPages);
+
+
+            // pagedResultNew = await ProductService.GetProductsAsync(new ProductPagedRequest
+            // {
+            //     //TenantId = 1,
+            //     SearchTerm = _searchString,
+            //     //Status = _selectedStatus,
+            //     CategoryId = _selectedCategoryId,
+            //     BrandId = _selectedBrandId,
+            //    // SortColumn = _sortColumn,
+            //    // SortAscending = _sortAsc,
+            //     Page = _currentPage,
+            //     PageSize = _pageSize
+            // });
+            
+            pagedResultNew = await ProductService.GetProductsAsync(pagedRequest);
+            
+            //_products = result1.Items;
+            //_totalCount = result1.TotalCount;
+            //_totalPages = result1.TotalPages;
+           // _stats = result.Stats ?? new Dictionary<string, int>();
+
+
+
         }
         catch (Exception ex)
         {
@@ -327,31 +376,44 @@
     {
         try
         {
-            var all = await ProductService.GetProductsAsync("", null, 1, 10000);
-            _statsCache = all.Items;
-            _totalCount = _totalCount == 0 ? all.TotalCount : _totalCount;
-            _inStockCount = _statsCache.Count(x => x.TotalStock > x.ReorderStockLevel && x.TotalStock > 0);
-            _lowStockCount = _statsCache.Count(x => x.TotalStock > 0 && x.TotalStock <= x.ReorderStockLevel);
-            _outOfStockCount = _statsCache.Count(x => x.TotalStock <= 0);
-            if (_inStockCount + _lowStockCount + _outOfStockCount == 0 && _totalCount > 0)
-            {
-                _inStockCount = (int)(_totalCount * 0.2);
-                _lowStockCount = (int)(_totalCount * 0.2);
-                _outOfStockCount = (int)(_totalCount * 0.2);
-            }
+            // var all = await ProductService.GetProductsAsync(new ProductPagedRequest
+            // {
+            //     TenantId = 1,
+            //     SearchTerm = "",
+            //     Status = _selectedStatus,
+            //     CategoryId = Guid.Empty,
+            //     BrandId = Guid.Empty,
+            //     SortColumn = _sortColumn,
+            //     SortAscending = _sortAsc,
+            //     CurrentPage = 0,
+            //     PageSize = 100000
+            // });
+
+           //  _statsCache = all.Items;
+
+           // _totalCount = _totalCount == 0 ? all.TotalCount : _totalCount;
+           // _inStockCount = _statsCache.Count(x => x.TotalStock > x.ReorderStockLevel && x.TotalStock > 0);
+           // _lowStockCount = _statsCache.Count(x => x.TotalStock > 0 && x.TotalStock <= x.ReorderStockLevel);
+           //  _outOfStockCount = _statsCache.Count(x => x.TotalStock <= 0);
+           //  if (_inStockCount + _lowStockCount + _outOfStockCount == 0 && _totalCount > 0)
+           //  {
+           //     _inStockCount = (int)(_totalCount * 0.2);
+           //     _lowStockCount = (int)(_totalCount * 0.2);
+           //     _outOfStockCount = (int)(_totalCount * 0.2);
+           //  }
         }
         catch { }
     }
 
     private void OnSearchInput(ChangeEventArgs e)
     {
-        _searchString = e.Value?.ToString() ?? "";
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
         _debounce?.Stop();
         _debounce?.Dispose();
         _debounce = new System.Timers.Timer(400) { AutoReset = false };
         _debounce.Elapsed += async (_, __) =>
         {
-            _page = 1;
+                               pagedRequest.CurrentPage = 0;
             await InvokeAsync(async () => { await LoadProducts(); StateHasChanged(); });
         };
         _debounce.Start();
@@ -360,30 +422,30 @@
     private async Task OnCategoryChanged(ChangeEventArgs e)
     {
         var v = e.Value?.ToString();
-        _selectedCategoryId = string.IsNullOrEmpty(v) ? null : Guid.Parse(v);
-        _page = 1;
+        pagedRequest.CategoryId = string.IsNullOrEmpty(v) ? Guid.Empty : Guid.Parse(v);
+        pagedRequest.CurrentPage = 0;
         await LoadProducts();
     }
 
     private async Task OnBrandChanged(ChangeEventArgs e)
     {
         var v = e.Value?.ToString();
-        _selectedBrandId = string.IsNullOrEmpty(v) ? null : Guid.Parse(v);
-        _page = 1;
+        pagedRequest.BrandId = string.IsNullOrEmpty(v) ? Guid.Empty : Guid.Parse(v);
+        pagedRequest.CurrentPage = 0;
         await LoadProducts();
     }
 
     private async Task OnStockStatusChanged(ChangeEventArgs e)
     {
-        _stockStatus = e.Value?.ToString() ?? "";
-        _page = 1;
+        pagedRequest.Status = Enum.TryParse<StockFilter>(e.Value?.ToString(), out var status) ? status : null;
+        pagedRequest.CurrentPage = 0;
         await LoadProducts();
     }
 
     private async Task FilterByStatus(StockFilter? f)
     {
-        _stockStatus = f == null ? "" : f == StockFilter.InStock ? "InStock" : f == StockFilter.LowStock ? "LowStock" : "OutOfStock";
-        _page = 1;
+        pagedRequest.Status = f == null ? null : f;
+        pagedRequest.CurrentPage = 0;
         await LoadProducts();
         StateHasChanged();
     }
@@ -393,29 +455,37 @@
 
     private async Task ResetFilters()
     {
-        _searchString = "";
-        _selectedCategoryId = null;
-        _selectedBrandId = null;
-        _stockStatus = "";
-        _page = 1;
+        pagedRequest.SearchTerm = "";
+        pagedRequest.CategoryId = null;
+        pagedRequest.BrandId = null;
+        pagedRequest.Status = null;
+        pagedRequest.CurrentPage = 0;
         await LoadProducts();
     }
 
-    private async Task OnPageChanged(int page) { _page = page; await LoadProducts(); }
-    private async Task GoFirst() { if (_page > 1) { _page = 1; await LoadProducts(); } }
-    private async Task GoPrev() { if (_page > 1) { _page--; await LoadProducts(); } }
-    private async Task GoNext() { if (_page < _totalPages) { _page++; await LoadProducts(); } }
-    private async Task GoLast() { if (_page < _totalPages) { _page = _totalPages; await LoadProducts(); } }
+    //    private async Task GoToPage(int page) { pagedRequest.CurrentPage = Math.Clamp(page, 0, pagedResultNew.TotalPages - 1); await LoadProducts(); }
+    // private async Task PrevPage() { if (pagedRequest.CurrentPage > 0) { pagedRequest.CurrentPage--; await LoadProducts(); } }
+    // private async Task NextPage() { if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1) { pagedRequest.CurrentPage++; await LoadProducts(); } }
+    // private async Task OnPageSizeChanged(ChangeEventArgs e)
+    // {
+    //     if (int.TryParse(e.Value?.ToString(), out var ps)) { _pageSize = ps; _currentPage = 0; await LoadTrucks(); }
+    // }
 
-    private async Task OnPageSizeSelectChanged(ChangeEventArgs e)
+    private async Task OnPageChanged(int page) { pagedRequest.CurrentPage = page; await LoadProducts(); }
+    private async Task GoFirstPage() { if (pagedRequest.CurrentPage > 0) { pagedRequest.CurrentPage = 0; await LoadProducts(); } }
+    private async Task GoPrevPage() { if (pagedRequest.CurrentPage > 0) { pagedRequest.CurrentPage--; await LoadProducts(); } }
+    private async Task GoNextPage() { if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1) { pagedRequest.CurrentPage++; await LoadProducts(); } }
+    private async Task GoLastPage() { if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1) { pagedRequest.CurrentPage = pagedResultNew.TotalPages - 1; await LoadProducts(); } }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
     {
-        if (int.TryParse(e.Value?.ToString(), out var sz)) { _pageSize = sz; _page = 1; await LoadProducts(); }
+        if (int.TryParse(e.Value?.ToString(), out var sz)) { pagedRequest.PageSize = sz; pagedRequest.CurrentPage = 0; await LoadProducts(); }
     }
 
     private IEnumerable<int> GetPageNumbers()
     {
-        var start = Math.Max(1, Math.Min(_page - 1, Math.Max(1, _totalPages - 3)));
-        var end = Math.Min(_totalPages, start + 3);
+        var start = Math.Max(1, Math.Min(pagedRequest.CurrentPage - 1, Math.Max(1, pagedResultNew.TotalPages - 3)));
+        var end = Math.Min(pagedResultNew.TotalPages, start + 3);
         for (var i = start; i <= end; i++) yield return i;
     }
 

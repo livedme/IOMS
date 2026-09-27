@@ -127,7 +127,7 @@
         _loading = true;
         try
         {
-            var result = await StocktakeService.GetStocktakes(null, 1, 500);
+            var result = await StocktakeService.GetStocktakes(null, _page, _pageSize);
             _all = result.Items;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

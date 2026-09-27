@@ -222,7 +222,7 @@
         _loading = true;
         try
         {
-            var result = await SalesReturnService.GetSalesReturns(null, null, 1, 500);
+            var result = await SalesReturnService.GetSalesReturns(null, null, _page, _pageSize);
             _returns = result.Items;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

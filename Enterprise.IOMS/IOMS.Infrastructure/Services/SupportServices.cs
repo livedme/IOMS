@@ -1,4 +1,5 @@
 using AutoMapper;
+using Azure.Core;
 using IOMS.Application.DTOs;
 using IOMS.Application.Interfaces;
 using IOMS.Domain.Entities;
@@ -6,8 +7,8 @@ using IOMS.Domain.Enums;
 using IOMS.Domain.Exceptions;
 using IOMS.Infrastructure.Data;
 using IOMS.Shared.Helpers;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace IOMS.Infrastructure.Services;
 
@@ -515,7 +516,35 @@ public class ShippingService : IShippingService
                 s.ShipDate, s.ActualDelivery, s.Status))
             .ToListAsync();
 
+
+        //var statsQuery = _context.Shipments.IgnoreQueryFilters().AsNoTracking().Where(t => !t.IsDeleted).AsQueryable();
+        //if (request.TenantId.HasValue && request.TenantId.Value != 0)
+        //    statsQuery = statsQuery.Where(t => t.TenantId == request.TenantId.Value);
+        //var statusGroups = await statsQuery.GroupBy(t => t.Status).Select(g => new { Status = g.Key.ToString(), Count = g.Count() }).ToListAsync();
+        //var stats = statusGroups.ToDictionary(x => x.Status, x => x.Count);
+        //stats["All"] = await statsQuery.CountAsync();
+
+
+       
         return new PagedResult<ShipmentDto>(items, total, page, pageSize);
+    }
+
+    public async Task<PagedResult<DeliveryNoteDto>> GetDeliveryNotesPagedAsync(string? search, int page, int pageSize)
+    {
+        var query = _context.DeliveryNotes.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(d => d.DeliveryNoteNumber.Contains(search)
+                || d.SalesOrder.OrderNumber.Contains(search));
+
+        var total = await query.CountAsync();
+        var items = await query.OrderByDescending(d => d.Date)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(d => new DeliveryNoteDto(d.Id, d.DeliveryNoteNumber, d.SalesOrderId,
+                d.SalesOrder.OrderNumber, d.Date, d.ShippedBy, d.TrackingNumber))
+            .ToListAsync();
+
+        return new PagedResult<DeliveryNoteDto>(items, total, page, pageSize);
     }
 }
 

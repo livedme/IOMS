@@ -1,0 +1,73 @@
+@* Shared pagination footer — matches DriversPage.razor pagination (lines 216-241) *@
+<div class="pagination-footer">
+    <span>Showing @GetShowingText()</span>
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:12px;">Rows per page:</span>
+            <select class="rows-select" value="@PageSize" @onchange="HandlePageSizeChanged">                
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+        <div style="display:flex; align-items:center; gap:4px;">
+            <button class="page-btn" title="First page" @onclick="() => OnGoToPage.InvokeAsync(0)" disabled="@(CurrentPage == 0)">
+                <MudIcon Icon="@Icons.Material.Filled.FirstPage" Size="Size.Small" />
+            </button>
+            <button class="page-btn" title="Previous page" @onclick="() => OnPrev.InvokeAsync()" disabled="@(CurrentPage == 0)">
+                <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" />
+            </button>
+            @{
+                var visible = GetVisiblePages();
+                @for (int i = visible.start; i < visible.end; i++)
+                {
+                    var pageIndex = i;
+                    <button class="page-btn @(pageIndex == CurrentPage ? "active" : "")" @onclick="() => OnGoToPage.InvokeAsync(pageIndex)">@(pageIndex + 1)</button>
+                }
+            }
+            <button class="page-btn" title="Next page" @onclick="() => OnNext.InvokeAsync()" disabled="@(CurrentPage >= TotalPages - 1)">
+                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+            </button>
+            <button class="page-btn" title="Last page" @onclick="() => OnGoToPage.InvokeAsync(TotalPages - 1)" disabled="@(CurrentPage >= TotalPages - 1 || TotalPages <= 1)">
+                <MudIcon Icon="@Icons.Material.Filled.LastPage" Size="Size.Small" />
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int CurrentPage { get; set; }
+    [Parameter] public int PageSize { get; set; } = 10;
+    [Parameter] public int TotalCount { get; set; }
+    [Parameter] public int TotalPages { get; set; } = 1;
+    /// <summary>Label used in showing text, e.g. "drivers", "trucks", "roles". Matches DriversPage GetShowingText().</summary>
+    [Parameter] public string ItemLabel { get; set; } = "items";
+
+    [Parameter] public EventCallback<int> OnGoToPage { get; set; }
+    [Parameter] public EventCallback OnPrev { get; set; }
+    [Parameter] public EventCallback OnNext { get; set; }
+    [Parameter] public EventCallback<ChangeEventArgs> OnPageSizeChanged { get; set; }
+
+    private Task HandlePageSizeChanged(ChangeEventArgs e) => OnPageSizeChanged.InvokeAsync(e);
+
+    // Image 1 style: only 3-4 page buttons visible at once, rest accessible via < > navigation
+    // Image 2 showed 44 buttons; Image 1 shows < 1 2 > on one line with Rows per page
+    private const int MaxVisiblePages = 4;
+    private (int start, int end) GetVisiblePages()
+    {
+        if (TotalPages <= MaxVisiblePages) return (0, TotalPages);
+        int start = CurrentPage - MaxVisiblePages / 2;
+        start = Math.Max(0, Math.Min(start, TotalPages - MaxVisiblePages));
+        int end = start + MaxVisiblePages;
+        return (start, end);
+    }
+
+    private string GetShowingText()
+    {
+        if (TotalCount == 0) return $"0 {ItemLabel}";
+        var start = CurrentPage * PageSize + 1;
+        var end = Math.Min((CurrentPage + 1) * PageSize, TotalCount);
+        return $"{start} to {end} of {TotalCount} {ItemLabel}";
+    }
+}
