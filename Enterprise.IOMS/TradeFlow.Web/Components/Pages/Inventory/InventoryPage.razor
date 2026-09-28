@@ -1,4 +1,4 @@
-﻿@page "/inventory"
+@page "/inventory"
 @rendermode InteractiveServer
 @inject IInventoryService InventoryService
 @inject ISnackbar Snackbar
@@ -67,7 +67,7 @@
                     <tbody>
                         @if (_loading)
                         {
-                            <tr><td colspan="6"><div class="tm-loading">Loading alerts...</div></td></tr>
+                            <tr><td colspan="6"><TmLoading Message="Loading alerts..." /></td></tr>
                         }
                         else if (FilteredAlerts.Count == 0)
                         {
@@ -117,7 +117,7 @@
                     <tbody>
                         @if (_loading)
                         {
-                            <tr><td colspan="8"><div class="tm-loading">Loading stock...</div></td></tr>
+                            <tr><td colspan="8"><TmLoading Message="Loading stock..." /></td></tr>
                         }
                         else if (FilteredInventory.Count == 0)
                         {

@@ -894,6 +894,38 @@ table.tm-table {
     text-align: center;
     color: #6b7280;
     font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.tm-spinner {
+    display: inline-block;
+    width: 26px;
+    height: 26px;
+    border: 3px solid #dbe3f0;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: tm-spin .7s linear infinite;
+}
+
+.tm-spinner-sm {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+}
+
+@keyframes tm-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tm-spinner {
+        animation-duration: 2.4s;
+    }
 }
 
 /* Map the same look onto every MudBlazor table so all list pages match */

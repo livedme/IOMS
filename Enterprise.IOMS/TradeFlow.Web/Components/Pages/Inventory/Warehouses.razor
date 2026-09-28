@@ -55,7 +55,7 @@
                 <tbody>
                     @if (_loading)
                     {
-                        <tr><td colspan="6"><div class="tm-loading">Loading warehouses...</div></td></tr>
+                        <tr><td colspan="6"><TmLoading Message="Loading warehouses..." /></td></tr>
                     }
                     else if (Paged.Count == 0)
                     {

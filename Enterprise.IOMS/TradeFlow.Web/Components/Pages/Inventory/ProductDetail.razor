@@ -80,12 +80,12 @@
     .tm-pill-gray { background: #f3f4f6; color: #4b5563; border-color: #e5e7eb; } .tm-pill-gray .tm-dot { background: #9ca3af; }
     .tm-strong { font-weight: 700; color: #111827; } .tm-green { color: #16a34a; font-weight: 700; } .tm-red { color: #dc2626; font-weight: 700; }
     .tm-bottom { display: flex; gap: 10px; padding: 12px 2px 0 2px; }
-    .tm-loading { padding: 30px; text-align: center; color: #6b7280; font-size: 13px; }
+    .tm-loading { padding: 30px; text-align: center; color: #6b7280; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 </style>
 
 @if (_loading)
 {
-    <div class="tm-page"><div class="tm-card"><div class="tm-loading">Loading product...</div></div></div>
+    <div class="tm-page"><div class="tm-card"><TmLoading Message="Loading product..." /></div></div>
 }
 else if (_product == null)
 {

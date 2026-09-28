@@ -62,7 +62,7 @@
                 <tbody>
                     @if (_loading)
                     {
-                        <tr><td colspan="8"><div class="tm-loading">Loading sales...</div></td></tr>
+                        <tr><td colspan="8"><TmLoading Message="Loading sales..." /></td></tr>
                     }
                     else if (_orders.Items.Count == 0)
                     {

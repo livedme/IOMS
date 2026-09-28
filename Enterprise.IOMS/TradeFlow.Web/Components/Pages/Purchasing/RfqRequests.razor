@@ -58,7 +58,7 @@
                 <tbody>
                     @if (_loading)
                     {
-                        <tr><td colspan="7"><div class="tm-loading">Loading RFQs...</div></td></tr>
+                        <tr><td colspan="7"><TmLoading Message="Loading RFQs..." /></td></tr>
                     }
                     else if (_rfqs.Count == 0)
                     {

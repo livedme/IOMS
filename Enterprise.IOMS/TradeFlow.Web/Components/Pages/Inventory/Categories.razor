@@ -98,7 +98,7 @@
                 <tbody>
                     @if (_loading)
                     {
-                        <tr><td colspan="7"><div class="tm-loading">Loading categories...</div></td></tr>
+                        <tr><td colspan="7"><TmLoading Message="Loading categories..." /></td></tr>
                     }
                     else if (_categories.Count == 0)
                     {

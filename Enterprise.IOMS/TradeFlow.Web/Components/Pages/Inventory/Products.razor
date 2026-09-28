@@ -76,7 +76,7 @@
     .tm-page-btn { min-width: 30px; height: 30px; border: 1px solid #dfe3ea; background: #fff; border-radius: 6px; font-size: 12.5px; color: #374151; cursor: pointer; padding: 0 8px; }
     .tm-page-btn:disabled { opacity: .4; cursor: default; }
     .tm-page-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; font-weight: 700; }
-    .tm-loading { padding: 26px; text-align: center; color: #6b7280; font-size: 13px; }
+    .tm-loading { padding: 26px; text-align: center; color: #6b7280; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 </style>
 
 <div class="tm-page">
@@ -166,6 +166,13 @@
 
     <!-- Table -->
     <div class="tm-card tm-table-card">
+           @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading trucks...</MudText>
+            </div>
+        }
         <div class="tm-table-wrap">
             <table class="tm-table">
                 <thead>
@@ -186,14 +193,24 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (_loading)
+                     @if (!_hasLoadedOnce && _loading && !pagedResultNew.Items.Any())
                     {
-                        <tr><td colspan="13"><div class="tm-loading">Loading products...</div></td></tr>
+                        @* Initial skeleton — keeps table chrome visible on first load *@
+                        <tr><td colspan="13" style="text-align:center; padding:40px; color:#94a3b8;">Loading trucks...</td></tr>
                     }
-                    else if (pagedResultNew.Items.Count == 0)
+                    else if (!pagedResultNew.Items.Any())
                     {
-                        <tr><td colspan="13"><div class="tm-loading">No products found</div></td></tr>
-                    }
+                        <tr>
+                            <td colspan="13" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No trucks found — try a different search or filter</div>
+                                 @if (!string.IsNullOrWhiteSpace(pagedRequest.SearchTerm))
+                                { 
+                                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2">Clear filters</MudButton>
+                                }
+                            </td>
+                        </tr>
+                    }                    
                     else
                     {
                         @foreach (var p in pagedResultNew.Items)
@@ -258,28 +275,28 @@
 </div>
 
 @code {
-    
+
     //private List<ProductDto> _products = new();
     private List<ProductDto> _statsCache = new();
     private List<CategoryDto> _categories = new();
     private List<BrandDto> _brands = new();
     private System.Timers.Timer? _debounce;
-     
-     // private string _searchString = "";
+
+    // private string _searchString = "";
     // private Guid? _selectedCategoryId;
     // private Guid? _selectedBrandId;
     // private string _stockStatus = "";
     // private int _currentPage = 0;
     // private int _pageSize = 10;
     // private int _totalPages = 1;
-     private int _totalCount = 0;
+    private int _totalCount = 0;
     // private bool _loading = true;
-     private int _inStockCount = 0;
-     private int _lowStockCount = 0;
-     private int _outOfStockCount = 0;
-     private int _categoryCount = 0;
+    private int _inStockCount = 0;
+    private int _lowStockCount = 0;
+    private int _outOfStockCount = 0;
+    private int _categoryCount = 0;
     // private int _brandCount = 0;
-    
+
     // string _sortColumn = "VehicleName";
     // bool _sortAsc = true;
 
@@ -287,7 +304,7 @@
     private ProductPagedRequest pagedRequest = new();    
 
     private bool _loading = true;
-
+    bool _hasLoadedOnce = false;
     protected override async Task OnInitializedAsync()
     {
         try
@@ -354,15 +371,15 @@
             //     Page = _currentPage,
             //     PageSize = _pageSize
             // });
-            
+
             pagedResultNew = await ProductService.GetProductsAsync(pagedRequest);
-            
+
             //_products = result1.Items;
             //_totalCount = result1.TotalCount;
             //_totalPages = result1.TotalPages;
-           // _stats = result.Stats ?? new Dictionary<string, int>();
+            // _stats = result.Stats ?? new Dictionary<string, int>();
 
-
+            _hasLoadedOnce = true;
 
         }
         catch (Exception ex)
