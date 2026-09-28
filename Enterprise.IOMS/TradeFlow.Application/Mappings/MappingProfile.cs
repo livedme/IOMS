@@ -87,11 +87,46 @@ public class MappingProfile : Profile
 
         // Sales Order
         CreateMap<SalesOrder, SalesOrderDto>()
-            .ForMember(d => d.Branch, o => o.MapFrom(s => new BranchDto(s.BranchId ?? Guid.Empty, s.Branch.Name, s.Branch.Code, s.Branch.Location, s.Branch.Address, s.Branch.IsActive)));
+            .ConstructUsing((s, ctx) => new SalesOrderDto(
+                s.Id,
+                s.OrderNumber,
+                s.CustomerId,
+                ctx.Mapper.Map<CustomerDto>(s.Customer),
+                s.BranchId,
+                s.Branch != null
+                    ? new BranchDto(s.BranchId ?? Guid.Empty, s.Branch.Name, s.Branch.Code, s.Branch.Location, s.Branch.Address, s.Branch.IsActive)
+                    : null,
+                s.OrderDate,
+                s.Status,
+                s.Naration,
+                s.Chalan,
+                s.SubTotal,
+                s.TruckCharge,
+                s.LabourCharge,
+                s.TaxAmount,
+                s.DiscountAmount,
+                s.DiscountType,
+                s.TotalAmount,
+                s.PaidAmount,
+                s.DueAmount,
+                s.Notes,
+                s.ExchangeRate,
+                s.ExpectedDeliveryDate,
+                ctx.Mapper.Map<List<SalesOrderItemDto>>(s.Items)));
 
         CreateMap<SalesOrderItem, SalesOrderItemDto>()
-            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name))
-            .ForMember(d => d.ProductSKU, o => o.MapFrom(s => s.Product.SKU));
+            .ConstructUsing(s => new SalesOrderItemDto(
+                s.Id,
+                s.ProductId,
+                s.Product != null ? s.Product.Name : string.Empty,
+                s.Product != null ? s.Product.SKU : string.Empty,
+                s.Quantity,
+                s.ShippedQuantity,
+                s.UnitPrice,
+                s.DiscountAmount,
+                s.DiscountType,
+                s.TotalDiscount,
+                s.LineTotalPrice));
 
         // Purchase Order
         CreateMap<PurchaseOrder, PurchaseOrderDto>()

@@ -2,6 +2,7 @@ using TradeFlow.Application;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Infrastructure;
 using TradeFlow.Infrastructure.Data;
+using TradeFlow.Infrastructure.Identity;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -86,5 +87,17 @@ app.MapRazorComponents<App>()
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+
+// Optional volume seeding (20k sales + 20k purchase orders).
+// Enable with:  "Seed": { "VolumeData": true }  in appsettings.json
+//if (app.Configuration.GetValue<bool>("Seed:VolumeData"))
+//{
+    //var salesTarget = app.Configuration.GetValue("Seed:SalesOrders", VolumeDataSeeder.SalesOrderTarget);
+    //var purchaseTarget = app.Configuration.GetValue("Seed:PurchaseOrders", VolumeDataSeeder.PurchaseOrderTarget);
+    //var backfill = app.Configuration.GetValue("Seed:BackfillLineItems", true);
+
+    //using var scope = app.Services.CreateScope();
+    //await VolumeDataSeeder.SeedAsync(scope.ServiceProvider, Console.WriteLine, backfill, salesTarget, purchaseTarget);
+//}
 
 app.Run();

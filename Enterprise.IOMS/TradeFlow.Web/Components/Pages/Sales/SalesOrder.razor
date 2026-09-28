@@ -1,89 +1,143 @@
 @page "/orders/sales"
 @rendermode InteractiveServer
+@implements IDisposable
 @inject IOrderService OrderService
+@inject ICustomerService CustomerService
+@inject IProductService ProductService
+@inject IBranchService BranchService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject NavigationManager Nav
 @using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+
 
 <PageTitle>Sales - IOMS</PageTitle>
 
 <div class="tm-page">
     <TmPageHeader Icon="🛒" Title="Sales" Subtitle="Completed sales awaiting packing, dispatch and delivery">
         <Actions>
-            <button class="tm-reset" @onclick="LoadOrders">⟳ Refresh</button>
+            <button class="tm-reset" @onclick="Refresh">⟳ Refresh</button>
             <button class="tm-add-btn" @onclick="OpenCreate">+ New Sale</button>
         </Actions>
     </TmPageHeader>
 
+    @* ─── Stats ─── *@
     <div class="tm-stats">
-        <TmStatTile Icon="🛒" Number="@_totalCount" Label="Sales" Tone="blue" />
-        <TmStatTile Icon="💵" Number="@_soldCount" Label="Sold" Tone="purple" OnClick="@(() => PickStatus(OrderStatus.Sold))" />
-        <TmStatTile Icon="📦" Number="@_packedCount" Label="Packed" Tone="yellow" OnClick="@(() => PickStatus(OrderStatus.Packed))" />
-        <TmStatTile Icon="🚚" Number="@_shippedCount" Label="Shipped" Tone="teal" OnClick="@(() => PickStatus(OrderStatus.Shipped))" />
-        <TmStatTile Icon="✅" Number="@_deliveredCount" Label="Delivered" Tone="green" OnClick="@(() => PickStatus(OrderStatus.Delivered))" />
-        <TmStatTile Icon="💰" Number="@_pageValue" Label="Page Value" Tone="red" />
+        <TmStatTile Icon="🛒" Number="@TotalCountText" Label="Sales" Tone="blue" OnClick="@(() => FilterByStatus(null))" />
+        <TmStatTile Icon="💵" Number="@SoldCountText" Label="Sold" Tone="purple" OnClick="@(() => FilterByStatus(OrderStatus.Sold))" />
+        <TmStatTile Icon="📦" Number="@PackedCountText" Label="Packed" Tone="yellow" OnClick="@(() => FilterByStatus(OrderStatus.Packed))" />
+        <TmStatTile Icon="🚚" Number="@ShippedCountText" Label="Shipped" Tone="teal" OnClick="@(() => FilterByStatus(OrderStatus.Shipped))" />
+        <TmStatTile Icon="✅" Number="@DeliveredCountText" Label="Delivered" Tone="green" OnClick="@(() => FilterByStatus(OrderStatus.Delivered))" />
+        <TmStatTile Icon="💰" Number="@PageValueText" Label="Page Value" Tone="red" />
     </div>
 
+    @* ─── Filters ─── *@
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by order number or customer..." value="@_search" @oninput="OnSearchInput" />
+            <input placeholder="Search by order number, customer, chalan..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
-            <select @onchange="OnStatusChanged">
-                <option value="" selected="@(_statusFilter == null)">All Sales</option>
-                @foreach (var status in Enum.GetValues<OrderStatus>())
+            <select value="@(pagedRequest.CustomerId?.ToString() ?? "")" @onchange="OnCustomerChanged">
+                <option value="">All Customers</option>
+                @foreach (var c in _customers)
                 {
-                    if (OrderStatus.Pending == status || OrderStatus.Approved == status) continue;
-                    <option value="@status" selected="@(_statusFilter == status)">@status</option>
+                    <option value="@c.Id">@c.CustomerName</option>
                 }
             </select>
+        </div>
+        <div class="tm-select">
+            <select value="@(pagedRequest.BranchId?.ToString() ?? "")" @onchange="OnBranchChanged">
+                <option value="">All Branches</option>
+                @foreach (var b in _branches)
+                {
+                    <option value="@b.Id">@b.Name</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <select value="@(pagedRequest.Status?.ToString() ?? "")" @onchange="OnStatusChanged">
+                <option value="">All Status</option>
+                @foreach (var s in SalesStatuses)
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.From)" @onchange="OnFromChanged" title="From date" />
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.To)" @onchange="OnToChanged" title="To date" />
         </div>
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
+    @* ─── Table ─── *@
     <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading sales...</MudText>
+            </div>
+        }
         <div class="tm-table-wrap">
-            <table class="tm-table" style="min-width:1000px">
+            <table class="tm-table" style="min-width:1250px">
                 <thead>
                     <tr>
-                        <th>🧾 Order #</th>
-                        <th>👤 Customer</th>
-                        <th>🏬 Branch</th>
-                        <th>📅 Date</th>
-                        <th>Status</th>
-                        <th style="text-align:right">Total</th>
-                        <th style="text-align:right">Due</th>
+                        <th @onclick="@(() => SortBy(Col.OrderNumber))">🧾 Order # @SortIcon(Col.OrderNumber)</th>
+                        <th @onclick="@(() => SortBy(Col.OrderDate))">📅 Date @SortIcon(Col.OrderDate)</th>
+                        <th @onclick="@(() => SortBy(Col.Customer))">👤 Customer @SortIcon(Col.Customer)</th>
+                        <th @onclick="@(() => SortBy(Col.Branch))">🏬 Branch @SortIcon(Col.Branch)</th>
+                        <th style="text-align:right">Items</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.SubTotal))">Subtotal @SortIcon(Col.SubTotal)</th>
+                        <th style="text-align:right">Tax</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.TotalAmount))">Total @SortIcon(Col.TotalAmount)</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.PaidAmount))">Paid @SortIcon(Col.PaidAmount)</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.DueAmount))">Due @SortIcon(Col.DueAmount)</th>
+                        <th @onclick="@(() => SortBy(Col.Status))">Status @SortIcon(Col.Status)</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (_loading)
+                    @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="8"><TmLoading Message="Loading sales..." /></td></tr>
+                        <tr><td colspan="12" style="text-align:center; padding:40px; color:#94a3b8;">Loading sales...</td></tr>
                     }
-                    else if (_orders.Items.Count == 0)
+                    else if (pagedResultNew.Items.Count == 0)
                     {
-                        <tr><td colspan="8"><div class="tm-loading">No sales found</div></td></tr>
+                        <tr>
+                            <td colspan="12" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No sales found — try a different search or filter</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        @foreach (var o in _orders.Items)
+                        @foreach (var o in pagedResultNew.Items)
                         {
                             <tr>
-                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#dcfce7">🛒</span>@o.OrderNumber</span></td>
+                                <td>
+                                    <span class="tm-veh">
+                                        <span class="tm-veh-ico" style="background:#dcfce7">🛒</span>@o.OrderNumber
+                                    </span>
+                                </td>
+                                <td class="tm-dim">@o.OrderDate.ToString("dd MMM yyyy")</td>
                                 <td class="tm-branch">@(o.Customer?.CustomerName ?? "-")</td>
                                 <td class="tm-dim">@(o.Branch?.Name ?? "-")</td>
-                                <td class="tm-dim">@o.OrderDate.ToString("dd MMM yyyy")</td>
-                                <td><span class="@GetStatusPill(o.Status)"><span class="tm-dot"></span>@o.Status</span></td>
-                                <td style="text-align:right" class="tm-money">@o.TotalAmount.ToString("N0")</td>
+                                <td class="tm-num" style="text-align:right">@o.Items.Count</td>
+                                <td class="tm-money" style="text-align:right">@o.SubTotal.ToString("N0")</td>
+                                <td class="tm-money" style="text-align:right">@o.TaxAmount.ToString("N0")</td>
+                                <td class="tm-money" style="text-align:right"><strong>@o.TotalAmount.ToString("N0")</strong></td>
+                                <td class="tm-money" style="text-align:right;color:#15803d">@o.PaidAmount.ToString("N0")</td>
                                 <td style="text-align:right">
-                                    <span style="font-weight:700; color:@(o.DueAmount > 0 ? "#dc2626" : "#15803d")">
+                                    <span style="font-weight:700; color:@(o.DueAmount > 0 ? "#dc2626" : "#94a3b8")">
                                         @(o.DueAmount > 0 ? o.DueAmount.ToString("N0") : "-")
                                     </span>
                                 </td>
+                                <td><span class="@GetStatusPill(o.Status)"><span class="tm-dot"></span>@o.Status</span></td>
                                 <td>
                                     <span class="tm-actions" style="justify-content:flex-end">
                                         <button class="tm-act tm-act-view" title="View" @onclick="() => ViewOrder(o.Id)">👁</button>
@@ -93,7 +147,7 @@
                                         }
                                         @if (o.Status != OrderStatus.Cancelled && o.Status != OrderStatus.Delivered)
                                         {
-                                            <button class="tm-act" style="color:#2563eb" title="Edit" @onclick="() => OpenEdit(o)">✎</button>
+                                            <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenEdit(o)">✎</button>
                                             <button class="tm-act tm-act-del" title="Cancel" @onclick="() => Cancel(o.Id)">✕</button>
                                         }
                                         @if (o.Status == OrderStatus.Cancelled)
@@ -108,12 +162,21 @@
                 </tbody>
             </table>
         </div>
-        <TmPager Total="@_totalCount" Page="@_page" PageSize="@_pageSize" ItemNoun="sales"
-                  PageChanged="@OnPageChanged" PageSizeChanged="@OnPageSizeChanged" />
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <PaginationFooter CurrentPage="pagedResultNew.CurrentPage"
+                              PageSize="pagedResultNew.PageSize"
+                              TotalCount="pagedResultNew.TotalCount"
+                              TotalPages="pagedResultNew.TotalPages"
+                              ItemLabel="sales"
+                              OnGoToPage="GoToPage"
+                              OnPrev="GoPrevPage"
+                              OnNext="GoNextPage"
+                              OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
     </div>
 </div>
 
-    @* ─── Right-side Slider Drawer ─── *@
+@* ─── Right-side Slider Drawer ─── *@
 <TmSlideDrawer @bind-Open="_drawerOpen" Title="@_drawerTitle">
 
     @if (_viewOrder == null)
@@ -220,25 +283,38 @@
 
 </TmSlideDrawer>
 
-@code {
-    // ─── List state ───
-    private PagedResult<SalesOrderDto> _orders = new(new(), 0, 1, 10);
-    private string _search = "";
-    private List<OrderStatus?> _statusFilters = DefaultSalesStatuses();
-    private OrderStatus? _statusFilter;
-    private bool _loading = true;
-    private int _page = 1;
-    private int _pageSize = 10;
-    private int _totalCount;
-    private int _soldCount, _packedCount, _shippedCount, _deliveredCount;
-    private decimal _pageValue;
-    private System.Timers.Timer? _debounce;
-
-    private static List<OrderStatus?> DefaultSalesStatuses() => new()
+    @code {
+    // ─── Sortable column keys (constants avoid nested quotes in markup lambdas) ───
+    private static class Col
     {
-        OrderStatus.Sold, OrderStatus.Packed, OrderStatus.Shipped,
-        OrderStatus.PartiallyShipped, OrderStatus.Delivered, OrderStatus.Cancelled
+        public const string OrderNumber = "OrderNumber";
+        public const string OrderDate = "OrderDate";
+        public const string Customer = "Customer";
+        public const string Branch = "Branch";
+        public const string SubTotal = "SubTotal";
+        public const string TotalAmount = "TotalAmount";
+        public const string PaidAmount = "PaidAmount";
+        public const string DueAmount = "DueAmount";
+        public const string Status = "Status";
+    }
+
+    // ─── Lifecycle statuses owned by this page (Pending/Approved live on /sales/orders) ───
+    private readonly List<OrderStatus> SalesStatuses =Enum.GetValues<OrderStatus>().ToList();
+
+    // ─── List state ───
+    private PagedResultNew<SalesOrderDto> pagedResultNew = new();
+    private SalesPagedRequest pagedRequest = new()
+    {
+        SortColumn = Col.OrderDate,
+        SortAscending = false
     };
+
+    private List<CustomerDto> _customers = new();
+    private List<BranchDto> _branches = new();
+    private bool _loading = true;
+    private bool _hasLoadedOnce;
+    private decimal _pageValue;
+    private CancellationTokenSource? _debounceCts;
 
     // ─── Drawer state ───
     private enum SliderMode { View, Edit, Create }
@@ -247,96 +323,197 @@
     private string _drawerTitle = "";
     private SalesOrderDto? _viewOrder;
     private SalesOrderDto? _editingOrder;
-    private CreateSalesOrderDtoModels _editModel = new();
-    private List<CustomerDto> _drawerCustomers = new();
+    private CreateSalesOrderDtoModels _editModel = new();    
     private List<(Guid Id, string Name, string SKU, decimal Price)> _drawerProducts = new();
-    private int _drawerKey;
 
     protected override async Task OnInitializedAsync()
     {
+        try { _branches = await BranchService.GetBranches(); } catch { }
+        try
+        {
+        //    await LoadLookupData();
+
+            var customers = await CustomerService.GetCustomersAsync(null, 1, 500);
+            _customers = customers.Items;
+            var products = await ProductService.GetProductsAsync(new ProductPagedRequest());
+            //_drawerCustomers = customers.Items.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToList();
+            _drawerProducts = products.Items.OrderBy(p => p.Name).ToList().Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
+
+        }
+        catch { }
+
         await LoadOrders();
-        await LoadCountsAsync();
     }
+
+    private async Task Refresh() => await LoadOrders();
 
     private async Task LoadOrders()
     {
         _loading = true;
         try
         {
-            _statusFilters = _statusFilter.HasValue
-                ? new List<OrderStatus?> { _statusFilter.Value }
-                : DefaultSalesStatuses();
-            _orders = await OrderService.GetSalesOrders(_search, _statusFilters, _page, _pageSize);
-            _totalCount = _orders.TotalCount;
-            _pageValue = _orders.Items.Sum(o => o.TotalAmount);
+            pagedResultNew = await OrderService.GetSalesOrdersAsync(pagedRequest);
+            _pageValue = pagedResultNew.Items.Sum(o => o.TotalAmount);
+            _hasLoadedOnce = true;
         }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        _loading = false;
-    }
-
-    private async Task LoadCountsAsync()
-    {
-        try
+        catch (Exception ex)
         {
-            var all = await OrderService.GetSalesOrders("", new List<OrderStatus?>(), 1, 1000);
-            var items = all.Items;
-            _soldCount = items.Count(o => o.Status == OrderStatus.Sold);
-            _packedCount = items.Count(o => o.Status == OrderStatus.Packed);
-            _shippedCount = items.Count(o => o.Status == OrderStatus.Shipped);
-            _deliveredCount = items.Count(o => o.Status == OrderStatus.Delivered);
+            Snackbar.Add($"Error loading sales: {ex.Message}", Severity.Error);
         }
-        catch { }
+        finally { _loading = false; }
     }
 
+    // ─── Stats / sorting helpers ───
+    private string TotalCountText => Stat("TotalCount");
+    private string SoldCountText => Stat("SoldCount");
+    private string PackedCountText => Stat("PackedCount");
+    private string ShippedCountText => Stat("ShippedCount");
+    private string DeliveredCountText => Stat("DeliveredCount");
+    private string PageValueText => _pageValue.ToString("N0");
+
+    private string Stat(string key) =>
+        pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
+
+    private void SortBy(string column)
+    {
+        if (pagedRequest.SortColumn == column)
+            pagedRequest.SortAscending = !pagedRequest.SortAscending;
+        else
+        {
+            pagedRequest.SortColumn = column;
+            pagedRequest.SortAscending = true;
+        }
+        pagedRequest.CurrentPage = 0;
+    }
+
+    private string SortIcon(string column)
+    {
+        if (pagedRequest.SortColumn != column) return "";
+        return pagedRequest.SortAscending ? "▲" : "▼";
+    }
+
+    // ─── Filters ───
     private void OnSearchInput(ChangeEventArgs e)
     {
-        _search = e.Value?.ToString() ?? "";
-        _page = 1;
-        _debounce?.Stop();
-        _debounce?.Dispose();
-        _debounce = new System.Timers.Timer(350) { AutoReset = false };
-        _debounce.Elapsed += async (_, __) =>
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        pagedRequest.CurrentPage = 0;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
         {
-            await LoadOrders();
-            await InvokeAsync(StateHasChanged);
-        };
-        _debounce.Start();
+            try
+            {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(async () =>
+                {
+                    await LoadOrders();
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException) { }
+        });
+    }
+
+    private async Task OnCustomerChanged(ChangeEventArgs e)
+    {
+        pagedRequest.CustomerId = ParseGuid(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await LoadOrders();
+    }
+
+    private async Task OnBranchChanged(ChangeEventArgs e)
+    {
+        pagedRequest.BranchId = ParseGuid(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await LoadOrders();
     }
 
     private async Task OnStatusChanged(ChangeEventArgs e)
     {
-        var v = e.Value?.ToString();
-        _statusFilter = string.IsNullOrEmpty(v) ? null : Enum.Parse<OrderStatus>(v);
-        _page = 1;
+        pagedRequest.Status = Enum.TryParse<OrderStatus>(e.Value?.ToString(), out var s) ? s : null;
+        pagedRequest.CurrentPage = 0;
         await LoadOrders();
     }
 
-    private async Task PickStatus(OrderStatus s)
+    private async Task OnFromChanged(ChangeEventArgs e)
     {
-        _statusFilter = _statusFilter == s ? null : s;
-        _page = 1;
+        pagedRequest.From = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await LoadOrders();
+    }
+
+    private async Task OnToChanged(ChangeEventArgs e)
+    {
+        pagedRequest.To = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await LoadOrders();
+    }
+
+    private async Task FilterByStatus(OrderStatus? status)
+    {
+        pagedRequest.Status = status;
+        pagedRequest.CurrentPage = 0;
         await LoadOrders();
     }
 
     private async Task ResetFilters()
     {
-        _search = "";
-        _statusFilter = null;
-        _page = 1;
+        pagedRequest.SearchTerm = "";
+        pagedRequest.Status = null;
+        pagedRequest.CustomerId = null;
+        pagedRequest.BranchId = null;
+        pagedRequest.From = null;
+        pagedRequest.To = null;
+        pagedRequest.CurrentPage = 0;
         await LoadOrders();
     }
 
-    private async Task OnPageChanged(int page)
+    private static Guid? ParseGuid(object? value) =>
+        Guid.TryParse(value?.ToString(), out var g) && g != Guid.Empty ? g : null;
+
+    private static DateTime? ParseDate(object? value) =>
+        DateTime.TryParse(value?.ToString(), out var d) ? d : null;
+
+    private static string FormatDate(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "";
+
+    // ─── Paging (zero-based, matches PaginationFooter) ───
+    private async Task GoToPage(int page)
     {
-        _page = page;
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
         await LoadOrders();
     }
 
-    private async Task OnPageSizeChanged(int size)
+    private async Task GoPrevPage()
     {
-        _pageSize = size;
-        _page = 1;
-        await LoadOrders();
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await LoadOrders();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await LoadOrders();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await LoadOrders();
+        }
     }
 
     private static string GetStatusPill(OrderStatus s) => s switch
@@ -352,6 +529,7 @@
         _ => "tm-pill tm-pill-blue"
     };
 
+    // ─── Row actions ───
     private async Task Approve(Guid id)
     {
         try
@@ -359,7 +537,6 @@
             await OrderService.ApproveOrder(id);
             Snackbar.Add("Order approved successfully", Severity.Success);
             await LoadOrders();
-            await LoadCountsAsync();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
@@ -380,7 +557,6 @@
                 await OrderService.CancelOrder(id, "Cancelled by user");
                 Snackbar.Add("Sales cancelled", Severity.Warning);
                 await LoadOrders();
-                await LoadCountsAsync();
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
@@ -399,7 +575,7 @@
     private async Task ViewOrder(Guid id)
     {
         _viewOrder = null;
-        _drawerTitle = "Loading\u2026";
+        _drawerTitle = "Loading…";
         _drawerMode = SliderMode.View;
         _drawerOpen = true;
         try
@@ -418,33 +594,13 @@
 
     private async Task OpenEdit(SalesOrderDto order)
     {
-        await LoadDrawerFormData(order);
+        await LoadFormData(order);
         await ShowSalesOrderDialog($"Edit Sale #{order.OrderNumber}");
     }
 
-    private async Task LoadDrawerFormData(SalesOrderDto order)
+    private async Task LoadFormData(SalesOrderDto order)
     {
-        var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToListAsync();
-        var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
-
-        _drawerCustomers = customers.Select(c => new CustomerDto()
-        {
-            Id = c.Id,
-            CustomerName = c.CustomerName,
-            CustomerEmail = c.CustomerEmail,
-            CustomerPhone = c.CustomerPhone,
-            Address = c.Address,
-            City = c.City,
-            Zila = c.Zila,
-            State = c.State,
-            Country = c.Country,
-            PostalCode = c.PostalCode,
-            CreditLimit = c.CreditLimit,
-            PaymentTerms = c.PaymentTerms,
-            IsActive = c.IsActive,
-            IsTaxExempt = c.IsTaxExempt
-        }).ToList();
-        _drawerProducts = products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
+        // await LoadLookupData();
 
         _editModel = new CreateSalesOrderDtoModels
         {
@@ -464,11 +620,13 @@
             DueAmount = order.DueAmount,
             CustomerDdlControl = new ControlDto
             {
-                SelectedItem = order.CustomerId != Guid.Empty
-                    ? new ControlItemsDto() { Id = order.CustomerId, Name = order.Customer?.CustomerName ?? "", IsSelected = false }
-                    : new ControlItemsDto() { Id = Guid.Empty, Name = "", IsSelected = false }
+                SelectedItem = new ControlItemsDto
+                {
+                    Id = order.CustomerId,
+                    Name = order.Customer?.CustomerName ?? "",
+                    IsSelected = false
+                }
             },
-            //CustomerControl. = new FilterItem(order.CustomerId, order.Customer.CustomerName, false),
             ItemsLine = order.Items.Select(i => new CreateSalesOrderItemDto(
                 i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount, i.DiscountType,
                 i.TotalDiscount, i.LineTotalPrice, null, null)).ToList()
@@ -476,45 +634,53 @@
 
         _editingOrder = order;
         _drawerMode = SliderMode.Edit;
-        _drawerKey++;
     }
 
     private async Task OpenCreate()
     {
-        var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).AsNoTracking().ToListAsync();
-        var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
-
-        _drawerCustomers = customers.Select(c => new CustomerDto()
-        {
-            Id = c.Id,
-            CustomerName = c.CustomerName,
-            CustomerEmail = c.CustomerEmail,
-            CustomerPhone = c.CustomerPhone,
-            Address = c.Address,
-            City = c.City,
-            Zila = c.Zila,
-            State = c.State,
-            Country = c.Country,
-            PostalCode = c.PostalCode,
-            CreditLimit = c.CreditLimit,
-            PaymentTerms = c.PaymentTerms,
-            IsActive = c.IsActive,
-            IsTaxExempt = c.IsTaxExempt
-        }).ToList();
-        _drawerProducts = products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
+       // await LoadLookupData();
 
         _editModel = new CreateSalesOrderDtoModels();
         _editingOrder = null;
         _drawerMode = SliderMode.Create;
-        _drawerKey++;
         await ShowSalesOrderDialog("New Sale");
+    }
+
+    private async Task LoadLookupData()
+    {
+        //var customers = await CustomerService.GetCustomersAsync("");
+        //  .Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToListAsync();
+        var products = await ProductService.GetProductsAsync(new ProductPagedRequest());
+        //.OrderBy(p => p.Name).ToListAsync();
+
+        //_drawerCustomers = customers.Items.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToList();
+        _drawerProducts = products.Items.OrderBy(p => p.Name).ToList().Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
+        // _drawerCustomers = customers.Select(c => new CustomerDto
+        //{
+        //  Id = c.Id,
+        // CustomerName = c.CustomerName,
+        //CustomerEmail = c.CustomerEmail,
+        //CustomerPhone = c.CustomerPhone,
+        //Address = c.Address,
+        //City = c.City,
+        //Zila = c.Zila,
+        //  State = c.State,
+        //Country = c.Country,
+        //PostalCode = c.PostalCode,
+        //CreditLimit = c.CreditLimit,
+        //PaymentTerms = c.PaymentTerms,
+        //IsActive = c.IsActive,
+        //IsTaxExempt = c.IsTaxExempt
+        //}).ToList();
+
+        _drawerProducts = products.Items.OrderBy(p => p.Name).ToList().Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
     }
 
     private async Task ShowSalesOrderDialog(string title)
     {
         var parameters = new DialogParameters<SalesOrderDialog>
         {
-            { x => x.Customers, _drawerCustomers },
+            { x => x.Customers, _customers },
             { x => x.Products, _drawerProducts },
             { x => x.dataModel, _editModel },
             { x => x.OnSubmit, EventCallback.Factory.Create<CreateSalesOrderDto>(this, HandleFormSubmit) },
@@ -525,9 +691,9 @@
         var dialog = await DialogService.ShowAsync<SalesOrderDialog>(title, parameters,
             new DialogOptions
             {
-                MaxWidth = MaxWidth.Large,                
+                MaxWidth = MaxWidth.Large,
                 FullWidth = true,
-                CloseOnEscapeKey = true,                
+                CloseOnEscapeKey = true,
                 CloseButton = true
             });
 
@@ -558,7 +724,6 @@
     private async Task HandleFormSubmitAndPrint(CreateSalesOrderDto dto)
     {
         await HandleFormSubmit(dto);
-        // Print support can be added here
     }
 
     private async Task DeleteOrder(Guid id)
@@ -576,5 +741,10 @@
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
     }
-}
 
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+    }
+}

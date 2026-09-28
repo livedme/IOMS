@@ -27,6 +27,7 @@ public interface IOrderService
     Task UpdateOrderStatus(Guid orderId, OrderStatus newStatus);
     Task<SalesOrderDto?> GetSalesOrderById(Guid id);
     Task<PagedResult<SalesOrderDto>> GetSalesOrders(string? search, List<OrderStatus?>? status, int page, int pageSize);
+    Task<PagedResultNew<SalesOrderDto>> GetSalesOrdersAsync(SalesPagedRequest request);
 }
 
 public interface IPurchaseService

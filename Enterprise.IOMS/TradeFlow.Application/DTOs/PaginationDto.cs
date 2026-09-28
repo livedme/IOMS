@@ -41,6 +41,19 @@ namespace TradeFlow.Application.DTOs
         public Guid? BrandId { get; set; } // "All" or branch name
     }
 
+    public class SalesPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        /// <summary>Single status filter applied on top of <see cref="StatusScope"/>.</summary>
+        public OrderStatus? Status { get; set; }
+        /// <summary>Base set of statuses the page is scoped to. Null/empty means every status.</summary>
+        public List<OrderStatus>? StatusScope { get; set; }
+        public Guid? CustomerId { get; set; }
+        public Guid? BranchId { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+    }
+
     public class DriverPagedRequest : PagedRequest
     {
         public int? TenantId { get; set; }

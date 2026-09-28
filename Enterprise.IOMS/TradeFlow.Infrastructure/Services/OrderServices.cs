@@ -433,6 +433,124 @@ public class OrderService : IOrderService
         return new PagedResult<SalesOrderDto>(_mapper.Map<List<SalesOrderDto>>(items), total, page, pageSize);
     }
 
+    /// <summary>
+    /// Server-side paged sales list used by the Sales grid. Mirrors
+    /// ProductService.GetProductsAsync: zero-based paging, filterable, sortable,
+    /// and returns per-status counts in <see cref="PagedResultNew{T}.Stats"/>.
+    /// </summary>
+    public async Task<PagedResultNew<SalesOrderDto>> GetSalesOrdersAsync(SalesPagedRequest request)
+    {
+        var response = new PagedResultNew<SalesOrderDto>();
+
+        var page = Math.Max(0, request.CurrentPage);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var search = request.SearchTerm?.Trim();
+        var hasSearch = !string.IsNullOrWhiteSpace(search);
+
+        IQueryable<SalesOrder> query;
+        if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            query = _context.SalesOrders.IgnoreQueryFilters().AsNoTracking()
+                .Where(o => !o.IsDeleted && o.TenantId == request.TenantId.Value);
+        else
+            query = _context.SalesOrders.AsNoTracking().Where(o => !o.IsDeleted);
+
+        // Base status scope — the page decides which lifecycle states it owns.
+        var scope = request.StatusScope is { Count: > 0 }
+            ? request.StatusScope
+            : Enum.GetValues<OrderStatus>().ToList();
+        query = query.Where(o => scope.Contains(o.Status));
+
+        // Stats are computed over the scope + the non-status filters, so the tiles
+        // keep showing every bucket while a single status tile is active.
+        var statsSource = ApplySalesFilters(query, request, search, hasSearch);
+
+        var groups = await statsSource
+            .GroupBy(o => o.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var byStatus = groups.ToDictionary(g => g.Status, g => g.Count);
+        response.Stats["TotalCount"] = byStatus.Values.Sum();
+        foreach (var s in Enum.GetValues<OrderStatus>())
+            response.Stats[$"{s}Count"] = byStatus.TryGetValue(s, out var c) ? c : 0;
+
+        // Active status filter
+        if (request.Status.HasValue)
+        {
+            var status = request.Status.Value;
+            query = query.Where(o => o.Status == status);
+        }
+
+        query = ApplySalesFilters(query, request, search, hasSearch);
+
+        // Sorting — server-side ORDER BY before Skip/Take
+        var sortAsc = request.SortAscending;
+        query = (request.SortColumn ?? "OrderDate") switch
+        {
+            "OrderNumber" => sortAsc ? query.OrderBy(o => o.OrderNumber) : query.OrderByDescending(o => o.OrderNumber),
+            "Customer" => sortAsc
+                ? query.OrderBy(o => o.Customer.CustomerName)
+                : query.OrderByDescending(o => o.Customer.CustomerName),
+            "Branch" => sortAsc
+                ? query.OrderBy(o => o.Branch!.Name)
+                : query.OrderByDescending(o => o.Branch!.Name),
+            "SubTotal" => sortAsc ? query.OrderBy(o => o.SubTotal) : query.OrderByDescending(o => o.SubTotal),
+            "TotalAmount" => sortAsc ? query.OrderBy(o => o.TotalAmount) : query.OrderByDescending(o => o.TotalAmount),
+            "PaidAmount" => sortAsc ? query.OrderBy(o => o.PaidAmount) : query.OrderByDescending(o => o.PaidAmount),
+            "DueAmount" => sortAsc ? query.OrderBy(o => o.DueAmount) : query.OrderByDescending(o => o.DueAmount),
+            "Status" => sortAsc ? query.OrderBy(o => o.Status) : query.OrderByDescending(o => o.Status),
+            _ => sortAsc ? query.OrderBy(o => o.OrderDate) : query.OrderByDescending(o => o.OrderDate),
+        };
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .AsSplitQuery()
+            .Include(o => o.Customer)
+            .Include(o => o.Branch)
+            .Include(o => o.Items).ThenInclude(i => i.Product)
+            .Skip(page * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        response.Items = _mapper.Map<List<SalesOrderDto>>(items);
+        response.TotalCount = totalCount;
+        response.CurrentPage = page;
+        response.PageSize = pageSize;
+
+        return response;
+    }
+
+    private static IQueryable<SalesOrder> ApplySalesFilters(
+        IQueryable<SalesOrder> query, SalesPagedRequest request, string? search, bool hasSearch)
+    {
+        if (hasSearch)
+        {
+            query = query.Where(o =>
+                EF.Functions.Like(o.OrderNumber, $"%{search}%") ||
+                EF.Functions.Like(o.Customer.CustomerName, $"%{search}%") ||
+                EF.Functions.Like(o.Chalan, $"%{search}%") ||
+                EF.Functions.Like(o.Naration, $"%{search}%"));
+        }
+
+        if (request.CustomerId.HasValue && request.CustomerId != Guid.Empty)
+            query = query.Where(o => o.CustomerId == request.CustomerId.Value);
+
+        if (request.BranchId.HasValue && request.BranchId != Guid.Empty)
+            query = query.Where(o => o.BranchId == request.BranchId.Value);
+
+        if (request.From.HasValue)
+            query = query.Where(o => o.OrderDate >= request.From.Value.Date);
+
+        if (request.To.HasValue)
+        {
+            var toExclusive = request.To.Value.Date.AddDays(1);
+            query = query.Where(o => o.OrderDate < toExclusive);
+        }
+
+        return query;
+    }
+
     private async Task<TaxCalculationResult> CalculateItemTax(Guid productId, Guid customerId, decimal amount)
     {
         var product = await _context.Products.FindAsync(productId);

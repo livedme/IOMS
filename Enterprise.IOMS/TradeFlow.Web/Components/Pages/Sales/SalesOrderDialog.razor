@@ -1,17 +1,5 @@
 @using TradeFlow.Infrastructure.Data
 @using TradeFlow.Web.Components.Pages.Inventory
-<style>
-    .mud-table-container {
-        max-height: 350px;
-        min-height: 250px;
-    }
-
-    .mud-table-dense * .mud-table-row .mud-table-cell {
-        padding: 6px 1px 6px 4px;
-        padding-inline-start: 15px;
-        padding-inline-end: 15px;
-    }
-</style>
 <MudDialog Class="bg-dialog-sales">
     <DialogContent>
         <div class="sales-order-form">
@@ -119,7 +107,7 @@
                             }
                             <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudTd>
-                        <MudTd Style="width:auto;" class="pe-2 text-end mb-5 px-0">
+                        <MudTd Style="width:auto;" class="pe-2 text-end mb-5 px-0 d-flex">
                             <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Color="Color.Primary" OnClick="AddItem" />
                             <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => dataModel.ItemsLine.Remove(context))" />
                         </MudTd>
