@@ -1,5 +1,6 @@
 @page "/reports/abc-analysis"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
 @inject ISnackbar Snackbar
 

@@ -9,18 +9,45 @@ namespace TradeFlow.Infrastructure.Data;
 
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
-    private readonly Guid _tenantId;
-    private readonly string? _userId;
+    private readonly ITenantProvider _tenantProvider;
+    private Guid? _tenantId;
+    private string? _userId;
+    private bool _userIdResolved;
 
     public bool DisableAuditLogging { get; set; }
+
+    /// <summary>
+    /// The caller's tenant, resolved on first use rather than in the constructor.
+    /// </summary>
+    /// <remarks>
+    /// The Identity sign-in pages construct a <c>UserStore</c>, and therefore this context, while
+    /// the visitor is still anonymous. Resolving the tenant in the constructor made
+    /// <c>GetTenantId</c> throw on <c>/Account/Login</c>, which returned a 500 and locked every
+    /// user out of the application. Deferring the lookup means constructing the context is safe
+    /// and only a query or a save, which genuinely need a tenant, triggers the fail-closed path.
+    /// </remarks>
+    private Guid CurrentTenantId => _tenantId ??= _tenantProvider.GetTenantId();
+
+    private string? CurrentUserId
+    {
+        get
+        {
+            if (!_userIdResolved)
+            {
+                _userId = _tenantProvider.GetUserId();
+                _userIdResolved = true;
+            }
+
+            return _userId;
+        }
+    }
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ITenantProvider tenantProvider)
         : base(options)
     {
-        _tenantId = tenantProvider.GetTenantId();
-        _userId = tenantProvider.GetUserId();
+        _tenantProvider = tenantProvider;
     }
 
     // Core
@@ -213,7 +240,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     private void ConfigureGlobalFilters<T>(ModelBuilder builder) where T : BaseEntity
     {
-        builder.Entity<T>().HasQueryFilter(e => e.TenantId == _tenantId && !e.IsDeleted);
+        // The filter is a lambda over the context instance, so CurrentTenantId is read when a
+        // query is translated rather than when the model is built.
+        builder.Entity<T>().HasQueryFilter(e => e.TenantId == CurrentTenantId && !e.IsDeleted);
     }
 
     private static void ConfigureRelationships(ModelBuilder builder)
@@ -554,13 +583,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 switch (entry.State)
                 {
                     case EntityState.Added:
-                        baseEntity.TenantId = _tenantId;
+                        baseEntity.TenantId = CurrentTenantId;
                         baseEntity.CreatedAt = DateTime.UtcNow;
-                        baseEntity.CreatedBy = _userId ?? "system";
+                        baseEntity.CreatedBy = CurrentUserId ?? "system";
                         break;
                     case EntityState.Modified:
                         baseEntity.UpdatedAt = DateTime.UtcNow;
-                        baseEntity.UpdatedBy = _userId ?? "system";
+                        baseEntity.UpdatedBy = CurrentUserId ?? "system";
                         break;
                 }
             }
@@ -568,8 +597,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             var auditEntry = new AuditEntry(entry)
             {
                 TableName = entry.Entity.GetType().Name,
-                UserId = _userId,
-                TenantId = _tenantId
+                UserId = CurrentUserId,
+                TenantId = CurrentTenantId
             };
             auditEntries.Add(auditEntry);
 
@@ -656,5 +685,6 @@ public class AuditEntry
 public interface ITenantProvider
 {
     Guid GetTenantId();
+    Guid? TryGetTenantId();
     string? GetUserId();
 }

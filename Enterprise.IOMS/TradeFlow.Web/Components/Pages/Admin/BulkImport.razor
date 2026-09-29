@@ -1,5 +1,6 @@
 @page "/admin/import"
 @rendermode InteractiveServer
+@attribute [Authorize(Policy = AuthorizationPolicies.Administrator)]
 @inject ISnackbar Snackbar
 
 <PageTitle>Bulk Import - IOMS</PageTitle>

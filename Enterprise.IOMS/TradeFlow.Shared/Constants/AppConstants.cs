@@ -20,6 +20,15 @@ public static class Roles
     public static readonly string[] All = [Admin, Manager, Sales, Purchasing, WarehouseStaff, Viewer];
 }
 
+public static class AuthorizationPolicies
+{
+    /// <summary>System administration: users, roles, audit logs, privacy and archival tools.</summary>
+    public const string Administrator = "Administrator";
+
+    /// <summary>Day-to-day operational management: reports, approvals, configuration.</summary>
+    public const string Manager = "Manager";
+}
+
 public static class AccountCodes
 {
     public const string Cash = "1000";

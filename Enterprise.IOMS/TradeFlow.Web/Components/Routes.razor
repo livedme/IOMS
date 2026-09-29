@@ -1,6 +1,9 @@
 ﻿@using TradeFlow.Web.Components.Account.Shared
 <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
+        @* Must precede the routed page: it resolves the circuit tenant, which TenantProvider
+           needs because IHttpContextAccessor is null once the circuit is established. *@
+        <TenantContextInitializer />
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
             <NotAuthorized>
                 <RedirectToLogin />

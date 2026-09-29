@@ -1,0 +1,37 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject TradeFlow.Infrastructure.Services.TenantContext TenantContext
+
+@code {
+    /// <summary>
+    /// Populates the circuit-scoped <see cref="TradeFlow.Infrastructure.Services.TenantContext"/>
+    /// from the Blazor authentication state.
+    /// </summary>
+    /// <remarks>
+    /// <c>IHttpContextAccessor.HttpContext</c> is <c>null</c> once a Blazor Server circuit is
+    /// established, so the tenant has to be captured from the <c>AuthenticationStateProvider</c>
+    /// once and held for the life of the circuit. Blazor awaits a parent's
+    /// <c>OnInitializedAsync</c> before initialising child components, so rendering this before
+    /// the routed page guarantees the tenant is available to the page's first data access.
+    /// </remarks>
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var principal = authenticationState.User;
+
+        if (principal.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        var tenantClaim = principal.FindFirst("TenantId")?.Value;
+        if (!Guid.TryParse(tenantClaim, out var tenantId) || tenantId == Guid.Empty)
+        {
+            // Left unresolved on purpose. TenantProvider fails closed, so an authenticated user
+            // without a valid tenant gets an error rather than another tenant's data.
+            return;
+        }
+
+        TenantContext.Set(tenantId, principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value);
+    }
+}

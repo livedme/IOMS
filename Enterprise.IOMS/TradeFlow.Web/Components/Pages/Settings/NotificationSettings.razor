@@ -1,5 +1,6 @@
 @page "/settings/notifications"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject ISnackbar Snackbar
 @using TradeFlow.Infrastructure.Data
 @inject ApplicationDbContext DbContext

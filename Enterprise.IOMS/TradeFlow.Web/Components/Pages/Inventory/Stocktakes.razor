@@ -1,5 +1,6 @@
 @page "/inventory/stocktakes"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject IStocktakeService StocktakeService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService

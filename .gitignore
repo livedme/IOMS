@@ -29,6 +29,11 @@ Thumbs.db
 build_errors.txt
 
 ## Secrets
+# Only the templates below are tracked. Environment-specific files must never contain
+# credentials, connection strings, or API keys.
 appsettings.*.json
 !appsettings.json
 !appsettings.Development.json
+*.env
+.env.*
+secrets.json

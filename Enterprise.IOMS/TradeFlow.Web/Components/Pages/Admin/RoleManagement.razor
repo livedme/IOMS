@@ -1,5 +1,6 @@
 @page "/admin/roles"
 @rendermode InteractiveServer
+@attribute [Authorize(Policy = AuthorizationPolicies.Administrator)]
 @inject IUserManagementService UserService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService

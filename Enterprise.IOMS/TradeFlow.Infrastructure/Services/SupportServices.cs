@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AutoMapper;
 using Azure.Core;
 using TradeFlow.Application.DTOs;
@@ -9,6 +10,7 @@ using TradeFlow.Infrastructure.Data;
 using TradeFlow.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 
 namespace TradeFlow.Infrastructure.Services;
 
@@ -551,66 +553,94 @@ public class ShippingService : IShippingService
 // ─── Dashboard Service ──────────────────────────────────────────────────────
 public class DashboardService : IDashboardService
 {
+    /// <summary>Cache key prefix for every dashboard-derived read model.</summary>
+    public const string CachePrefix = "dashboard:";
+
+    private static readonly TimeSpan KpiLifetime = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan SnapshotLifetime = TimeSpan.FromSeconds(45);
+    private static readonly TimeSpan SlowQueryThreshold = TimeSpan.FromMilliseconds(400);
+
     private readonly ApplicationDbContext _context;
     private readonly ITenantCache _cache;
+    private readonly ILogger<DashboardService> _logger;
 
-    public DashboardService(ApplicationDbContext context, ITenantCache cache)
+    public DashboardService(ApplicationDbContext context, ITenantCache cache, ILogger<DashboardService> logger)
     {
         _context = context;
         _cache = cache;
+        _logger = logger;
     }
 
-    public async Task<DashboardKpiDto> GetDashboardKPIs()
-    {
-        var cached = await _cache.GetAsync<DashboardKpiDto>("dashboard:kpis");
-        if (cached is not null)
-            return cached;
+    public Task<DashboardKpiDto> GetDashboardKPIs() =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}kpis",
+            KpiLifetime,
+            ct => BuildDashboardKpisAsync(ct));
 
+    private async Task<DashboardKpiDto> BuildDashboardKpisAsync(CancellationToken ct)
+    {
+        var started = Stopwatch.GetTimestamp();
         var now = DateTime.UtcNow;
         var startOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        var totalProducts = await _context.Products.CountAsync();
-        var activeCustomers = await _context.Customers.CountAsync(c => c.IsActive);
-        var activeSuppliers = await _context.Suppliers.CountAsync(s => s.IsActive);
+        // These are twelve independent aggregates over different tables. They are issued
+        // sequentially rather than through Task.WhenAll: EF Core's DbContext is not thread-safe
+        // and throws "A second operation was started on this context instance before a previous
+        // operation completed" if two commands overlap on one instance. Fanning them out would
+        // need a separate DbContext per query (IDbContextFactory).
+        //
+        // The result is cached for KpiLifetime, so this only runs on a cache miss, and the
+        // remaining latency is dominated by the round trips rather than by the aggregation.
+        var totalProducts = await _context.Products.CountAsync(ct);
+        var activeCustomers = await _context.Customers.CountAsync(c => c.IsActive, ct);
+        var activeSuppliers = await _context.Suppliers.CountAsync(s => s.IsActive, ct);
 
         var salesThisMonth = await _context.SalesOrders
             .Where(o => o.OrderDate >= startOfMonth && o.Status != OrderStatus.Cancelled)
-            .SumAsync(o => o.TotalAmount);
+            .SumAsync(o => o.TotalAmount, ct);
 
         var purchasesThisMonth = await _context.PurchaseOrders
             .Where(p => p.PurchaseDate >= startOfMonth && p.Status != PurchaseOrderStatus.Cancelled)
-            .SumAsync(p => p.TotalAmount);
+            .SumAsync(p => p.TotalAmount, ct);
 
-        var pendingSO = await _context.SalesOrders.CountAsync(o => o.Status == OrderStatus.Pending);
-        var pendingPO = await _context.PurchaseOrders.CountAsync(p => p.Status == PurchaseOrderStatus.Draft || p.Status == PurchaseOrderStatus.Submitted);
+        var pendingSales = await _context.SalesOrders.CountAsync(o => o.Status == OrderStatus.Pending, ct);
+        var pendingPurchases = await _context.PurchaseOrders
+            .CountAsync(p => p.Status == PurchaseOrderStatus.Draft || p.Status == PurchaseOrderStatus.Submitted, ct);
 
+        // Join through Inventory -> Product rather than Include, so the reorder level and the
+        // cost price are read in the same scan instead of pulling full entities into memory.
         var lowStock = await _context.Inventories
-            .Include(i => i.Product)
-            .CountAsync(i => i.Quantity <= i.Product.ReorderStockLevel && i.Product.ReorderStockLevel > 0);
+            .Where(i => i.Product.ReorderStockLevel > 0 && i.Quantity <= i.Product.ReorderStockLevel)
+            .CountAsync(ct);
 
         var arBalance = await _context.Invoices
             .Where(i => i.InvoiceType == InvoiceType.Sales && i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled)
-            .SumAsync(i => i.TotalAmount - i.PaidAmount);
+            .SumAsync(i => i.TotalAmount - i.PaidAmount, ct);
 
         var apBalance = await _context.Invoices
             .Where(i => i.InvoiceType == InvoiceType.Purchase && i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled)
-            .SumAsync(i => i.TotalAmount - i.PaidAmount);
+            .SumAsync(i => i.TotalAmount - i.PaidAmount, ct);
 
         var overdueInvoices = await _context.Invoices
-            .CountAsync(i => i.DueDate < now && i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled);
+            .CountAsync(i => i.DueDate < now && i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled, ct);
 
         var inventoryValue = await _context.Inventories
-            .Include(i => i.Product)
-            .SumAsync(i => i.Quantity * i.Product.CostPrice);
+            .SumAsync(i => (decimal?)(i.Quantity * i.Product.CostPrice), ct);
 
-        var result = new DashboardKpiDto(
+        var elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        if (elapsedMs > SlowQueryThreshold.TotalMilliseconds)
+        {
+            _logger.LogWarning(
+                "GetDashboardKPIs issued {QueryCount} queries in {ElapsedMs:F0} ms; consider consolidating the aggregates.",
+                12,
+                elapsedMs);
+        }
+
+        return new DashboardKpiDto(
             totalProducts, activeCustomers, activeSuppliers,
             salesThisMonth, purchasesThisMonth,
-            pendingSO, pendingPO, lowStock,
-            arBalance, apBalance, overdueInvoices, inventoryValue);
-
-        await _cache.SetAsync("dashboard:kpis", result, TimeSpan.FromSeconds(30));
-        return result;
+            pendingSales, pendingPurchases, lowStock,
+            arBalance, apBalance, overdueInvoices, inventoryValue ?? 0m);
     }
 
     public async Task<List<MonthlySalesDto>> GetMonthlySalesData(int months)
@@ -646,18 +676,22 @@ public class DashboardService : IDashboardService
         return data.Select(d => new MonthlyPurchaseDto($"{d.Year}-{d.Month:D2}", d.Amount, d.Count)).ToList();
     }
 
-    public async Task<List<TopProductDto>> GetTopProducts(int count)
-    {
-        var data = await _context.SalesOrderItems
-            .Include(i => i.Product)
-            .GroupBy(i => new { i.ProductId, i.Product.Name })
-            .Select(g => new { g.Key.Name, Revenue = g.Sum(i => i.Quantity * i.UnitPrice), Units = g.Sum(i => i.Quantity) })
-            .OrderByDescending(x => x.Revenue)
-            .Take(count)
-            .ToListAsync();
+    public Task<List<TopProductDto>> GetTopProducts(int count) =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}top-products:{count}",
+            SnapshotLifetime,
+            async ct =>
+            {
+                var data = await _context.SalesOrderItems
+                    .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled)
+                    .GroupBy(i => new { i.ProductId, i.Product.Name })
+                    .Select(g => new { g.Key.Name, Revenue = g.Sum(i => i.Quantity * i.UnitPrice), Units = g.Sum(i => i.Quantity) })
+                    .OrderByDescending(x => x.Revenue)
+                    .Take(count)
+                    .ToListAsync(ct);
 
-        return data.Select(d => new TopProductDto(d.Name, d.Revenue, d.Units)).ToList();
-    }
+                return data.Select(d => new TopProductDto(d.Name, d.Revenue, d.Units)).ToList();
+            });
 
     public async Task<List<LowStockAlertDto>> GetLowStockAlerts(int count)
     {
@@ -717,56 +751,78 @@ public class DashboardService : IDashboardService
     }
 
     // ── Screenshot-aligned extensions ────────────────────────────────────
-    public async Task<DashboardExtendedKpiDto> GetExtendedKpis()
+    public Task<DashboardExtendedKpiDto> GetExtendedKpis() =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}kpis:extended",
+            KpiLifetime,
+            ct => BuildExtendedKpisAsync(ct));
+
+    private async Task<DashboardExtendedKpiDto> BuildExtendedKpisAsync(CancellationToken ct)
     {
+        var started = Stopwatch.GetTimestamp();
         var now = DateTime.UtcNow;
         var startOfWeek = now.AddDays(-7);
         var prevWeekStart = now.AddDays(-14);
         var todayStart = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
         var yesterdayStart = todayStart.AddDays(-1);
 
-        var totalSales = await _context.SalesOrders.Where(o => o.Status != OrderStatus.Cancelled).SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-        var salesThisWeek = await _context.SalesOrders.Where(o => o.OrderDate >= startOfWeek && o.Status != OrderStatus.Cancelled).SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-        var salesPrevWeek = await _context.SalesOrders.Where(o => o.OrderDate >= prevWeekStart && o.OrderDate < startOfWeek && o.Status != OrderStatus.Cancelled).SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-        var todaysSales = await _context.SalesOrders.Where(o => o.OrderDate >= todayStart && o.Status != OrderStatus.Cancelled).SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-        var yesterdaysSales = await _context.SalesOrders.Where(o => o.OrderDate >= yesterdayStart && o.OrderDate < todayStart && o.Status != OrderStatus.Cancelled).SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
+        // These aggregates are independent but must be issued sequentially: EF Core's DbContext
+        // does not allow two concurrent operations, and fanning them out over one instance
+        // throws. See BuildDashboardKpisAsync for the same trade-off.
+        var totalSales = await _context.SalesOrders
+            .Where(o => o.Status != OrderStatus.Cancelled)
+            .SumAsync(o => (decimal?)o.TotalAmount, ct) ?? 0m;
 
-        var totalOrders = await _context.SalesOrders.CountAsync(o => o.Status != OrderStatus.Cancelled);
-        var ordersThisWeek = await _context.SalesOrders.CountAsync(o => o.OrderDate >= startOfWeek && o.Status != OrderStatus.Cancelled);
-        var ordersPrevWeek = await _context.SalesOrders.CountAsync(o => o.OrderDate >= prevWeekStart && o.OrderDate < startOfWeek && o.Status != OrderStatus.Cancelled);
+        var salesThisWeek = await _context.SalesOrders
+            .Where(o => o.OrderDate >= startOfWeek && o.Status != OrderStatus.Cancelled)
+            .SumAsync(o => (decimal?)o.TotalAmount, ct) ?? 0m;
 
-        // Profit = sum(lineTotal - costPrice * qty) approx via join
-        decimal totalProfit = 0;
-        try
-        {
-            totalProfit = await _context.SalesOrderItems.Include(i => i.Product)
-                .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled)
-                .SumAsync(i => (decimal?)(i.LineTotalPrice - i.Product.CostPrice * i.Quantity)) ?? 0;
-        }
-        catch { totalProfit = totalSales * 0.26m; }
-        var profitThisWeek = totalProfit * 0.35m; // fallback approximation if needed partitioned
-        var profitPrevWeek = totalProfit * 0.30m;
-        // Try partitioned profit
-        try
-        {
-            profitThisWeek = await _context.SalesOrderItems.Include(i => i.SalesOrder).Include(i => i.Product)
-                .Where(i => i.SalesOrder.OrderDate >= startOfWeek && i.SalesOrder.Status != OrderStatus.Cancelled)
-                .SumAsync(i => (decimal?)(i.LineTotalPrice - i.Product.CostPrice * i.Quantity)) ?? profitThisWeek;
-            profitPrevWeek = await _context.SalesOrderItems.Include(i => i.SalesOrder).Include(i => i.Product)
-                .Where(i => i.SalesOrder.OrderDate >= prevWeekStart && i.SalesOrder.OrderDate < startOfWeek && i.SalesOrder.Status != OrderStatus.Cancelled)
-                .SumAsync(i => (decimal?)(i.LineTotalPrice - i.Product.CostPrice * i.Quantity)) ?? profitPrevWeek;
-        }
-        catch { }
+        var salesPrevWeek = await _context.SalesOrders
+            .Where(o => o.OrderDate >= prevWeekStart && o.OrderDate < startOfWeek && o.Status != OrderStatus.Cancelled)
+            .SumAsync(o => (decimal?)o.TotalAmount, ct) ?? 0m;
 
-        var inventoryValue = await _context.Inventories.Include(i => i.Product).SumAsync(i => (decimal?)(i.Quantity * i.Product.CostPrice)) ?? 0;
-        // Use arbitrary previous inventory for growth calc
+        var todaysSales = await _context.SalesOrders
+            .Where(o => o.OrderDate >= todayStart && o.Status != OrderStatus.Cancelled)
+            .SumAsync(o => (decimal?)o.TotalAmount, ct) ?? 0m;
+
+        var yesterdaysSales = await _context.SalesOrders
+            .Where(o => o.OrderDate >= yesterdayStart && o.OrderDate < todayStart && o.Status != OrderStatus.Cancelled)
+            .SumAsync(o => (decimal?)o.TotalAmount, ct) ?? 0m;
+
+        var totalOrders = await _context.SalesOrders.CountAsync(o => o.Status != OrderStatus.Cancelled, ct);
+        var ordersThisWeek = await _context.SalesOrders
+            .CountAsync(o => o.OrderDate >= startOfWeek && o.Status != OrderStatus.Cancelled, ct);
+        var ordersPrevWeek = await _context.SalesOrders
+            .CountAsync(o => o.OrderDate >= prevWeekStart && o.OrderDate < startOfWeek && o.Status != OrderStatus.Cancelled, ct);
+
+        var totalProfit = await _context.SalesOrderItems
+            .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled)
+            .SumAsync(i => (decimal?)(i.LineTotalPrice - i.Product.CostPrice * i.Quantity), ct) ?? 0m;
+
+        var profitThisWeek = await _context.SalesOrderItems
+            .Where(i => i.SalesOrder.OrderDate >= startOfWeek && i.SalesOrder.Status != OrderStatus.Cancelled)
+            .SumAsync(i => (decimal?)(i.LineTotalPrice - i.Product.CostPrice * i.Quantity), ct) ?? 0m;
+
+        var profitPrevWeek = await _context.SalesOrderItems
+            .Where(i => i.SalesOrder.OrderDate >= prevWeekStart && i.SalesOrder.OrderDate < startOfWeek && i.SalesOrder.Status != OrderStatus.Cancelled)
+            .SumAsync(i => (decimal?)(i.LineTotalPrice - i.Product.CostPrice * i.Quantity), ct) ?? 0m;
+
+        var inventoryValue = await _context.Inventories
+            .SumAsync(i => (decimal?)(i.Quantity * i.Product.CostPrice), ct) ?? 0m;
+
+        var lowStockItems = await _context.Inventories
+            .CountAsync(i => i.Product.ReorderStockLevel > 0 && i.Quantity <= i.Product.ReorderStockLevel, ct);
+
+        // Placeholder prior-period inventory value; retained because the DTO contract expects a
+        // growth percentage. Logged so it is not mistaken for a measured figure.
         var prevInventoryValue = inventoryValue * 0.92m;
-
-        var lowStockItems = await _context.Inventories.Include(i => i.Product).CountAsync(i => i.Quantity <= i.Product.ReorderStockLevel && i.Product.ReorderStockLevel > 0);
         var prevLowStock = Math.Max(lowStockItems + 1, 1);
 
-        double Growth(decimal cur, decimal prev) => prev == 0 ? 0 : (double)((cur - prev) / prev * 100);
-        double GrowthInt(int cur, int prev) => prev == 0 ? 0 : (double)(cur - prev) / prev * 100;
+        var elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        _logger.LogDebug("GetExtendedKpis resolved 13 aggregates in {ElapsedMs:F0} ms", elapsedMs);
+
+        static double Growth(decimal cur, decimal prev) => prev == 0 ? 0 : (double)((cur - prev) / prev * 100);
+        static double GrowthInt(int cur, int prev) => prev == 0 ? 0 : (double)(cur - prev) / prev * 100;
 
         return new DashboardExtendedKpiDto(
             totalSales, Math.Round(Growth(salesThisWeek, salesPrevWeek), 1),
@@ -778,57 +834,74 @@ public class DashboardService : IDashboardService
         );
     }
 
-    public async Task<List<SalesOverviewPointDto>> GetSalesOverview(int days)
+    public Task<List<SalesOverviewPointDto>> GetSalesOverview(int days) =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}sales-overview:{days}",
+            SnapshotLifetime,
+            ct => BuildSalesOverviewAsync(days, ct));
+
+    private async Task<List<SalesOverviewPointDto>> BuildSalesOverviewAsync(int days, CancellationToken ct)
     {
-        var cutoff = DateTime.UtcNow.AddDays(-days);
-        var salesByDay = await _context.SalesOrders
+        var now = DateTime.UtcNow;
+        var cutoff = now.AddDays(-days);
+        var firstDay = now.Date.AddDays(-(days - 1));
+
+        var salesByDayRows = await _context.SalesOrders
             .Where(o => o.OrderDate >= cutoff && o.Status != OrderStatus.Cancelled)
             .GroupBy(o => o.OrderDate.Date)
             .Select(g => new { Date = g.Key, Amount = g.Sum(o => o.TotalAmount) })
-            .ToListAsync();
+            .ToListAsync(ct);
 
-        // Profit per day approximated
-        var profitByDay = new Dictionary<DateTime, decimal>();
-        try
-        {
-            var profits = await _context.SalesOrderItems.Include(i => i.SalesOrder).Include(i => i.Product)
-                .Where(i => i.SalesOrder.OrderDate >= cutoff && i.SalesOrder.Status != OrderStatus.Cancelled)
-                .GroupBy(i => i.SalesOrder.OrderDate.Date)
-                .Select(g => new { Date = g.Key, Profit = g.Sum(i => i.LineTotalPrice - i.Product.CostPrice * i.Quantity) })
-                .ToListAsync();
-            profitByDay = profits.ToDictionary(x => x.Date, x => x.Profit);
-        }
-        catch { }
+        var profitByDayRows = await _context.SalesOrderItems
+            .Where(i => i.SalesOrder.OrderDate >= cutoff && i.SalesOrder.Status != OrderStatus.Cancelled)
+            .GroupBy(i => i.SalesOrder.OrderDate.Date)
+            .Select(g => new { Date = g.Key, Profit = g.Sum(i => i.LineTotalPrice - i.Product.CostPrice * i.Quantity) })
+            .ToListAsync(ct);
 
-        var result = new List<SalesOverviewPointDto>();
-        for (int i = days - 1; i >= 0; i--)
+        var salesByDay = salesByDayRows.ToDictionary(x => x.Date.Date, x => x.Amount);
+        var profitByDay = profitByDayRows.ToDictionary(x => x.Date.Date, x => x.Profit);
+
+        // Dictionary lookups replace the previous per-day FirstOrDefault scan, which was
+        // quadratic in the number of days requested.
+        var result = new List<SalesOverviewPointDto>(days);
+        for (var offset = days - 1; offset >= 0; offset--)
         {
-            var d = DateTime.UtcNow.Date.AddDays(-i);
-            var amt = salesByDay.FirstOrDefault(x => x.Date == d)?.Amount ?? 0;
-            var prof = profitByDay.GetValueOrDefault(d, amt * 0.26m);
-            result.Add(new SalesOverviewPointDto(d.ToString("MMM dd"), amt, prof));
+            var day = firstDay.AddDays(-offset);
+            var amount = salesByDay.GetValueOrDefault(day, 0m);
+            var profit = profitByDay.GetValueOrDefault(day, amount * 0.26m);
+            result.Add(new SalesOverviewPointDto(day.ToString("MMM dd"), amount, profit));
         }
+
         return result;
     }
 
-    public async Task<List<SalesByCategoryDto>> GetSalesByCategory()
-    {
-        var data = await _context.SalesOrderItems.Include(i => i.Product).ThenInclude(p => p.Category)
-            .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled)
-            .GroupBy(i => i.Product.Category.Name)
-            .Select(g => new { Category = g.Key, Amount = g.Sum(i => i.LineTotalPrice) })
-            .ToListAsync();
-        var total = data.Sum(x => x.Amount);
-        if (total == 0)
-        {
-            return new List<SalesByCategoryDto>
+    public Task<List<SalesByCategoryDto>> GetSalesByCategory() =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}sales-by-category",
+            SnapshotLifetime,
+            async ct =>
             {
-                new("Electronics", 13768m, 28.4), new("Fashion", 10723m, 22.1), new("Home & Living", 7666m, 15.8),
-                new("Health & Beauty", 5434m, 11.2), new("Sports", 4173m, 8.6), new("Others", 6756m, 13.9)
-            };
-        }
-        return data.Select(d => new SalesByCategoryDto(d.Category, d.Amount, Math.Round((double)(d.Amount / total * 100), 1))).OrderByDescending(x => x.Amount).ToList();
-    }
+                var data = await _context.SalesOrderItems
+                    .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled)
+                    .GroupBy(i => i.Product.Category != null ? i.Product.Category.Name : "Uncategorised")
+                    .Select(g => new { Category = g.Key, Amount = g.Sum(i => i.LineTotalPrice) })
+                    .ToListAsync(ct);
+
+                var total = data.Sum(x => x.Amount);
+                if (total == 0)
+                {
+                    return new List<SalesByCategoryDto>
+                    {
+                        new("Electronics", 13768m, 28.4), new("Fashion", 10723m, 22.1), new("Home & Living", 7666m, 15.8),
+                        new("Health & Beauty", 5434m, 11.2), new("Sports", 4173m, 8.6), new("Others", 6756m, 13.9)
+                    };
+                }
+
+                return data
+                    .Select(d => new SalesByCategoryDto(d.Category, d.Amount, Math.Round((double)(d.Amount / total * 100), 1)))
+                    .OrderByDescending(x => x.Amount)
+                    .ToList();
+            });
 
     public async Task<List<PaymentMethodBreakdownDto>> GetPaymentMethodBreakdown()
     {
@@ -848,61 +921,122 @@ public class DashboardService : IDashboardService
 
     public async Task<InventoryStatusDto> GetInventoryStatus()
     {
-        var totalProducts = await _context.Products.CountAsync();
-        if (totalProducts == 0) return new InventoryStatusDto(2482, 2124, 198, 160, 85.6, 8.0, 6.4);
-        var lowStock = await _context.Inventories.Include(i => i.Product).CountAsync(i => i.Quantity <= i.Product.ReorderStockLevel && i.Product.ReorderStockLevel > 0 && i.Quantity > 0);
-        var outOfStock = await _context.Inventories.Include(i => i.Product).CountAsync(i => i.Quantity == 0);
-        // Distinct product inventory status
-        var inStock = totalProducts - lowStock - outOfStock;
-        if (inStock < 0) inStock = Math.Max(0, totalProducts - lowStock - outOfStock);
-        double pct(int v) => totalProducts == 0 ? 0 : Math.Round((double)v / totalProducts * 100, 1);
-        return new InventoryStatusDto(totalProducts, inStock, lowStock, outOfStock, pct(inStock), pct(lowStock), pct(outOfStock));
+        // Cached because the tile is re-rendered on every dashboard load.
+        return await _cache.GetOrCreateAsync(
+            $"{CachePrefix}inventory-status",
+            SnapshotLifetime,
+            async ct =>
+            {
+                // One aggregate per product, so the counts are products and not inventory rows.
+                // Counting rows would inflate the percentages whenever a product is stocked in more
+                // than one warehouse. Selecting from Products also includes products that have no
+                // inventory rows at all: their Sum is 0, so they count as out of stock.
+                var perProduct = await _context.Products
+                    .AsNoTracking()
+                    .Select(p => new
+                    {
+                        p.ReorderStockLevel,
+                        TotalQuantity = p.Inventories.Sum(i => i.Quantity)
+                    })
+                    .ToListAsync(ct);
+
+                if (perProduct.Count == 0)
+                    return new InventoryStatusDto(2482, 2124, 198, 160, 85.6, 8.0, 6.4);
+
+                var totalProducts = perProduct.Count;
+                var inStock = perProduct.Count(p => p.TotalQuantity > 0);
+                var lowStock = perProduct.Count(p =>
+                    p.ReorderStockLevel > 0 && p.TotalQuantity > 0 && p.TotalQuantity <= p.ReorderStockLevel);
+                var outOfStock = totalProducts - inStock;
+
+                static double Pct(int value, int total) => total == 0 ? 0 : Math.Round((double)value / total * 100, 1);
+
+                return new InventoryStatusDto(
+                    totalProducts, inStock, lowStock, outOfStock,
+                    Pct(inStock, totalProducts), Pct(lowStock, totalProducts), Pct(outOfStock, totalProducts));
+            });
     }
 
-    public async Task<List<DailySalesByStoreDto>> GetDailySalesByStore()
+    public Task<List<DailySalesByStoreDto>> GetDailySalesByStore() =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}daily-sales-by-store",
+            SnapshotLifetime,
+            async ct =>
+            {
+                var data = await _context.SalesOrders
+                    .Where(o => o.Status != OrderStatus.Cancelled)
+                    .GroupBy(o => o.Branch != null ? o.Branch.Name : "Unassigned")
+                    .Select(g => new { Store = g.Key, Sales = g.Sum(o => o.TotalAmount) })
+                    .OrderByDescending(x => x.Sales)
+                    .Take(4)
+                    .ToListAsync(ct);
+
+                if (data.Count == 0)
+                    return new List<DailySalesByStoreDto> { new("Dhaka", 12500), new("Chattogram", 9800), new("Sylhet", 7400), new("Khulna", 6200) };
+
+                return data.Select(d => new DailySalesByStoreDto(d.Store, d.Sales)).ToList();
+            });
+
+    public Task<List<BestStoreDto>> GetBestPerformingStores() =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}best-stores",
+            SnapshotLifetime,
+            async ct =>
+            {
+                var data = await _context.SalesOrders
+                    .Where(o => o.Status != OrderStatus.Cancelled)
+                    .GroupBy(o => o.Branch != null ? o.Branch.Name : "Unassigned")
+                    .Select(g => new { Store = g.Key, Sales = g.Sum(o => o.TotalAmount) })
+                    .OrderByDescending(x => x.Sales)
+                    .Take(4)
+                    .ToListAsync(ct);
+
+                if (data.Count == 0)
+                    return new List<BestStoreDto> { new("Dhaka", 18240, 16.5), new("Chattogram", 14860, 12.8), new("Sylhet", 10320, 9.4), new("Khulna", 7100, 7.2) };
+
+                // Growth is a placeholder because no prior-period store snapshot is stored.
+                var random = new Random(42);
+                return data
+                    .Select(d => new BestStoreDto(d.Store, d.Sales, Math.Round(random.NextDouble() * 10 + 5, 1)))
+                    .ToList();
+            });
+
+    public Task<List<RecentTransactionDto>> GetRecentTransactions(int count) =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}recent-transactions:{count}",
+            SnapshotLifetime,
+            ct => BuildRecentTransactionsAsync(count, ct));
+
+    private async Task<List<RecentTransactionDto>> BuildRecentTransactionsAsync(int count, CancellationToken ct)
     {
-        var data = await _context.SalesOrders.Include(o => o.Branch)
-            .Where(o => o.Status != OrderStatus.Cancelled)
-            .GroupBy(o => o.Branch != null ? o.Branch.Name : "Dhaka")
-            .Select(g => new { Store = g.Key, Sales = g.Sum(o => o.TotalAmount) })
-            .OrderByDescending(x => x.Sales)
-            .Take(4)
-            .ToListAsync();
-        if (!data.Any())
-            return new List<DailySalesByStoreDto> { new("Dhaka", 12500), new("Chattogram", 9800), new("Sylhet", 7400), new("Khulna", 6200) };
-        return data.Select(d => new DailySalesByStoreDto(d.Store, d.Sales)).ToList();
-    }
+        var salesRows = await _context.SalesOrders
+            .AsNoTracking()
+            .OrderByDescending(o => o.OrderDate)
+            .Take(count)
+            .Select(o => new { o.OrderNumber, o.OrderDate, o.TotalAmount, StatusText = o.Status.ToString() })
+            .ToListAsync(ct);
 
-    public async Task<List<BestStoreDto>> GetBestPerformingStores()
-    {
-        var data = await _context.SalesOrders.Include(o => o.Branch)
-            .Where(o => o.Status != OrderStatus.Cancelled)
-            .GroupBy(o => o.Branch != null ? o.Branch.Name : "Dhaka")
-            .Select(g => new { Store = g.Key, Sales = g.Sum(o => o.TotalAmount) })
-            .OrderByDescending(x => x.Sales)
-            .Take(4).ToListAsync();
-        if (!data.Any())
-            return new List<BestStoreDto> { new("Dhaka", 18240, 16.5), new("Chattogram", 14860, 12.8), new("Sylhet", 10320, 9.4), new("Khulna", 7100, 7.2) };
-        // growth approximated
-        var rnd = new Random(42);
-        return data.Select(d => new BestStoreDto(d.Store, d.Sales, Math.Round(rnd.NextDouble() * 10 + 5, 1))).ToList();
-    }
+        var purchaseRows = await _context.PurchaseOrders
+            .AsNoTracking()
+            .OrderByDescending(p => p.PurchaseDate)
+            .Take(count)
+            .Select(p => new { p.OrderNumber, OrderDate = p.PurchaseDate, p.TotalAmount, StatusText = "Received" })
+            .ToListAsync(ct);
 
-    public async Task<List<RecentTransactionDto>> GetRecentTransactions(int count)
-    {
-        var sales = await _context.SalesOrders.Include(o => o.Customer).OrderByDescending(o => o.OrderDate).Take(count)
-            .Select(o => new { o.OrderNumber, o.OrderDate, o.TotalAmount, o.Status, Type = "Sale" }).ToListAsync();
-        var purchases = await _context.PurchaseOrders.Include(p => p.Supplier).OrderByDescending(p => p.PurchaseDate).Take(count)
-            .Select(p => new { OrderNumber = p.OrderNumber, Date = p.PurchaseDate, p.TotalAmount, p.Status, Type = "Purchase" }).ToListAsync();
+        // Sort on the real timestamp, then format. The previous code ordered by the formatted
+        // "3 hours ago" label, which sorts lexicographically and put "Yesterday" above
+        // "Just now", so the most-recent list was wrong.
+        var ordered = salesRows
+            .Select(s => new PendingTransaction(
+                IsPurchase: false, s.OrderDate, GetTimeAgo(s.OrderDate), s.OrderNumber, s.TotalAmount, s.StatusText))
+            .Concat(purchaseRows
+                .Select(p => new PendingTransaction(
+                    IsPurchase: true, p.OrderDate, GetTimeAgo(p.OrderDate), p.OrderNumber, p.TotalAmount, p.StatusText)))
+            .OrderByDescending(x => x.Timestamp)
+            .Take(count)
+            .ToList();
 
-        var list = new List<RecentTransactionDto>();
-        foreach (var s in sales)
-            list.Add(new RecentTransactionDto("Sale", $"Sale #{s.OrderNumber}", GetTimeAgo(s.OrderDate), s.TotalAmount, s.Status.ToString(), s.Status == OrderStatus.Sold || s.Status.ToString() == "Completed" ? "Completed" : "Pending"));
-        foreach (var p in purchases)
-            list.Add(new RecentTransactionDto("Purchase", $"Purchase #{p.OrderNumber}", GetTimeAgo(p.Date), p.TotalAmount, "Received", "Received"));
-
-        var ordered = list.OrderByDescending(x => x.TimeAgo).Take(count).ToList();
-        if (!ordered.Any())
+        if (ordered.Count == 0)
         {
             return new List<RecentTransactionDto>
             {
@@ -913,49 +1047,102 @@ public class DashboardService : IDashboardService
                 new("Payment", "Payment Received", "2 hours ago", 2450.00m, "Cash", "Cash")
             };
         }
-        return ordered.Take(5).ToList();
+
+        return ordered
+            .Select(x => x.IsPurchase
+                ? new RecentTransactionDto("Purchase", $"Purchase #{x.OrderNumber}", x.Label, x.TotalAmount, x.Status, "Received")
+                : new RecentTransactionDto(
+                    "Sale",
+                    $"Sale #{x.OrderNumber}",
+                    x.Label,
+                    x.TotalAmount,
+                    x.Status,
+                    x.Status == nameof(OrderStatus.Sold) ? "Completed" : "Pending"))
+            .Take(5)
+            .ToList();
     }
 
-    public async Task<List<SystemAlertDto>> GetSystemAlerts(int count)
-    {
-        var alerts = new List<SystemAlertDto>();
-        var lowStockAlerts = await _context.Inventories.Include(i => i.Product).Where(i => i.Quantity <= i.Product.ReorderStockLevel && i.Product.ReorderStockLevel > 0).Take(2).Select(i => i.Product.Name).ToListAsync();
-        foreach (var name in lowStockAlerts)
-            alerts.Add(new SystemAlertDto($"Low stock: {name} (3 remaining)", "", "2 mins ago", "error", "warning"));
-        // Expiring
-        var expiring = await _context.Inventories.Where(i => i.ExpiryDate != null && i.ExpiryDate <= DateTime.UtcNow.AddDays(5)).Take(1).Select(i => i.Product.Name).ToListAsync();
-        foreach (var n in expiring)
-            alerts.Add(new SystemAlertDto($"Expiring soon: {n} (5 days)", "", "12 mins ago", "warning", "schedule"));
-        if (!alerts.Any())
-        {
-            alerts.Add(new SystemAlertDto("Low stock: iPhone 15 (3 remaining)", "", "2 mins ago", "error", "warning"));
-            alerts.Add(new SystemAlertDto("Expiring soon: Milk Powder (5 days)", "", "12 mins ago", "warning", "schedule"));
-        }
-        alerts.Add(new SystemAlertDto("New customer registration", "", "30 mins ago", "info", "person_add"));
-        alerts.Add(new SystemAlertDto("Supplier payment due: ABC Supplier", "", "1 hour ago", "warning", "payments"));
-        alerts.Add(new SystemAlertDto("System backup completed", "", "3 hours ago", "success", "check_circle"));
-        return alerts.Take(count).ToList();
-    }
+    /// <summary>Normalised sales/purchase activity used to merge the two transaction feeds.</summary>
+    private sealed record PendingTransaction(
+        bool IsPurchase,
+        DateTime Timestamp,
+        string Label,
+        string OrderNumber,
+        decimal TotalAmount,
+        string Status);
 
-    public async Task<List<RecentOrderExtendedDto>> GetRecentOrdersExtended(int count)
-    {
-        var data = await _context.SalesOrders.Include(o => o.Customer).Include(o => o.Branch)
-            .OrderByDescending(o => o.OrderDate).Take(count)
-            .Select(o => new { o.Id, o.OrderNumber, Customer = o.Customer.CustomerName, Store = o.Branch != null ? o.Branch.Name : "Dhaka", o.OrderDate, Status = o.Status.ToString(), o.TotalAmount })
-            .ToListAsync();
-        if (!data.Any())
-        {
-            return new List<RecentOrderExtendedDto>
+    public Task<List<SystemAlertDto>> GetSystemAlerts(int count) =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}system-alerts:{count}",
+            SnapshotLifetime,
+            async ct =>
             {
-                new(Guid.NewGuid(), "SO-10045", "John Smith", "Dhaka", DateTime.UtcNow.AddHours(-2), "Completed", 245.00m),
-                new(Guid.NewGuid(), "SO-10044", "Sarah Johnson", "Chattogram", DateTime.UtcNow.AddHours(-3), "Completed", 189.50m),
-                new(Guid.NewGuid(), "SO-10043", "Michael Brown", "Sylhet", DateTime.UtcNow.AddHours(-5), "Processing", 320.75m),
-                new(Guid.NewGuid(), "SO-10042", "Emily Davis", "Dhaka", DateTime.UtcNow.AddHours(-7), "Completed", 156.20m),
-                new(Guid.NewGuid(), "SO-10041", "Robert Wilson", "Khulna", DateTime.UtcNow.AddDays(-1), "Shipped", 278.40m)
-            };
-        }
-        return data.Select(d => new RecentOrderExtendedDto(d.Id, d.OrderNumber, d.Customer, d.Store, d.OrderDate, d.Status, d.TotalAmount)).ToList();
-    }
+                var lowStockRows = await _context.Inventories
+                    .Where(i => i.Product.ReorderStockLevel > 0 && i.Quantity <= i.Product.ReorderStockLevel)
+                    .OrderBy(i => i.Quantity)
+                    .Take(2)
+                    .Select(i => new { i.Product.Name, i.Quantity })
+                    .ToListAsync(ct);
+
+                var expiringRows = await _context.Inventories
+                    .Where(i => i.ExpiryDate != null && i.ExpiryDate <= DateTime.UtcNow.AddDays(5))
+                    .OrderBy(i => i.ExpiryDate)
+                    .Take(1)
+                    .Select(i => new { i.Product.Name })
+                    .ToListAsync(ct);
+
+                var alerts = new List<SystemAlertDto>();
+                foreach (var item in lowStockRows)
+                    alerts.Add(new SystemAlertDto($"Low stock: {item.Name} ({item.Quantity} remaining)", "", "2 mins ago", "error", "warning"));
+
+                foreach (var item in expiringRows)
+                    alerts.Add(new SystemAlertDto($"Expiring soon: {item.Name} (5 days)", "", "12 mins ago", "warning", "schedule"));
+
+                alerts.Add(new SystemAlertDto("New customer registration", "", "30 mins ago", "info", "person_add"));
+                alerts.Add(new SystemAlertDto("Supplier payment due: ABC Supplier", "", "1 hour ago", "warning", "payments"));
+                alerts.Add(new SystemAlertDto("System backup completed", "", "3 hours ago", "success", "check_circle"));
+
+                return alerts.Take(count).ToList();
+            });
+
+    public Task<List<RecentOrderExtendedDto>> GetRecentOrdersExtended(int count) =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}recent-orders:{count}",
+            SnapshotLifetime,
+            async ct =>
+            {
+                var data = await _context.SalesOrders
+                    .AsNoTracking()
+                    .OrderByDescending(o => o.OrderDate)
+                    .Take(count)
+                    .Select(o => new
+                    {
+                        o.Id,
+                        o.OrderNumber,
+                        Customer = o.Customer != null ? o.Customer.CustomerName : "Unknown",
+                        Store = o.Branch != null ? o.Branch.Name : "Unassigned",
+                        o.OrderDate,
+                        Status = o.Status.ToString(),
+                        o.TotalAmount
+                    })
+                    .ToListAsync(ct);
+
+                if (data.Count == 0)
+                {
+                    return new List<RecentOrderExtendedDto>
+                    {
+                        new(Guid.NewGuid(), "SO-10045", "John Smith", "Dhaka", DateTime.UtcNow.AddHours(-2), "Completed", 245.00m),
+                        new(Guid.NewGuid(), "SO-10044", "Sarah Johnson", "Chattogram", DateTime.UtcNow.AddHours(-3), "Completed", 189.50m),
+                        new(Guid.NewGuid(), "SO-10043", "Michael Brown", "Sylhet", DateTime.UtcNow.AddHours(-5), "Processing", 320.75m),
+                        new(Guid.NewGuid(), "SO-10042", "Emily Davis", "Dhaka", DateTime.UtcNow.AddHours(-7), "Completed", 156.20m),
+                        new(Guid.NewGuid(), "SO-10041", "Robert Wilson", "Khulna", DateTime.UtcNow.AddDays(-1), "Shipped", 278.40m)
+                    };
+                }
+
+                return data
+                    .Select(d => new RecentOrderExtendedDto(d.Id, d.OrderNumber, d.Customer, d.Store, d.OrderDate, d.Status, d.TotalAmount))
+                    .ToList();
+            });
 
     private static string GetTimeAgo(DateTime date)
     {
@@ -970,52 +1157,82 @@ public class DashboardService : IDashboardService
 public class SearchService : ISearchService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<SearchService> _logger;
 
-    public SearchService(ApplicationDbContext context) => _context = context;
+    public SearchService(ApplicationDbContext context, ILogger<SearchService> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
 
     public async Task<List<GlobalSearchResultDto>> Search(string query, int maxResults = 20)
     {
-        var results = new List<GlobalSearchResultDto>();
-        var q = query.ToLower();
+        if (string.IsNullOrWhiteSpace(query))
+            return new List<GlobalSearchResultDto>();
+
+        var started = Stopwatch.GetTimestamp();
         var perType = Math.Max(maxResults / 5, 3);
 
+        // Plain Contains compiles to LIKE and stays sargable; the previous ToLower().Contains
+        // wrapped the column in a function and could not use an index.
+        var term = query.Trim();
+
+        // The five searches are independent but are issued sequentially: EF Core's DbContext
+        // rejects two concurrent operations on the same instance.
         var products = await _context.Products
-            .Where(p => p.Name.ToLower().Contains(q) || p.SKU.ToLower().Contains(q))
+            .AsNoTracking()
+            .Where(p => p.Name.Contains(term) || p.SKU.Contains(term))
+            .OrderBy(p => p.Name)
             .Take(perType)
-            .Select(p => new GlobalSearchResultDto("Product", p.Id, p.Name, p.SKU, $"/products"))
+            .Select(p => new GlobalSearchResultDto("Product", p.Id, p.Name, p.SKU, "/products"))
             .ToListAsync();
-        results.AddRange(products);
 
         var customers = await _context.Customers
-            .Where(c => c.CustomerName.ToLower().Contains(q) || (c.CustomerEmail != null && c.CustomerEmail.ToLower().Contains(q)))
+            .AsNoTracking()
+            .Where(c => c.CustomerName.Contains(term) || (c.CustomerEmail != null && c.CustomerEmail.Contains(term)))
+            .OrderBy(c => c.CustomerName)
             .Take(perType)
-            .Select(c => new GlobalSearchResultDto("Customer", c.Id, c.CustomerName, c.CustomerEmail ?? "", $"/customers"))
+            .Select(c => new GlobalSearchResultDto("Customer", c.Id, c.CustomerName, c.CustomerEmail ?? "", "/customers"))
             .ToListAsync();
-        results.AddRange(customers);
 
         var suppliers = await _context.Suppliers
-            .Where(s => s.SupplierName.ToLower().Contains(q) || (s.SupplierEmail != null && s.SupplierEmail.ToLower().Contains(q)))
+            .AsNoTracking()
+            .Where(s => s.SupplierName.Contains(term) || (s.SupplierEmail != null && s.SupplierEmail.Contains(term)))
+            .OrderBy(s => s.SupplierName)
             .Take(perType)
-            .Select(s => new GlobalSearchResultDto("Supplier", s.Id, s.SupplierName, s.SupplierEmail ?? "", $"/suppliers"))
+            .Select(s => new GlobalSearchResultDto("Supplier", s.Id, s.SupplierName, s.SupplierEmail ?? "", "/suppliers"))
             .ToListAsync();
-        results.AddRange(suppliers);
 
         var salesOrders = await _context.SalesOrders
-            .Include(o => o.Customer)
-            .Where(o => o.OrderNumber.ToLower().Contains(q) || o.Customer.CustomerName.ToLower().Contains(q))
+            .AsNoTracking()
+            .Where(o => o.OrderNumber.Contains(term) || (o.Customer != null && o.Customer.CustomerName.Contains(term)))
+            .OrderByDescending(o => o.OrderDate)
             .Take(perType)
-            .Select(o => new GlobalSearchResultDto("Sales Order", o.Id, o.OrderNumber, o.Customer.CustomerName, $"/orders/sales"))
+            .Select(o => new GlobalSearchResultDto("Sales Order", o.Id, o.OrderNumber, o.Customer != null ? o.Customer.CustomerName : "", "/orders/sales"))
             .ToListAsync();
-        results.AddRange(salesOrders);
 
         var purchaseOrders = await _context.PurchaseOrders
-            .Include(p => p.Supplier)
-            .Where(p => p.OrderNumber.ToLower().Contains(q) || p.Supplier.SupplierName.ToLower().Contains(q))
+            .AsNoTracking()
+            .Where(p => p.OrderNumber.Contains(term) || (p.Supplier != null && p.Supplier.SupplierName.Contains(term)))
+            .OrderByDescending(p => p.PurchaseDate)
             .Take(perType)
-            .Select(p => new GlobalSearchResultDto("Purchase Order", p.Id, p.OrderNumber, p.Supplier.SupplierName, $"/orders/purchase"))
+            .Select(p => new GlobalSearchResultDto("Purchase Order", p.Id, p.OrderNumber, p.Supplier != null ? p.Supplier.SupplierName : "", "/orders/purchase"))
             .ToListAsync();
-        results.AddRange(purchaseOrders);
 
-        return results.Take(maxResults).ToList();
+        var combined = products
+            .Concat(customers)
+            .Concat(suppliers)
+            .Concat(salesOrders)
+            .Concat(purchaseOrders)
+            .Take(maxResults)
+            .ToList();
+
+        _logger.LogDebug(
+            "Global search for '{Query}' returned {ResultCount} results in {ElapsedMs:F0} ms",
+            term,
+            combined.Count,
+            Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+
+        return combined;
     }
 }

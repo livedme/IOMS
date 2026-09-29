@@ -1,5 +1,6 @@
 @page "/admin/data-privacy"
 @rendermode InteractiveServer
+@attribute [Authorize(Policy = AuthorizationPolicies.Administrator)]
 @inject IDataPrivacyService PrivacyService
 @inject ISnackbar Snackbar
 

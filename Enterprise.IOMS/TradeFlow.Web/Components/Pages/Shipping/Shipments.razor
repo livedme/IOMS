@@ -1,5 +1,6 @@
 @page "/shipping/shipments"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject IShippingService ShippingService
 @inject ISnackbar Snackbar
 @using TradeFlow.Infrastructure.Data

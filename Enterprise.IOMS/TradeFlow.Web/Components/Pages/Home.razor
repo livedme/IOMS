@@ -1,7 +1,9 @@
 ﻿@page "/"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@using System.Diagnostics
 @inject IDashboardService DashboardService
+@inject ILogger<Home> Logger
 
 <PageTitle>Dashboard - IOMS</PageTitle>
 
@@ -103,6 +105,14 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var started = Stopwatch.GetTimestamp();
+
+        // The twelve dashboard reads are issued one after another rather than through
+        // Task.WhenAll. IDashboardService is scoped, so every call shares a single
+        // ApplicationDbContext, and EF Core throws "A second operation was started on this context
+        // instance" if two of these overlap. Genuine fan-out would need a separate DbContext per
+        // read (IDbContextFactory). Repeating a render inside the TTL window is served from cache
+        // and costs no database round trips.
         _kpis = await SafeAsync(() => DashboardService.GetDashboardKPIs(), EmptyKpis, "GetDashboardKPIs");
         _extKpis = await SafeAsync(() => DashboardService.GetExtendedKpis(), EmptyExtendedKpis, "GetExtendedKpis");
         _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(7), new List<SalesOverviewPointDto>(), "GetSalesOverview");
@@ -117,8 +127,16 @@
         _recentOrdersExt = await SafeAsync(() => DashboardService.GetRecentOrdersExtended(5), new List<RecentOrderExtendedDto>(), "GetRecentOrdersExtended");
 
         _loading = false;
+
+        Logger.LogInformation("Dashboard loaded in {ElapsedMs:F0} ms", Stopwatch.GetElapsedTime(started).TotalMilliseconds);
     }
 
+    /// <summary>
+    /// Runs a dashboard read and substitutes an empty value on failure. The failure is logged at
+    /// Error with the full exception so an outage is visible in the log stream; the previous
+    /// implementation wrote to the console, which meant a database failure and a genuinely empty
+    /// dashboard were indistinguishable on screen.
+    /// </summary>
     private async Task<T> SafeAsync<T>(Func<Task<T>> call, T fallback, string label)
     {
         try
@@ -127,7 +145,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Dashboard '{label}' failed: {ex.GetType().Name}: {ex.Message}");
+            Logger.LogError(ex, "Dashboard tile '{DashboardTile}' failed; rendering an empty tile.", label);
             return fallback;
         }
     }
@@ -135,8 +153,8 @@
     private async Task OnDateRangeChanged(string v)
     {
         _dateRange = v;
-        if (v.Contains("30")) { _salesOverview = await DashboardService.GetSalesOverview(30); }
-        else if (v.Contains("7") || v.Contains("Apr")) { _salesOverview = await DashboardService.GetSalesOverview(7); }
+        var days = v.Contains("30") ? 30 : 7;
+        _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(days), new List<SalesOverviewPointDto>(), "GetSalesOverview");
     }
 
     private Task OnStoreFilterChanged(string v)
@@ -148,8 +166,17 @@
     private async Task OnOverviewRangeChanged(string v)
     {
         _overviewRange = v;
-        int days = v.Contains("30") ? 30 : v.Contains("12") ? 12 : 7;
-        if (days == 12) { var m = await DashboardService.GetMonthlySalesData(12); _salesOverview = m.Select(x => new SalesOverviewPointDto(x.Period, x.Amount, x.Amount * 0.26m)).ToList(); }
-        else _salesOverview = await DashboardService.GetSalesOverview(days);
+        var days = v.Contains("30") ? 30 : v.Contains("12") ? 12 : 7;
+        if (days == 12)
+        {
+            var monthly = await SafeAsync(() => DashboardService.GetMonthlySalesData(12), new List<MonthlySalesDto>(), "GetMonthlySalesData");
+            _salesOverview = monthly
+                .Select(x => new SalesOverviewPointDto(x.Period, x.Amount, x.Amount * 0.26m))
+                .ToList();
+        }
+        else
+        {
+            _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(days), new List<SalesOverviewPointDto>(), "GetSalesOverview");
+        }
     }
 }

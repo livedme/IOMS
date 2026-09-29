@@ -1,5 +1,6 @@
 @page "/inventory"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject IInventoryService InventoryService
 @inject ISnackbar Snackbar
 @using TradeFlow.Infrastructure.Data

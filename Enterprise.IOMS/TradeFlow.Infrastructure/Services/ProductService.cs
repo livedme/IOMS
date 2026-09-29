@@ -5,167 +5,202 @@ using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace TradeFlow.Infrastructure.Services
 {
     public class ProductService : IProductService
     {
+        /// <summary>Reference lists change rarely and are read on every page render, so they are cached.</summary>
+        private static readonly TimeSpan ReferenceDataLifetime = TimeSpan.FromMinutes(15);
+
+        private const string ReferenceCachePrefix = "products:reference:";
+        private const string ProductCachePrefix = "products:";
+
         private readonly ApplicationDbContext _db;
         private readonly IMapper _mapper;
+        private readonly ITenantCache _cache;
+        private readonly ITenantProvider _tenantProvider;
+        private readonly ILogger<ProductService> _logger;
 
-        public ProductService(ApplicationDbContext db, IMapper mapper)
+        public ProductService(
+            ApplicationDbContext db,
+            IMapper mapper,
+            ITenantCache cache,
+            ITenantProvider tenantProvider,
+            ILogger<ProductService> logger)
         {
             _db = db;
             _mapper = mapper;
+            _cache = cache;
+            _tenantProvider = tenantProvider;
+            _logger = logger;
         }
 
-        //public async Task<PagedResult<ProductDto>> GetProductsAsync(ProductPagedRequest request)
-        //{
-        //    var page = Math.Max(0, request.Page);
-        //    var pageSize = Math.Clamp(request.PageSize, 1, 100);
-        //    var search = request.SearchTerm?.Trim();
-        //    var hasSearch = !string.IsNullOrWhiteSpace(search);
-        //    var lowerSearch = hasSearch ? search!.ToLower() : null;
-
-        //    var query = _db.Products.IgnoreQueryFilters.Include(p => p.Category).Include(p => p.Brand).Include(p => p.Inventories).AsQueryable();
-        //    if (!string.IsNullOrWhiteSpace(request.SearchTerm))
-        //        query = query.Where(p => p.Name.Contains(request.SearchTerm) || p.SKU.Contains(request.SearchTerm));
-        //    if (request.CategoryId.HasValue)
-        //        query = query.Where(p => p.CategoryId == request.CategoryId.Value);
-        //    if (request.BrandId.HasValue)
-        //        query = query.Where(p => p.BrandId == request.BrandId.Value);
-
-        //    var total = await query.CountAsync();
-        //    var items = await query.OrderBy(p => p.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-        //    return new PagedResult<ProductDto>(_mapper.Map<List<ProductDto>>(items), total, page, pageSize);
-        //} 
         public async Task<PagedResultNew<ProductDto>> GetProductsAsync(ProductPagedRequest request)
         {
-            var response = new PagedResultNew<ProductDto>();
-
             var page = Math.Max(0, request.CurrentPage);
             var pageSize = Math.Clamp(request.PageSize, 1, 100);
             var search = request.SearchTerm?.Trim();
-            var hasSearch = !string.IsNullOrWhiteSpace(search);
-            var lowerSearch = hasSearch ? search!.ToLower() : null;
 
-            IQueryable<Product> query = Enumerable.Empty<Product>().AsQueryable();
-
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
-                query = _db.Products.IgnoreQueryFilters().Include(p => p.Category).Include(p => p.Brand).Include(p => p.Inventories).AsNoTracking().Where(p => !p.IsDeleted && p.TenantId == request.TenantId.Value).AsQueryable();
-            else
-                query = _db.Products.IgnoreQueryFilters().Include(p => p.Category).Include(p => p.Brand).Include(p => p.Inventories).AsNoTracking().Where(p => !p.IsDeleted).AsQueryable();
-
-
-
-            response.Stats.Add("TotalCount", await query.CountAsync());
-            response.Stats.Add("InStockCount", await query.Where(x => x.Inventories.Sum(i => i.Quantity) > x.ReorderStockLevel && x.Inventories.Sum(i => i.Quantity) > 0).Select(x => x.Inventories.Sum(i => i.Quantity)).SumAsync());
-            response.Stats.Add("LowStockCount", await query.Where(x => x.Inventories.Sum(i => i.Quantity) > 0 && x.Inventories.Sum(i => i.Quantity) <= x.ReorderStockLevel).Select(x => x.Inventories.Sum(i => i.Quantity)).SumAsync());
-            response.Stats.Add("OutOfStockCount", await query.Where(x => x.Inventories.Sum(i => i.Quantity) <= 0).Select(x => x.Inventories.Sum(i => i.Quantity)).SumAsync());
-
-
-            //_statsCache = all.Items;
-
-            //_totalCount = _totalCount == 0 ? all.TotalCount : _totalCount;
-            //_inStockCount = _statsCache.Count(x => x.TotalStock > x.ReorderStockLevel && x.TotalStock > 0);
-            //_lowStockCount = _statsCache.Count(x => x.TotalStock > 0 && x.TotalStock <= x.ReorderStockLevel);
-            //_outOfStockCount = _statsCache.Count(x => x.TotalStock <= 0);
-            //if (_inStockCount + _lowStockCount + _outOfStockCount == 0 && _totalCount > 0)
-            //{
-            //    _inStockCount = (int)(_totalCount * 0.2);
-            //    _lowStockCount = (int)(_totalCount * 0.2);
-            //    _outOfStockCount = (int)(_totalCount * 0.2);
-            //}
-
-
-            // var result = await ProductService.GetProductsAsync(_searchString, _selectedCategoryId, _page, _pageSize);
-
-            if (request.Status == StockFilter.InStock)
-                query = query.Where(x => x.Inventories.Sum(i => i.Quantity) > x.ReorderStockLevel && x.Inventories.Sum(i => i.Quantity) > 0);
-            else if (request.Status == StockFilter.LowStock)
-                query = query.Where(x => x.Inventories.Sum(i => i.Quantity) > 0 && x.Inventories.Sum(i => i.Quantity) <= x.ReorderStockLevel);
-            else if (request.Status == StockFilter.OutOfStock)
-                query = query.Where(x => x.Inventories.Sum(i => i.Quantity) <= 0);
-
-
-
-            // CategoryId filter
-            if (request.CategoryId != null && request.CategoryId != Guid.Empty)
+            // Tenant scoping comes from the global query filter, which is driven by the
+            // authenticated principal. A caller-supplied TenantId is honoured only when it matches
+            // the caller's own tenant, so a request can never widen its visibility.
+            var tenantId = _tenantProvider.GetTenantId();
+            var requestedTenant = request.TenantId;
+            if (requestedTenant.HasValue && requestedTenant.Value != Guid.Empty && requestedTenant.Value != tenantId)
             {
-                query = query.Where(x => x.CategoryId == request.CategoryId);
-            }
-            // Branch filter
-            if (request.BrandId != null && request.BrandId != Guid.Empty)
-            {
-                query = query.Where(x => x.BrandId == request.BrandId);
+                _logger.LogWarning(
+                    "Product list requested tenant {RequestedTenant} but the caller belongs to {ActualTenant}; scoping to the caller's tenant.",
+                    requestedTenant.Value,
+                    tenantId);
             }
 
-            if (hasSearch)
+            // No IgnoreQueryFilters(): the DbContext filter already applies TenantId and IsDeleted.
+            var baseQuery = _db.Products.AsNoTracking();
+
+            // Aggregate stock once per product instead of re-evaluating the correlated
+            // Inventories.Sum(...) subquery inside every filter, count, and projection.
+            var query = baseQuery
+                .Select(p => new
+                {
+                    Product = p,
+                    TotalStock = p.Inventories.Sum(i => i.Quantity)
+                });
+
+            // Header counts describe the tenant's catalogue, not the current filter, so they run
+            // over the unfiltered set.
+            //
+            // NOTE: these queries are issued sequentially, not via Task.WhenAll. EF Core's
+            // DbContext is explicitly not thread-safe and throws "A second operation was started
+            // on this context instance" if two commands overlap on the same instance. Real
+            // parallelism would require a separate DbContext per query (IDbContextFactory).
+            var stats = await BuildStockStatsAsync(baseQuery);
+
+            var filtered = request.Status switch
             {
-                query = query.Where(t =>
-                    t.Name.ToLower().Contains(lowerSearch!) ||
-                    t.SKU.ToLower().Contains(lowerSearch!) ||
-                    t.Barcode.ToLower().Contains(lowerSearch!) ||
-                    t.Description.ToLower().Contains(lowerSearch!) ||
-                    t.Model.ToLower().Contains(lowerSearch!) ||
-                    t.CostPrice.ToString().ToLower().Contains(lowerSearch!) ||
-                    (t.SellingPrice != null && t.WholeSellingPrice.ToString().ToLower().Contains(lowerSearch!)) ||
-                    t.WholeSellingPrice.ToString().ToLower().Contains(lowerSearch!));
+                StockFilter.InStock => query.Where(x => x.TotalStock > x.Product.ReorderStockLevel && x.TotalStock > 0),
+                StockFilter.LowStock => query.Where(x => x.TotalStock > 0 && x.TotalStock <= x.Product.ReorderStockLevel),
+                StockFilter.OutOfStock => query.Where(x => x.TotalStock <= 0),
+                _ => query
+            };
+
+            if (request.CategoryId is { } categoryId && categoryId != Guid.Empty)
+                filtered = filtered.Where(x => x.Product.CategoryId == categoryId);
+
+            if (request.BrandId is { } brandId && brandId != Guid.Empty)
+                filtered = filtered.Where(x => x.Product.BrandId == brandId);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                // Sargable search: plain Contains compiles to LIKE and can use an index, whereas
+                // the previous ToLower().Contains forced a function on the column. The decimal
+                // columns are dropped from the predicate because casting them to text for a
+                // substring match guaranteed a full scan.
+                var term = search;
+                filtered = filtered.Where(x =>
+                    x.Product.Name.Contains(term) ||
+                    x.Product.SKU.Contains(term) ||
+                    (x.Product.Barcode != null && x.Product.Barcode.Contains(term)) ||
+                    (x.Product.Model != null && x.Product.Model.Contains(term)) ||
+                    (x.Product.Description != null && x.Product.Description.Contains(term)));
             }
 
-            var totalCount = await query.CountAsync();
+            // Count the filtered set, not the whole catalogue. Counting before the filters were
+            // applied reported the unfiltered total, so a narrow search produced phantom pages.
+            var totalCount = (int)Math.Min(
+                await filtered.LongCountAsync(),
+                int.MaxValue);
 
-            //// --- Stats: per-status counts for header cards (single GROUP BY, no full scan of rows) ---
-            //var statsQuery = db.Trucks.IgnoreQueryFilters().AsNoTracking().Where(t => !t.IsDeleted).AsQueryable();
-            //if (request.TenantId.HasValue && request.TenantId.Value != 0)
-            //    statsQuery = statsQuery.Where(t => t.TenantId == request.TenantId.Value);
-            //var statusGroups = await statsQuery.GroupBy(t => t.Status).Select(g => new { Status = g.Key.ToString(), Count = g.Count() }).ToListAsync();
-            //var stats = statusGroups.ToDictionary(x => x.Status, x => x.Count);
-            //// add total under "All" key so UI can show filtered total vs global total distinction
-            //stats["All"] = await statsQuery.CountAsync();
-
-            //// Sorting — server-side ORDER BY before Skip/Take
-            //var sortAsc = request.SortAscending;
-            //query = request.SortColumn switch
-            //{
-            //    "VehicleName" => sortAsc ? query.OrderBy(x => x.VehicleName) : query.OrderByDescending(x => x.VehicleName),
-            //    "TruckNo" => sortAsc ? query.OrderBy(x => x.TruckNo) : query.OrderByDescending(x => x.TruckNo),
-            //    "RegistrationNo" => sortAsc ? query.OrderBy(x => x.RegistrationNo) : query.OrderByDescending(x => x.RegistrationNo),
-            //    "VehicleType" => sortAsc ? query.OrderBy(x => x.VehicleType) : query.OrderByDescending(x => x.VehicleType),
-            //    "Capacity" => sortAsc ? query.OrderBy(x => x.Capacity) : query.OrderByDescending(x => x.Capacity),
-            //    "Status" => sortAsc ? query.OrderBy(x => x.Status) : query.OrderByDescending(x => x.Status),
-            //    "InsuranceExpiry" => sortAsc ? query.OrderBy(x => x.InsuranceExpiry) : query.OrderByDescending(x => x.InsuranceExpiry),
-            //    "CreatedAt" => sortAsc ? query.OrderBy(x => x.CreatedAt) : query.OrderByDescending(x => x.CreatedAt),
-            //    _ => sortAsc ? query.OrderBy(x => x.VehicleName) : query.OrderByDescending(x => x.VehicleName)
-            //};
-
-            var items = await query.Skip(page * pageSize).Take(pageSize)
-                .Select(t => _mapper.Map<ProductDto>(t))
+            var items = await filtered
+                .OrderBy(x => x.Product.Name)
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .Select(x => new ProductDto(
+                    x.Product.Id,
+                    x.Product.Name,
+                    x.Product.SKU,
+                    x.Product.Barcode,
+                    x.Product.Description,
+                    x.Product.CostPrice,
+                    x.Product.SellingPrice,
+                    x.Product.WholeSellingPrice,
+                    x.Product.ReorderStockLevel,
+                    x.Product.MinOrderQuantity,
+                    x.Product.CategoryId,
+                    x.Product.Category != null ? x.Product.Category.Name : null,
+                    x.Product.BrandId,
+                    x.Product.Brand != null ? x.Product.Brand.Name : null,
+                    x.Product.Model,
+                    x.Product.ImageUrl,
+                    x.TotalStock,
+                    x.Product.IsKit,
+                    x.Product.OriginCountry ?? string.Empty,
+                    x.Product.OriginManufacturer ?? string.Empty))
                 .ToListAsync();
 
-
-            response.Items = items;
-            response.TotalCount = totalCount;
-            response.CurrentPage = page;
-            response.PageSize = pageSize;
-
-            return response;
-
+            return new PagedResultNew<ProductDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                CurrentPage = page,
+                PageSize = pageSize,
+                Stats = stats
+            };
         }
 
+        /// <summary>
+        /// Computes the header stock counts in a single round trip. The previous implementation
+        /// issued four separate queries, each re-evaluating <c>Inventories.Sum(...)</c> per row.
+        /// </summary>
+        private static async Task<Dictionary<string, int>> BuildStockStatsAsync(IQueryable<Product> products)
+        {
+            var stats = await products
+                .GroupBy(p => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    InStock = g.Count(p => p.Inventories.Sum(i => i.Quantity) > p.ReorderStockLevel
+                                        && p.Inventories.Sum(i => i.Quantity) > 0),
+                    LowStock = g.Count(p => p.Inventories.Sum(i => i.Quantity) > 0
+                                        && p.Inventories.Sum(i => i.Quantity) <= p.ReorderStockLevel),
+                    OutOfStock = g.Count(p => p.Inventories.Sum(i => i.Quantity) <= 0)
+                })
+                .FirstOrDefaultAsync();
+
+            return new Dictionary<string, int>
+            {
+                ["TotalCount"] = stats?.Total ?? 0,
+                ["InStockCount"] = stats?.InStock ?? 0,
+                ["LowStockCount"] = stats?.LowStock ?? 0,
+                ["OutOfStockCount"] = stats?.OutOfStock ?? 0
+            };
+        }
 
         public async Task<ProductDto?> GetProductByIdAsync(Guid id)
         {
-            var product = await _db.Products.Include(p => p.Category).Include(p => p.Brand).Include(p => p.Inventories).FirstOrDefaultAsync(p => p.Id == id);
-            return product == null ? null : _mapper.Map<ProductDto>(product);
+            var product = await _db.Products
+                .AsNoTracking()
+                .Where(p => p.Id == id)
+                .Select(p => new ProductDto(
+                    p.Id, p.Name, p.SKU, p.Barcode, p.Description, p.CostPrice, p.SellingPrice,
+                    p.WholeSellingPrice, p.ReorderStockLevel, p.MinOrderQuantity, p.CategoryId,
+                    p.Category != null ? p.Category.Name : null,
+                    p.BrandId, p.Brand != null ? p.Brand.Name : null, p.Model, p.ImageUrl,
+                    p.Inventories.Sum(i => i.Quantity), p.IsKit,
+                    p.OriginCountry ?? string.Empty, p.OriginManufacturer ?? string.Empty))
+                .FirstOrDefaultAsync();
+            return product;
         }
 
         public async Task<ProductDetailsDto?> GetProductDetailsByIdAsync(Guid id)
         {
-            var product = await _db.Products.Include(p => p.Category).Include(p => p.Brand).Include(p => p.Inventories).FirstOrDefaultAsync(p => p.Id == id);
+            var product = await _db.Products
+                .AsNoTracking()
+                .Include(p => p.Category)
+                .Include(p => p.Brand)
+                .Include(p => p.Inventories)
+                .FirstOrDefaultAsync(p => p.Id == id);
             return product == null ? null : _mapper.Map<ProductDetailsDto>(product);
         }
 
@@ -196,104 +231,63 @@ namespace TradeFlow.Infrastructure.Services
             };
             _db.Products.Add(product);
             await _db.SaveChangesAsync();
+            await InvalidateProductCachesAsync();
+            _logger.LogInformation("Created product {ProductId} (SKU {Sku})", product.Id, product.SKU);
             return product.Id;
         }
 
-        public async Task<Guid> CreateProductDetailsAsync(ProductDetailsDto dto)
-        {
-            var product = new Product
-            {
-                Name = dto.Name,
-                SKU = dto.SKU,
-                Barcode = dto.Barcode,
-
-                CategoryId = dto.CategoryId,
-                BrandId = dto.BrandId,
-                Model = dto.Model,
-
-                CostPrice = dto.CostPrice,
-                SellingPrice = dto.SellingPrice,
-                WholeSellingPrice = dto.WholeSellingPrice,
-
-                ReorderStockLevel = dto.ReorderStockLevel,
-                OriginManufacturer = dto.OriginManufacturer,
-                OriginCountry = dto.OriginCountry,
-
-                MinOrderQuantity = dto.MinOrderQuantity,
-                BaseUoMId = dto.BaseUoMId,
-                ImageUrl = dto.ImageUrl,
-                Description = dto.Description
-            };
-            _db.Products.Add(product);
-            await _db.SaveChangesAsync();
-            return product.Id;
-        }
+        public Task<Guid> CreateProductDetailsAsync(ProductDetailsDto dto) => CreateProductAsync(dto);
 
         public async Task UpdateProductAsync(ProductDetailsDto dto)
         {
             var product = await _db.Products.FindAsync(dto.Id) ?? throw new KeyNotFoundException("Product not found");
-            product.Name = dto.Name;
-            product.SKU = dto.SKU;
-            product.Barcode = dto.Barcode;
-
-            product.CategoryId = dto.CategoryId;
-            product.BrandId = dto.BrandId;
-            product.Model = dto.Model;
-
-            product.CostPrice = dto.CostPrice;
-            product.SellingPrice = dto.SellingPrice;
-            product.WholeSellingPrice = dto.WholeSellingPrice;
-
-            product.ReorderStockLevel = dto.ReorderStockLevel;
-            product.OriginManufacturer = dto.OriginManufacturer;
-            product.OriginCountry = dto.OriginCountry;
-
-            product.MinOrderQuantity = dto.MinOrderQuantity;
-            product.BaseUoMId = dto.BaseUoMId;
-            product.ImageUrl = dto.ImageUrl;
-            product.Description = dto.Description;
-
-
+            ApplyChanges(product, dto);
             await _db.SaveChangesAsync();
+            await InvalidateProductCachesAsync();
+            _logger.LogInformation("Updated product {ProductId} (SKU {Sku})", product.Id, product.SKU);
         }
 
-        public async Task UpdateProductDetailsAsync(ProductDetailsDto dto)
-        {
-            var product = await _db.Products.FindAsync(dto.Id) ?? throw new KeyNotFoundException("Product not found");
-            product.Name = dto.Name;
-            product.SKU = dto.SKU;
-            product.Barcode = dto.Barcode;
-
-            product.CategoryId = dto.CategoryId;
-            product.BrandId = dto.BrandId;
-            product.Model = dto.Model;
-
-            product.CostPrice = dto.CostPrice;
-            product.SellingPrice = dto.SellingPrice;
-            product.WholeSellingPrice = dto.WholeSellingPrice;
-
-            product.ReorderStockLevel = dto.ReorderStockLevel;
-            product.OriginManufacturer = dto.OriginManufacturer;
-            product.OriginCountry = dto.OriginCountry;
-
-            product.MinOrderQuantity = dto.MinOrderQuantity;
-            product.BaseUoMId = dto.BaseUoMId;
-            product.ImageUrl = dto.ImageUrl;
-            product.Description = dto.Description;
-
-            await _db.SaveChangesAsync();
-        }
+        public Task UpdateProductDetailsAsync(ProductDetailsDto dto) => UpdateProductAsync(dto);
 
         public async Task DeleteProductAsync(Guid id)
         {
             var product = await _db.Products.FindAsync(id) ?? throw new KeyNotFoundException("Product not found");
             product.IsDeleted = true;
             await _db.SaveChangesAsync();
+            await InvalidateProductCachesAsync();
+            _logger.LogInformation("Soft-deleted product {ProductId}", id);
+        }
+
+        /// <summary>Stock and catalogue changes alter both the reference lists and the stock counts.</summary>
+        private Task InvalidateProductCachesAsync() => _cache.RemoveByPrefixAsync(ProductCachePrefix);
+
+        private static void ApplyChanges(Product product, ProductDetailsDto dto)
+        {
+            product.Name = dto.Name;
+            product.SKU = dto.SKU;
+            product.Barcode = dto.Barcode;
+
+            product.CategoryId = dto.CategoryId;
+            product.BrandId = dto.BrandId;
+            product.Model = dto.Model;
+
+            product.CostPrice = dto.CostPrice;
+            product.SellingPrice = dto.SellingPrice;
+            product.WholeSellingPrice = dto.WholeSellingPrice;
+
+            product.ReorderStockLevel = dto.ReorderStockLevel;
+            product.OriginManufacturer = dto.OriginManufacturer;
+            product.OriginCountry = dto.OriginCountry;
+
+            product.MinOrderQuantity = dto.MinOrderQuantity;
+            product.BaseUoMId = dto.BaseUoMId;
+            product.ImageUrl = dto.ImageUrl;
+            product.Description = dto.Description;
         }
 
         public async Task<PagedResult<BrandDto>> GetBrandsAsync(string? search, int page, int pageSize)
         {
-            var query = _db.Brands.Include(b => b.Products).AsQueryable();
+            var query = _db.Brands.AsNoTracking();
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(b => b.Name.Contains(search)
                     || (b.BrandCode != null && b.BrandCode.Contains(search))
@@ -306,11 +300,16 @@ namespace TradeFlow.Infrastructure.Services
             return new PagedResult<BrandDto>(_mapper.Map<List<BrandDto>>(items), total, page, pageSize);
         }
 
-        public async Task<List<BrandDto>> GetAllBrandsAsync()
-        {
-            var brands = await _db.Brands.OrderBy(b => b.Name).ToListAsync();
-            return _mapper.Map<List<BrandDto>>(brands);
-        }
+        public Task<List<BrandDto>> GetAllBrandsAsync() =>
+            _cache.GetOrCreateAsync(
+                $"{ReferenceCachePrefix}brands",
+                ReferenceDataLifetime,
+                async ct =>
+                {
+                    var brands = await _db.Brands.AsNoTracking().OrderBy(b => b.Name).ToListAsync(ct);
+                    return _mapper.Map<List<BrandDto>>(brands);
+                });
+
         public async Task<BrandDto> GetBrandByIdAsync(Guid id)
         {
             var brand = await _db.Brands.FindAsync(id);
@@ -332,6 +331,7 @@ namespace TradeFlow.Infrastructure.Services
             };
             _db.Brands.Add(brand);
             await _db.SaveChangesAsync();
+            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
             return brand.Id;
         }
         public async Task<bool> UpdateBrandAsync(Guid id, CreateBrandDto dto)
@@ -346,6 +346,7 @@ namespace TradeFlow.Infrastructure.Services
             brand.OriginCountry = dto.OriginCountry;
             brand.FoundedYear = dto.FoundedYear;
             await _db.SaveChangesAsync();
+            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
             return true;
         }
         public async Task<bool> DeleteBrandAsync(Guid id)
@@ -353,12 +354,13 @@ namespace TradeFlow.Infrastructure.Services
             var brand = await _db.Brands.FindAsync(id) ?? throw new KeyNotFoundException("Brand not found");
             brand.IsDeleted = true;
             await _db.SaveChangesAsync();
+            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
             return true;
         }
 
         public async Task<PagedResult<CategoryDto>> GetCategoriesAsync(string? search, int page, int pageSize)
         {
-            var query = _db.Categories.Include(c => c.ParentCategory).Include(c => c.Products).AsQueryable();
+            var query = _db.Categories.AsNoTracking();
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(c => c.Name.Contains(search));
             var total = await query.CountAsync();
@@ -367,17 +369,26 @@ namespace TradeFlow.Infrastructure.Services
         }
 
 
-        public async Task<List<CategoryDto>> GetAllCategoriesAsync()
-        {
-            var categories = await _db.Categories.Include(c => c.ParentCategory).Include(c => c.Products).OrderBy(c => c.Name).ToListAsync();
-            return _mapper.Map<List<CategoryDto>>(categories);
-        }
+        public Task<List<CategoryDto>> GetAllCategoriesAsync() =>
+            _cache.GetOrCreateAsync(
+                $"{ReferenceCachePrefix}categories",
+                ReferenceDataLifetime,
+                async ct =>
+                {
+                    var categories = await _db.Categories
+                        .AsNoTracking()
+                        .Include(c => c.ParentCategory)
+                        .OrderBy(c => c.Name)
+                        .ToListAsync(ct);
+                    return _mapper.Map<List<CategoryDto>>(categories);
+                });
 
         public async Task<Guid> CreateCategoryAsync(CreateCategoryDto dto)
         {
             var category = new Category { Name = dto.Name, Description = dto.Description, ParentCategoryId = dto.ParentCategoryId };
             _db.Categories.Add(category);
             await _db.SaveChangesAsync();
+            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
             return category.Id;
         }
 
@@ -386,11 +397,12 @@ namespace TradeFlow.Infrastructure.Services
             var category = await _db.Categories.FindAsync(id) ?? throw new KeyNotFoundException("Category not found");
             category.IsDeleted = true;
             await _db.SaveChangesAsync();
+            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
         }
 
         public async Task<PagedResult<WarehouseDto>> GetWarehousesAsync(string? search, int page, int pageSize)
         {
-            var query = _db.Warehouses.AsQueryable();
+            var query = _db.Warehouses.AsNoTracking();
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(w => w.Name.Contains(search) || w.Code.Contains(search));
             var total = await query.CountAsync();
@@ -398,17 +410,25 @@ namespace TradeFlow.Infrastructure.Services
             return new PagedResult<WarehouseDto>(_mapper.Map<List<WarehouseDto>>(items), total, page, pageSize);
         }
 
-        public async Task<List<WarehouseDto>> GetAllWarehousesAsync()
-        {
-            var warehouses = await _db.Warehouses.Where(w => w.IsActive).OrderBy(w => w.Name).ToListAsync();
-            return _mapper.Map<List<WarehouseDto>>(warehouses);
-        }
+        public Task<List<WarehouseDto>> GetAllWarehousesAsync() =>
+            _cache.GetOrCreateAsync(
+                $"{ReferenceCachePrefix}warehouses",
+                ReferenceDataLifetime,
+                async ct =>
+                {
+                    var warehouses = await _db.Warehouses.AsNoTracking()
+                        .Where(w => w.IsActive)
+                        .OrderBy(w => w.Name)
+                        .ToListAsync(ct);
+                    return _mapper.Map<List<WarehouseDto>>(warehouses);
+                });
 
         public async Task<Guid> CreateWarehouseAsync(CreateWarehouseDto dto)
         {
             var warehouse = new Warehouse { Name = dto.Name, Code = dto.Code, Location = dto.Location, Address = dto.Address };
             _db.Warehouses.Add(warehouse);
             await _db.SaveChangesAsync();
+            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
             return warehouse.Id;
         }
 
@@ -417,6 +437,7 @@ namespace TradeFlow.Infrastructure.Services
             var warehouse = await _db.Warehouses.FindAsync(id) ?? throw new KeyNotFoundException("Warehouse not found");
             warehouse.IsDeleted = true;
             await _db.SaveChangesAsync();
+            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
         }
     }
 }

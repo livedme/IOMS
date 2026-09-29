@@ -1,5 +1,6 @@
 @page "/sales/orders"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject IOrderService OrderService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService

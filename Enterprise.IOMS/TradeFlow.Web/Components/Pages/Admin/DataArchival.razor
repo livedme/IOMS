@@ -1,5 +1,6 @@
 @page "/admin/archival"
 @rendermode InteractiveServer
+@attribute [Authorize(Policy = AuthorizationPolicies.Administrator)]
 @inject IArchivalService ArchivalService
 @inject ISnackbar Snackbar
 

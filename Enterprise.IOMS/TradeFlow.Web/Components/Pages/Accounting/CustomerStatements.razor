@@ -1,5 +1,6 @@
 @page "/reports/customer-statements"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
 @inject ISnackbar Snackbar
 

@@ -1,5 +1,6 @@
 @page "/shipping/delivery-notes"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject IShippingService ShippingService
 @inject IOrderService OrderService
 @inject IDialogService DialogService

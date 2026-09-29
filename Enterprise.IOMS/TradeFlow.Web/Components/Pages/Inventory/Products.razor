@@ -1,5 +1,6 @@
 @page "/products"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -176,29 +177,12 @@
             </table>
         </div>
          <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
-            <PaginationFooter CurrentPage="pagedResultNew.CurrentPage" PageSize="pagedResultNew.PageSize" TotalCount="pagedResultNew.TotalCount" TotalPages="pagedResultNew.TotalPages" ItemLabel="trucks" OnGoToPage="GoFirstPage" OnPrev="GoPrevPage" OnNext="GoNextPage" OnPageSizeChanged="OnPageSizeChanged" />
-        </div>
-
-        <div class="tm-footer">
-            @* <span>Showing @(_totalCount == 0 ? 0 : ((_currentPage - 1) * _pageSize + 1)) to @(Math.Min(_currentPage * _pageSize, _totalCount)) of @_totalCount products</span>
-            <span class="tm-pager">
-                <span>Rows per page:</span>
-                <select class="tm-rows-select" @onchange="OnPageSizeSelectChanged">
-                    <option value="10" selected="@(_pageSize == 10)">10</option>
-                    <option value="20" selected="@(_pageSize == 20)">20</option>
-                    <option value="50" selected="@(_pageSize == 50)">50</option>
-                    <option value="100" selected="@(_pageSize == 100)">100</option>
-                </select>
-                <button class="tm-page-btn" disabled="@(_currentPage <= 1)" @onclick="GoFirstPage">|◀</button>
-                <button class="tm-page-btn" disabled="@(_currentPage <= 1)" @onclick="GoPrevPage">‹</button>
-                @foreach (var pg in GetPageNumbers())
-                {
-                    var isActive = pg == _currentPage;
-                    <button class="tm-page-btn @(isActive ? "active" : "")" @onclick="() => OnPageChanged(pg)">@pg</button>
-                }
-                <button class="tm-page-btn" disabled="@(_currentPage >= _totalPages)" @onclick="GoNextPage">›</button>
-                <button class="tm-page-btn" disabled="@(_currentPage >= _totalPages)" @onclick="GoLastPage">▶|</button>
-            </span> *@
+            <TmPager Total="@pagedResultNew.TotalCount"
+                      Page="@_page"
+                      PageSize="@_pageSize"
+                      ItemNoun="products"
+                      PageChanged="@OnPageChanged"
+                      PageSizeChanged="@OnPageSizeChanged" />
         </div>
     </div>
 </div>
@@ -211,26 +195,15 @@
     private List<BrandDto> _brands = new();
     private System.Timers.Timer? _debounce;
 
-    // private string _searchString = "";
-    // private Guid? _selectedCategoryId;
-    // private Guid? _selectedBrandId;
-    // private string _stockStatus = "";
-    // private int _currentPage = 0;
-    // private int _pageSize = 10;
-    // private int _totalPages = 1;
-    private int _totalCount = 0;
-    // private bool _loading = true;
-    private int _inStockCount = 0;
-    private int _lowStockCount = 0;
-    private int _outOfStockCount = 0;
-    private int _categoryCount = 0;
-    // private int _brandCount = 0;
-
-    // string _sortColumn = "VehicleName";
-    // bool _sortAsc = true;
-
     private PagedResultNew<ProductDto> pagedResultNew = new();
-    private ProductPagedRequest pagedRequest = new();    
+    private ProductPagedRequest pagedRequest = new();
+
+    // TmPager and TmPager-based pages (the Sales list included) are 1-based, so _page is
+    // 1-based here too. PagedRequest.CurrentPage is 0-based, so LoadProducts converts at the
+    // boundary. Keeping the UI and the service on the same numbering avoids the off-by-one
+    // where the pager highlights a different page than the one the query returned.
+    private int _page = 1;
+    private int _pageSize = 10;
 
     private bool _loading = true;
     bool _hasLoadedOnce = false;
@@ -249,7 +222,6 @@
         }
         catch { }
         await LoadProducts();
-        await LoadStatsAsync();
     }
 
     private void NavigateToDetail(Guid id) => Navigation.NavigateTo($"/products/{id}");
@@ -273,43 +245,22 @@
         _loading = true;
         try
         {
-            // var result = await ProductService.GetProductsAsync(_searchString, _selectedCategoryId, _page, _pageSize);
-            // var items = result.Items.AsEnumerable();
-            // if (_selectedBrandId.HasValue)
-            //     items = items.Where(x => x.BrandId == _selectedBrandId.Value);
-            // if (_stockStatus == "InStock")
-            //     items = items.Where(x => x.TotalStock > x.ReorderStockLevel && x.TotalStock > 0);
-            // else if (_stockStatus == "LowStock")
-            //     items = items.Where(x => x.TotalStock > 0 && x.TotalStock <= x.ReorderStockLevel);
-            // else if (_stockStatus == "OutOfStock")
-            //     items = items.Where(x => x.TotalStock <= 0);
-            // _products = items.ToList();
-            // _totalCount = result.TotalCount;
-            // _totalPages = Math.Max(1, result.TotalPages);
-
-
-            // pagedResultNew = await ProductService.GetProductsAsync(new ProductPagedRequest
-            // {
-            //     //TenantId = 1,
-            //     SearchTerm = _searchString,
-            //     //Status = _selectedStatus,
-            //     CategoryId = _selectedCategoryId,
-            //     BrandId = _selectedBrandId,
-            //    // SortColumn = _sortColumn,
-            //    // SortAscending = _sortAsc,
-            //     Page = _currentPage,
-            //     PageSize = _pageSize
-            // });
+            pagedRequest.PageSize = _pageSize;
+            pagedRequest.CurrentPage = _page - 1;
 
             pagedResultNew = await ProductService.GetProductsAsync(pagedRequest);
 
-            //_products = result1.Items;
-            //_totalCount = result1.TotalCount;
-            //_totalPages = result1.TotalPages;
-            // _stats = result.Stats ?? new Dictionary<string, int>();
+            // Deleting the last row on the last page, or narrowing a filter, can leave the
+            // current page past the end. Step back until a page has content, otherwise the table
+            // renders empty while the pager still points at a valid-looking page number.
+            if (pagedResultNew.Items.Count == 0 && _page > 1)
+            {
+                _page--;
+                pagedRequest.CurrentPage = _page - 1;
+                pagedResultNew = await ProductService.GetProductsAsync(pagedRequest);
+            }
 
             _hasLoadedOnce = true;
-
         }
         catch (Exception ex)
         {
@@ -318,48 +269,15 @@
         finally { _loading = false; }
     }
 
-    private async Task LoadStatsAsync()
-    {
-        try
-        {
-            // var all = await ProductService.GetProductsAsync(new ProductPagedRequest
-            // {
-            //     TenantId = 1,
-            //     SearchTerm = "",
-            //     Status = _selectedStatus,
-            //     CategoryId = Guid.Empty,
-            //     BrandId = Guid.Empty,
-            //     SortColumn = _sortColumn,
-            //     SortAscending = _sortAsc,
-            //     CurrentPage = 0,
-            //     PageSize = 100000
-            // });
-
-           //  _statsCache = all.Items;
-
-           // _totalCount = _totalCount == 0 ? all.TotalCount : _totalCount;
-           // _inStockCount = _statsCache.Count(x => x.TotalStock > x.ReorderStockLevel && x.TotalStock > 0);
-           // _lowStockCount = _statsCache.Count(x => x.TotalStock > 0 && x.TotalStock <= x.ReorderStockLevel);
-           //  _outOfStockCount = _statsCache.Count(x => x.TotalStock <= 0);
-           //  if (_inStockCount + _lowStockCount + _outOfStockCount == 0 && _totalCount > 0)
-           //  {
-           //     _inStockCount = (int)(_totalCount * 0.2);
-           //     _lowStockCount = (int)(_totalCount * 0.2);
-           //     _outOfStockCount = (int)(_totalCount * 0.2);
-           //  }
-        }
-        catch { }
-    }
-
     private void OnSearchInput(ChangeEventArgs e)
     {
         pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        _page = 1;
         _debounce?.Stop();
         _debounce?.Dispose();
         _debounce = new System.Timers.Timer(400) { AutoReset = false };
         _debounce.Elapsed += async (_, __) =>
         {
-                               pagedRequest.CurrentPage = 0;
             await InvokeAsync(async () => { await LoadProducts(); StateHasChanged(); });
         };
         _debounce.Start();
@@ -369,7 +287,7 @@
     {
         var v = e.Value?.ToString();
         pagedRequest.CategoryId = string.IsNullOrEmpty(v) ? Guid.Empty : Guid.Parse(v);
-        pagedRequest.CurrentPage = 0;
+        _page = 1;
         await LoadProducts();
     }
 
@@ -377,21 +295,21 @@
     {
         var v = e.Value?.ToString();
         pagedRequest.BrandId = string.IsNullOrEmpty(v) ? Guid.Empty : Guid.Parse(v);
-        pagedRequest.CurrentPage = 0;
+        _page = 1;
         await LoadProducts();
     }
 
     private async Task OnStockStatusChanged(ChangeEventArgs e)
     {
         pagedRequest.Status = Enum.TryParse<StockFilter>(e.Value?.ToString(), out var status) ? status : null;
-        pagedRequest.CurrentPage = 0;
+        _page = 1;
         await LoadProducts();
     }
 
     private async Task FilterByStatus(StockFilter? f)
     {
-        pagedRequest.Status = f == null ? null : f;
-        pagedRequest.CurrentPage = 0;
+        pagedRequest.Status = f;
+        _page = 1;
         await LoadProducts();
         StateHasChanged();
     }
@@ -405,34 +323,17 @@
         pagedRequest.CategoryId = null;
         pagedRequest.BrandId = null;
         pagedRequest.Status = null;
-        pagedRequest.CurrentPage = 0;
+        _page = 1;
         await LoadProducts();
     }
 
-    //    private async Task GoToPage(int page) { pagedRequest.CurrentPage = Math.Clamp(page, 0, pagedResultNew.TotalPages - 1); await LoadProducts(); }
-    // private async Task PrevPage() { if (pagedRequest.CurrentPage > 0) { pagedRequest.CurrentPage--; await LoadProducts(); } }
-    // private async Task NextPage() { if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1) { pagedRequest.CurrentPage++; await LoadProducts(); } }
-    // private async Task OnPageSizeChanged(ChangeEventArgs e)
-    // {
-    //     if (int.TryParse(e.Value?.ToString(), out var ps)) { _pageSize = ps; _currentPage = 0; await LoadTrucks(); }
-    // }
+    private async Task OnPageChanged(int page) { _page = page; await LoadProducts(); }
 
-    private async Task OnPageChanged(int page) { pagedRequest.CurrentPage = page; await LoadProducts(); }
-    private async Task GoFirstPage() { if (pagedRequest.CurrentPage > 0) { pagedRequest.CurrentPage = 0; await LoadProducts(); } }
-    private async Task GoPrevPage() { if (pagedRequest.CurrentPage > 0) { pagedRequest.CurrentPage--; await LoadProducts(); } }
-    private async Task GoNextPage() { if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1) { pagedRequest.CurrentPage++; await LoadProducts(); } }
-    private async Task GoLastPage() { if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1) { pagedRequest.CurrentPage = pagedResultNew.TotalPages - 1; await LoadProducts(); } }
-
-    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    private async Task OnPageSizeChanged(int size)
     {
-        if (int.TryParse(e.Value?.ToString(), out var sz)) { pagedRequest.PageSize = sz; pagedRequest.CurrentPage = 0; await LoadProducts(); }
-    }
-
-    private IEnumerable<int> GetPageNumbers()
-    {
-        var start = Math.Max(1, Math.Min(pagedRequest.CurrentPage - 1, Math.Max(1, pagedResultNew.TotalPages - 3)));
-        var end = Math.Min(pagedResultNew.TotalPages, start + 3);
-        for (var i = start; i <= end; i++) yield return i;
+        _pageSize = size;
+        _page = 1;
+        await LoadProducts();
     }
 
     private async Task OpenAddEditDialog(ProductDto? product)
@@ -495,7 +396,6 @@
             }
             Snackbar.Add(dto.Id == Guid.Empty ? "Product created successfully" : "Product updated successfully", Severity.Success);
             await LoadProducts();
-            await LoadStatsAsync();
         }
     }
 
@@ -508,7 +408,6 @@
             await ProductService.DeleteProductAsync(id);
             Snackbar.Add("Product deleted", Severity.Success);
             await LoadProducts();
-            await LoadStatsAsync();
         }
     }
 }

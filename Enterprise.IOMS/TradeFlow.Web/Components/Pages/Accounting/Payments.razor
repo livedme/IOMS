@@ -1,5 +1,6 @@
 @page "/accounting/payments"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject IAccountingService AccountingService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService

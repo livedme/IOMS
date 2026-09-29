@@ -1,6 +1,7 @@
 @page "/search"
 
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject ISearchService SearchService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation

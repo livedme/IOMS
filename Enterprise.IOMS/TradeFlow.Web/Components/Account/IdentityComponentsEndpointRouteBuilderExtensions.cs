@@ -20,7 +20,8 @@ namespace Microsoft.AspNetCore.Routing
         {
             ArgumentNullException.ThrowIfNull(endpoints);
 
-            var accountGroup = endpoints.MapGroup("/Account");
+            var accountGroup = endpoints.MapGroup("/Account")
+                .RequireRateLimiting("auth");
 
             accountGroup.MapPost("/PerformExternalLogin", (
                 HttpContext context,

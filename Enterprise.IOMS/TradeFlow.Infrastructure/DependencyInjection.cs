@@ -30,12 +30,25 @@ public static class DependencyInjection
         var redisConnection = configuration.GetConnectionString("Redis");
         if (string.IsNullOrWhiteSpace(redisConnection))
         {
+            // No Redis configured: L1 memory only. Reads are fast but per-instance, so a
+            // multi-instance deployment must supply a Redis connection string.
             services.AddDistributedMemoryCache();
         }
         else
         {
-            services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnection;
+                options.InstanceName = "ioms:";
+            });
         }
+
+        var cacheOptions = configuration.GetSection(CacheOptions.SectionName).Get<CacheOptions>() ?? new CacheOptions();
+        services.Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName));
+        services.AddMemoryCache(options =>
+        {
+            options.SizeLimit = cacheOptions.MemoryCacheSizeLimitBytes;
+        });
 
         services.AddScoped<ITenantCache, TenantCache>();
 
@@ -72,6 +85,7 @@ public static class DependencyInjection
         });
 
         services.AddHttpContextAccessor();
+        services.AddScoped<TenantContext>();
         services.AddScoped<ITenantProvider, TenantProvider>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 

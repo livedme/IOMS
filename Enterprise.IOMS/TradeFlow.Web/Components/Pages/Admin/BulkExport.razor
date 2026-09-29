@@ -1,5 +1,6 @@
 @page "/admin/export"
 @rendermode InteractiveServer
+@attribute [Authorize(Policy = AuthorizationPolicies.Administrator)]
 @inject ISnackbar Snackbar
 
 <PageTitle>Bulk Export - IOMS</PageTitle>

@@ -1,5 +1,6 @@
 @page "/orders/sales"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @implements IDisposable
 @inject IOrderService OrderService
 @inject ICustomerService CustomerService

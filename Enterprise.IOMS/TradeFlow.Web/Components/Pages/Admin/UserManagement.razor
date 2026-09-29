@@ -1,5 +1,6 @@
 @page "/admin/users"
 @rendermode InteractiveServer
+@attribute [Authorize(Policy = AuthorizationPolicies.Administrator)]
 @inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
 @inject ISnackbar Snackbar
 

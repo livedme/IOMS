@@ -1,5 +1,6 @@
 @page "/admin/audit-logs"
 @rendermode InteractiveServer
+@attribute [Authorize(Policy = AuthorizationPolicies.Administrator)]
 @inject IAuditLogService AuditLogService
 @inject ISnackbar Snackbar
 

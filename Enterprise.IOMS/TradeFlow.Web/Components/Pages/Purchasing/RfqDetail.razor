@@ -1,5 +1,6 @@
 @page "/quotes/rfq/{Id:guid}"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject IRfqService RfqService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
