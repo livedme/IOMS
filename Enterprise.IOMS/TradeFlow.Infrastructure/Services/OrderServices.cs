@@ -14,11 +14,260 @@ public class InventoryService : IInventoryService
 {
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public InventoryService(ApplicationDbContext context, IMapper mapper)
+    public InventoryService(ApplicationDbContext context, IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _context = context;
         _mapper = mapper;
+        _contextFactory = contextFactory;
+    }
+
+    public async Task<PagedResultNew<StockMovementDto>> GetStockMovementsPagedAsync(StockMovementPagedRequest request)
+    {
+        // Own context for the whole read: the list can be re-entered while another query on the
+        // scoped context is still in flight, and a DbContext cannot run two commands at once.
+        await using var read = await _contextFactory.CreateDbContextAsync();
+        var response = new PagedResultNew<StockMovementDto>();
+
+        var page = Math.Max(0, request.CurrentPage);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var search = request.SearchTerm?.Trim();
+        var hasSearch = !string.IsNullOrWhiteSpace(search);
+
+        IQueryable<StockMovement> query;
+        if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            query = read.StockMovements.IgnoreQueryFilters().AsNoTracking()
+                .Where(m => !m.IsDeleted && m.TenantId == request.TenantId.Value);
+        else
+            query = read.StockMovements.AsNoTracking().Where(m => !m.IsDeleted);
+
+        // The Stock Transfers grid is this same query with Type pinned to Transfer.
+        if (request.Type.HasValue)
+        {
+            var type = request.Type.Value;
+            query = query.Where(m => m.Type == type);
+        }
+
+        // Stats ignore the type filter so the tiles keep showing every bucket.
+        var statsSource = ApplyMovementFilters(query, request, search, hasSearch);
+        var groups = await statsSource
+            .GroupBy(m => m.Type)
+            .Select(g => new { Type = g.Key, Count = g.Count(), Net = g.Sum(m => m.Quantity) })
+            .ToListAsync();
+
+        var byType = groups.ToDictionary(g => g.Type, g => g);
+        response.Stats["TotalCount"] = byType.Values.Sum(g => g.Count);
+        foreach (var t in Enum.GetValues<StockMovementType>())
+        {
+            response.Stats[$"{t}Count"] = byType.TryGetValue(t, out var c) ? c.Count : 0;
+            response.Stats[$"{t}Units"] = byType.TryGetValue(t, out var u) ? (int)Math.Abs((decimal)u.Net) : 0;
+        }
+        response.Stats["NetQuantity"] = (int)groups.Sum(g => g.Net);
+        response.Stats["StockInCount"] = byType.TryGetValue(StockMovementType.In, out var inRow) ? inRow.Count : 0;
+        response.Stats["StockOutCount"] = byType.TryGetValue(StockMovementType.Out, out var outRow) ? outRow.Count : 0;
+        response.Stats["DistinctProductCount"] = await statsSource.Select(m => m.ProductId).Distinct().CountAsync();
+        response.Stats["WarehouseCount"] = await statsSource.Select(m => m.WarehouseId).Distinct().CountAsync();
+
+        query = ApplyMovementFilters(query, request, search, hasSearch);
+
+        var sortAsc = request.SortAscending;
+        query = (request.SortColumn ?? "MovementDate") switch
+        {
+            "ProductName" => sortAsc ? query.OrderBy(m => m.Product.Name) : query.OrderByDescending(m => m.Product.Name),
+            "WarehouseName" => sortAsc ? query.OrderBy(m => m.Warehouse.Name) : query.OrderByDescending(m => m.Warehouse.Name),
+            "Type" => sortAsc ? query.OrderBy(m => m.Type) : query.OrderByDescending(m => m.Type),
+            "Quantity" => sortAsc ? query.OrderBy(m => m.Quantity) : query.OrderByDescending(m => m.Quantity),
+            "Reference" => sortAsc ? query.OrderBy(m => m.Reference) : query.OrderByDescending(m => m.Reference),
+            _ => sortAsc ? query.OrderBy(m => m.MovementDate) : query.OrderByDescending(m => m.MovementDate),
+        };
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .AsSplitQuery()
+            .Include(m => m.Product)
+            .Include(m => m.Warehouse)
+            .Skip(page * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        response.Items = items
+            .Select(m => new StockMovementDto(
+                m.Id,
+                m.MovementDate,
+                m.ProductId,
+                m.Product?.Name ?? "",
+                m.WarehouseId,
+                m.Warehouse?.Name ?? "",
+                m.Type,
+                m.Quantity,
+                m.Reference,
+                m.Notes,
+                m.SourceWarehouseId,
+                m.DestinationWarehouseId))
+            .ToList();
+        response.TotalCount = totalCount;
+        response.CurrentPage = page;
+        response.PageSize = pageSize;
+
+        return response;
+    }
+
+    private static IQueryable<StockMovement> ApplyMovementFilters(
+        IQueryable<StockMovement> query, StockMovementPagedRequest request, string? search, bool hasSearch)
+    {
+        if (hasSearch)
+        {
+            query = query.Where(m =>
+                EF.Functions.Like(m.Product.Name, $"%{search}%") ||
+                EF.Functions.Like(m.Product.SKU, $"%{search}%") ||
+                EF.Functions.Like(m.Reference, $"%{search}%") ||
+                EF.Functions.Like(m.Notes, $"%{search}%"));
+        }
+
+        if (request.WarehouseId.HasValue && request.WarehouseId != Guid.Empty)
+            query = query.Where(m =>
+                m.WarehouseId == request.WarehouseId.Value ||
+                m.SourceWarehouseId == request.WarehouseId.Value ||
+                m.DestinationWarehouseId == request.WarehouseId.Value);
+
+        if (request.From.HasValue)
+            query = query.Where(m => m.MovementDate >= request.From.Value.Date);
+
+        if (request.To.HasValue)
+        {
+            var toExclusive = request.To.Value.Date.AddDays(1);
+            query = query.Where(m => m.MovementDate < toExclusive);
+        }
+
+        return query;
+    }
+
+    public async Task<PagedResultNew<StockLevelDto>> GetStockLevelsPagedAsync(StockLevelPagedRequest request)
+    {
+        // Own context for the whole read: the list can be re-entered while another query on the
+        // scoped context is still in flight, and a DbContext cannot run two commands at once.
+        await using var read = await _contextFactory.CreateDbContextAsync();
+        var response = new PagedResultNew<StockLevelDto>();
+
+        var page = Math.Max(0, request.CurrentPage);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var search = request.SearchTerm?.Trim();
+        var hasSearch = !string.IsNullOrWhiteSpace(search);
+
+        IQueryable<Inventory> query;
+        if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            query = read.Inventories.IgnoreQueryFilters().AsNoTracking()
+                .Where(i => !i.IsDeleted && i.TenantId == request.TenantId.Value);
+        else
+            query = read.Inventories.AsNoTracking().Where(i => !i.IsDeleted);
+
+        // The Low Stock Alerts view is the same rows pinned to at-or-below reorder level.
+        if (request.LowStockOnly)
+            query = query.Where(i => i.Quantity <= i.Product.ReorderStockLevel);
+
+        // Stats ignore the status filter so the tiles keep showing every bucket.
+        var statsSource = ApplyStockLevelFilters(query, request, search, hasSearch);
+        var groups = await statsSource
+            .GroupBy(i => new
+            {
+                InStock = i.Quantity > 0,
+                OutOfStock = i.Quantity <= 0,
+                HasReserved = i.ReservedQuantity > 0,
+                Low = i.Quantity <= i.Product.ReorderStockLevel
+            })
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        response.Stats["TotalCount"] = groups.Sum(g => g.Count);
+        response.Stats["InStockCount"] = groups.Where(g => g.Key.InStock).Sum(g => g.Count);
+        response.Stats["OutOfStockCount"] = groups.Where(g => g.Key.OutOfStock).Sum(g => g.Count);
+        response.Stats["ReservedCount"] = groups.Where(g => g.Key.HasReserved).Sum(g => g.Count);
+        response.Stats["LowStockCount"] = groups.Where(g => g.Key.Low).Sum(g => g.Count);
+        response.Stats["TotalQuantity"] = (int)Math.Round(
+            await statsSource.SumAsync(i => (decimal?)i.Quantity) ?? 0m);
+        response.Stats["WarehouseCount"] = await statsSource.Select(i => i.WarehouseId).Distinct().CountAsync();
+
+        query = ApplyStockLevelFilters(query, request, search, hasSearch);
+
+        if (request.Status switch
+        {
+            "InStock" => true,
+            _ => false
+        })
+        {
+            query = query.Where(i => i.Quantity > 0);
+        }
+        else if (request.Status == "OutOfStock")
+        {
+            query = query.Where(i => i.Quantity <= 0);
+        }
+        else if (request.Status == "Reserved")
+        {
+            query = query.Where(i => i.ReservedQuantity > 0);
+        }
+
+        var sortAsc = request.SortAscending;
+        query = (request.SortColumn ?? "ProductName") switch
+        {
+            "ProductSKU" => sortAsc ? query.OrderBy(i => i.Product.SKU) : query.OrderByDescending(i => i.Product.SKU),
+            "WarehouseName" => sortAsc ? query.OrderBy(i => i.Warehouse.Name) : query.OrderByDescending(i => i.Warehouse.Name),
+            "Quantity" => sortAsc ? query.OrderBy(i => i.Quantity) : query.OrderByDescending(i => i.Quantity),
+            "ReservedQuantity" => sortAsc ? query.OrderBy(i => i.ReservedQuantity) : query.OrderByDescending(i => i.ReservedQuantity),
+            "AvailableQuantity" => sortAsc
+                ? query.OrderBy(i => i.Quantity - i.ReservedQuantity)
+                : query.OrderByDescending(i => i.Quantity - i.ReservedQuantity),
+            "ReorderStockLevel" => sortAsc
+                ? query.OrderBy(i => i.Product.ReorderStockLevel)
+                : query.OrderByDescending(i => i.Product.ReorderStockLevel),
+            _ => sortAsc ? query.OrderBy(i => i.Product.Name) : query.OrderByDescending(i => i.Product.Name),
+        };
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .AsSplitQuery()
+            .Include(i => i.Product)
+            .Include(i => i.Warehouse)
+            .Skip(page * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        response.Items = items
+            .Select(i => new StockLevelDto(
+                i.Id,
+                i.ProductId,
+                i.Product?.Name ?? "",
+                i.Product?.SKU ?? "",
+                i.WarehouseId,
+                i.Warehouse?.Name ?? "",
+                i.Quantity,
+                i.ReservedQuantity,
+                i.Quantity - i.ReservedQuantity,
+                i.Product?.ReorderStockLevel ?? 0,
+                i.BinLocation))
+            .ToList();
+        response.TotalCount = totalCount;
+        response.CurrentPage = page;
+        response.PageSize = pageSize;
+
+        return response;
+    }
+
+    private static IQueryable<Inventory> ApplyStockLevelFilters(
+        IQueryable<Inventory> query, StockLevelPagedRequest request, string? search, bool hasSearch)
+    {
+        if (hasSearch)
+        {
+            query = query.Where(i =>
+                EF.Functions.Like(i.Product.Name, $"%{search}%") ||
+                EF.Functions.Like(i.Product.SKU, $"%{search}%") ||
+                EF.Functions.Like(i.BinLocation, $"%{search}%"));
+        }
+
+        if (request.WarehouseId.HasValue && request.WarehouseId != Guid.Empty)
+            query = query.Where(i => i.WarehouseId == request.WarehouseId.Value);
+
+        return query;
     }
 
     public async Task<PagedResult<InventoryTrackingDto>> GetInventoryTrackingByWarehouse(Guid warehouseId, int page, int pageSize)
@@ -170,12 +419,14 @@ public class OrderService : IOrderService
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IAccountingService _accountingService;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public OrderService(ApplicationDbContext context, IMapper mapper, IAccountingService accountingService)
+    public OrderService(ApplicationDbContext context, IMapper mapper, IAccountingService accountingService, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _context = context;
         _mapper = mapper;
         _accountingService = accountingService;
+        _contextFactory = contextFactory;
     }
 
     public async Task<Guid> CreateSalesOrder(CreateSalesOrderDto dto)
@@ -440,6 +691,9 @@ public class OrderService : IOrderService
     /// </summary>
     public async Task<PagedResultNew<SalesOrderDto>> GetSalesOrdersAsync(SalesPagedRequest request)
     {
+        // Own context for the whole read: the list can be re-entered while another query on the
+        // scoped context is still in flight, and a DbContext cannot run two commands at once.
+        await using var read = await _contextFactory.CreateDbContextAsync();
         var response = new PagedResultNew<SalesOrderDto>();
 
         var page = Math.Max(0, request.CurrentPage);
@@ -449,10 +703,10 @@ public class OrderService : IOrderService
 
         IQueryable<SalesOrder> query;
         if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
-            query = _context.SalesOrders.IgnoreQueryFilters().AsNoTracking()
+            query = read.SalesOrders.IgnoreQueryFilters().AsNoTracking()
                 .Where(o => !o.IsDeleted && o.TenantId == request.TenantId.Value);
         else
-            query = _context.SalesOrders.AsNoTracking().Where(o => !o.IsDeleted);
+            query = read.SalesOrders.AsNoTracking().Where(o => !o.IsDeleted);
 
         // Base status scope — the page decides which lifecycle states it owns.
         var scope = request.StatusScope is { Count: > 0 }
@@ -576,12 +830,14 @@ public class PurchaseService : IPurchaseService
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IAccountingService _accountingService;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public PurchaseService(ApplicationDbContext context, IMapper mapper, IAccountingService accountingService)
+    public PurchaseService(ApplicationDbContext context, IMapper mapper, IAccountingService accountingService, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _context = context;
         _mapper = mapper;
         _accountingService = accountingService;
+        _contextFactory = contextFactory;
     }
 
     public async Task<Guid> CreatePurchaseOrder(CreatePurchaseOrderDto dto)
@@ -797,17 +1053,196 @@ public class PurchaseService : IPurchaseService
 
         return new PagedResult<PurchaseOrderDto>(_mapper.Map<List<PurchaseOrderDto>>(items), total, page, pageSize);
     }
+
+    /// <summary>
+    /// Server-side paged purchase-order list used by the Purchase Orders grid. Mirrors
+    /// GetSalesOrdersAsync: zero-based paging, filterable, sortable, and returns
+    /// per-status counts in <see cref="PagedResultNew{T}.Stats"/>.
+    /// </summary>
+    public async Task<PagedResultNew<PurchaseOrderDto>> GetPurchaseOrdersAsync(PurchaseOrderPagedRequest request)
+    {
+        // Own context for the whole read: the list can be re-entered while another query on the
+        // scoped context is still in flight, and a DbContext cannot run two commands at once.
+        await using var read = await _contextFactory.CreateDbContextAsync();
+        var response = new PagedResultNew<PurchaseOrderDto>();
+
+        var page = Math.Max(0, request.CurrentPage);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var search = request.SearchTerm?.Trim();
+        var hasSearch = !string.IsNullOrWhiteSpace(search);
+
+        IQueryable<PurchaseOrder> query;
+        if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            query = read.PurchaseOrders.IgnoreQueryFilters().AsNoTracking()
+                .Where(p => !p.IsDeleted && p.TenantId == request.TenantId.Value);
+        else
+            query = read.PurchaseOrders.AsNoTracking().Where(p => !p.IsDeleted);
+
+        // Stats are computed over the non-status filters so the tiles keep showing
+        // every bucket while a single status tile is active.
+        var statsSource = ApplyPurchaseOrderFilters(query, request, search, hasSearch);
+
+        var groups = await statsSource
+            .GroupBy(p => p.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var byStatus = groups.ToDictionary(g => g.Status, g => g.Count);
+        response.Stats["TotalCount"] = byStatus.Values.Sum();
+        foreach (var s in Enum.GetValues<PurchaseOrderStatus>())
+            response.Stats[$"{s}Count"] = byStatus.TryGetValue(s, out var c) ? c : 0;
+
+        if (request.Status.HasValue)
+        {
+            var status = request.Status.Value;
+            query = query.Where(p => p.Status == status);
+        }
+
+        query = ApplyPurchaseOrderFilters(query, request, search, hasSearch);
+
+        var sortAsc = request.SortAscending;
+        query = (request.SortColumn ?? "PurchaseDate") switch
+        {
+            "OrderNumber" => sortAsc ? query.OrderBy(p => p.OrderNumber) : query.OrderByDescending(p => p.OrderNumber),
+            "Supplier" => sortAsc
+                ? query.OrderBy(p => p.Supplier.SupplierName)
+                : query.OrderByDescending(p => p.Supplier.SupplierName),
+            "Warehouse" => sortAsc
+                ? query.OrderBy(p => p.Warehouse!.Name)
+                : query.OrderByDescending(p => p.Warehouse!.Name),
+            "TotalAmount" => sortAsc ? query.OrderBy(p => p.TotalAmount) : query.OrderByDescending(p => p.TotalAmount),
+            "DueAmount" => sortAsc ? query.OrderBy(p => p.DueAmount) : query.OrderByDescending(p => p.DueAmount),
+            "Status" => sortAsc ? query.OrderBy(p => p.Status) : query.OrderByDescending(p => p.Status),
+            _ => sortAsc ? query.OrderBy(p => p.PurchaseDate) : query.OrderByDescending(p => p.PurchaseDate),
+        };
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .AsSplitQuery()
+            .Include(p => p.Supplier)
+            .Include(p => p.Warehouse)
+            .Include(p => p.Items).ThenInclude(i => i.Product)
+            .Skip(page * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        response.Items = _mapper.Map<List<PurchaseOrderDto>>(items);
+        response.TotalCount = totalCount;
+        response.CurrentPage = page;
+        response.PageSize = pageSize;
+
+        return response;
+    }
+
+    private static IQueryable<PurchaseOrder> ApplyPurchaseOrderFilters(
+        IQueryable<PurchaseOrder> query, PurchaseOrderPagedRequest request, string? search, bool hasSearch)
+    {
+        if (hasSearch)
+        {
+            query = query.Where(p =>
+                EF.Functions.Like(p.OrderNumber, $"%{search}%") ||
+                EF.Functions.Like(p.Supplier.SupplierName, $"%{search}%") ||
+                EF.Functions.Like(p.Warehouse!.Name, $"%{search}%") ||
+                EF.Functions.Like(p.Notes, $"%{search}%"));
+        }
+
+        if (request.SupplierId.HasValue && request.SupplierId != Guid.Empty)
+            query = query.Where(p => p.SupplierId == request.SupplierId.Value);
+
+        if (request.WarehouseId.HasValue && request.WarehouseId != Guid.Empty)
+            query = query.Where(p => p.WarehouseId == request.WarehouseId.Value);
+
+        if (request.From.HasValue)
+            query = query.Where(p => p.PurchaseDate >= request.From.Value.Date);
+
+        if (request.To.HasValue)
+        {
+            var toExclusive = request.To.Value.Date.AddDays(1);
+            query = query.Where(p => p.PurchaseDate < toExclusive);
+        }
+
+        return query;
+    }
 }
 
 public class BranchService : IBranchService
 {
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public BranchService(ApplicationDbContext context, IMapper mapper)
+    public BranchService(ApplicationDbContext context, IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _context = context;
         _mapper = mapper;
+        _contextFactory = contextFactory;
+    }
+
+    public async Task<PagedResultNew<BranchDto>> GetBranchesPagedAsync(BranchPagedRequest request)
+    {
+        // Own context for the whole read: the list can be re-entered while another query on the
+        // scoped context is still in flight, and a DbContext cannot run two commands at once.
+        await using var read = await _contextFactory.CreateDbContextAsync();
+        var response = new PagedResultNew<BranchDto>();
+
+        var page = Math.Max(0, request.CurrentPage);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var search = request.SearchTerm?.Trim();
+
+        var query = read.Branches.AsNoTracking();
+        if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            query = query.Where(b => b.TenantId == request.TenantId.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(b =>
+                EF.Functions.Like(b.Name, $"%{search}%") ||
+                EF.Functions.Like(b.Code, $"%{search}%") ||
+                EF.Functions.Like(b.Location, $"%{search}%") ||
+                EF.Functions.Like(b.Address, $"%{search}%"));
+        }
+
+        // Stats ignore the active filter so the tiles keep showing both buckets.
+        var statRows = await query
+            .GroupBy(b => b.IsActive)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        response.Stats["TotalCount"] = statRows.Sum(r => r.Count);
+        response.Stats["ActiveCount"] = statRows.Where(r => r.Key).Sum(r => r.Count);
+        response.Stats["InactiveCount"] = statRows.Where(r => !r.Key).Sum(r => r.Count);
+        response.Stats["WithLocationCount"] = await query
+            .CountAsync(b => b.Location != null && b.Location != string.Empty);
+        response.Stats["UniqueCodeCount"] = await query.Select(b => b.Code).Distinct().CountAsync();
+
+        if (request.IsActive.HasValue)
+            query = query.Where(b => b.IsActive == request.IsActive.Value);
+
+        var sortAsc = request.SortAscending;
+        query = (request.SortColumn ?? "Name") switch
+        {
+            "Code" => sortAsc ? query.OrderBy(b => b.Code) : query.OrderByDescending(b => b.Code),
+            "Location" => sortAsc ? query.OrderBy(b => b.Location) : query.OrderByDescending(b => b.Location),
+            "Address" => sortAsc ? query.OrderBy(b => b.Address) : query.OrderByDescending(b => b.Address),
+            "IsActive" => sortAsc ? query.OrderBy(b => b.IsActive) : query.OrderByDescending(b => b.IsActive),
+            _ => sortAsc ? query.OrderBy(b => b.Name) : query.OrderByDescending(b => b.Name),
+        };
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip(page * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        response.Items = items
+            .Select(b => new BranchDto(b.Id, b.Name, b.Code, b.Location, b.Address, b.IsActive))
+            .ToList();
+        response.TotalCount = totalCount;
+        response.CurrentPage = page;
+        response.PageSize = pageSize;
+
+        return response;
     }
     public async Task<Guid> CreateBranch(CreateBranchDto dto)
     {

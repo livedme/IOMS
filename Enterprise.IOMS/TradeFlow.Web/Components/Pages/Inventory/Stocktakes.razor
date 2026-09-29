@@ -1,57 +1,82 @@
 @page "/inventory/stocktakes"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@implements IDisposable
 @inject IStocktakeService StocktakeService
+@inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
-@inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
+@using TradeFlow.Infrastructure.Data
+@inject ApplicationDbContext DbContext
 
 <PageTitle>Stocktakes</PageTitle>
 
 <div class="tm-page">
     <TmPageHeader Icon="🧮" Title="Stocktakes" Subtitle="Plan, count and approve physical stock counts">
         <Actions>
-            <button class="tm-reset" @onclick="LoadData">⟳ Refresh</button>
+            <button class="tm-reset" @onclick="Refresh">⟳ Refresh</button>
             <button class="tm-add-btn" @onclick="CreateNew">+ New Stocktake</button>
         </Actions>
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="🧮" Number="@_all.Count" Label="Stocktakes" Tone="blue" />
-        <TmStatTile Icon="📝" Number="@CountOf(StocktakeStatus.Draft)" Label="Draft" Tone="purple" OnClick="@(() => PickStatus(StocktakeStatus.Draft))" />
-        <TmStatTile Icon="⏳" Number="@CountOf(StocktakeStatus.InProgress)" Label="In Progress" Tone="yellow" OnClick="@(() => PickStatus(StocktakeStatus.InProgress))" />
-        <TmStatTile Icon="🔍" Number="@CountOf(StocktakeStatus.PendingApproval)" Label="Pending Approval" Tone="teal" OnClick="@(() => PickStatus(StocktakeStatus.PendingApproval))" />
-        <TmStatTile Icon="✔" Number="@CountOf(StocktakeStatus.Approved)" Label="Approved" Tone="green" OnClick="@(() => PickStatus(StocktakeStatus.Approved))" />
-        <TmStatTile Icon="✕" Number="@CountOf(StocktakeStatus.Cancelled)" Label="Cancelled" Tone="red" OnClick="@(() => PickStatus(StocktakeStatus.Cancelled))" />
+        <TmStatTile Icon="🧮" Number="@TotalCountText" Label="Stocktakes" Tone="blue" OnClick="@(() => FilterByStatus(null))" />
+        <TmStatTile Icon="📝" Number="@DraftCountText" Label="Draft" Tone="purple" OnClick="@(() => FilterByStatus(StocktakeStatus.Draft))" />
+        <TmStatTile Icon="⏳" Number="@InProgressCountText" Label="In Progress" Tone="yellow" OnClick="@(() => FilterByStatus(StocktakeStatus.InProgress))" />
+        <TmStatTile Icon="🔍" Number="@PendingApprovalCountText" Label="Pending Approval" Tone="teal" OnClick="@(() => FilterByStatus(StocktakeStatus.PendingApproval))" />
+        <TmStatTile Icon="✔" Number="@ApprovedCountText" Label="Approved" Tone="green" OnClick="@(() => FilterByStatus(StocktakeStatus.Approved))" />
+        <TmStatTile Icon="✕" Number="@CancelledCountText" Label="Cancelled" Tone="red" OnClick="@(() => FilterByStatus(StocktakeStatus.Cancelled))" />
     </div>
 
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by warehouse..." value="@_search" @oninput="OnSearchInput" />
+            <input placeholder="Search by warehouse or notes..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
-            <select @onchange="OnStatusChanged">
-                <option value="" selected="@(_statusFilter == null)">All Status</option>
-                @foreach (StocktakeStatus s in Enum.GetValues<StocktakeStatus>())
+            <select value="@(pagedRequest.WarehouseId?.ToString() ?? "")" @onchange="OnWarehouseChanged">
+                <option value="">All Warehouses</option>
+                @foreach (var w in _warehouses)
                 {
-                    <option value="@s" selected="@(_statusFilter == s)">@s</option>
+                    <option value="@w.Id">@w.Name</option>
                 }
             </select>
+        </div>
+        <div class="tm-select">
+            <select value="@(pagedRequest.Status?.ToString() ?? "")" @onchange="OnStatusChanged">
+                <option value="">All Status</option>
+                @foreach (var s in StocktakeStatuses)
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.From)" @onchange="OnFromChanged" title="From date" />
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.To)" @onchange="OnToChanged" title="To date" />
         </div>
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
     <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading stocktakes...</MudText>
+            </div>
+        }
         <div class="tm-table-wrap">
             <table class="tm-table" style="min-width:900px">
                 <thead>
                     <tr>
-                        <th>🏬 Warehouse</th>
-                        <th>📅 Start Date</th>
-                        <th>📅 End Date</th>
-                        <th>Status</th>
+                        <th @onclick="@(() => SortBy(Col.Warehouse))">🏬 Warehouse @SortIcon(Col.Warehouse)</th>
+                        <th @onclick="@(() => SortBy(Col.StartDate))">📅 Start Date @SortIcon(Col.StartDate)</th>
+                        <th @onclick="@(() => SortBy(Col.EndDate))">📅 End Date @SortIcon(Col.EndDate)</th>
+                        <th @onclick="@(() => SortBy(Col.Status))">Status @SortIcon(Col.Status)</th>
                         <th style="text-align:right">Total Items</th>
                         <th style="text-align:right">Counted</th>
                         <th>Progress</th>
@@ -59,17 +84,23 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (_loading)
+                    @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="8"><TmLoading Message="Loading stocktakes..." /></td></tr>
+                        <tr><td colspan="8" style="text-align:center; padding:40px; color:#94a3b8;">Loading stocktakes...</td></tr>
                     }
-                    else if (Paged.Count == 0)
+                    else if (pagedResultNew.Items.Count == 0)
                     {
-                        <tr><td colspan="8"><div class="tm-loading">No stocktakes found</div></td></tr>
+                        <tr>
+                            <td colspan="8" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No stocktakes found — try a different search or filter</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        @foreach (var s in Paged)
+                        @foreach (var s in pagedResultNew.Items)
                         {
                             var pct = s.TotalItems <= 0 ? 0 : (double)s.CountedItems / s.TotalItems * 100;
                             <tr>
@@ -100,43 +131,128 @@
                 </tbody>
             </table>
         </div>
-        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="stocktakes"
-                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="Stocktakes"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
     </div>
 </div>
 
 @code {
-    private List<StocktakeDto> _all = new();
-    private StocktakeStatus? _statusFilter;
-    private string _search = "";
-    private int _page = 1;
-    private int _pageSize = 10;
+    private static class Col
+    {
+        public const string Warehouse = "Warehouse";
+        public const string StartDate = "StartDate";
+        public const string EndDate = "EndDate";
+        public const string Status = "Status";
+    }
+
+    private readonly List<StocktakeStatus> StocktakeStatuses = Enum.GetValues<StocktakeStatus>().ToList();
+
+    // ─── List state ───
+    private PagedResultNew<StocktakeDto> pagedResultNew = new();
+    private StocktakePagedRequest pagedRequest = new()
+    {
+        SortColumn = Col.StartDate,
+        SortAscending = false
+    };
+
+    private List<WarehouseDto> _warehouses = new();
     private bool _loading = true;
+    private bool _hasLoadedOnce;
+    private bool _loadRunning;
+    private bool _loadQueued;
+    private CancellationTokenSource? _debounceCts;
 
-    protected override async Task OnInitializedAsync() => await LoadData();
+    protected override async Task OnInitializedAsync()
+    {
+        try { _warehouses = await ProductService.GetAllWarehousesAsync(); }
+        catch { }
 
-    private List<StocktakeDto> Filtered => _all.Where(s =>
-        (_statusFilter == null || s.Status == _statusFilter.Value)
-        && (string.IsNullOrWhiteSpace(_search) || (s.WarehouseName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
+        await LoadData();
+    }
 
-    private List<StocktakeDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+    private async Task Refresh() => await LoadData();
 
-    private int CountOf(StocktakeStatus s) => _all.Count(x => x.Status == s);
-
+    /// <summary>
+    /// Single-flight loader. The page and the services share one scoped DbContext, so two
+    /// overlapping queries would throw "A second operation was started on this context
+    /// instance". Callers that arrive mid-flight set a flag instead of starting a parallel
+    /// query, and the running load then re-runs once with the newest filter state.
+    /// </summary>
     private async Task LoadData()
+    {
+        if (_loadRunning)
+        {
+            _loadQueued = true;
+            return;
+        }
+
+        _loadRunning = true;
+        try
+        {
+            do
+            {
+                _loadQueued = false;
+                await LoadDataCore();
+            }
+            while (_loadQueued);
+        }
+        finally { _loadRunning = false; }
+    }
+
+    private async Task LoadDataCore()
     {
         _loading = true;
         try
         {
-            var result = await StocktakeService.GetStocktakes(null, _page, _pageSize);
-            _all = result.Items;
+            pagedResultNew = await StocktakeService.GetStocktakesPagedAsync(pagedRequest);
+            _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
     }
 
+    // ─── Stats / sorting helpers ───
+    private string TotalCountText => Stat("TotalCount");
+    private string DraftCountText => Stat("DraftCount");
+    private string InProgressCountText => Stat("InProgressCount");
+    private string PendingApprovalCountText => Stat("PendingApprovalCount");
+    private string ApprovedCountText => Stat("ApprovedCount");
+    private string CancelledCountText => Stat("CancelledCount");
+
+    private string Stat(string key) =>
+        pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
+
+    private void SortBy(string column)
+    {
+        if (pagedRequest.SortColumn == column)
+            pagedRequest.SortAscending = !pagedRequest.SortAscending;
+        else
+        {
+            pagedRequest.SortColumn = column;
+            pagedRequest.SortAscending = true;
+        }
+        pagedRequest.CurrentPage = 0;
+    }
+
+    private string SortIcon(string column)
+    {
+        if (pagedRequest.SortColumn != column) return "";
+        return pagedRequest.SortAscending ? "▲" : "▼";
+    }
+
     private async Task CreateNew()
     {
+        // StocktakeCreateDialog binds to Warehouse entities, so the dialog path still reads
+        // through the context. It only runs on explicit user action, never alongside a list load.
         var warehouses = await DbContext.Set<Warehouse>().Where(w => w.IsActive).OrderBy(w => w.Name).ToListAsync();
         var parameters = new DialogParameters<StocktakeCreateDialog> { { x => x.Warehouses, warehouses } };
         var dialog = await DialogService.ShowAsync<StocktakeCreateDialog>("New Stocktake", parameters,
@@ -156,36 +272,120 @@
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 
-    private void PickStatus(StocktakeStatus s)
-    {
-        _statusFilter = _statusFilter == s ? null : s;
-        _page = 1;
-    }
-
+    // ─── Filters ───
     private void OnSearchInput(ChangeEventArgs e)
     {
-        _search = e.Value?.ToString() ?? "";
-        _page = 1;
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        pagedRequest.CurrentPage = 0;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(async () =>
+                {
+                    await LoadData();
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException) { }
+        });
     }
 
-    private void OnStatusChanged(ChangeEventArgs e)
+    private async Task OnWarehouseChanged(ChangeEventArgs e)
     {
-        var v = e.Value?.ToString();
-        _statusFilter = string.IsNullOrEmpty(v) ? null : Enum.Parse<StocktakeStatus>(v);
-        _page = 1;
+        pagedRequest.WarehouseId = ParseGuid(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
     }
 
-    private void ResetFilters()
+    private async Task OnStatusChanged(ChangeEventArgs e)
     {
-        _search = "";
-        _statusFilter = null;
-        _page = 1;
+        pagedRequest.Status = Enum.TryParse<StocktakeStatus>(e.Value?.ToString(), out var s) ? s : null;
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
     }
 
-    private void OnPageSizeChanged(int size)
+    private async Task OnFromChanged(ChangeEventArgs e)
     {
-        _pageSize = size;
-        _page = 1;
+        pagedRequest.From = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
+    }
+
+    private async Task OnToChanged(ChangeEventArgs e)
+    {
+        pagedRequest.To = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
+    }
+
+    private async Task FilterByStatus(StocktakeStatus? status)
+    {
+        pagedRequest.Status = pagedRequest.Status == status ? null : status;
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
+    }
+
+    private async Task ResetFilters()
+    {
+        pagedRequest.SearchTerm = "";
+        pagedRequest.Status = null;
+        pagedRequest.WarehouseId = null;
+        pagedRequest.From = null;
+        pagedRequest.To = null;
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
+    }
+
+    private static Guid? ParseGuid(object? value) =>
+        Guid.TryParse(value?.ToString(), out var g) && g != Guid.Empty ? g : null;
+
+    private static DateTime? ParseDate(object? value) =>
+        DateTime.TryParse(value?.ToString(), out var d) ? d : null;
+
+    private static string FormatDate(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "";
+
+    // ─── Paging (zero-based, matches TmPager) ───
+    private async Task GoToPage(int page)
+    {
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
+        await LoadData();
+    }
+
+    private async Task GoPrevPage()
+    {
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await LoadData();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await LoadData();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await LoadData();
+        }
     }
 
     private static string GetStatusPill(StocktakeStatus s) => s switch
@@ -197,4 +397,10 @@
         StocktakeStatus.Cancelled => "tm-pill tm-pill-red",
         _ => "tm-pill tm-pill-blue"
     };
+
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+    }
 }

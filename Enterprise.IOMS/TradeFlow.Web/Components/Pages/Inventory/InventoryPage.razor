@@ -1,10 +1,10 @@
 @page "/inventory"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@implements IDisposable
 @inject IInventoryService InventoryService
+@inject IProductService ProductService
 @inject ISnackbar Snackbar
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
 
 <PageTitle>Stock Levels - IOMS</PageTitle>
 
@@ -12,268 +12,374 @@
     <TmPageHeader Icon="📊" Title="Stock Levels" Subtitle="Monitor on-hand, reserved and available stock across all warehouses">
         <Actions>
             <button class="tm-reset" @onclick="ToggleAlerts">@(_showLowStock ? "Back to Stock Levels" : "Low Stock Alerts")</button>
-            <button class="tm-add-btn" @onclick="LoadInventory">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="Refresh">⟳ Refresh</button>
         </Actions>
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="📦" Number="@_inventory.Count" Label="Stock Items" Tone="blue" />
-        <TmStatTile Icon="✔" Number="@_inStockCount" Label="In Stock" Tone="green" />
-        <TmStatTile Icon="⚠" Number="@_lowStockAlerts.Count" Label="Low Stock" Tone="yellow" OnClick="@ToggleAlerts" />
-        <TmStatTile Icon="⛔" Number="@_outOfStockCount" Label="Out of Stock" Tone="red" />
-        <TmStatTile Icon="🔒" Number="@_reservedCount" Label="Reserved" Tone="purple" />
-        <TmStatTile Icon="🏬" Number="@_warehouses.Count" Label="Warehouses" Tone="teal" />
+        <TmStatTile Icon="📦" Number="@TotalCountText" Label="Stock Items" Tone="blue" />
+        <TmStatTile Icon="✔" Number="@InStockCountText" Label="In Stock" Tone="green" />
+        <TmStatTile Icon="⚠" Number="@LowStockCountText" Label="Low Stock" Tone="yellow" OnClick="@ToggleAlerts" />
+        <TmStatTile Icon="⛔" Number="@OutOfStockCountText" Label="Out of Stock" Tone="red" />
+        <TmStatTile Icon="🔒" Number="@ReservedCountText" Label="Reserved" Tone="purple" />
+        <TmStatTile Icon="🏬" Number="@WarehouseCountText" Label="Warehouses" Tone="teal" />
     </div>
 
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by product name or SKU..." value="@_searchString" @oninput="OnSearchInput" />
+            <input placeholder="Search by product name or SKU..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
-            <select @onchange="OnWarehouseChanged">
+            <select value="@(pagedRequest.WarehouseId?.ToString() ?? "")" @onchange="OnWarehouseChanged">
                 <option value="">All Warehouses</option>
                 @foreach (var wh in _warehouses)
                 {
-                    <option value="@wh.Id" selected="@(_selectedWarehouseId == wh.Id)">@wh.Name (@wh.Code)</option>
+                    <option value="@wh.Id">@wh.Name (@wh.Code)</option>
                 }
             </select>
         </div>
-        <div class="tm-select">
-            <select @onchange="OnStatusChanged">
-                <option value="" selected="@(_status == "")">All Status</option>
-                <option value="instock" selected="@(_status == "instock")">In Stock</option>
-                <option value="outofstock" selected="@(_status == "outofstock")">Out of Stock</option>
-                <option value="reserved" selected="@(_status == "reserved")">Has Reserved Qty</option>
-            </select>
-        </div>
+        @if (!_showLowStock)
+        {
+            <div class="tm-select">
+                <select value="@(pagedRequest.Status ?? "")" @onchange="OnStatusChanged">
+                    <option value="">All Status</option>
+                    <option value="InStock">In Stock</option>
+                    <option value="OutOfStock">Out of Stock</option>
+                    <option value="Reserved">Has Reserved Qty</option>
+                </select>
+            </div>
+        }
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
     <div class="tm-card tm-table-card">
-        @if (_showLowStock)
+        @if (_loading)
         {
-            <div class="tm-table-wrap">
-                <table class="tm-table" style="min-width:760px">
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading stock...</MudText>
+            </div>
+        }
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:@( _showLowStock ? "760px" : "900px")">
+                @if (_showLowStock)
+                {
                     <thead>
                         <tr>
-                            <th>📦 Product</th>
-                            <th>SKU</th>
-                            <th>Warehouse</th>
-                            <th style="text-align:right">Current Stock</th>
-                            <th style="text-align:right">Reorder Level</th>
+                            <th @onclick="@(() => SortBy(Col.ProductName))">📦 Product @SortIcon(Col.ProductName)</th>
+                            <th @onclick="@(() => SortBy(Col.ProductSKU))">SKU @SortIcon(Col.ProductSKU)</th>
+                            <th @onclick="@(() => SortBy(Col.WarehouseName))">Warehouse @SortIcon(Col.WarehouseName)</th>
+                            <th style="text-align:right" @onclick="@(() => SortBy(Col.Quantity))">Current Stock @SortIcon(Col.Quantity)</th>
+                            <th style="text-align:right" @onclick="@(() => SortBy(Col.ReorderStockLevel))">Reorder Level @SortIcon(Col.ReorderStockLevel)</th>
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @if (_loading)
-                        {
-                            <tr><td colspan="6"><TmLoading Message="Loading alerts..." /></td></tr>
-                        }
-                        else if (FilteredAlerts.Count == 0)
-                        {
-                            <tr><td colspan="6"><div class="tm-loading">No low stock items found</div></td></tr>
-                        }
-                        else
-                        {
-                            @foreach (var a in PagedAlerts)
-                            {
-                                <tr>
-                                    <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#fee2e2">📦</span>@a.ProductName</span></td>
-                                    <td class="tm-num">@a.SKU</td>
-                                    <td class="tm-branch">@a.WarehouseName</td>
-                                    <td style="text-align:right"><span class="tm-date-red" style="font-weight:700">@a.CurrentStock</span></td>
-                                    <td style="text-align:right" class="tm-num">@a.ReorderStockLevel</td>
-                                    <td>
-                                        <span class="tm-pill tm-pill-red">
-                                            <span class="tm-dot"></span>
-                                            @(a.CurrentStock <= 0 ? "Out of Stock" : $"Short {a.ReorderStockLevel - a.CurrentStock}")
-                                        </span>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <TmPager Total="@FilteredAlerts.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="low stock alerts"
-                      PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
-        }
-        else
-        {
-            <div class="tm-table-wrap">
-                <table class="tm-table" style="min-width:900px">
+                }
+                else
+                {
                     <thead>
                         <tr>
-                            <th>📦 Product</th>
-                            <th>SKU</th>
-                            <th>Warehouse</th>
+                            <th @onclick="@(() => SortBy(Col.ProductName))">📦 Product @SortIcon(Col.ProductName)</th>
+                            <th @onclick="@(() => SortBy(Col.ProductSKU))">SKU @SortIcon(Col.ProductSKU)</th>
+                            <th @onclick="@(() => SortBy(Col.WarehouseName))">Warehouse @SortIcon(Col.WarehouseName)</th>
                             <th>Bin Location</th>
-                            <th style="text-align:right">On Hand</th>
-                            <th style="text-align:right">Reserved</th>
-                            <th style="text-align:right">Available</th>
+                            <th style="text-align:right" @onclick="@(() => SortBy(Col.Quantity))">On Hand @SortIcon(Col.Quantity)</th>
+                            <th style="text-align:right" @onclick="@(() => SortBy(Col.ReservedQuantity))">Reserved @SortIcon(Col.ReservedQuantity)</th>
+                            <th style="text-align:right" @onclick="@(() => SortBy(Col.AvailableQuantity))">Available @SortIcon(Col.AvailableQuantity)</th>
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @if (_loading)
+                }
+                <tbody>
+                    @if (!_hasLoadedOnce && _loading)
+                    {
+                        <tr>
+                            <td colspan="@(_showLowStock ? 6 : 8)" style="text-align:center; padding:40px; color:#94a3b8;">
+                                Loading stock...
+                            </td>
+                        </tr>
+                    }
+                    else if (pagedResultNew.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="@(_showLowStock ? 6 : 8)" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">
+                                    @(_showLowStock ? "No low stock items found" : "No stock records found") — try a different search or filter
+                                </div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
+                    }
+                    else if (_showLowStock)
+                    {
+                        @foreach (var a in pagedResultNew.Items)
                         {
-                            <tr><td colspan="8"><TmLoading Message="Loading stock..." /></td></tr>
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#fee2e2">📦</span>@a.ProductName</span></td>
+                                <td class="tm-num">@a.ProductSKU</td>
+                                <td class="tm-branch">@a.WarehouseName</td>
+                                <td style="text-align:right"><span class="tm-date-red" style="font-weight:700">@a.Quantity</span></td>
+                                <td style="text-align:right" class="tm-num">@a.ReorderStockLevel</td>
+                                <td>
+                                    <span class="tm-pill tm-pill-red">
+                                        <span class="tm-dot"></span>
+                                        @(a.Quantity <= 0 ? "Out of Stock" : $"Short {a.ReorderStockLevel - a.Quantity}")
+                                    </span>
+                                </td>
+                            </tr>
                         }
-                        else if (FilteredInventory.Count == 0)
+                    }
+                    else
+                    {
+                        @foreach (var i in pagedResultNew.Items)
                         {
-                            <tr><td colspan="8"><div class="tm-loading">No stock records found</div></td></tr>
+                            var avail = i.AvailableQuantity;
+                            var pill = avail <= 0 || i.Quantity <= 0 ? "tm-pill tm-pill-red" : i.ReservedQuantity > 0 ? "tm-pill tm-pill-amber" : "tm-pill tm-pill-green";
+                            var statusText = avail <= 0 || i.Quantity <= 0 ? "Unavailable" : i.ReservedQuantity > 0 ? "Partly Reserved" : "Available";
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">📦</span>@i.ProductName</span></td>
+                                <td class="tm-num">@i.ProductSKU</td>
+                                <td class="tm-branch">@i.WarehouseName</td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(i.BinLocation) ? "-" : i.BinLocation)</td>
+                                <td style="text-align:right" class="tm-num">@i.Quantity</td>
+                                <td style="text-align:right" class="tm-num">@(i.ReservedQuantity > 0 ? i.ReservedQuantity.ToString() : "-")</td>
+                                <td style="text-align:right"><span style="font-weight:700; color:@(avail <= 0 ? "#dc2626" : "#15803d")">@avail</span></td>
+                                <td><span class="@pill"><span class="tm-dot"></span>@statusText</span></td>
+                            </tr>
                         }
-                        else
-                        {
-                            @foreach (var i in PagedInventory)
-                            {
-                                var avail = i.AvailableQuantity;
-                                var pill = avail <= 0 || i.Quantity <= 0 ? "tm-pill tm-pill-red" : i.ReservedQuantity > 0 ? "tm-pill tm-pill-amber" : "tm-pill tm-pill-green";
-                                var statusText = avail <= 0 || i.Quantity <= 0 ? "Unavailable" : i.ReservedQuantity > 0 ? "Partly Reserved" : "Available";
-                                <tr>
-                                    <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">📦</span>@i.ProductName</span></td>
-                                    <td class="tm-num">@i.ProductSKU</td>
-                                    <td class="tm-branch">@i.WarehouseName</td>
-                                    <td class="tm-dim">@(string.IsNullOrWhiteSpace(i.BinLocation) ? "-" : i.BinLocation)</td>
-                                    <td style="text-align:right" class="tm-num">@i.Quantity</td>
-                                    <td style="text-align:right" class="tm-num">@(i.ReservedQuantity > 0 ? i.ReservedQuantity.ToString() : "-")</td>
-                                    <td style="text-align:right"><span style="font-weight:700; color:@(avail <= 0 ? "#dc2626" : "#15803d")">@avail</span></td>
-                                    <td><span class="@pill"><span class="tm-dot"></span>@statusText</span></td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <TmPager Total="@FilteredInventory.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="stock records"
-                      PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
-        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="@(_showLowStock ? "Low Stock Alerts" : "Stock Records")"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
     </div>
 </div>
 
 @code {
+    private static class Col
+    {
+        public const string ProductName = "ProductName";
+        public const string ProductSKU = "ProductSKU";
+        public const string WarehouseName = "WarehouseName";
+        public const string Quantity = "Quantity";
+        public const string ReservedQuantity = "ReservedQuantity";
+        public const string AvailableQuantity = "AvailableQuantity";
+        public const string ReorderStockLevel = "ReorderStockLevel";
+    }
+
     private record WhItem(Guid Id, string Name, string Code);
 
+    // ─── List state ───
+    // Both views are the same query: Low Stock Alerts is this one pinned to LowStockOnly.
+    private PagedResultNew<StockLevelDto> pagedResultNew = new();
+    private StockLevelPagedRequest pagedRequest = new()
+    {
+        SortColumn = Col.ProductName,
+        SortAscending = true
+    };
+
     private List<WhItem> _warehouses = new();
-    private Guid _selectedWarehouseId;
-    private List<InventoryDto> _inventory = new();
-    private List<LowStockAlertDto> _lowStockAlerts = new();
     private bool _loading = true;
+    private bool _hasLoadedOnce;
     private bool _showLowStock;
-    private string _searchString = "";
-    private string _status = "";
-    private int _page = 1;
-    private int _pageSize = 10;
-    private int _inStockCount;
-    private int _outOfStockCount;
-    private int _reservedCount;
-    private System.Timers.Timer? _debounce;
+    private bool _loadRunning;
+    private bool _loadQueued;
+    private CancellationTokenSource? _debounceCts;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var whs = await DbContext.Warehouses.Where(w => w.IsActive).OrderBy(w => w.Code).ToListAsync();
+            var whs = await ProductService.GetAllWarehousesAsync();
             _warehouses = whs.Select(w => new WhItem(w.Id, w.Name, w.Code)).ToList();
-            if (_warehouses.Count > 0)
-                _selectedWarehouseId = _warehouses.First().Id;
         }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch { }
 
         await LoadInventory();
-        await LoadLowStockAlerts();
     }
 
-    private List<InventoryDto> FilteredInventory => _inventory.Where(x =>
-        (string.IsNullOrEmpty(_searchString)
-            || (x.ProductName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
-            || (x.ProductSKU?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false))
-        && (_selectedWarehouseId == Guid.Empty || x.WarehouseId == _selectedWarehouseId)
-        && (_status switch
-        {
-            "instock" => x.Quantity > 0,
-            "outofstock" => x.Quantity <= 0,
-            "reserved" => x.ReservedQuantity > 0,
-            _ => true
-        })).ToList();
+    private async Task Refresh() => await LoadInventory();
 
-    private List<LowStockAlertDto> FilteredAlerts => _lowStockAlerts.Where(x =>
-        string.IsNullOrEmpty(_searchString)
-        || (x.ProductName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
-        || (x.SKU?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
-
-    private List<InventoryDto> PagedInventory => FilteredInventory.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
-    private List<LowStockAlertDto> PagedAlerts => FilteredAlerts.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
-
+    /// <summary>
+    /// Single-flight loader. The page and the services share one scoped DbContext, so two
+    /// overlapping queries would throw "A second operation was started on this context
+    /// instance". Callers that arrive mid-flight set a flag instead of starting a parallel
+    /// query, and the running load then re-runs once with the newest filter state.
+    /// </summary>
     private async Task LoadInventory()
     {
-        _showLowStock = false;
+        if (_loadRunning)
+        {
+            _loadQueued = true;
+            return;
+        }
+
+        _loadRunning = true;
+        try
+        {
+            do
+            {
+                _loadQueued = false;
+                await LoadInventoryCore();
+            }
+            while (_loadQueued);
+        }
+        finally { _loadRunning = false; }
+    }
+
+    private async Task LoadInventoryCore()
+    {
         _loading = true;
         try
         {
-            var result = await InventoryService.GetInventoryByWarehouse(_selectedWarehouseId, 1, 200);
-            _inventory = result.Items;
-            RecomputeCounts();
+            pagedRequest.LowStockOnly = _showLowStock;
+            pagedResultNew = await InventoryService.GetStockLevelsPagedAsync(pagedRequest);
+            _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
     }
 
-    private async Task LoadLowStockAlerts()
+    // ─── Stats / sorting helpers ───
+    private string TotalCountText => Stat("TotalCount");
+    private string InStockCountText => Stat("InStockCount");
+    private string OutOfStockCountText => Stat("OutOfStockCount");
+    private string ReservedCountText => Stat("ReservedCount");
+    private string LowStockCountText => Stat("LowStockCount");
+    private string WarehouseCountText => Stat("WarehouseCount");
+
+    private string Stat(string key) =>
+        pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
+
+    private void SortBy(string column)
     {
-        try { _lowStockAlerts = await InventoryService.GetLowStockAlerts(); }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        if (pagedRequest.SortColumn == column)
+            pagedRequest.SortAscending = !pagedRequest.SortAscending;
+        else
+        {
+            pagedRequest.SortColumn = column;
+            pagedRequest.SortAscending = true;
+        }
+        pagedRequest.CurrentPage = 0;
     }
 
-    private void RecomputeCounts()
+    private string SortIcon(string column)
     {
-        _inStockCount = _inventory.Count(x => x.Quantity > 0);
-        _outOfStockCount = _inventory.Count(x => x.Quantity <= 0);
-        _reservedCount = _inventory.Count(x => x.ReservedQuantity > 0);
+        if (pagedRequest.SortColumn != column) return "";
+        return pagedRequest.SortAscending ? "▲" : "▼";
     }
 
-    private void ToggleAlerts()
+    private async Task ToggleAlerts()
     {
         _showLowStock = !_showLowStock;
-        _page = 1;
+        pagedRequest.Status = null;
+        pagedRequest.CurrentPage = 0;
+        _hasLoadedOnce = false;
+        await LoadInventory();
     }
 
+    // ─── Filters ───
     private void OnSearchInput(ChangeEventArgs e)
     {
-        _searchString = e.Value?.ToString() ?? "";
-        _page = 1;
-        _debounce?.Stop();
-        _debounce?.Dispose();
-        _debounce = new System.Timers.Timer(300) { AutoReset = false };
-        _debounce.Elapsed += async (_, __) => await InvokeAsync(StateHasChanged);
-        _debounce.Start();
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        pagedRequest.CurrentPage = 0;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(async () =>
+                {
+                    await LoadInventory();
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException) { }
+        });
     }
 
     private async Task OnWarehouseChanged(ChangeEventArgs e)
     {
         var v = e.Value?.ToString();
-        _selectedWarehouseId = string.IsNullOrEmpty(v) ? Guid.Empty : Guid.Parse(v);
-        _page = 1;
+        pagedRequest.WarehouseId = string.IsNullOrEmpty(v) || !Guid.TryParse(v, out var g) ? null : g;
+        pagedRequest.CurrentPage = 0;
         await LoadInventory();
     }
 
-    private void OnStatusChanged(ChangeEventArgs e)
+    private async Task OnStatusChanged(ChangeEventArgs e)
     {
-        _status = e.Value?.ToString() ?? "";
-        _page = 1;
+        var v = e.Value?.ToString();
+        pagedRequest.Status = string.IsNullOrEmpty(v) ? null : v;
+        pagedRequest.CurrentPage = 0;
+        await LoadInventory();
     }
 
-    private void ResetFilters()
+    private async Task ResetFilters()
     {
-        _searchString = "";
-        _status = "";
-        _page = 1;
+        pagedRequest.SearchTerm = "";
+        pagedRequest.Status = null;
+        pagedRequest.WarehouseId = null;
+        pagedRequest.CurrentPage = 0;
+        await LoadInventory();
     }
 
-    private void OnPageSizeChanged(int size)
+    // ─── Paging (zero-based, matches TmPager) ───
+    private async Task GoToPage(int page)
     {
-        _pageSize = size;
-        _page = 1;
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
+        await LoadInventory();
+    }
+
+    private async Task GoPrevPage()
+    {
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await LoadInventory();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await LoadInventory();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await LoadInventory();
+        }
+    }
+
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
     }
 }

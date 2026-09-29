@@ -13,11 +13,13 @@ namespace TradeFlow.Infrastructure.Services
     {
         private readonly ApplicationDbContext _db;
         private readonly IMapper _mapper;
+        private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-        public SupplierService(ApplicationDbContext db, IMapper mapper)
+        public SupplierService(ApplicationDbContext db, IMapper mapper, IDbContextFactory<ApplicationDbContext> dbFactory)
         {
             _db = db;
             _mapper = mapper;
+            _dbFactory = dbFactory;
         }
         public async Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search = "", int page = 1, int pageSize = 100)
         {
@@ -27,6 +29,113 @@ namespace TradeFlow.Infrastructure.Services
             var total = query.Count(); 
             var items = query.OrderBy(s => s.SupplierName).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
             return new PagedResult<SupplierDto>(_mapper.Map<List<SupplierDto>>(items), total, page, pageSize);
+        }
+
+        /// <summary>
+        /// Server-side paged supplier list used by the Supplier grid. Mirrors
+        /// OrderService.GetSalesOrdersAsync: zero-based paging, filterable, sortable,
+        /// and returns the tile counts in <see cref="PagedResultNew{T}.Stats"/>.
+        /// </summary>
+        public async Task<PagedResultNew<SupplierDto>> GetSuppliersAsync(SupplierPagedRequest request)
+        {
+            // Own context for the whole read: the list can be re-entered while another query on the
+            // scoped context is still in flight, and a DbContext cannot run two commands at once.
+            await using var read = await _dbFactory.CreateDbContextAsync();
+            var response = new PagedResultNew<SupplierDto>();
+
+            var page = Math.Max(0, request.CurrentPage);
+            var pageSize = Math.Clamp(request.PageSize, 1, 100);
+            var search = request.SearchTerm?.Trim();
+            var hasSearch = !string.IsNullOrWhiteSpace(search);
+
+            IQueryable<Supplier> query = read.Suppliers.AsNoTracking();
+
+            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+                query = query.Where(s => s.TenantId == request.TenantId.Value);
+
+            // Stats ignore the status/city filters so the tiles keep showing every
+            // bucket while one of those filters is active.
+            var statsSource = ApplySupplierFilters(query, request, search, hasSearch);
+            var statRows = await statsSource
+                .GroupBy(s => s.IsActive)
+                .Select(g => new { g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            response.Stats["TotalCount"] = statRows.Sum(r => r.Count);
+            response.Stats["ActiveCount"] = statRows.Where(r => r.Key).Sum(r => r.Count);
+            response.Stats["InactiveCount"] = statRows.Where(r => !r.Key).Sum(r => r.Count);
+            response.Stats["AverageRating"] = (int)Math.Round(
+                await statsSource.AverageAsync(s => (decimal?)s.Rating) ?? 0m);
+            response.Stats["AverageLeadTime"] = (int)Math.Round(
+                await statsSource.AverageAsync(s => (decimal?)s.LeadTimeDays) ?? 0m);
+            response.Stats["WithEmailCount"] = await statsSource
+                .CountAsync(s => s.SupplierEmail != null && s.SupplierEmail != string.Empty);
+            response.Stats["CityCount"] = await statsSource
+                .Where(s => s.City != null && s.City != string.Empty)
+                .Select(s => s.City)
+                .Distinct()
+                .CountAsync();
+
+            query = ApplySupplierFilters(query, request, search, hasSearch);
+
+            var sortAsc = request.SortAscending;
+            query = (request.SortColumn ?? "SupplierName") switch
+            {
+                "Email" => sortAsc ? query.OrderBy(s => s.SupplierEmail) : query.OrderByDescending(s => s.SupplierEmail),
+                "Phone" => sortAsc ? query.OrderBy(s => s.SupplierPhone) : query.OrderByDescending(s => s.SupplierPhone),
+                "ContactPerson" => sortAsc ? query.OrderBy(s => s.ContactPersonName) : query.OrderByDescending(s => s.ContactPersonName),
+                "City" => sortAsc ? query.OrderBy(s => s.City) : query.OrderByDescending(s => s.City),
+                "PaymentTerms" => sortAsc ? query.OrderBy(s => s.PaymentTerms) : query.OrderByDescending(s => s.PaymentTerms),
+                "LeadTimeDays" => sortAsc ? query.OrderBy(s => s.LeadTimeDays) : query.OrderByDescending(s => s.LeadTimeDays),
+                "Rating" => sortAsc ? query.OrderBy(s => s.Rating) : query.OrderByDescending(s => s.Rating),
+                "IsActive" => sortAsc ? query.OrderBy(s => s.IsActive) : query.OrderByDescending(s => s.IsActive),
+                _ => sortAsc ? query.OrderBy(s => s.SupplierName) : query.OrderByDescending(s => s.SupplierName),
+            };
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            response.Items = _mapper.Map<List<SupplierDto>>(items);
+            response.TotalCount = totalCount;
+            response.CurrentPage = page;
+            response.PageSize = pageSize;
+
+            return response;
+        }
+
+        public async Task<List<string>> GetSupplierCitiesAsync()
+        {
+            return await _db.Suppliers.AsNoTracking()
+                .Where(s => s.City != null && s.City != string.Empty)
+                .Select(s => s.City!)
+                .Distinct()
+                .OrderBy(s => s)
+                .ToListAsync();
+        }
+
+        private static IQueryable<Supplier> ApplySupplierFilters(
+            IQueryable<Supplier> query, SupplierPagedRequest request, string? search, bool hasSearch)
+        {
+            if (hasSearch)
+            {
+                query = query.Where(s =>
+                    EF.Functions.Like(s.SupplierName, $"%{search}%") ||
+                    EF.Functions.Like(s.SupplierEmail, $"%{search}%") ||
+                    EF.Functions.Like(s.SupplierPhone, $"%{search}%") ||
+                    EF.Functions.Like(s.ContactPersonName, $"%{search}%") ||
+                    EF.Functions.Like(s.City, $"%{search}%"));
+            }
+
+            if (request.IsActive.HasValue)
+                query = query.Where(s => s.IsActive == request.IsActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(request.City))
+                query = query.Where(s => s.City == request.City);
+
+            return query;
         }
 
         public async Task<SupplierDto?> GetSupplierByIdAsync(Guid id)

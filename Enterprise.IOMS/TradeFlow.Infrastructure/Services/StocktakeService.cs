@@ -13,11 +13,88 @@ public class StocktakeService : IStocktakeService
 {
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public StocktakeService(ApplicationDbContext context, IMapper mapper)
+    public StocktakeService(ApplicationDbContext context, IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _context = context;
         _mapper = mapper;
+        _contextFactory = contextFactory;
+    }
+
+    public async Task<PagedResultNew<StocktakeDto>> GetStocktakesPagedAsync(StocktakePagedRequest request)
+    {
+        // Own context for the whole read: the list can be re-entered while another query on the
+        // scoped context is still in flight, and a DbContext cannot run two commands at once.
+        await using var read = await _contextFactory.CreateDbContextAsync();
+        var response = new PagedResultNew<StocktakeDto>();
+
+        var page = Math.Max(0, request.CurrentPage);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var search = request.SearchTerm?.Trim();
+
+        IQueryable<Stocktake> query = read.Stocktakes
+            .AsSplitQuery()
+            .AsNoTracking()
+            .Include(s => s.Warehouse)
+            .Include(s => s.Items);
+
+        if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            query = query.Where(s => s.TenantId == request.TenantId.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(s =>
+                EF.Functions.Like(s.Warehouse.Name, $"%{search}%") ||
+                EF.Functions.Like(s.Notes, $"%{search}%"));
+
+        // Stats are computed over the non-status filters so the tiles keep showing
+        // every bucket while a single status tile is active.
+        var groups = await query
+            .GroupBy(s => s.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var byStatus = groups.ToDictionary(g => g.Status, g => g.Count);
+        response.Stats["TotalCount"] = byStatus.Values.Sum();
+        foreach (var s in Enum.GetValues<StocktakeStatus>())
+            response.Stats[$"{s}Count"] = byStatus.TryGetValue(s, out var c) ? c : 0;
+
+        if (request.Status.HasValue)
+        {
+            var status = request.Status.Value;
+            query = query.Where(s => s.Status == status);
+        }
+
+        if (request.WarehouseId.HasValue && request.WarehouseId != Guid.Empty)
+            query = query.Where(s => s.WarehouseId == request.WarehouseId.Value);
+
+        if (request.From.HasValue)
+            query = query.Where(s => s.StartDate >= request.From.Value.Date);
+
+        if (request.To.HasValue)
+        {
+            var toExclusive = request.To.Value.Date.AddDays(1);
+            query = query.Where(s => s.StartDate < toExclusive);
+        }
+
+        var sortAsc = request.SortAscending;
+        query = (request.SortColumn ?? "StartDate") switch
+        {
+            "Warehouse" => sortAsc ? query.OrderBy(s => s.Warehouse.Name) : query.OrderByDescending(s => s.Warehouse.Name),
+            "EndDate" => sortAsc ? query.OrderBy(s => s.EndDate) : query.OrderByDescending(s => s.EndDate),
+            "Status" => sortAsc ? query.OrderBy(s => s.Status) : query.OrderByDescending(s => s.Status),
+            _ => sortAsc ? query.OrderBy(s => s.StartDate) : query.OrderByDescending(s => s.StartDate),
+        };
+
+        var totalCount = await query.CountAsync();
+        var items = await query.Skip(page * pageSize).Take(pageSize).ToListAsync();
+
+        response.Items = _mapper.Map<List<StocktakeDto>>(items);
+        response.TotalCount = totalCount;
+        response.CurrentPage = page;
+        response.PageSize = pageSize;
+
+        return response;
     }
 
     public async Task<PagedResult<StocktakeDto>> GetStocktakes(StocktakeStatus? status, int page, int pageSize)

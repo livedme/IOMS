@@ -13,11 +13,79 @@ public class KitService : IKitService
 {
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
+    private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public KitService(ApplicationDbContext context, IMapper mapper)
+    public KitService(ApplicationDbContext context, IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
         _context = context;
         _mapper = mapper;
+        _contextFactory = contextFactory;
+    }
+
+    public async Task<PagedResultNew<KitDto>> GetKitsPagedAsync(KitPagedRequest request)
+    {
+        // Own context for the whole read: the list can be re-entered while another query on the
+        // scoped context is still in flight, and a DbContext cannot run two commands at once.
+        await using var read = await _contextFactory.CreateDbContextAsync();
+        var response = new PagedResultNew<KitDto>();
+
+        var page = Math.Max(0, request.CurrentPage);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var search = request.SearchTerm?.Trim();
+
+        IQueryable<Kit> query = read.Kits
+            .AsNoTracking()
+            .Include(k => k.Product)
+            .Include(k => k.Components).ThenInclude(c => c.ComponentProduct);
+
+        if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            query = query.Where(k => k.TenantId == request.TenantId.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(k =>
+                EF.Functions.Like(k.Product.Name, $"%{search}%") ||
+                EF.Functions.Like(k.Product.SKU, $"%{search}%"));
+        }
+
+        var statRows = await query
+            .GroupBy(k => new { k.IsActive, ComponentCount = k.Components.Count })
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        response.Stats["TotalCount"] = statRows.Sum(r => r.Count);
+        response.Stats["ActiveCount"] = statRows.Where(r => r.Key.IsActive).Sum(r => r.Count);
+        response.Stats["InactiveCount"] = statRows.Where(r => !r.Key.IsActive).Sum(r => r.Count);
+        response.Stats["TotalComponents"] = statRows.Sum(r => r.Key.ComponentCount * r.Count);
+        response.Stats["SingleComponentCount"] = statRows.Where(r => r.Key.ComponentCount == 1).Sum(r => r.Count);
+        response.Stats["AverageComponents"] = response.Stats["TotalCount"] == 0
+            ? 0
+            : (int)Math.Round(
+                statRows.Sum(r => (double)r.Key.ComponentCount * r.Count) / response.Stats["TotalCount"]);
+
+        if (request.IsActive.HasValue)
+            query = query.Where(k => k.IsActive == request.IsActive.Value);
+
+        var sortAsc = request.SortAscending;
+        query = (request.SortColumn ?? "ProductName") switch
+        {
+            "ProductSKU" => sortAsc ? query.OrderBy(k => k.Product.SKU) : query.OrderByDescending(k => k.Product.SKU),
+            "ComponentCount" => sortAsc
+                ? query.OrderBy(k => k.Components.Count).ThenBy(k => k.Product.Name)
+                : query.OrderByDescending(k => k.Components.Count).ThenBy(k => k.Product.Name),
+            "IsActive" => sortAsc ? query.OrderBy(k => k.IsActive) : query.OrderByDescending(k => k.IsActive),
+            _ => sortAsc ? query.OrderBy(k => k.Product.Name) : query.OrderByDescending(k => k.Product.Name),
+        };
+
+        var totalCount = await query.CountAsync();
+        var items = await query.Skip(page * pageSize).Take(pageSize).ToListAsync();
+
+        response.Items = _mapper.Map<List<KitDto>>(items);
+        response.TotalCount = totalCount;
+        response.CurrentPage = page;
+        response.PageSize = pageSize;
+
+        return response;
     }
 
     public async Task<List<KitDto>> GetKits()

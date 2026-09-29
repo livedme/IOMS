@@ -177,12 +177,15 @@
             </table>
         </div>
          <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
-            <TmPager Total="@pagedResultNew.TotalCount"
-                      Page="@_page"
-                      PageSize="@_pageSize"
-                      ItemNoun="products"
-                      PageChanged="@OnPageChanged"
-                      PageSizeChanged="@OnPageSizeChanged" />
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="Products"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
         </div>
     </div>
 </div>
@@ -198,13 +201,8 @@
     private PagedResultNew<ProductDto> pagedResultNew = new();
     private ProductPagedRequest pagedRequest = new();
 
-    // TmPager and TmPager-based pages (the Sales list included) are 1-based, so _page is
-    // 1-based here too. PagedRequest.CurrentPage is 0-based, so LoadProducts converts at the
-    // boundary. Keeping the UI and the service on the same numbering avoids the off-by-one
-    // where the pager highlights a different page than the one the query returned.
-    private int _page = 1;
-    private int _pageSize = 10;
-
+    // Paging state lives on pagedRequest (CurrentPage is zero-based) and TmPager binds straight
+    // to pagedResultNew, so the pager highlight and the query always agree on the current page.
     private bool _loading = true;
     bool _hasLoadedOnce = false;
     protected override async Task OnInitializedAsync()
@@ -245,18 +243,14 @@
         _loading = true;
         try
         {
-            pagedRequest.PageSize = _pageSize;
-            pagedRequest.CurrentPage = _page - 1;
-
             pagedResultNew = await ProductService.GetProductsAsync(pagedRequest);
 
             // Deleting the last row on the last page, or narrowing a filter, can leave the
             // current page past the end. Step back until a page has content, otherwise the table
             // renders empty while the pager still points at a valid-looking page number.
-            if (pagedResultNew.Items.Count == 0 && _page > 1)
+            if (pagedResultNew.Items.Count == 0 && pagedRequest.CurrentPage > 0)
             {
-                _page--;
-                pagedRequest.CurrentPage = _page - 1;
+                pagedRequest.CurrentPage--;
                 pagedResultNew = await ProductService.GetProductsAsync(pagedRequest);
             }
 
@@ -272,7 +266,7 @@
     private void OnSearchInput(ChangeEventArgs e)
     {
         pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
-        _page = 1;
+        pagedRequest.CurrentPage = 0;
         _debounce?.Stop();
         _debounce?.Dispose();
         _debounce = new System.Timers.Timer(400) { AutoReset = false };
@@ -287,7 +281,7 @@
     {
         var v = e.Value?.ToString();
         pagedRequest.CategoryId = string.IsNullOrEmpty(v) ? Guid.Empty : Guid.Parse(v);
-        _page = 1;
+        pagedRequest.CurrentPage = 0;
         await LoadProducts();
     }
 
@@ -295,21 +289,21 @@
     {
         var v = e.Value?.ToString();
         pagedRequest.BrandId = string.IsNullOrEmpty(v) ? Guid.Empty : Guid.Parse(v);
-        _page = 1;
+        pagedRequest.CurrentPage = 0;
         await LoadProducts();
     }
 
     private async Task OnStockStatusChanged(ChangeEventArgs e)
     {
         pagedRequest.Status = Enum.TryParse<StockFilter>(e.Value?.ToString(), out var status) ? status : null;
-        _page = 1;
+        pagedRequest.CurrentPage = 0;
         await LoadProducts();
     }
 
     private async Task FilterByStatus(StockFilter? f)
     {
         pagedRequest.Status = f;
-        _page = 1;
+        pagedRequest.CurrentPage = 0;
         await LoadProducts();
         StateHasChanged();
     }
@@ -323,17 +317,42 @@
         pagedRequest.CategoryId = null;
         pagedRequest.BrandId = null;
         pagedRequest.Status = null;
-        _page = 1;
+        pagedRequest.CurrentPage = 0;
         await LoadProducts();
     }
 
-    private async Task OnPageChanged(int page) { _page = page; await LoadProducts(); }
 
-    private async Task OnPageSizeChanged(int size)
+    private async Task GoToPage(int page)
     {
-        _pageSize = size;
-        _page = 1;
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
         await LoadProducts();
+    }
+    private async Task GoPrevPage()
+    {
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await LoadProducts();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await LoadProducts();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await LoadProducts();
+        }
     }
 
     private async Task OpenAddEditDialog(ProductDto? product)

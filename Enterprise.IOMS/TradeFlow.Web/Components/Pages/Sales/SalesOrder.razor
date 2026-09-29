@@ -164,15 +164,15 @@
             </table>
         </div>
         <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
-            <PaginationFooter CurrentPage="pagedResultNew.CurrentPage"
-                              PageSize="pagedResultNew.PageSize"
-                              TotalCount="pagedResultNew.TotalCount"
-                              TotalPages="pagedResultNew.TotalPages"
-                              ItemLabel="sales"
-                              OnGoToPage="GoToPage"
-                              OnPrev="GoPrevPage"
-                              OnNext="GoNextPage"
-                              OnPageSizeChanged="OnPageSizeChanged" />
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="Sales Orders"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
         </div>
     </div>
 </div>
@@ -314,6 +314,8 @@
     private List<BranchDto> _branches = new();
     private bool _loading = true;
     private bool _hasLoadedOnce;
+    private bool _loadRunning;
+    private bool _loadQueued;
     private decimal _pageValue;
     private CancellationTokenSource? _debounceCts;
 
@@ -348,7 +350,34 @@
 
     private async Task Refresh() => await LoadOrders();
 
+    /// <summary>
+    /// Single-flight loader. The page and the services share one scoped DbContext, so two
+    /// overlapping queries would throw "A second operation was started on this context
+    /// instance". Callers that arrive mid-flight set a flag instead of starting a parallel
+    /// query, and the running load then re-runs once with the newest filter state.
+    /// </summary>
     private async Task LoadOrders()
+    {
+        if (_loadRunning)
+        {
+            _loadQueued = true;
+            return;
+        }
+
+        _loadRunning = true;
+        try
+        {
+            do
+            {
+                _loadQueued = false;
+                await LoadOrdersCore();
+            }
+            while (_loadQueued);
+        }
+        finally { _loadRunning = false; }
+    }
+
+    private async Task LoadOrdersCore()
     {
         _loading = true;
         try
@@ -482,7 +511,7 @@
 
     private static string FormatDate(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "";
 
-    // ─── Paging (zero-based, matches PaginationFooter) ───
+    // ─── Paging (zero-based, matches TmPager) ───
     private async Task GoToPage(int page)
     {
         pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));

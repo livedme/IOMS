@@ -1,7 +1,9 @@
 @page "/quotes"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@implements IDisposable
 @inject IQuotationService QuotationService
+@inject ICustomerService CustomerService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
@@ -10,63 +12,91 @@
 <div class="tm-page">
     <TmPageHeader Icon="📝" Title="Sales Quotations" Subtitle="Create, track and convert customer quotations into orders">
         <Actions>
-            <button class="tm-reset" @onclick="Load">⟳ Refresh</button>
+            <button class="tm-reset" @onclick="Refresh">⟳ Refresh</button>
             <button class="tm-add-btn" @onclick="OpenCreateDialog">+ New Quotation</button>
         </Actions>
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="📝" Number="@_quotes.Count" Label="Quotations" Tone="blue" />
-        <TmStatTile Icon="📄" Number="@CountOf(QuoteStatus.Draft)" Label="Draft" Tone="purple" OnClick="@(() => PickStatus(QuoteStatus.Draft))" />
-        <TmStatTile Icon="📤" Number="@CountOf(QuoteStatus.Sent)" Label="Sent" Tone="yellow" OnClick="@(() => PickStatus(QuoteStatus.Sent))" />
-        <TmStatTile Icon="✔" Number="@CountOf(QuoteStatus.Accepted)" Label="Accepted" Tone="green" OnClick="@(() => PickStatus(QuoteStatus.Accepted))" />
-        <TmStatTile Icon="✕" Number="@CountOf(QuoteStatus.Rejected)" Label="Rejected" Tone="red" OnClick="@(() => PickStatus(QuoteStatus.Rejected))" />
-        <TmStatTile Icon="💰" Number="@TotalValue" Label="Total Quoted" Tone="teal" />
+        <TmStatTile Icon="📝" Number="@TotalCountText" Label="Quotations" Tone="blue" OnClick="@(() => FilterByStatus(null))" />
+        <TmStatTile Icon="📄" Number="@DraftCountText" Label="Draft" Tone="purple" OnClick="@(() => FilterByStatus(QuoteStatus.Draft))" />
+        <TmStatTile Icon="📤" Number="@SentCountText" Label="Sent" Tone="yellow" OnClick="@(() => FilterByStatus(QuoteStatus.Sent))" />
+        <TmStatTile Icon="✔" Number="@AcceptedCountText" Label="Accepted" Tone="green" OnClick="@(() => FilterByStatus(QuoteStatus.Accepted))" />
+        <TmStatTile Icon="✕" Number="@RejectedCountText" Label="Rejected" Tone="red" OnClick="@(() => FilterByStatus(QuoteStatus.Rejected))" />
+        <TmStatTile Icon="💰" Number="@TotalValueText" Label="Total Quoted" Tone="teal" />
     </div>
 
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by quote number or customer..." value="@_search" @oninput="OnSearchInput" />
+            <input placeholder="Search by quote number or customer..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
-            <select @onchange="OnStatusChanged">
-                <option value="" selected="@(_statusFilter == null)">All Status</option>
-                @foreach (QuoteStatus s in Enum.GetValues<QuoteStatus>())
+            <select value="@(pagedRequest.CustomerId?.ToString() ?? "")" @onchange="OnCustomerChanged">
+                <option value="">All Customers</option>
+                @foreach (var c in _customers)
                 {
-                    <option value="@s" selected="@(_statusFilter == s)">@s</option>
+                    <option value="@c.Id">@c.CustomerName</option>
                 }
             </select>
+        </div>
+        <div class="tm-select">
+            <select value="@(pagedRequest.Status?.ToString() ?? "")" @onchange="OnStatusChanged">
+                <option value="">All Status</option>
+                @foreach (var s in QuoteStatuses)
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.From)" @onchange="OnFromChanged" title="From date" />
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.To)" @onchange="OnToChanged" title="To date" />
         </div>
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
     <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading quotations...</MudText>
+            </div>
+        }
         <div class="tm-table-wrap">
             <table class="tm-table" style="min-width:1000px">
                 <thead>
                     <tr>
-                        <th>📄 Quote #</th>
-                        <th>👤 Customer</th>
-                        <th>📅 Date</th>
-                        <th>⏳ Valid Until</th>
-                        <th>Status</th>
-                        <th style="text-align:right">Total</th>
+                        <th @onclick="@(() => SortBy(Col.QuoteNumber))">📄 Quote # @SortIcon(Col.QuoteNumber)</th>
+                        <th @onclick="@(() => SortBy(Col.Customer))">👤 Customer @SortIcon(Col.Customer)</th>
+                        <th @onclick="@(() => SortBy(Col.QuoteDate))">📅 Date @SortIcon(Col.QuoteDate)</th>
+                        <th @onclick="@(() => SortBy(Col.ValidUntil))">⏳ Valid Until @SortIcon(Col.ValidUntil)</th>
+                        <th @onclick="@(() => SortBy(Col.Status))">Status @SortIcon(Col.Status)</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.TotalAmount))">Total @SortIcon(Col.TotalAmount)</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (_loading)
+                    @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="7"><TmLoading Message="Loading quotations..." /></td></tr>
+                        <tr><td colspan="7" style="text-align:center; padding:40px; color:#94a3b8;">Loading quotations...</td></tr>
                     }
-                    else if (Paged.Count == 0)
+                    else if (pagedResultNew.Items.Count == 0)
                     {
-                        <tr><td colspan="7"><div class="tm-loading">No quotations found</div></td></tr>
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No quotations found — try a different search or filter</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        @foreach (var q in Paged)
+                        @foreach (var q in pagedResultNew.Items)
                         {
                             var isExpired = q.ValidUntil < DateTime.Today;
                             <tr>
@@ -100,8 +130,17 @@
                 </tbody>
             </table>
         </div>
-        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="quotations"
-                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="Quotations"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
     </div>
 </div>
 
@@ -215,42 +254,235 @@
 </TmSlideDrawer>
 
 @code {
-    private List<SalesQuoteDto> _quotes = new();
-    private string _search = "";
-    private QuoteStatus? _statusFilter;
+    private static class Col
+    {
+        public const string QuoteNumber = "QuoteNumber";
+        public const string QuoteDate = "QuoteDate";
+        public const string Customer = "Customer";
+        public const string ValidUntil = "ValidUntil";
+        public const string TotalAmount = "TotalAmount";
+        public const string Status = "Status";
+    }
+
+    private readonly List<QuoteStatus> QuoteStatuses = Enum.GetValues<QuoteStatus>().ToList();
+
+    // ─── List state ───
+    private PagedResultNew<SalesQuoteDto> pagedResultNew = new();
+    private QuotationPagedRequest pagedRequest = new()
+    {
+        SortColumn = Col.QuoteDate,
+        SortAscending = false
+    };
+
+    private List<CustomerDto> _customers = new();
     private bool _loading = true;
-    private int _page = 1;
-    private int _pageSize = 10;
-    private decimal TotalValue => _quotes.Sum(q => q.TotalAmount);
-    private System.Timers.Timer? _debounce;
+    private bool _hasLoadedOnce;
+    private bool _loadRunning;
+    private bool _loadQueued;
+    private CancellationTokenSource? _debounceCts;
 
     // ─── Drawer state ───
     private bool _drawerOpen;
     private string _drawerTitle = "";
     private SalesQuoteDto? _viewQuote;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var customers = await CustomerService.GetCustomersAsync(null, 1, 500);
+            _customers = customers.Items;
+        }
+        catch { }
 
-    private List<SalesQuoteDto> Filtered => _quotes.Where(q =>
-        (_statusFilter == null || q.Status == _statusFilter.Value)
-        && (string.IsNullOrWhiteSpace(_search)
-            || q.QuoteNumber.Contains(_search, StringComparison.OrdinalIgnoreCase)
-            || q.CustomerName.Contains(_search, StringComparison.OrdinalIgnoreCase))).ToList();
+        await Load();
+    }
 
-    private List<SalesQuoteDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+    private async Task Refresh() => await Load();
 
-    private int CountOf(QuoteStatus s) => _quotes.Count(q => q.Status == s);
-
+    /// <summary>
+    /// Single-flight loader. The page and the services share one scoped DbContext, so two
+    /// overlapping queries would throw "A second operation was started on this context
+    /// instance". Callers that arrive mid-flight set a flag instead of starting a parallel
+    /// query, and the running load then re-runs once with the newest filter state.
+    /// </summary>
     private async Task Load()
+    {
+        if (_loadRunning)
+        {
+            _loadQueued = true;
+            return;
+        }
+
+        _loadRunning = true;
+        try
+        {
+            do
+            {
+                _loadQueued = false;
+                await LoadCore();
+            }
+            while (_loadQueued);
+        }
+        finally { _loadRunning = false; }
+    }
+
+    private async Task LoadCore()
     {
         _loading = true;
         try
         {
-            var result = await QuotationService.GetSalesQuotes(_search, _statusFilter, _page, _pageSize);
-            _quotes = result.Items;
+            pagedResultNew = await QuotationService.GetSalesQuotesAsync(pagedRequest);
+            _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
+    }
+
+    // ─── Stats / sorting helpers ───
+    private string TotalCountText => Stat("TotalCount");
+    private string DraftCountText => Stat("DraftCount");
+    private string SentCountText => Stat("SentCount");
+    private string AcceptedCountText => Stat("AcceptedCount");
+    private string RejectedCountText => Stat("RejectedCount");
+    private string TotalValueText =>
+        int.TryParse(Stat("TotalValue"), out var v) ? v.ToString("N0") : "0";
+
+    private string Stat(string key) =>
+        pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
+
+    private void SortBy(string column)
+    {
+        if (pagedRequest.SortColumn == column)
+            pagedRequest.SortAscending = !pagedRequest.SortAscending;
+        else
+        {
+            pagedRequest.SortColumn = column;
+            pagedRequest.SortAscending = true;
+        }
+        pagedRequest.CurrentPage = 0;
+    }
+
+    private string SortIcon(string column)
+    {
+        if (pagedRequest.SortColumn != column) return "";
+        return pagedRequest.SortAscending ? "▲" : "▼";
+    }
+
+    // ─── Filters ───
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        pagedRequest.CurrentPage = 0;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(async () =>
+                {
+                    await Load();
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException) { }
+        });
+    }
+
+    private async Task OnCustomerChanged(ChangeEventArgs e)
+    {
+        pagedRequest.CustomerId = ParseGuid(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        pagedRequest.Status = Enum.TryParse<QuoteStatus>(e.Value?.ToString(), out var s) ? s : null;
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private async Task OnFromChanged(ChangeEventArgs e)
+    {
+        pagedRequest.From = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private async Task OnToChanged(ChangeEventArgs e)
+    {
+        pagedRequest.To = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private async Task FilterByStatus(QuoteStatus? status)
+    {
+        pagedRequest.Status = pagedRequest.Status == status ? null : status;
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private async Task ResetFilters()
+    {
+        pagedRequest.SearchTerm = "";
+        pagedRequest.Status = null;
+        pagedRequest.CustomerId = null;
+        pagedRequest.From = null;
+        pagedRequest.To = null;
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private static Guid? ParseGuid(object? value) =>
+        Guid.TryParse(value?.ToString(), out var g) && g != Guid.Empty ? g : null;
+
+    private static DateTime? ParseDate(object? value) =>
+        DateTime.TryParse(value?.ToString(), out var d) ? d : null;
+
+    private static string FormatDate(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "";
+
+    // ─── Paging (zero-based, matches TmPager) ───
+    private async Task GoToPage(int page)
+    {
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
+        await Load();
+    }
+
+    private async Task GoPrevPage()
+    {
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await Load();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await Load();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await Load();
+        }
     }
 
     private async Task ViewQuote(Guid id)
@@ -335,47 +567,6 @@
         if (refreshed != null) _viewQuote = refreshed;
     }
 
-    private void OnSearchInput(ChangeEventArgs e)
-    {
-        _search = e.Value?.ToString() ?? "";
-        _page = 1;
-        _debounce?.Stop();
-        _debounce?.Dispose();
-        _debounce = new System.Timers.Timer(350) { AutoReset = false };
-        _debounce.Elapsed += async (_, __) =>
-        {
-            await Load();
-            await InvokeAsync(StateHasChanged);
-        };
-        _debounce.Start();
-    }
-
-    private void OnStatusChanged(ChangeEventArgs e)
-    {
-        var v = e.Value?.ToString();
-        _statusFilter = string.IsNullOrEmpty(v) ? null : Enum.Parse<QuoteStatus>(v);
-        _page = 1;
-    }
-
-    private void PickStatus(QuoteStatus s)
-    {
-        _statusFilter = _statusFilter == s ? null : s;
-        _page = 1;
-    }
-
-    private void ResetFilters()
-    {
-        _search = "";
-        _statusFilter = null;
-        _page = 1;
-    }
-
-    private void OnPageSizeChanged(int size)
-    {
-        _pageSize = size;
-        _page = 1;
-    }
-
     private static string GetStatusPill(QuoteStatus status) => status switch
     {
         QuoteStatus.Draft => "tm-pill tm-pill-purple",
@@ -386,4 +577,10 @@
         QuoteStatus.Converted => "tm-pill tm-pill-green",
         _ => "tm-pill tm-pill-blue"
     };
+
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+    }
 }

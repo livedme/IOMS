@@ -12,6 +12,8 @@ public interface IInventoryService
     Task TransferStock(Guid productId, Guid sourceWarehouseId, Guid targetWarehouseId, int quantity);
     Task<List<LowStockAlertDto>> GetLowStockAlerts();
     Task<PagedResult<InventoryDto>> GetInventoryByWarehouse(Guid warehouseId, int page, int pageSize);
+    Task<PagedResultNew<StockMovementDto>> GetStockMovementsPagedAsync(StockMovementPagedRequest request);
+    Task<PagedResultNew<StockLevelDto>> GetStockLevelsPagedAsync(StockLevelPagedRequest request);
 
     // Extended inventory tracking
     Task<PagedResult<InventoryTrackingDto>> GetInventoryTrackingByWarehouse(Guid warehouseId, int page, int pageSize);
@@ -40,6 +42,7 @@ public interface IPurchaseService
     Task ReceiveGoods(Guid poId, List<GoodsReceivedLineDto> lines);
     Task<PurchaseOrderDto?> GetPurchaseOrderById(Guid id);
     Task<PagedResult<PurchaseOrderDto>> GetPurchaseOrders(string? search, PurchaseOrderStatus? status, int page, int pageSize);
+    Task<PagedResultNew<PurchaseOrderDto>> GetPurchaseOrdersAsync(PurchaseOrderPagedRequest request);
 }
 
 public interface IAccountingService
@@ -87,6 +90,7 @@ public interface IPricingService
 public interface IQuotationService
 {
     Task<PagedResult<SalesQuoteDto>> GetSalesQuotes(string? search, QuoteStatus? status, int page, int pageSize);
+    Task<PagedResultNew<SalesQuoteDto>> GetSalesQuotesAsync(QuotationPagedRequest request);
     Task<SalesQuoteDto> GetSalesQuoteById(Guid id);
     Task<Guid> CreateSalesQuote(CreateSalesQuoteDto dto);
     Task<Guid> ConvertQuoteToOrder(Guid quoteId);
@@ -135,6 +139,7 @@ public interface ISearchService
 public interface IStocktakeService
 {
     Task<PagedResult<StocktakeDto>> GetStocktakes(StocktakeStatus? status, int page, int pageSize);
+    Task<PagedResultNew<StocktakeDto>> GetStocktakesPagedAsync(StocktakePagedRequest request);
     Task<StocktakeDto> GetStocktakeById(Guid id);
     Task<StocktakeVarianceDto> GetVarianceReport(Guid stocktakeId);
     Task<Guid> CreateStocktake(CreateStocktakeDto dto);
@@ -146,6 +151,7 @@ public interface IStocktakeService
 public interface IPurchaseReturnService
 {
     Task<PagedResult<PurchaseReturnDto>> GetPurchaseReturns(string? search, PurchaseReturnStatus? status, int page, int pageSize);
+    Task<PagedResultNew<PurchaseReturnDto>> GetPurchaseReturnsAsync(PurchaseReturnPagedRequest request);
     Task<PurchaseReturnDto> GetPurchaseReturnById(Guid id);
     Task<Guid> CreatePurchaseReturn(PurchaseReturnDto dto);
     Task ApprovePurchaseReturn(Guid id);
@@ -155,6 +161,7 @@ public interface IPurchaseReturnService
 public interface ISalesReturnService
 {
     Task<PagedResult<SalesReturnDto>> GetSalesReturns(string? search, SalesReturnStatus? status, int page, int pageSize);
+    Task<PagedResultNew<SalesReturnDto>> GetSalesReturnsAsync(SalesReturnPagedRequest request);
     Task<SalesReturnDto> GetSalesReturnById(Guid id);
     Task<Guid> CreateSalesReturn(SalesReturnDto dto);
     Task ApproveSalesReturn(Guid id);
@@ -194,6 +201,7 @@ public interface IBankReconciliationService
 public interface IKitService
 {
     Task<List<KitDto>> GetKits();
+    Task<PagedResultNew<KitDto>> GetKitsPagedAsync(KitPagedRequest request);
     Task<KitDto> GetKitById(Guid id);
     Task<Guid> CreateKit(CreateKitDto dto);
     Task AssembleKit(KitAssemblyDto dto);
@@ -285,6 +293,7 @@ public interface IProductService
 
 
     Task<PagedResult<BrandDto>> GetBrandsAsync(string? search, int page, int pageSize);
+    Task<PagedResultNew<BrandDto>> GetBrandsPagedAsync(BrandPagedRequest request);
     Task<List<BrandDto>> GetAllBrandsAsync();
     Task<BrandDto> GetBrandByIdAsync(Guid id);
     Task<Guid> CreateBrandAsync(CreateBrandDto dto);
@@ -293,10 +302,13 @@ public interface IProductService
 
 
     Task<PagedResult<CategoryDto>> GetCategoriesAsync(string? search, int page, int pageSize);
+    Task<PagedResultNew<CategoryDto>> GetCategoriesPagedAsync(CategoryPagedRequest request);
     Task<List<CategoryDto>> GetAllCategoriesAsync();
     Task<Guid> CreateCategoryAsync(CreateCategoryDto dto);
     Task DeleteCategoryAsync(Guid id);
     Task<PagedResult<WarehouseDto>> GetWarehousesAsync(string? search, int page, int pageSize);
+    Task<PagedResultNew<WarehouseDto>> GetWarehousesPagedAsync(WarehousePagedRequest request);
+    Task UpdateWarehouseAsync(Guid id, CreateWarehouseDto dto);
     Task<List<WarehouseDto>> GetAllWarehousesAsync();
     Task<Guid> CreateWarehouseAsync(CreateWarehouseDto dto);
     Task DeleteWarehouseAsync(Guid id);
@@ -305,6 +317,8 @@ public interface IProductService
 public interface ICustomerService
 {
     Task<PagedResult<CustomerDto>> GetCustomersAsync(string? search, int page = 1, int pageSize = 100);
+    Task<PagedResultNew<CustomerDto>> GetCustomersAsync(CustomerPagedRequest request);
+    Task<List<string>> GetCustomerCitiesAsync();
     Task<CustomerDto?> GetCustomerByIdAsync(Guid id);
     Task<Guid> CreateCustomerAsync(CustomerDto dto);
     Task UpdateCustomerAsync(Guid id, CustomerDto dto);
@@ -314,6 +328,8 @@ public interface ICustomerService
 public interface ISupplierService
 {
     Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search = "", int page = 1, int pageSize = 100);
+    Task<PagedResultNew<SupplierDto>> GetSuppliersAsync(SupplierPagedRequest request);
+    Task<List<string>> GetSupplierCitiesAsync();
     Task<SupplierDto?> GetSupplierByIdAsync(Guid id);
     Task<Guid> CreateSupplierAsync(SupplierDto dto);
     Task UpdateSupplierAsync(Guid id, SupplierDto dto);
@@ -369,6 +385,7 @@ public interface IUserManagementService
 public interface IBranchService
 {
     Task<List<BranchDto>> GetBranches();
+    Task<PagedResultNew<BranchDto>> GetBranchesPagedAsync(BranchPagedRequest request);
     Task<BranchDto?> GetBranchById(Guid id);
     Task<Guid> CreateBranch(CreateBranchDto dto);
     Task UpdateBranch(Guid id, CreateBranchDto dto);

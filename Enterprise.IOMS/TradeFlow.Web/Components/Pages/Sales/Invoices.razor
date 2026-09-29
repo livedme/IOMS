@@ -106,8 +106,15 @@
                 </tbody>
             </table>
         </div>
-        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="invoices"
-                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+        <TmPager CurrentPage="@(_page - 1)"
+                  PageSize="_pageSize"
+                  TotalCount="@Filtered.Count"
+                  TotalPages="@PageTotal"
+                  ItemLabel="Invoices"
+                  OnGoToPage="GoToPage"
+                  OnPrev="GoPrevPage"
+                  OnNext="GoNextPage"
+                  OnPageSizeChanged="OnPageSizeChanged" />
     </div>
 </div>
 
@@ -204,10 +211,25 @@
         await Load();
     }
 
-    private void OnPageSizeChanged(int size)
+    private int PageTotal => Math.Max(1, (int)Math.Ceiling(Filtered.Count / (double)_pageSize));
+
+    private Task GoToPage(int pageIndex)
     {
-        _pageSize = size;
-        _page = 1;
+        _page = Math.Clamp(pageIndex + 1, 1, PageTotal);
+        return Task.CompletedTask;
+    }
+
+    private Task GoPrevPage() => GoToPage(_page - 2);
+
+    private Task GoNextPage() => GoToPage(_page);
+
+    private void OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var size) && size > 0)
+        {
+            _pageSize = size;
+            _page = 1;
+        }
     }
 
     private static string GetStatusPill(InvoiceStatus s) => s switch

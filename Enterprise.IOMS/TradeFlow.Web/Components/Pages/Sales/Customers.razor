@@ -1,6 +1,7 @@
 @page "/customers"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@implements IDisposable
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ICustomerService CustomerService
@@ -10,38 +11,38 @@
 <div class="tm-page">
     <TmPageHeader Icon="👥" Title="Customer Management" Subtitle="Manage customer contacts, credit limits and account status">
         <Actions>
-            <button class="tm-reset" @onclick="LoadData">⟳ Refresh</button>
+            <button class="tm-reset" @onclick="Refresh">⟳ Refresh</button>
             <button class="tm-add-btn" @onclick="OpenCreate">+ New Customer</button>
         </Actions>
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="👥" Number="@_all.Count" Label="Customers" Tone="blue" />
-        <TmStatTile Icon="✔" Number="@_activeCount" Label="Active" Tone="green" OnClick="@(() => PickStatus("active"))" />
-        <TmStatTile Icon="✕" Number="@(_all.Count - _activeCount)" Label="Inactive" Tone="red" OnClick="@(() => PickStatus("inactive"))" />
-        <TmStatTile Icon="💰" Number="@TotalCreditLimit" Label="Total Credit Limit" Tone="purple" />
-        <TmStatTile Icon="🏙️" Number="@_cityCount" Label="Cities" Tone="teal" />
-        <TmStatTile Icon="⭐" Number="@_taxExemptCount" Label="Tax Exempt" Tone="yellow" />
+        <TmStatTile Icon="👥" Number="@TotalCountText" Label="Customers" Tone="blue" OnClick="@(() => FilterByStatus(null))" />
+        <TmStatTile Icon="✔" Number="@ActiveCountText" Label="Active" Tone="green" OnClick="@(() => FilterByStatus(true))" />
+        <TmStatTile Icon="✕" Number="@InactiveCountText" Label="Inactive" Tone="red" OnClick="@(() => FilterByStatus(false))" />
+        <TmStatTile Icon="💰" Number="@TotalCreditLimitText" Label="Total Credit Limit" Tone="purple" />
+        <TmStatTile Icon="🏙️" Number="@CityCountText" Label="Cities" Tone="teal" />
+        <TmStatTile Icon="⭐" Number="@TaxExemptCountText" Label="Tax Exempt" Tone="yellow" />
     </div>
 
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by name, email or phone..." value="@_searchString" @oninput="OnSearchInput" />
+            <input placeholder="Search by name, email or phone..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
-            <select @onchange="OnStatusChanged">
-                <option value="" selected="@(_statusFilter == "")">All Status</option>
-                <option value="active" selected="@(_statusFilter == "active")">Active Only</option>
-                <option value="inactive" selected="@(_statusFilter == "inactive")">Inactive Only</option>
+            <select value="@StatusValue" @onchange="OnStatusChanged">
+                <option value="">All Status</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
             </select>
         </div>
         <div class="tm-select">
-            <select @onchange="OnCityChanged">
-                <option value="" selected="@(_cityFilter == "")">All Cities</option>
+            <select value="@(pagedRequest.City ?? "")" @onchange="OnCityChanged">
+                <option value="">All Cities</option>
                 @foreach (var c in Cities)
                 {
-                    <option value="@c" selected="@(_cityFilter == c)">@c</option>
+                    <option value="@c">@c</option>
                 }
             </select>
         </div>
@@ -49,33 +50,46 @@
     </div>
 
     <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading customers...</MudText>
+            </div>
+        }
         <div class="tm-table-wrap">
             <table class="tm-table" style="min-width:1050px">
                 <thead>
                     <tr>
-                        <th>👤 Customer</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Contact Person</th>
-                        <th>City</th>
-                        <th style="text-align:right">Credit Limit</th>
-                        <th>Terms</th>
-                        <th>Status</th>
+                        <th @onclick="@(() => SortBy(Col.CustomerName))">👤 Customer @SortIcon(Col.CustomerName)</th>
+                        <th @onclick="@(() => SortBy(Col.Email))">Email @SortIcon(Col.Email)</th>
+                        <th @onclick="@(() => SortBy(Col.Phone))">Phone @SortIcon(Col.Phone)</th>
+                        <th @onclick="@(() => SortBy(Col.ContactPerson))">Contact Person @SortIcon(Col.ContactPerson)</th>
+                        <th @onclick="@(() => SortBy(Col.City))">City @SortIcon(Col.City)</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.CreditLimit))">Credit Limit @SortIcon(Col.CreditLimit)</th>
+                        <th @onclick="@(() => SortBy(Col.PaymentTerms))">Terms @SortIcon(Col.PaymentTerms)</th>
+                        <th @onclick="@(() => SortBy(Col.IsActive))">Status @SortIcon(Col.IsActive)</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (_loading)
+                    @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="9"><TmLoading Message="Loading customers..." /></td></tr>
+                        <tr><td colspan="9" style="text-align:center; padding:40px; color:#94a3b8;">Loading customers...</td></tr>
                     }
-                    else if (Paged.Count == 0)
+                    else if (pagedResultNew.Items.Count == 0)
                     {
-                        <tr><td colspan="9"><div class="tm-loading">No customers found</div></td></tr>
+                        <tr>
+                            <td colspan="9" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No customers found — try a different search or filter</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        @foreach (var c in Paged)
+                        @foreach (var c in pagedResultNew.Items)
                         {
                             <tr>
                                 <td>
@@ -107,73 +121,131 @@
                 </tbody>
             </table>
         </div>
-        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="customers"
-                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="Customers"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
     </div>
 </div>
 
 @code {
-    private List<CustomerDto> _all = new();
-    private string _searchString = "";
-    private string _statusFilter = "";
-    private string _cityFilter = "";
+    private static class Col
+    {
+        public const string CustomerName = "CustomerName";
+        public const string Email = "Email";
+        public const string Phone = "Phone";
+        public const string ContactPerson = "ContactPerson";
+        public const string City = "City";
+        public const string CreditLimit = "CreditLimit";
+        public const string PaymentTerms = "PaymentTerms";
+        public const string IsActive = "IsActive";
+    }
+
+    // ─── List state ───
+    private PagedResultNew<CustomerDto> pagedResultNew = new();
+    private CustomerPagedRequest pagedRequest = new()
+    {
+        SortColumn = Col.CustomerName,
+        SortAscending = true
+    };
+
+    private List<string> _cities = new();
     private bool _loading = true;
-    private int _page = 1;
-    private int _pageSize = 10;
-    private int _activeCount, _cityCount, _taxExemptCount;
-    private decimal TotalCreditLimit => _all.Sum(c => c.CreditLimit);
-    private List<string> Cities => _all.Select(c => c.City).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x).ToList();
-    private System.Timers.Timer? _debounce;
+    private bool _hasLoadedOnce;
+    private bool _loadRunning;
+    private bool _loadQueued;
+    private CancellationTokenSource? _debounceCts;
 
-    protected override async Task OnInitializedAsync() => await LoadData();
+    private List<string> Cities => _cities;
+    private string StatusValue => pagedRequest.IsActive switch
+    {
+        true => "active",
+        false => "inactive",
+        _ => ""
+    };
 
-    private List<CustomerDto> Filtered => _all.Where(c =>
-        (string.IsNullOrWhiteSpace(_searchString)
-            || (c.CustomerName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
-            || (c.CustomerEmail?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
-            || (c.CustomerPhone?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false))
-        && (_statusFilter switch
-        {
-            "active" => c.IsActive,
-            "inactive" => !c.IsActive,
-            _ => true
-        })
-        && (string.IsNullOrEmpty(_cityFilter) || c.City == _cityFilter)).ToList();
+    protected override async Task OnInitializedAsync()
+    {
+        try { _cities = await CustomerService.GetCustomerCitiesAsync(); } catch { }
+        await LoadData();
+    }
 
-    private List<CustomerDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+    private async Task Refresh() => await LoadData();
 
+    /// <summary>
+    /// Single-flight loader. The page and the services share one scoped DbContext, so two
+    /// overlapping queries would throw "A second operation was started on this context
+    /// instance". Callers that arrive mid-flight set a flag instead of starting a parallel
+    /// query, and the running load then re-runs once with the newest filter state.
+    /// </summary>
     private async Task LoadData()
+    {
+        if (_loadRunning)
+        {
+            _loadQueued = true;
+            return;
+        }
+
+        _loadRunning = true;
+        try
+        {
+            do
+            {
+                _loadQueued = false;
+                await LoadDataCore();
+            }
+            while (_loadQueued);
+        }
+        finally { _loadRunning = false; }
+    }
+
+    private async Task LoadDataCore()
     {
         _loading = true;
         try
         {
-            var query = await CustomerService.GetCustomersAsync(_searchString);
-            _all = query.Items.OrderBy(c => c.CustomerName).Take(500).Select(dto => new CustomerDto
-            {
-                Id = dto.Id,
-                CustomerName = dto.CustomerName,
-                CustomerEmail = dto.CustomerEmail,
-                CustomerPhone = dto.CustomerPhone,
-                ContactPersonName = dto.ContactPersonName,
-                ContactPersonPhone = dto.ContactPersonPhone,
-                ContactPersonEmail = dto.ContactPersonEmail,
-                Address = dto.Address,
-                City = dto.City,
-                State = dto.State,
-                Country = dto.Country,
-                PostalCode = dto.PostalCode,
-                CreditLimit = dto.CreditLimit,
-                PaymentTerms = dto.PaymentTerms,
-                IsTaxExempt = dto.IsTaxExempt,
-                IsActive = dto.IsActive
-            }).ToList();
-
-            _activeCount = _all.Count(c => c.IsActive);
-            _cityCount = Cities.Count;
-            _taxExemptCount = _all.Count(c => c.IsTaxExempt);
+            pagedResultNew = await CustomerService.GetCustomersAsync(pagedRequest);
+            _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
+    }
+
+    // ─── Stats / sorting helpers ───
+    private string TotalCountText => Stat("TotalCount");
+    private string ActiveCountText => Stat("ActiveCount");
+    private string InactiveCountText => Stat("InactiveCount");
+    private string TaxExemptCountText => Stat("TaxExemptCount");
+    private string CityCountText => Stat("CityCount");
+    private string TotalCreditLimitText =>
+        int.TryParse(Stat("TotalCreditLimit"), out var v) ? v.ToString("N0") : "0";
+
+    private string Stat(string key) =>
+        pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
+
+    private void SortBy(string column)
+    {
+        if (pagedRequest.SortColumn == column)
+            pagedRequest.SortAscending = !pagedRequest.SortAscending;
+        else
+        {
+            pagedRequest.SortColumn = column;
+            pagedRequest.SortAscending = true;
+        }
+        pagedRequest.CurrentPage = 0;
+    }
+
+    private string SortIcon(string column)
+    {
+        if (pagedRequest.SortColumn != column) return "";
+        return pagedRequest.SortAscending ? "▲" : "▼";
     }
 
     private static string GetInitials(string? name)
@@ -192,51 +264,102 @@
         return palettes[Math.Abs(name.GetHashCode()) % palettes.Length];
     }
 
+    // ─── Filters ───
     private void OnSearchInput(ChangeEventArgs e)
     {
-        _searchString = e.Value?.ToString() ?? "";
-        _page = 1;
-        _debounce?.Stop();
-        _debounce?.Dispose();
-        _debounce = new System.Timers.Timer(350) { AutoReset = false };
-        _debounce.Elapsed += async (_, __) =>
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        pagedRequest.CurrentPage = 0;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
         {
-            await LoadData();
-            await InvokeAsync(StateHasChanged);
+            try
+            {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(async () =>
+                {
+                    await LoadData();
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException) { }
+        });
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        pagedRequest.IsActive = e.Value?.ToString() switch
+        {
+            "active" => true,
+            "inactive" => false,
+            _ => null
         };
-        _debounce.Start();
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
     }
 
-    private void OnStatusChanged(ChangeEventArgs e)
+    private async Task OnCityChanged(ChangeEventArgs e)
     {
-        _statusFilter = e.Value?.ToString() ?? "";
-        _page = 1;
+        var v = e.Value?.ToString();
+        pagedRequest.City = string.IsNullOrEmpty(v) ? null : v;
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
     }
 
-    private void OnCityChanged(ChangeEventArgs e)
+    private async Task FilterByStatus(bool? isActive)
     {
-        _cityFilter = e.Value?.ToString() ?? "";
-        _page = 1;
+        pagedRequest.IsActive = pagedRequest.IsActive == isActive ? null : isActive;
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
     }
 
-    private void PickStatus(string s)
+    private async Task ResetFilters()
     {
-        _statusFilter = _statusFilter == s ? "" : s;
-        _page = 1;
+        pagedRequest.SearchTerm = "";
+        pagedRequest.IsActive = null;
+        pagedRequest.City = null;
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
     }
 
-    private void ResetFilters()
+    // ─── Paging (zero-based, matches TmPager) ───
+    private async Task GoToPage(int page)
     {
-        _searchString = "";
-        _statusFilter = "";
-        _cityFilter = "";
-        _page = 1;
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
+        await LoadData();
     }
 
-    private void OnPageSizeChanged(int size)
+    private async Task GoPrevPage()
     {
-        _pageSize = size;
-        _page = 1;
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await LoadData();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await LoadData();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await LoadData();
+        }
     }
 
     private async Task OpenCreate()
@@ -278,5 +401,11 @@
             Snackbar.Add($"Customer {entity.CustomerName} deleted", Severity.Warning);
             await LoadData();
         }
+    }
+
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
     }
 }

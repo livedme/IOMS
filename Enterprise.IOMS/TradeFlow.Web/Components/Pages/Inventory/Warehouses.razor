@@ -1,70 +1,82 @@
 @page "/warehouses"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@implements IDisposable
+@inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using TradeFlow.Infrastructure.Data
-@using Microsoft.EntityFrameworkCore
-@inject ApplicationDbContext DbContext
 
 <PageTitle>Warehouses - IOMS</PageTitle>
 
 <div class="tm-page">
     <TmPageHeader Icon="🏬" Title="Warehouses" Subtitle="Manage storage locations, codes and warehouse addresses">
         <Actions>
-            <button class="tm-reset" @onclick="LoadData">⟳ Refresh</button>
+            <button class="tm-reset" @onclick="Refresh">⟳ Refresh</button>
             <button class="tm-add-btn" @onclick="OpenCreate">+ New Warehouse</button>
         </Actions>
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="🏬" Number="@_items.Count" Label="Warehouses" Tone="blue" />
-        <TmStatTile Icon="✔" Number="@CountOf(true)" Label="Active" Tone="green" OnClick="@(() => PickActive(true))" />
-        <TmStatTile Icon="⏸" Number="@CountOf(false)" Label="Inactive" Tone="red" OnClick="@(() => PickActive(false))" />
-        <TmStatTile Icon="📍" Number="@CountWithLocation" Label="With Location" Tone="purple" />
-        <TmStatTile Icon="🏷" Number="@_items.Select(w => w.Code).Distinct().Count()" Label="Unique Codes" Tone="teal" />
+        <TmStatTile Icon="🏬" Number="@TotalCountText" Label="Warehouses" Tone="blue" OnClick="@(() => FilterByStatus(null))" />
+        <TmStatTile Icon="✔" Number="@ActiveCountText" Label="Active" Tone="green" OnClick="@(() => FilterByStatus(true))" />
+        <TmStatTile Icon="⏸" Number="@InactiveCountText" Label="Inactive" Tone="red" OnClick="@(() => FilterByStatus(false))" />
+        <TmStatTile Icon="📍" Number="@WithLocationCountText" Label="With Location" Tone="purple" />
+        <TmStatTile Icon="🏷" Number="@UniqueCodeCountText" Label="Unique Codes" Tone="teal" />
     </div>
 
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by code, name or location..." value="@_search" @oninput="OnSearchInput" />
+            <input placeholder="Search by code, name or location..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
-            <select @onchange="OnStatusChanged">
-                <option value="" selected="@(_activeFilter == null)">All Status</option>
-                <option value="active" selected="@(_activeFilter == true)">Active</option>
-                <option value="inactive" selected="@(_activeFilter == false)">Inactive</option>
+            <select value="@StatusValue" @onchange="OnStatusChanged">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
             </select>
         </div>
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
     <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading warehouses...</MudText>
+            </div>
+        }
         <div class="tm-table-wrap">
             <table class="tm-table" style="min-width:900px">
                 <thead>
                     <tr>
-                        <th>🏬 Warehouse</th>
-                        <th>🏷 Code</th>
-                        <th>📍 Location</th>
-                        <th>🏠 Address</th>
-                        <th>Status</th>
+                        <th @onclick="@(() => SortBy(Col.Name))">🏬 Warehouse @SortIcon(Col.Name)</th>
+                        <th @onclick="@(() => SortBy(Col.Code))">🏷 Code @SortIcon(Col.Code)</th>
+                        <th @onclick="@(() => SortBy(Col.Location))">📍 Location @SortIcon(Col.Location)</th>
+                        <th @onclick="@(() => SortBy(Col.Address))">🏠 Address @SortIcon(Col.Address)</th>
+                        <th @onclick="@(() => SortBy(Col.IsActive))">Status @SortIcon(Col.IsActive)</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (_loading)
+                    @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="6"><TmLoading Message="Loading warehouses..." /></td></tr>
+                        <tr><td colspan="6" style="text-align:center; padding:40px; color:#94a3b8;">Loading warehouses...</td></tr>
                     }
-                    else if (Paged.Count == 0)
+                    else if (pagedResultNew.Items.Count == 0)
                     {
-                        <tr><td colspan="6"><div class="tm-loading">No warehouses found</div></td></tr>
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No warehouses found — try a different search or filter</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        @foreach (var w in Paged)
+                        @foreach (var w in pagedResultNew.Items)
                         {
                             <tr>
                                 <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🏬</span>@w.Name</span></td>
@@ -87,45 +99,120 @@
                 </tbody>
             </table>
         </div>
-        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="warehouses"
-                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="Warehouses"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
     </div>
 </div>
 
 @code {
-    private List<WarehouseDto> _items = new();
+    private static class Col
+    {
+        public const string Name = "Name";
+        public const string Code = "Code";
+        public const string Location = "Location";
+        public const string Address = "Address";
+        public const string IsActive = "IsActive";
+    }
+
+    // ─── List state ───
+    private PagedResultNew<WarehouseDto> pagedResultNew = new();
+    private WarehousePagedRequest pagedRequest = new()
+    {
+        SortColumn = Col.Name,
+        SortAscending = true
+    };
+
     private bool _loading = true;
-    private string _search = "";
-    private bool? _activeFilter;
-    private int _page = 1;
-    private int _pageSize = 10;
+    private bool _hasLoadedOnce;
+    private bool _loadRunning;
+    private bool _loadQueued;
+    private CancellationTokenSource? _debounceCts;
 
-    private int CountWithLocation => _items.Count(w => !string.IsNullOrWhiteSpace(w.Location));
-
-    private List<WarehouseDto> Filtered => _items.Where(w =>
-        (_activeFilter == null || w.IsActive == _activeFilter.Value)
-        && (string.IsNullOrWhiteSpace(_search)
-            || w.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
-            || (w.Code?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
-            || (w.Location?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
-            || (w.Address?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
-
-    private List<WarehouseDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
-
-    private int CountOf(bool active) => _items.Count(w => w.IsActive == active);
+    private string StatusValue => pagedRequest.IsActive switch
+    {
+        true => "active",
+        false => "inactive",
+        _ => ""
+    };
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
+    private async Task Refresh() => await LoadData();
+
+    /// <summary>
+    /// Single-flight loader. The page and the services share one scoped DbContext, so two
+    /// overlapping queries would throw "A second operation was started on this context
+    /// instance". Callers that arrive mid-flight set a flag instead of starting a parallel
+    /// query, and the running load then re-runs once with the newest filter state.
+    /// </summary>
     private async Task LoadData()
+    {
+        if (_loadRunning)
+        {
+            _loadQueued = true;
+            return;
+        }
+
+        _loadRunning = true;
+        try
+        {
+            do
+            {
+                _loadQueued = false;
+                await LoadDataCore();
+            }
+            while (_loadQueued);
+        }
+        finally { _loadRunning = false; }
+    }
+
+    private async Task LoadDataCore()
     {
         _loading = true;
         try
         {
-            var data = await DbContext.Warehouses.OrderBy(w => w.Code).ToListAsync();
-            _items = data.Select(w => new WarehouseDto(w.Id, w.Name, w.Code, w.Location, w.Address, w.IsActive)).ToList();
+            pagedResultNew = await ProductService.GetWarehousesPagedAsync(pagedRequest);
+            _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
+    }
+
+    // ─── Stats / sorting helpers ───
+    private string TotalCountText => Stat("TotalCount");
+    private string ActiveCountText => Stat("ActiveCount");
+    private string InactiveCountText => Stat("InactiveCount");
+    private string WithLocationCountText => Stat("WithLocationCount");
+    private string UniqueCodeCountText => Stat("UniqueCodeCount");
+
+    private string Stat(string key) =>
+        pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
+
+    private void SortBy(string column)
+    {
+        if (pagedRequest.SortColumn == column)
+            pagedRequest.SortAscending = !pagedRequest.SortAscending;
+        else
+        {
+            pagedRequest.SortColumn = column;
+            pagedRequest.SortAscending = true;
+        }
+        pagedRequest.CurrentPage = 0;
+    }
+
+    private string SortIcon(string column)
+    {
+        if (pagedRequest.SortColumn != column) return "";
+        return pagedRequest.SortAscending ? "▲" : "▼";
     }
 
     private async Task OpenCreate()
@@ -135,9 +222,7 @@
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateWarehouseDto dto)
         {
-            DbContext.Warehouses.Add(new TradeFlow.Domain.Entities.Warehouse
-            { Name = dto.Name, Code = dto.Code, Location = dto.Location, Address = dto.Address });
-            await DbContext.SaveChangesAsync();
+            await ProductService.CreateWarehouseAsync(dto);
             Snackbar.Add("Warehouse created", Severity.Success);
             await LoadData();
         }
@@ -151,50 +236,104 @@
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateWarehouseDto dto)
         {
-            var entity = await DbContext.Warehouses.FindAsync(item.Id);
-            if (entity != null)
-            {
-                entity.Name = dto.Name; entity.Code = dto.Code; entity.Location = dto.Location; entity.Address = dto.Address;
-                await DbContext.SaveChangesAsync();
-                Snackbar.Add("Warehouse updated", Severity.Success);
-                await LoadData();
-            }
+            await ProductService.UpdateWarehouseAsync(item.Id, dto);
+            Snackbar.Add("Warehouse updated", Severity.Success);
+            await LoadData();
         }
     }
 
+    // ─── Filters ───
     private void OnSearchInput(ChangeEventArgs e)
     {
-        _search = e.Value?.ToString() ?? "";
-        _page = 1;
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        pagedRequest.CurrentPage = 0;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(async () =>
+                {
+                    await LoadData();
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException) { }
+        });
     }
 
-    private void OnStatusChanged(ChangeEventArgs e)
+    private async Task OnStatusChanged(ChangeEventArgs e)
     {
-        _activeFilter = e.Value?.ToString() switch
+        pagedRequest.IsActive = e.Value?.ToString() switch
         {
             "active" => true,
             "inactive" => false,
             _ => null
         };
-        _page = 1;
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
     }
 
-    private void PickActive(bool active)
+    private async Task FilterByStatus(bool? isActive)
     {
-        _activeFilter = _activeFilter == active ? null : active;
-        _page = 1;
+        pagedRequest.IsActive = pagedRequest.IsActive == isActive ? null : isActive;
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
     }
 
-    private void ResetFilters()
+    private async Task ResetFilters()
     {
-        _search = "";
-        _activeFilter = null;
-        _page = 1;
+        pagedRequest.SearchTerm = "";
+        pagedRequest.IsActive = null;
+        pagedRequest.CurrentPage = 0;
+        await LoadData();
     }
 
-    private void OnPageSizeChanged(int size)
+    // ─── Paging (zero-based, matches TmPager) ───
+    private async Task GoToPage(int page)
     {
-        _pageSize = size;
-        _page = 1;
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
+        await LoadData();
+    }
+
+    private async Task GoPrevPage()
+    {
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await LoadData();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await LoadData();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await LoadData();
+        }
+    }
+
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
     }
 }

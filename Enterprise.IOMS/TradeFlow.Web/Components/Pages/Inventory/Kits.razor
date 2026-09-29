@@ -1,71 +1,83 @@
 @page "/products/kits"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@implements IDisposable
 @inject IKitService KitService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
 
 <PageTitle>Kits - IOMS</PageTitle>
 
 <div class="tm-page">
     <TmPageHeader Icon="🧩" Title="Kit Management" Subtitle="Build, assemble and disassemble product kits">
         <Actions>
-            <button class="tm-reset" @onclick="Load">⟳ Refresh</button>
+            <button class="tm-reset" @onclick="Refresh">⟳ Refresh</button>
             <button class="tm-add-btn" @onclick="OpenCreate">+ New Kit</button>
         </Actions>
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="🧩" Number="@_kits.Count" Label="Total Kits" Tone="blue" />
-        <TmStatTile Icon="✔" Number="@_activeCount" Label="Active" Tone="green" />
-        <TmStatTile Icon="✕" Number="@(_kits.Count - _activeCount)" Label="Inactive" Tone="red" />
-        <TmStatTile Icon="🔩" Number="@_totalComponents" Label="Components" Tone="purple" />
-        <TmStatTile Icon="📦" Number="@_avgComponents" Label="Avg Components" Tone="yellow" />
-        <TmStatTile Icon="🏷️" Number="@_singleCompCount" Label="Single-Item Kits" Tone="teal" />
+        <TmStatTile Icon="🧩" Number="@TotalCountText" Label="Total Kits" Tone="blue" OnClick="@(() => FilterByStatus(null))" />
+        <TmStatTile Icon="✔" Number="@ActiveCountText" Label="Active" Tone="green" OnClick="@(() => FilterByStatus(true))" />
+        <TmStatTile Icon="✕" Number="@InactiveCountText" Label="Inactive" Tone="red" OnClick="@(() => FilterByStatus(false))" />
+        <TmStatTile Icon="🔩" Number="@TotalComponentsText" Label="Components" Tone="purple" />
+        <TmStatTile Icon="📦" Number="@AverageComponentsText" Label="Avg Components" Tone="yellow" />
+        <TmStatTile Icon="🏷️" Number="@SingleComponentCountText" Label="Single-Item Kits" Tone="teal" />
     </div>
 
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by kit name or SKU..." value="@_search" @oninput="OnSearchInput" />
+            <input placeholder="Search by kit name or SKU..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
-            <select @onchange="OnActiveChanged">
-                <option value="" selected="@(_activeFilter == "")">All Kits</option>
-                <option value="active" selected="@(_activeFilter == "active")">Active Only</option>
-                <option value="inactive" selected="@(_activeFilter == "inactive")">Inactive Only</option>
+            <select value="@StatusValue" @onchange="OnStatusChanged">
+                <option value="">All Kits</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
             </select>
         </div>
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
     <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading kits...</MudText>
+            </div>
+        }
         <div class="tm-table-wrap">
             <table class="tm-table" style="min-width:880px">
                 <thead>
                     <tr>
-                        <th>🧩 Kit Product</th>
-                        <th>SKU</th>
-                        <th style="text-align:right">Components</th>
+                        <th @onclick="@(() => SortBy(Col.ProductName))">🧩 Kit Product @SortIcon(Col.ProductName)</th>
+                        <th @onclick="@(() => SortBy(Col.ProductSKU))">SKU @SortIcon(Col.ProductSKU)</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.ComponentCount))">Components @SortIcon(Col.ComponentCount)</th>
                         <th>Component Preview</th>
-                        <th>Status</th>
+                        <th @onclick="@(() => SortBy(Col.IsActive))">Status @SortIcon(Col.IsActive)</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (_loading)
+                    @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="6"><TmLoading Message="Loading kits..." /></td></tr>
+                        <tr><td colspan="6" style="text-align:center; padding:40px; color:#94a3b8;">Loading kits...</td></tr>
                     }
-                    else if (Paged.Count == 0)
+                    else if (pagedResultNew.Items.Count == 0)
                     {
-                        <tr><td colspan="6"><div class="tm-loading">No kits found</div></td></tr>
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No kits found — try a different search or filter</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        @foreach (var k in Paged)
+                        @foreach (var k in pagedResultNew.Items)
                         {
                             <tr>
                                 <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🧩</span>@k.ProductName</span></td>
@@ -94,48 +106,120 @@
                 </tbody>
             </table>
         </div>
-        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="kits"
-                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="Kits"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
     </div>
 </div>
 
 @code {
-    private List<KitDto> _kits = new();
+    private static class Col
+    {
+        public const string ProductName = "ProductName";
+        public const string ProductSKU = "ProductSKU";
+        public const string ComponentCount = "ComponentCount";
+        public const string IsActive = "IsActive";
+    }
+
+    // ─── List state ───
+    private PagedResultNew<KitDto> pagedResultNew = new();
+    private KitPagedRequest pagedRequest = new()
+    {
+        SortColumn = Col.ProductName,
+        SortAscending = true
+    };
+
     private bool _loading = true;
-    private string _search = "";
-    private string _activeFilter = "";
-    private int _page = 1;
-    private int _pageSize = 10;
-    private int _activeCount, _totalComponents, _avgComponents, _singleCompCount;
+    private bool _hasLoadedOnce;
+    private bool _loadRunning;
+    private bool _loadQueued;
+    private CancellationTokenSource? _debounceCts;
+
+    private string StatusValue => pagedRequest.IsActive switch
+    {
+        true => "active",
+        false => "inactive",
+        _ => ""
+    };
 
     protected override async Task OnInitializedAsync() => await Load();
 
-    private List<KitDto> Filtered => _kits.Where(k =>
-        (string.IsNullOrWhiteSpace(_search)
-            || (k.ProductName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
-            || (k.ProductSKU?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))
-        && (_activeFilter switch
-        {
-            "active" => k.IsActive,
-            "inactive" => !k.IsActive,
-            _ => true
-        })).ToList();
+    private async Task Refresh() => await Load();
 
-    private List<KitDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
-
+    /// <summary>
+    /// Single-flight loader. The page and the services share one scoped DbContext, so two
+    /// overlapping queries would throw "A second operation was started on this context
+    /// instance". Callers that arrive mid-flight set a flag instead of starting a parallel
+    /// query, and the running load then re-runs once with the newest filter state.
+    /// </summary>
     private async Task Load()
+    {
+        if (_loadRunning)
+        {
+            _loadQueued = true;
+            return;
+        }
+
+        _loadRunning = true;
+        try
+        {
+            do
+            {
+                _loadQueued = false;
+                await LoadCore();
+            }
+            while (_loadQueued);
+        }
+        finally { _loadRunning = false; }
+    }
+
+    private async Task LoadCore()
     {
         _loading = true;
         try
         {
-            _kits = await KitService.GetKits();
-            _activeCount = _kits.Count(k => k.IsActive);
-            _totalComponents = _kits.Sum(k => k.Components.Count);
-            _avgComponents = _kits.Count == 0 ? 0 : (int)Math.Round(_kits.Average(k => (double)k.Components.Count));
-            _singleCompCount = _kits.Count(k => k.Components.Count == 1);
+            pagedResultNew = await KitService.GetKitsPagedAsync(pagedRequest);
+            _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
+    }
+
+    // ─── Stats / sorting helpers ───
+    private string TotalCountText => Stat("TotalCount");
+    private string ActiveCountText => Stat("ActiveCount");
+    private string InactiveCountText => Stat("InactiveCount");
+    private string TotalComponentsText => Stat("TotalComponents");
+    private string AverageComponentsText => Stat("AverageComponents");
+    private string SingleComponentCountText => Stat("SingleComponentCount");
+
+    private string Stat(string key) =>
+        pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
+
+    private void SortBy(string column)
+    {
+        if (pagedRequest.SortColumn == column)
+            pagedRequest.SortAscending = !pagedRequest.SortAscending;
+        else
+        {
+            pagedRequest.SortColumn = column;
+            pagedRequest.SortAscending = true;
+        }
+        pagedRequest.CurrentPage = 0;
+    }
+
+    private string SortIcon(string column)
+    {
+        if (pagedRequest.SortColumn != column) return "";
+        return pagedRequest.SortAscending ? "▲" : "▼";
     }
 
     private async Task OpenCreate()
@@ -161,28 +245,98 @@
         if (result != null && !result.Canceled) { Snackbar.Add("Kit disassembled.", Severity.Success); await Load(); }
     }
 
+    // ─── Filters ───
     private void OnSearchInput(ChangeEventArgs e)
     {
-        _search = e.Value?.ToString() ?? "";
-        _page = 1;
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        pagedRequest.CurrentPage = 0;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(async () =>
+                {
+                    await Load();
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException) { }
+        });
     }
 
-    private void OnActiveChanged(ChangeEventArgs e)
+    private async Task OnStatusChanged(ChangeEventArgs e)
     {
-        _activeFilter = e.Value?.ToString() ?? "";
-        _page = 1;
+        pagedRequest.IsActive = e.Value?.ToString() switch
+        {
+            "active" => true,
+            "inactive" => false,
+            _ => null
+        };
+        pagedRequest.CurrentPage = 0;
+        await Load();
     }
 
-    private void ResetFilters()
+    private async Task FilterByStatus(bool? isActive)
     {
-        _search = "";
-        _activeFilter = "";
-        _page = 1;
+        pagedRequest.IsActive = pagedRequest.IsActive == isActive ? null : isActive;
+        pagedRequest.CurrentPage = 0;
+        await Load();
     }
 
-    private void OnPageSizeChanged(int size)
+    private async Task ResetFilters()
     {
-        _pageSize = size;
-        _page = 1;
+        pagedRequest.SearchTerm = "";
+        pagedRequest.IsActive = null;
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    // ─── Paging (zero-based, matches TmPager) ───
+    private async Task GoToPage(int page)
+    {
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
+        await Load();
+    }
+
+    private async Task GoPrevPage()
+    {
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await Load();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await Load();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await Load();
+        }
+    }
+
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
     }
 }

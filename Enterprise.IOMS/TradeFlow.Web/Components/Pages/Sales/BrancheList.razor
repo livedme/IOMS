@@ -1,6 +1,7 @@
 @page "/shop/branches"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@implements IDisposable
 @inject IBranchService BranchService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -11,59 +12,72 @@
 <div class="tm-page">
     <TmPageHeader Icon="🏢" Title="Branches" Subtitle="Manage your outlet locations, codes and branch details">
         <Actions>
-            <button class="tm-reset" @onclick="LoadBranches">⟳ Refresh</button>
+            <button class="tm-reset" @onclick="Refresh">⟳ Refresh</button>
             <button class="tm-add-btn" @onclick="OpenCreate">+ New Branch</button>
         </Actions>
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="🏢" Number="@_branches.Count" Label="Branches" Tone="blue" />
-        <TmStatTile Icon="✔" Number="@CountOf(true)" Label="Active" Tone="green" OnClick="@(() => PickActive(true))" />
-        <TmStatTile Icon="⏸" Number="@CountOf(false)" Label="Inactive" Tone="red" OnClick="@(() => PickActive(false))" />
-        <TmStatTile Icon="📍" Number="@CountWithLocation" Label="With Location" Tone="purple" />
-        <TmStatTile Icon="🏷" Number="@_branches.Select(b => b.Code).Distinct().Count()" Label="Unique Codes" Tone="teal" />
+        <TmStatTile Icon="🏢" Number="@TotalCountText" Label="Branches" Tone="blue" OnClick="@(() => FilterByStatus(null))" />
+        <TmStatTile Icon="✔" Number="@ActiveCountText" Label="Active" Tone="green" OnClick="@(() => FilterByStatus(true))" />
+        <TmStatTile Icon="⏸" Number="@InactiveCountText" Label="Inactive" Tone="red" OnClick="@(() => FilterByStatus(false))" />
+        <TmStatTile Icon="📍" Number="@WithLocationCountText" Label="With Location" Tone="purple" />
+        <TmStatTile Icon="🏷" Number="@UniqueCodeCountText" Label="Unique Codes" Tone="teal" />
     </div>
 
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by name, code or location..." value="@_search" @oninput="OnSearchInput" />
+            <input placeholder="Search by name, code or location..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
-            <select @onchange="OnStatusChanged">
-                <option value="" selected="@(_activeFilter == null)">All Status</option>
-                <option value="active" selected="@(_activeFilter == true)">Active</option>
-                <option value="inactive" selected="@(_activeFilter == false)">Inactive</option>
+            <select value="@StatusValue" @onchange="OnStatusChanged">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
             </select>
         </div>
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
     <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading branches...</MudText>
+            </div>
+        }
         <div class="tm-table-wrap">
             <table class="tm-table" style="min-width:900px">
                 <thead>
                     <tr>
-                        <th>🏢 Branch</th>
-                        <th>🏷 Code</th>
-                        <th>📍 Location</th>
-                        <th>🏠 Address</th>
-                        <th>Status</th>
+                        <th @onclick="@(() => SortBy(Col.Name))">🏢 Branch @SortIcon(Col.Name)</th>
+                        <th @onclick="@(() => SortBy(Col.Code))">🏷 Code @SortIcon(Col.Code)</th>
+                        <th @onclick="@(() => SortBy(Col.Location))">📍 Location @SortIcon(Col.Location)</th>
+                        <th @onclick="@(() => SortBy(Col.Address))">🏠 Address @SortIcon(Col.Address)</th>
+                        <th @onclick="@(() => SortBy(Col.IsActive))">Status @SortIcon(Col.IsActive)</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (_loading)
+                    @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="6"><TmLoading Message="Loading branches..." /></td></tr>
+                        <tr><td colspan="6" style="text-align:center; padding:40px; color:#94a3b8;">Loading branches...</td></tr>
                     }
-                    else if (Paged.Count == 0)
+                    else if (pagedResultNew.Items.Count == 0)
                     {
-                        <tr><td colspan="6"><div class="tm-loading">No branches found</div></td></tr>
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No branches found — try a different search or filter</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        @foreach (var b in Paged)
+                        @foreach (var b in pagedResultNew.Items)
                         {
                             <tr>
                                 <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#ede9fe">🏢</span>@b.Name</span></td>
@@ -87,49 +101,129 @@
                 </tbody>
             </table>
         </div>
-        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="branches"
-                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="Branches"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
     </div>
 </div>
 
 @code {
-    private List<BranchDto> _branches = new();
-    private BranchDto _branche = new BranchDto(Guid.Empty, "", "", null, null, true);
-    private string _search = "";
-    private bool? _activeFilter;
+    private static class Col
+    {
+        public const string Name = "Name";
+        public const string Code = "Code";
+        public const string Location = "Location";
+        public const string Address = "Address";
+        public const string IsActive = "IsActive";
+    }
+
+    // ─── List state ───
+    private PagedResultNew<BranchDto> pagedResultNew = new();
+    private BranchPagedRequest pagedRequest = new()
+    {
+        SortColumn = Col.Name,
+        SortAscending = true
+    };
+
+    private BranchDto _branchTemplate = new BranchDto(Guid.Empty, "", "", null, null, true);
     private bool _loading = true;
-    private int _page = 1;
-    private int _pageSize = 10;
+    private bool _hasLoadedOnce;
+    private bool _loadRunning;
+    private bool _loadQueued;
+    private CancellationTokenSource? _debounceCts;
 
-    private int CountWithLocation => _branches.Count(b => !string.IsNullOrWhiteSpace(b.Location));
-
-    private List<BranchDto> Filtered => _branches.Where(b =>
-        (_activeFilter == null || b.IsActive == _activeFilter.Value)
-        && (string.IsNullOrWhiteSpace(_search)
-            || (b.Name?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
-            || (b.Code?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
-            || (b.Location?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
-            || (b.Address?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
-
-    private List<BranchDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
-
-    private int CountOf(bool active) => _branches.Count(b => b.IsActive == active);
+    private string StatusValue => pagedRequest.IsActive switch
+    {
+        true => "active",
+        false => "inactive",
+        _ => ""
+    };
 
     protected override async Task OnInitializedAsync() => await LoadBranches();
 
+    private async Task Refresh() => await LoadBranches();
+
+    /// <summary>
+    /// Single-flight loader. The page and the services share one scoped DbContext, so two
+    /// overlapping queries would throw "A second operation was started on this context
+    /// instance". Callers that arrive mid-flight set a flag instead of starting a parallel
+    /// query, and the running load then re-runs once with the newest filter state.
+    /// </summary>
     private async Task LoadBranches()
     {
-        _loading = true;
-        try { _branches = await BranchService.GetBranches(); }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        _loading = false;
+        if (_loadRunning)
+        {
+            _loadQueued = true;
+            return;
+        }
+
+        _loadRunning = true;
+        try
+        {
+            do
+            {
+                _loadQueued = false;
+                await LoadBranchesCore();
+            }
+            while (_loadQueued);
+        }
+        finally { _loadRunning = false; }
     }
+
+    private async Task LoadBranchesCore()
+    {
+        _loading = true;
+        try
+        {
+            pagedResultNew = await BranchService.GetBranchesPagedAsync(pagedRequest);
+            _hasLoadedOnce = true;
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    // ─── Stats / sorting helpers ───
+    private string TotalCountText => Stat("TotalCount");
+    private string ActiveCountText => Stat("ActiveCount");
+    private string InactiveCountText => Stat("InactiveCount");
+    private string WithLocationCountText => Stat("WithLocationCount");
+    private string UniqueCodeCountText => Stat("UniqueCodeCount");
+
+    private string Stat(string key) =>
+        pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
+
+    private void SortBy(string column)
+    {
+        if (pagedRequest.SortColumn == column)
+            pagedRequest.SortAscending = !pagedRequest.SortAscending;
+        else
+        {
+            pagedRequest.SortColumn = column;
+            pagedRequest.SortAscending = true;
+        }
+        pagedRequest.CurrentPage = 0;
+    }
+
+    private string SortIcon(string column)
+    {
+        if (pagedRequest.SortColumn != column) return "";
+        return pagedRequest.SortAscending ? "▲" : "▼";
+    }
+
 
     private async Task OpenCreate()
     {
         var parameters = new DialogParameters<BrancheDialog>
         {
-            { x => x.Branch, _branche }
+            { x => x.Branch, _branchTemplate }
         };
 
         var dialog = await DialogService.ShowAsync<BrancheDialog>("New Branch", parameters,
@@ -177,39 +271,98 @@
         }
     }
 
+    // ─── Filters ───
     private void OnSearchInput(ChangeEventArgs e)
     {
-        _search = e.Value?.ToString() ?? "";
-        _page = 1;
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        pagedRequest.CurrentPage = 0;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(async () =>
+                {
+                    await LoadBranches();
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException) { }
+        });
     }
 
-    private void OnStatusChanged(ChangeEventArgs e)
+    private async Task OnStatusChanged(ChangeEventArgs e)
     {
-        _activeFilter = e.Value?.ToString() switch
+        pagedRequest.IsActive = e.Value?.ToString() switch
         {
             "active" => true,
             "inactive" => false,
             _ => null
         };
-        _page = 1;
+        pagedRequest.CurrentPage = 0;
+        await LoadBranches();
     }
 
-    private void PickActive(bool active)
+    private async Task FilterByStatus(bool? isActive)
     {
-        _activeFilter = _activeFilter == active ? null : active;
-        _page = 1;
+        pagedRequest.IsActive = pagedRequest.IsActive == isActive ? null : isActive;
+        pagedRequest.CurrentPage = 0;
+        await LoadBranches();
     }
 
-    private void ResetFilters()
+    private async Task ResetFilters()
     {
-        _search = "";
-        _activeFilter = null;
-        _page = 1;
+        pagedRequest.SearchTerm = "";
+        pagedRequest.IsActive = null;
+        pagedRequest.CurrentPage = 0;
+        await LoadBranches();
     }
 
-    private void OnPageSizeChanged(int size)
+    // ─── Paging (zero-based, matches TmPager) ───
+    private async Task GoToPage(int page)
     {
-        _pageSize = size;
-        _page = 1;
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
+        await LoadBranches();
+    }
+
+    private async Task GoPrevPage()
+    {
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await LoadBranches();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await LoadBranches();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await LoadBranches();
+        }
+    }
+
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
     }
 }

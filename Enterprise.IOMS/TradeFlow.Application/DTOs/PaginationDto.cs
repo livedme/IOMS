@@ -5,7 +5,7 @@ namespace TradeFlow.Application.DTOs
 
     /// <summary>
     /// Generic server-side pagination request sent from UI to database layer.
-    /// Page is zero-based (0 = first page) to match Blazor PaginationFooter.
+    /// Page is zero-based (0 = first page) to match Blazor TmPager.
     /// </summary>
     public class PagedRequest
     {
@@ -63,9 +63,29 @@ namespace TradeFlow.Application.DTOs
 
     public class CustomerPagedRequest : PagedRequest
     {
-        public int? TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public string? CustomerType { get; set; } // "All" or CustomerType name
         public string? Status { get; set; } // "All" / "Active" / "Inactive"
+        public bool? IsActive { get; set; }
+        public string? City { get; set; }
+    }
+
+    public class QuotationPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        public QuoteStatus? Status { get; set; }
+        public Guid? CustomerId { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+    }
+
+    public class SalesReturnPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        public SalesReturnStatus? Status { get; set; }
+        public Guid? SalesOrderId { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
     }
 
     public class TripPagedRequest : PagedRequest
@@ -109,7 +129,73 @@ namespace TradeFlow.Application.DTOs
 
     public class BranchPagedRequest : PagedRequest
     {
-        public int? TenantId { get; set; }
+        public Guid? TenantId { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
+    public class WarehousePagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
+    public class BrandPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        /// <summary>"All" / "Active" / "Inactive" — matches the Brand.Status string column.</summary>
+        public string? Status { get; set; }
+        public bool? HasLogo { get; set; }
+        public string? OriginCountry { get; set; }
+        /// <summary>"All" / "With Products" / "Without Products".</summary>
+        public string? ProductFilter { get; set; }
+    }
+
+    public class CategoryPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        /// <summary>Null = every level, 1 = top level (no parent), 2 = has a parent.</summary>
+        public int? Level { get; set; }
+        /// <summary>"All" / "With Products" / "Without Products".</summary>
+        public string? ProductFilter { get; set; }
+    }
+
+    public class KitPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
+    public class StocktakePagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        public StocktakeStatus? Status { get; set; }
+        public Guid? WarehouseId { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+    }
+
+    /// <summary>
+    /// Backs both the Stock Movements grid (Type left null) and the Stock Transfers
+    /// grid (Type pinned to <see cref="StockMovementType.Transfer"/>).
+    /// </summary>
+    public class StockMovementPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        public StockMovementType? Type { get; set; }
+        public Guid? WarehouseId { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+    }
+
+    /// <summary>Backs the Stock Levels grid and its Low Stock Alerts view.</summary>
+    public class StockLevelPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        public Guid? WarehouseId { get; set; }
+        /// <summary>"All" / "InStock" / "OutOfStock" / "Reserved".</summary>
+        public string? Status { get; set; }
+        /// <summary>Pin to rows at or below the product's reorder level (Low Stock Alerts view).</summary>
+        public bool LowStockOnly { get; set; }
     }
 
     public class InvoicePagedRequest : PagedRequest
@@ -128,8 +214,34 @@ namespace TradeFlow.Application.DTOs
 
     public class SparePartPagedRequest : PagedRequest
     {
-        public int? TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public string? Category { get; set; } // "All" or category
-        public string? StockStatus { get; set; } // "All" | "Low Stock" | "In Stock"
+        public string? Status { get; set; } // "All" / "In Stock" / "Out of Stock"
+    }
+
+    public class PurchaseOrderPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        public PurchaseOrderStatus? Status { get; set; }
+        public Guid? SupplierId { get; set; }
+        public Guid? WarehouseId { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+    }
+
+    public class PurchaseReturnPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        public PurchaseReturnStatus? Status { get; set; }
+        public Guid? PurchaseOrderId { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+    }
+
+    public class SupplierPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        public bool? IsActive { get; set; }
+        public string? City { get; set; }
     }
 }

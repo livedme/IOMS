@@ -16,16 +16,28 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(
-                configuration.GetConnectionString("DefaultConnection"),
-                b =>
-                {
-                    b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
-                    b.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-                    b.MinBatchSize(4);
-                    b.MaxBatchSize(100);
-                }));
+        // AddDbContextFactory registers both ApplicationDbContext (scoped) and
+        // IDbContextFactory<ApplicationDbContext>, so every existing injection keeps working
+        // while read paths that must not share a context instance with the scoped one — the
+        // server-paged list queries, which can be triggered while another query is still in
+        // flight — can create their own short-lived context. A DbContext is not thread-safe and
+        // throws "A second operation was started on this context instance" when two commands
+        // overlap on the same instance.
+        // Scoped (not singleton) because ApplicationDbContext depends on the scoped ITenantProvider.
+        services.AddDbContextFactory<ApplicationDbContext>(
+            options =>
+            {
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    b =>
+                    {
+                        b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                        b.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+                        b.MinBatchSize(4);
+                        b.MaxBatchSize(100);
+                    });
+            },
+            ServiceLifetime.Scoped);
 
         var redisConnection = configuration.GetConnectionString("Redis");
         if (string.IsNullOrWhiteSpace(redisConnection))

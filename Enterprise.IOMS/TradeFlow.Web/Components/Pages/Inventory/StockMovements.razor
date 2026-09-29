@@ -1,92 +1,112 @@
 @page "/stock-movements"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@implements IDisposable
+@inject IInventoryService InventoryService
+@inject IProductService ProductService
 @inject ISnackbar Snackbar
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
 
 <PageTitle>Stock Movements - IOMS</PageTitle>
 
 <div class="tm-page">
     <TmPageHeader Icon="🔄" Title="Stock Movements" Subtitle="Track every stock in, out, transfer and adjustment">
         <Actions>
-            <button class="tm-add-btn" @onclick="Load">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="Refresh">⟳ Refresh</button>
         </Actions>
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="🔄" Number="@_movements.Count" Label="Movements" Tone="blue" />
-        <TmStatTile Icon="⬆️" Number="@_inCount" Label="Stock In" Tone="green" />
-        <TmStatTile Icon="⬇️" Number="@_outCount" Label="Stock Out" Tone="red" />
-        <TmStatTile Icon="🔁" Number="@_transferCount" Label="Transfers" Tone="purple" />
-        <TmStatTile Icon="⚙️" Number="@_adjustmentCount" Label="Adjustments" Tone="yellow" />
-        <TmStatTile Icon="📈" Number="@_netQuantity" Label="Net Qty" Tone="teal" />
+        <TmStatTile Icon="🔄" Number="@TotalCountText" Label="Movements" Tone="blue" />
+        <TmStatTile Icon="⬆️" Number="@InCountText" Label="Stock In" Tone="green" />
+        <TmStatTile Icon="⬇️" Number="@OutCountText" Label="Stock Out" Tone="red" />
+        <TmStatTile Icon="🔁" Number="@TransferCountText" Label="Transfers" Tone="purple" />
+        <TmStatTile Icon="⚙️" Number="@AdjustmentCountText" Label="Adjustments" Tone="yellow" />
+        <TmStatTile Icon="📈" Number="@NetQuantityText" Label="Net Qty" Tone="teal" />
     </div>
 
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by product or reference..." value="@_search" @oninput="OnSearchInput" />
+            <input placeholder="Search by product or reference..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
-            <select @onchange="OnTypeChanged">
-                <option value="" selected="@(_typeFilter == null)">All Types</option>
-                @foreach (StockMovementType t in Enum.GetValues<StockMovementType>())
+            <select value="@(pagedRequest.Type?.ToString() ?? "")" @onchange="OnTypeChanged">
+                <option value="">All Types</option>
+                @foreach (var t in MovementTypes)
                 {
-                    <option value="@t" selected="@(_typeFilter == t)">@t</option>
+                    <option value="@t">@t</option>
                 }
             </select>
         </div>
         <div class="tm-select">
-            <select @onchange="OnWarehouseChanged">
-                <option value="" selected="@(_warehouseFilter == null)">All Warehouses</option>
+            <select value="@(pagedRequest.WarehouseId?.ToString() ?? "")" @onchange="OnWarehouseChanged">
+                <option value="">All Warehouses</option>
                 @foreach (var w in _warehouses)
                 {
-                    <option value="@w.Id" selected="@(_warehouseFilter == w.Id)">@w.Name</option>
+                    <option value="@w.Id">@w.Name</option>
                 }
             </select>
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.From)" @onchange="OnFromChanged" title="From date" />
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.To)" @onchange="OnToChanged" title="To date" />
         </div>
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
     <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading movements...</MudText>
+            </div>
+        }
         <div class="tm-table-wrap">
             <table class="tm-table" style="min-width:1050px">
                 <thead>
                     <tr>
-                        <th>📅 Date</th>
-                        <th>📦 Product</th>
-                        <th>Warehouse</th>
-                        <th>Type</th>
-                        <th style="text-align:right">Quantity</th>
-                        <th>Reference</th>
+                        <th @onclick="@(() => SortBy(Col.MovementDate))">📅 Date @SortIcon(Col.MovementDate)</th>
+                        <th @onclick="@(() => SortBy(Col.ProductName))">📦 Product @SortIcon(Col.ProductName)</th>
+                        <th @onclick="@(() => SortBy(Col.WarehouseName))">Warehouse @SortIcon(Col.WarehouseName)</th>
+                        <th @onclick="@(() => SortBy(Col.Type))">Type @SortIcon(Col.Type)</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.Quantity))">Quantity @SortIcon(Col.Quantity)</th>
+                        <th @onclick="@(() => SortBy(Col.Reference))">Reference @SortIcon(Col.Reference)</th>
                         <th>Notes</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (_loading)
+                    @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="7"><TmLoading Message="Loading movements..." /></td></tr>
+                        <tr><td colspan="7" style="text-align:center; padding:40px; color:#94a3b8;">Loading movements...</td></tr>
                     }
-                    else if (Paged.Count == 0)
+                    else if (pagedResultNew.Items.Count == 0)
                     {
-                        <tr><td colspan="7"><div class="tm-loading">No stock movements found</div></td></tr>
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No stock movements found — try a different search or filter</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        @foreach (var m in Paged)
+                        @foreach (var m in pagedResultNew.Items)
                         {
                             <tr>
                                 <td class="tm-dim">@m.MovementDate.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:@GetIconBg(m.MovementType)">📦</span>@m.ProductName</span></td>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:@GetIconBg(m.Type)">📦</span>@m.ProductName</span></td>
                                 <td class="tm-branch">@m.WarehouseName</td>
-                                <td><span class="@GetTypePill(m.MovementType)"><span class="tm-dot"></span>@m.MovementType</span></td>
+                                <td><span class="@GetTypePill(m.Type)"><span class="tm-dot"></span>@m.Type</span></td>
                                 <td style="text-align:right">
                                     <span style="font-weight:700; color:@(m.Quantity >= 0 ? "#15803d" : "#dc2626")">
                                         @(m.Quantity > 0 ? "+" : "")@m.Quantity.ToString("0.##")
                                     </span>
                                 </td>
-                                <td class="tm-num">@(string.IsNullOrWhiteSpace(m.ReferenceNumber) ? "-" : m.ReferenceNumber)</td>
+                                <td class="tm-num">@(string.IsNullOrWhiteSpace(m.Reference) ? "-" : m.Reference)</td>
                                 <td class="tm-dim">@(string.IsNullOrWhiteSpace(m.Notes) ? "-" : m.Notes)</td>
                             </tr>
                         }
@@ -94,75 +114,132 @@
                 </tbody>
             </table>
         </div>
-        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="movements"
-                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="Stock Movements"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
     </div>
 </div>
 
 @code {
-    private List<StockMovementDisplay> _movements = new();
-    private List<Warehouse> _warehouses = new();
-    private string _search = "";
-    private StockMovementType? _typeFilter;
-    private Guid? _warehouseFilter;
+    private static class Col
+    {
+        public const string MovementDate = "MovementDate";
+        public const string ProductName = "ProductName";
+        public const string WarehouseName = "WarehouseName";
+        public const string Type = "Type";
+        public const string Quantity = "Quantity";
+        public const string Reference = "Reference";
+    }
+
+    private readonly List<StockMovementType> MovementTypes = Enum.GetValues<StockMovementType>().ToList();
+
+    // ─── List state ───
+    // Type stays null here; the Stock Transfers grid is this same query pinned to Transfer.
+    private PagedResultNew<StockMovementDto> pagedResultNew = new();
+    private StockMovementPagedRequest pagedRequest = new()
+    {
+        SortColumn = Col.MovementDate,
+        SortAscending = false
+    };
+
+    private List<(Guid Id, string Name)> _warehouses = new();
     private bool _loading = true;
-    private int _page = 1;
-    private int _pageSize = 10;
-    private int _inCount, _outCount, _transferCount, _adjustmentCount;
-    private decimal _netQuantity;
-    private System.Timers.Timer? _debounce;
+    private bool _hasLoadedOnce;
+    private bool _loadRunning;
+    private bool _loadQueued;
+    private CancellationTokenSource? _debounceCts;
 
     protected override async Task OnInitializedAsync()
     {
-        _warehouses = await DbContext.Warehouses.OrderBy(w => w.Name).ToListAsync();
+        try
+        {
+            var warehouses = await ProductService.GetAllWarehousesAsync();
+            _warehouses = warehouses
+                .OrderBy(w => w.Name)
+                .Select(w => (w.Id, w.Name))
+                .ToList();
+        }
+        catch { }
+
         await Load();
     }
 
-    private List<StockMovementDisplay> Filtered => _movements.Where(m =>
-        (string.IsNullOrWhiteSpace(_search)
-            || m.ProductName.Contains(_search, StringComparison.OrdinalIgnoreCase)
-            || m.ReferenceNumber.Contains(_search, StringComparison.OrdinalIgnoreCase))
-        && (_typeFilter == null || m.MovementType == _typeFilter.Value)
-        && (_warehouseFilter == null || m.WarehouseId == _warehouseFilter.Value)).ToList();
+    private async Task Refresh() => await Load();
 
-    private List<StockMovementDisplay> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
-
+    /// <summary>
+    /// Single-flight loader. The page and the services share one scoped DbContext, so two
+    /// overlapping queries would throw "A second operation was started on this context
+    /// instance". Callers that arrive mid-flight set a flag instead of starting a parallel
+    /// query, and the running load then re-runs once with the newest filter state.
+    /// </summary>
     private async Task Load()
+    {
+        if (_loadRunning)
+        {
+            _loadQueued = true;
+            return;
+        }
+
+        _loadRunning = true;
+        try
+        {
+            do
+            {
+                _loadQueued = false;
+                await LoadCore();
+            }
+            while (_loadQueued);
+        }
+        finally { _loadRunning = false; }
+    }
+
+    private async Task LoadCore()
     {
         _loading = true;
         try
         {
-            var query = DbContext.StockMovements
-                .Include(m => m.Product)
-                .Include(m => m.Warehouse)
-                .AsQueryable();
-
-            if (_typeFilter.HasValue) query = query.Where(m => m.Type == _typeFilter.Value);
-            if (_warehouseFilter.HasValue) query = query.Where(m => m.WarehouseId == _warehouseFilter.Value);
-            if (!string.IsNullOrWhiteSpace(_search))
-                query = query.Where(m => m.Product.Name.Contains(_search) || (m.Reference != null && m.Reference.Contains(_search)));
-
-            var data = await query.OrderByDescending(m => m.MovementDate).Take(200).ToListAsync();
-            _movements = data.Select(m => new StockMovementDisplay
-            {
-                MovementDate = m.MovementDate,
-                ProductName = m.Product?.Name ?? "",
-                WarehouseName = m.Warehouse?.Name ?? "",
-                WarehouseId = m.WarehouseId,
-                MovementType = m.Type,
-                Quantity = m.Quantity,
-                ReferenceNumber = m.Reference ?? "",
-                Notes = m.Notes ?? ""
-            }).ToList();
-
-            _inCount = _movements.Count(x => x.Quantity > 0);
-            _outCount = _movements.Count(x => x.Quantity < 0);
-            _transferCount = _movements.Count(x => x.MovementType == StockMovementType.Transfer);
-            _adjustmentCount = _movements.Count(x => x.MovementType == StockMovementType.Adjustment);
-            _netQuantity = _movements.Sum(x => x.Quantity);
+            pagedResultNew = await InventoryService.GetStockMovementsPagedAsync(pagedRequest);
+            _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        _loading = false;
+        finally { _loading = false; }
+    }
+
+    // ─── Stats / sorting helpers ───
+    private string TotalCountText => Stat("TotalCount");
+    private string InCountText => Stat("StockInCount");
+    private string OutCountText => Stat("StockOutCount");
+    private string TransferCountText => Stat("TransferCount");
+    private string AdjustmentCountText => Stat("AdjustmentCount");
+    private string NetQuantityText => Stat("NetQuantity");
+
+    private string Stat(string key) =>
+        pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
+
+    private void SortBy(string column)
+    {
+        if (pagedRequest.SortColumn == column)
+            pagedRequest.SortAscending = !pagedRequest.SortAscending;
+        else
+        {
+            pagedRequest.SortColumn = column;
+            pagedRequest.SortAscending = true;
+        }
+        pagedRequest.CurrentPage = 0;
+    }
+
+    private string SortIcon(string column)
+    {
+        if (pagedRequest.SortColumn != column) return "";
+        return pagedRequest.SortAscending ? "▲" : "▼";
     }
 
     private static string GetTypePill(StockMovementType type) => type switch
@@ -185,61 +262,116 @@
         _ => "#e0e9ff"
     };
 
+    // ─── Filters ───
     private void OnSearchInput(ChangeEventArgs e)
     {
-        _search = e.Value?.ToString() ?? "";
-        _page = 1;
-        _debounce?.Stop();
-        _debounce?.Dispose();
-        _debounce = new System.Timers.Timer(350) { AutoReset = false };
-        _debounce.Elapsed += async (_, __) =>
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        pagedRequest.CurrentPage = 0;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
         {
-            await Load();
-            await InvokeAsync(StateHasChanged);
-        };
-        _debounce.Start();
+            try
+            {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(async () =>
+                {
+                    await Load();
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException) { }
+        });
     }
 
     private async Task OnTypeChanged(ChangeEventArgs e)
     {
-        var v = e.Value?.ToString();
-        _typeFilter = string.IsNullOrEmpty(v) ? null : Enum.Parse<StockMovementType>(v);
-        _page = 1;
+        pagedRequest.Type = Enum.TryParse<StockMovementType>(e.Value?.ToString(), out var t) ? t : null;
+        pagedRequest.CurrentPage = 0;
         await Load();
     }
 
     private async Task OnWarehouseChanged(ChangeEventArgs e)
     {
         var v = e.Value?.ToString();
-        _warehouseFilter = string.IsNullOrEmpty(v) ? null : Guid.Parse(v);
-        _page = 1;
+        pagedRequest.WarehouseId = string.IsNullOrEmpty(v) || !Guid.TryParse(v, out var g) ? null : g;
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private async Task OnFromChanged(ChangeEventArgs e)
+    {
+        pagedRequest.From = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private async Task OnToChanged(ChangeEventArgs e)
+    {
+        pagedRequest.To = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
         await Load();
     }
 
     private async Task ResetFilters()
     {
-        _search = "";
-        _typeFilter = null;
-        _warehouseFilter = null;
-        _page = 1;
+        pagedRequest.SearchTerm = "";
+        pagedRequest.Type = null;
+        pagedRequest.WarehouseId = null;
+        pagedRequest.From = null;
+        pagedRequest.To = null;
+        pagedRequest.CurrentPage = 0;
         await Load();
     }
 
-    private void OnPageSizeChanged(int size)
+    private static DateTime? ParseDate(object? value) =>
+        DateTime.TryParse(value?.ToString(), out var d) ? d : null;
+
+    private static string FormatDate(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "";
+
+    // ─── Paging (zero-based, matches TmPager) ───
+    private async Task GoToPage(int page)
     {
-        _pageSize = size;
-        _page = 1;
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
+        await Load();
     }
 
-    private class StockMovementDisplay
+    private async Task GoPrevPage()
     {
-        public DateTime MovementDate { get; set; }
-        public string ProductName { get; set; } = "";
-        public string WarehouseName { get; set; } = "";
-        public Guid WarehouseId { get; set; }
-        public StockMovementType MovementType { get; set; }
-        public decimal Quantity { get; set; }
-        public string ReferenceNumber { get; set; } = "";
-        public string Notes { get; set; } = "";
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await Load();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await Load();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await Load();
+        }
+    }
+
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
     }
 }

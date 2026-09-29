@@ -1,75 +1,114 @@
 @page "/orders/purchase"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@implements IDisposable
 @inject IPurchaseService PurchaseService
+@inject ISupplierService SupplierService
+@inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+@inject ILogger<PurchaseOrders> Logger
 
 <PageTitle>Purchase Order - IOMS</PageTitle>
 
 <div class="tm-page">
     <TmPageHeader Icon="📦" Title="Purchase Orders" Subtitle="Raise POs, approve them and receive supplier goods">
         <Actions>
-            <button class="tm-reset" @onclick="LoadOrders">⟳ Refresh</button>
+            <button class="tm-reset" @onclick="Refresh">⟳ Refresh</button>
             <button class="tm-add-btn" @onclick="() => OpenCreateEdit(null)">+ New PO</button>
         </Actions>
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="📦" Number="@_totalCount" Label="Purchase Orders" Tone="blue" />
-        <TmStatTile Icon="📝" Number="@CountOf(PurchaseOrderStatus.Draft)" Label="Draft" Tone="purple" OnClick="@(() => PickStatus(PurchaseOrderStatus.Draft))" />
-        <TmStatTile Icon="✔" Number="@CountOf(PurchaseOrderStatus.Approved)" Label="Approved" Tone="green" OnClick="@(() => PickStatus(PurchaseOrderStatus.Approved))" />
-        <TmStatTile Icon="📥" Number="@CountOf(PurchaseOrderStatus.PartiallyReceived)" Label="Partially Received" Tone="yellow" OnClick="@(() => PickStatus(PurchaseOrderStatus.PartiallyReceived))" />
-        <TmStatTile Icon="✅" Number="@CountOf(PurchaseOrderStatus.Received)" Label="Received" Tone="teal" OnClick="@(() => PickStatus(PurchaseOrderStatus.Received))" />
-        <TmStatTile Icon="💰" Number="@_pageValue" Label="Page Value" Tone="red" />
+        <TmStatTile Icon="📦" Number="@TotalCountText" Label="Purchase Orders" Tone="blue" OnClick="@(() => FilterByStatus(null))" />
+        <TmStatTile Icon="📝" Number="@DraftCountText" Label="Draft" Tone="purple" OnClick="@(() => FilterByStatus(PurchaseOrderStatus.Draft))" />
+        <TmStatTile Icon="✔" Number="@ApprovedCountText" Label="Approved" Tone="green" OnClick="@(() => FilterByStatus(PurchaseOrderStatus.Approved))" />
+        <TmStatTile Icon="📥" Number="@PartialCountText" Label="Partially Received" Tone="yellow" OnClick="@(() => FilterByStatus(PurchaseOrderStatus.PartiallyReceived))" />
+        <TmStatTile Icon="✅" Number="@ReceivedCountText" Label="Received" Tone="teal" OnClick="@(() => FilterByStatus(PurchaseOrderStatus.Received))" />
+        <TmStatTile Icon="💰" Number="@PageValueText" Label="Page Value" Tone="red" />
     </div>
 
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by PO number, supplier or warehouse..." value="@_search" @oninput="OnSearchInput" />
+            <input placeholder="Search by PO number, supplier or warehouse..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
-            <select @onchange="OnStatusChanged">
-                <option value="" selected="@(_statusFilter == null)">All Status</option>
-                @foreach (var status in Enum.GetValues<PurchaseOrderStatus>())
+            <select value="@(pagedRequest.SupplierId?.ToString() ?? "")" @onchange="OnSupplierChanged">
+                <option value="">All Suppliers</option>
+                @foreach (var s in _suppliers)
                 {
-                    <option value="@status" selected="@(_statusFilter == status)">@status</option>
+                    <option value="@s.Id">@s.SupplierName</option>
                 }
             </select>
+        </div>
+        <div class="tm-select">
+            <select value="@(pagedRequest.WarehouseId?.ToString() ?? "")" @onchange="OnWarehouseChanged">
+                <option value="">All Warehouses</option>
+                @foreach (var w in _warehouses)
+                {
+                    <option value="@w.Id">@w.Name</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <select value="@(pagedRequest.Status?.ToString() ?? "")" @onchange="OnStatusChanged">
+                <option value="">All Status</option>
+                @foreach (var status in OrderStatuses)
+                {
+                    <option value="@status">@status</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.From)" @onchange="OnFromChanged" title="From date" />
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.To)" @onchange="OnToChanged" title="To date" />
         </div>
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
     <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading purchase orders...</MudText>
+            </div>
+        }
         <div class="tm-table-wrap">
             <table class="tm-table" style="min-width:1100px">
                 <thead>
                     <tr>
-                        <th>📦 PO #</th>
-                        <th>🏭 Supplier</th>
-                        <th>🏬 Warehouse</th>
-                        <th>📅 Date</th>
-                        <th>Status</th>
-                        <th style="text-align:right">Total</th>
-                        <th style="text-align:right">Due</th>
+                        <th @onclick="@(() => SortBy(Col.OrderNumber))">📦 PO # @SortIcon(Col.OrderNumber)</th>
+                        <th @onclick="@(() => SortBy(Col.Supplier))">🏭 Supplier @SortIcon(Col.Supplier)</th>
+                        <th @onclick="@(() => SortBy(Col.Warehouse))">🏬 Warehouse @SortIcon(Col.Warehouse)</th>
+                        <th @onclick="@(() => SortBy(Col.PurchaseDate))">📅 Date @SortIcon(Col.PurchaseDate)</th>
+                        <th @onclick="@(() => SortBy(Col.Status))">Status @SortIcon(Col.Status)</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.TotalAmount))">Total @SortIcon(Col.TotalAmount)</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.DueAmount))">Due @SortIcon(Col.DueAmount)</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (_loading)
+                    @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="8"><TmLoading Message="Loading purchase orders..." /></td></tr>
+                        <tr><td colspan="8" style="text-align:center; padding:40px; color:#94a3b8;">Loading purchase orders...</td></tr>
                     }
-                    else if (_orders.Items.Count == 0)
+                    else if (pagedResultNew.Items.Count == 0)
                     {
-                        <tr><td colspan="8"><div class="tm-loading">No purchase orders found</div></td></tr>
+                        <tr>
+                            <td colspan="8" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No purchase orders found — try a different search or filter</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        @foreach (var po in _orders.Items)
+                        @foreach (var po in pagedResultNew.Items)
                         {
                             <tr>
                                 <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#fef3c7">📦</span>@po.OrderNumber</span></td>
@@ -99,8 +138,17 @@
                 </tbody>
             </table>
         </div>
-        <TmPager Total="@_totalCount" Page="@_page" PageSize="@_pageSize" ItemNoun="purchase orders"
-                  PageChanged="@OnPageChanged" PageSizeChanged="@OnPageSizeChanged" />
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="Purchase Orders"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
     </div>
 </div>
 
@@ -221,16 +269,35 @@
 </TmSlideDrawer>
 
 @code {
-    private PagedResult<PurchaseOrderDto> _orders = new(new(), 0, 1, 10);
-    private string _search = "";
-    private PurchaseOrderStatus? _statusFilter;
+    private static class Col
+    {
+        public const string OrderNumber = "OrderNumber";
+        public const string PurchaseDate = "PurchaseDate";
+        public const string Supplier = "Supplier";
+        public const string Warehouse = "Warehouse";
+        public const string TotalAmount = "TotalAmount";
+        public const string DueAmount = "DueAmount";
+        public const string Status = "Status";
+    }
+
+    private readonly List<PurchaseOrderStatus> OrderStatuses = Enum.GetValues<PurchaseOrderStatus>().ToList();
+
+    // ─── List state ───
+    private PagedResultNew<PurchaseOrderDto> pagedResultNew = new();
+    private PurchaseOrderPagedRequest pagedRequest = new()
+    {
+        SortColumn = Col.PurchaseDate,
+        SortAscending = false
+    };
+
+    private List<SupplierDto> _suppliers = new();
+    private List<(Guid Id, string Name)> _warehouses = new();
     private bool _loading = true;
-    private int _page = 1;
-    private int _pageSize = 10;
-    private int _totalCount;
+    private bool _hasLoadedOnce;
+    private bool _loadRunning;
+    private bool _loadQueued;
     private decimal _pageValue;
-    private int _draftCount, _approvedCount, _partialCount, _receivedCount;
-    private System.Timers.Timer? _debounce;
+    private CancellationTokenSource? _debounceCts;
 
     // ─── Drawer state ───
     private bool _drawerOpen;
@@ -285,45 +352,224 @@
 
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            var suppliers = await SupplierService.GetSuppliersAsync("", 1, 500);
+            _suppliers = suppliers.Items;
+        }
+        catch { }
+
+        try
+        {
+            var warehouses = await ProductService.GetAllWarehousesAsync();
+            _warehouses = warehouses
+                .OrderBy(w => w.Name)
+                .Select(w => new ValueTuple<Guid, string>(w.Id, w.Name))
+                .ToList();
+        }
+        catch { }
+
         await LoadOrders();
-        await LoadCountsAsync();
     }
 
+    private async Task Refresh() => await LoadOrders();
+
+    /// <summary>
+    /// Single-flight loader. The page and the services share one scoped DbContext, so two
+    /// overlapping queries would throw "A second operation was started on this context
+    /// instance". Callers that arrive mid-flight set a flag instead of starting a parallel
+    /// query, and the running load then re-runs once with the newest filter state.
+    /// </summary>
     private async Task LoadOrders()
+    {
+        if (_loadRunning)
+        {
+            _loadQueued = true;
+            return;
+        }
+
+        _loadRunning = true;
+        try
+        {
+            do
+            {
+                _loadQueued = false;
+                await LoadOrdersCore();
+            }
+            while (_loadQueued);
+        }
+        finally { _loadRunning = false; }
+    }
+
+    private async Task LoadOrdersCore()
     {
         _loading = true;
         try
         {
-            _orders = await PurchaseService.GetPurchaseOrders(_search, _statusFilter, _page, _pageSize);
-            _totalCount = _orders.TotalCount;
-            _pageValue = _orders.Items.Sum(o => o.TotalAmount);
+            pagedResultNew = await PurchaseService.GetPurchaseOrdersAsync(pagedRequest);
+            _pageValue = pagedResultNew.Items.Sum(o => o.TotalAmount);
+            _hasLoadedOnce = true;
         }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        _loading = false;
-    }
-
-    private async Task LoadCountsAsync()
-    {
-        try
+        catch (Exception ex)
         {
-            var all = await PurchaseService.GetPurchaseOrders("", null, 1, 1000);
-            var items = all.Items;
-            _draftCount = items.Count(o => o.Status == PurchaseOrderStatus.Draft);
-            _approvedCount = items.Count(o => o.Status == PurchaseOrderStatus.Approved);
-            _partialCount = items.Count(o => o.Status == PurchaseOrderStatus.PartiallyReceived);
-            _receivedCount = items.Count(o => o.Status == PurchaseOrderStatus.Received);
+            Logger.LogError(ex, "Failed to load purchase orders for page {Page}.", pagedRequest.CurrentPage);
+            Snackbar.Add($"Error loading purchase orders: {ex.Message}", Severity.Error);
         }
-        catch { }
+        finally { _loading = false; }
     }
 
-    private int CountOf(PurchaseOrderStatus s) => s switch
+    // ─── Stats / sorting helpers ───
+    private string TotalCountText => Stat("TotalCount");
+    private string DraftCountText => Stat("DraftCount");
+    private string ApprovedCountText => Stat("ApprovedCount");
+    private string PartialCountText => Stat("PartiallyReceivedCount");
+    private string ReceivedCountText => Stat("ReceivedCount");
+    private string PageValueText => _pageValue.ToString("N0");
+
+    private string Stat(string key) =>
+        pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
+
+    private void SortBy(string column)
     {
-        PurchaseOrderStatus.Draft => _draftCount,
-        PurchaseOrderStatus.Approved => _approvedCount,
-        PurchaseOrderStatus.PartiallyReceived => _partialCount,
-        PurchaseOrderStatus.Received => _receivedCount,
-        _ => 0
-    };
+        if (pagedRequest.SortColumn == column)
+            pagedRequest.SortAscending = !pagedRequest.SortAscending;
+        else
+        {
+            pagedRequest.SortColumn = column;
+            pagedRequest.SortAscending = true;
+        }
+        pagedRequest.CurrentPage = 0;
+    }
+
+    private string SortIcon(string column)
+    {
+        if (pagedRequest.SortColumn != column) return "";
+        return pagedRequest.SortAscending ? "▲" : "▼";
+    }
+
+    // ─── Filters ───
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        pagedRequest.CurrentPage = 0;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(async () =>
+                {
+                    await LoadOrders();
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException) { }
+        });
+    }
+
+    private async Task OnSupplierChanged(ChangeEventArgs e)
+    {
+        pagedRequest.SupplierId = ParseGuid(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await LoadOrders();
+    }
+
+    private async Task OnWarehouseChanged(ChangeEventArgs e)
+    {
+        pagedRequest.WarehouseId = ParseGuid(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await LoadOrders();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        pagedRequest.Status = Enum.TryParse<PurchaseOrderStatus>(e.Value?.ToString(), out var s) ? s : null;
+        pagedRequest.CurrentPage = 0;
+        await LoadOrders();
+    }
+
+    private async Task OnFromChanged(ChangeEventArgs e)
+    {
+        pagedRequest.From = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await LoadOrders();
+    }
+
+    private async Task OnToChanged(ChangeEventArgs e)
+    {
+        pagedRequest.To = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await LoadOrders();
+    }
+
+    private async Task FilterByStatus(PurchaseOrderStatus? status)
+    {
+        pagedRequest.Status = pagedRequest.Status == status ? null : status;
+        pagedRequest.CurrentPage = 0;
+        await LoadOrders();
+    }
+
+    private async Task ResetFilters()
+    {
+        pagedRequest.SearchTerm = "";
+        pagedRequest.Status = null;
+        pagedRequest.SupplierId = null;
+        pagedRequest.WarehouseId = null;
+        pagedRequest.From = null;
+        pagedRequest.To = null;
+        pagedRequest.CurrentPage = 0;
+        await LoadOrders();
+    }
+
+    private static Guid? ParseGuid(object? value) =>
+        Guid.TryParse(value?.ToString(), out var g) && g != Guid.Empty ? g : null;
+
+    private static DateTime? ParseDate(object? value) =>
+        DateTime.TryParse(value?.ToString(), out var d) ? d : null;
+
+    private static string FormatDate(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "";
+
+    // ─── Paging (zero-based, matches TmPager) ───
+    private async Task GoToPage(int page)
+    {
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
+        await LoadOrders();
+    }
+
+    private async Task GoPrevPage()
+    {
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await LoadOrders();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await LoadOrders();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await LoadOrders();
+        }
+    }
 
     private static string GetStatusPill(PurchaseOrderStatus s) => s switch
     {
@@ -337,57 +583,6 @@
         _ => "tm-pill tm-pill-blue"
     };
 
-    private void OnSearchInput(ChangeEventArgs e)
-    {
-        _search = e.Value?.ToString() ?? "";
-        _page = 1;
-        _debounce?.Stop();
-        _debounce?.Dispose();
-        _debounce = new System.Timers.Timer(350) { AutoReset = false };
-        _debounce.Elapsed += async (_, __) =>
-        {
-            await LoadOrders();
-            await InvokeAsync(StateHasChanged);
-        };
-        _debounce.Start();
-    }
-
-    private async Task OnStatusChanged(ChangeEventArgs e)
-    {
-        var v = e.Value?.ToString();
-        _statusFilter = string.IsNullOrEmpty(v) ? null : Enum.Parse<PurchaseOrderStatus>(v);
-        _page = 1;
-        await LoadOrders();
-    }
-
-    private async Task PickStatus(PurchaseOrderStatus s)
-    {
-        _statusFilter = _statusFilter == s ? null : s;
-        _page = 1;
-        await LoadOrders();
-    }
-
-    private async Task ResetFilters()
-    {
-        _search = "";
-        _statusFilter = null;
-        _page = 1;
-        await LoadOrders();
-    }
-
-    private async Task OnPageChanged(int page)
-    {
-        _page = page;
-        await LoadOrders();
-    }
-
-    private async Task OnPageSizeChanged(int size)
-    {
-        _pageSize = size;
-        _page = 1;
-        await LoadOrders();
-    }
-
     private async Task Approve(Guid id)
     {
         try
@@ -395,7 +590,6 @@
             await PurchaseService.ApprovePurchaseOrder(id);
             Snackbar.Add("PO approved", Severity.Success);
             await LoadOrders();
-            await LoadCountsAsync();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
@@ -421,7 +615,6 @@
                 await PurchaseService.ReceiveGoods(po.Id, lines);
                 Snackbar.Add("Goods received successfully", Severity.Success);
                 await LoadOrders();
-                await LoadCountsAsync();
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
@@ -429,9 +622,11 @@
 
     private async Task OpenCreateEdit(Guid? orderId)
     {
-        var suppliers = await DbContext.Suppliers.Where(s => s.IsActive).OrderBy(s => s.SupplierName).ToListAsync();
-        var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
-        var wareHouse = await DbContext.Warehouses.OrderBy(p => p.Name).ToListAsync();
+        // Reference data comes from the services, not the page's DbContext — the page and the
+        // services share one scoped context, so querying it directly races the list query.
+        var suppliers = _suppliers;
+        var products = (await ProductService.GetProductsAsync(new ProductPagedRequest())).Items;
+        var wareHouse = _warehouses;
         var dataModel = new PurchaseOrderDtoModels();
         string dialogTitle = "New Purchase Order";
 
@@ -472,7 +667,7 @@
 
         var parameters = new DialogParameters<PurchaseOrderDialog>
         {
-            { x => x.Suppliers, suppliers.Select(c => new SupplierDto(){ Id = c.Id, SupplierName = c.SupplierName, SupplierEmail = c.SupplierEmail, SupplierPhone = c.SupplierPhone, ContactPersonName = c.ContactPersonName, ContactPersonPhone = c.ContactPersonPhone, ContactPersonEmail = c.ContactPersonEmail, Address = c.Address, City = c.City, Zila = c.Zila, State = c.State, Country = c.Country, PostalCode = c.PostalCode,  IsActive = false }).ToList() },
+            { x => x.Suppliers, suppliers.Where(s => s.IsActive).ToList() },
             { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.CostPrice)).ToList() },
             { x => x.WareHouses, wareHouse.Select(p => (p.Id, p.Name)).ToList() },
             {x=>x.dataModel, dataModel }
@@ -495,7 +690,6 @@
                 {
                     await PurchaseService.CreatePurchaseOrder(dto);
                     Snackbar.Add("Purchase order created", Severity.Success);
-                    await LoadCountsAsync();
                 }
                 await LoadOrders();
             }
@@ -514,7 +708,6 @@
                 await PurchaseService.CancelPurchaseOrder(id);
                 Snackbar.Add("Purchase order cancelled", Severity.Warning);
                 await LoadOrders();
-                await LoadCountsAsync();
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
@@ -531,10 +724,14 @@
                 await PurchaseService.DeletePurchaseOrder(id);
                 Snackbar.Add("Purchase order deleted", Severity.Success);
                 await LoadOrders();
-                await LoadCountsAsync();
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
     }
 
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+    }
 }

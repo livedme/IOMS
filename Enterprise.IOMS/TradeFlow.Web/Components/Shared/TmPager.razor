@@ -1,59 +1,71 @@
-<div class="tm-footer">
-    <span>@Summary</span>
-    <span class="tm-pager">
-        <span>Rows per page:</span>
-        <select class="tm-rows-select" @onchange="OnPageSizeChanged">
-            <option value="10" selected="@(PageSize == 10)">10</option>
-            <option value="20" selected="@(PageSize == 20)">20</option>
-            <option value="50" selected="@(PageSize == 50)">50</option>
-            <option value="100" selected="@(PageSize == 100)">100</option>
-        </select>
-        <button class="tm-page-btn" disabled="@(Page <= 1)" @onclick="() => PageChanged.InvokeAsync(1)" title="First">|◀</button>
-        <button class="tm-page-btn" disabled="@(Page <= 1)" @onclick="() => PageChanged.InvokeAsync(Page - 1)" title="Previous">‹</button>
-        @foreach (var pg in PageNumbers)
-        {
-            <button class="tm-page-btn @(pg == Page ? "active" : "")" @onclick="() => PageChanged.InvokeAsync(pg)">@pg</button>
-        }
-        <button class="tm-page-btn" disabled="@(Page >= TotalPages)" @onclick="() => PageChanged.InvokeAsync(Page + 1)" title="Next">›</button>
-        <button class="tm-page-btn" disabled="@(Page >= TotalPages)" @onclick="() => PageChanged.InvokeAsync(TotalPages)" title="Last">▶|</button>
-    </span>
+@* Shared pagination footer used by every list page. CurrentPage is zero-based. *@
+<div class="pagination-footer">
+    <span>Showing @GetShowingText()</span>
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:12px;">Rows per page:</span>
+            <select class="rows-select" value="@PageSize" @onchange="OnPageSizeChanged">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+        <div style="display:flex; align-items:center; gap:4px;">
+            <button class="page-btn" title="First page" @onclick="() => OnGoToPage.InvokeAsync(0)" disabled="@(CurrentPage == 0)">
+                <MudIcon Icon="@Icons.Material.Filled.FirstPage" Size="Size.Small" />
+            </button>
+            <button class="page-btn" title="Previous page" @onclick="() => OnPrev.InvokeAsync()" disabled="@(CurrentPage == 0)">
+                <MudIcon Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" />
+            </button>
+            @{
+                var visible = GetVisiblePages();
+                @for (int i = visible.start; i < visible.end; i++)
+                {
+                    var pageIndex = i;
+                    <button class="page-btn @(pageIndex == CurrentPage ? "active" : "")" @onclick="() => OnGoToPage.InvokeAsync(pageIndex)">@(pageIndex + 1)</button>
+                }
+            }
+            <button class="page-btn" title="Next page" @onclick="() => OnNext.InvokeAsync()" disabled="@(CurrentPage >= TotalPages - 1)">
+                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+            </button>
+            <button class="page-btn" title="Last page" @onclick="() => OnGoToPage.InvokeAsync(TotalPages - 1)" disabled="@(CurrentPage >= TotalPages - 1 || TotalPages <= 1)">
+                <MudIcon Icon="@Icons.Material.Filled.LastPage" Size="Size.Small" />
+            </button>
+        </div>
+    </div>
 </div>
 
 @code {
-    [Parameter] public int Total { get; set; }
-    [Parameter] public int Page { get; set; } = 1;
+    [Parameter] public int CurrentPage { get; set; }
     [Parameter] public int PageSize { get; set; } = 10;
-    [Parameter] public string ItemNoun { get; set; } = "records";
-    [Parameter] public EventCallback<int> PageChanged { get; set; }
-    [Parameter] public EventCallback<int> PageSizeChanged { get; set; }
+    [Parameter] public int TotalCount { get; set; }
+    [Parameter] public int TotalPages { get; set; } = 1;
+    /// <summary>Label used in the showing text, e.g. "Products", "Invoices".</summary>
+    [Parameter] public string ItemLabel { get; set; } = "items";
 
-    private int TotalPages => Math.Max(1, (int)Math.Ceiling(Total / (double)PageSize));
+    [Parameter] public EventCallback<int> OnGoToPage { get; set; }
+    [Parameter] public EventCallback OnPrev { get; set; }
+    [Parameter] public EventCallback OnNext { get; set; }
+    [Parameter] public EventCallback<ChangeEventArgs> OnPageSizeChanged { get; set; }
 
-    private string Summary
+    // Only a few page buttons stay visible; the rest are reached with the ‹ › buttons.
+    private const int MaxVisiblePages = 4;
+    private (int start, int end) GetVisiblePages()
     {
-        get
-        {
-            if (Total == 0) return $"No {ItemNoun}";
-            var safe = Math.Min(Math.Max(Page, 1), TotalPages);
-            var from = ((safe - 1) * PageSize) + 1;
-            var to = Math.Min(safe * PageSize, Total);
-            return $"Showing {from} to {to} of {Total} {ItemNoun}";
-        }
+        if (TotalPages <= MaxVisiblePages) return (0, TotalPages);
+        int start = CurrentPage - MaxVisiblePages / 2;
+        start = Math.Max(0, Math.Min(start, TotalPages - MaxVisiblePages));
+        int end = start + MaxVisiblePages;
+        return (start, end);
     }
 
-    private IEnumerable<int> PageNumbers
+    private string GetShowingText()
     {
-        get
-        {
-            var start = Math.Max(1, Math.Min(Page - 1, Math.Max(1, TotalPages - 3)));
-            var end = Math.Min(TotalPages, start + 3);
-            for (var i = start; i <= end; i++) yield return i;
-        }
-    }
-
-    private void OnPageSizeChanged(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var sz))
-            PageSizeChanged.InvokeAsync(sz);
+        if (TotalCount == 0) return $"0 {ItemLabel}";
+        var page = Math.Clamp(CurrentPage, 0, Math.Max(0, TotalPages - 1));
+        var start = page * PageSize + 1;
+        var end = Math.Min(start + PageSize - 1, TotalCount);
+        return $"{start} to {end} of {TotalCount} {ItemLabel}";
     }
 }

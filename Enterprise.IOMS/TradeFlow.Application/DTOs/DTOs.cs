@@ -134,6 +134,22 @@ public record InventoryDto(Guid Id, Guid ProductId, string ProductName, string P
     Guid WarehouseId, string WarehouseName, int Quantity, int ReservedQuantity,
     int AvailableQuantity, string? BinLocation);
 
+/// <summary>
+/// One stock record per product/warehouse. Backs both the Stock Levels grid and its
+/// Low Stock Alerts view, which is the same rows pinned to those at or below reorder level.
+/// </summary>
+public record StockLevelDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU,
+    Guid WarehouseId, string WarehouseName, int Quantity, int ReservedQuantity,
+    int AvailableQuantity, int ReorderStockLevel, string? BinLocation);
+
+/// <summary>
+/// One stock movement. The Stock Transfers grid is this same query pinned to
+/// <see cref="StockMovementType.Transfer"/>.
+/// </summary>
+public record StockMovementDto(Guid Id, DateTime MovementDate, Guid ProductId, string ProductName,
+    Guid WarehouseId, string WarehouseName, StockMovementType Type, int Quantity,
+    string? Reference, string? Notes, Guid? SourceWarehouseId, Guid? DestinationWarehouseId);
+
 // Extended InventoryDto for tracking
 public record InventoryTrackingDto(
     Guid Id,

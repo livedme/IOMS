@@ -1,27 +1,27 @@
 @page "/inventory/transfers"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@implements IDisposable
 @inject IInventoryService InventoryService
+@inject IProductService ProductService
 @inject ISnackbar Snackbar
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
 
 <PageTitle>Stock Transfers - IOMS</PageTitle>
 
 <div class="tm-page">
     <TmPageHeader Icon="🚚" Title="Stock Transfers" Subtitle="Move stock between warehouses and review transfer history">
         <Actions>
-            <button class="tm-add-btn" @onclick="Load">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="Refresh">⟳ Refresh</button>
         </Actions>
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="🚚" Number="@_transfers.Count" Label="Transfers" Tone="blue" />
-        <TmStatTile Icon="📦" Number="@_distinctProducts" Label="Products Moved" Tone="purple" />
-        <TmStatTile Icon="⬆️" Number="@_totalUnits" Label="Total Units" Tone="green" />
-        <TmStatTile Icon="🏬" Number="@_warehouses.Count" Label="Warehouses" Tone="teal" />
-        <TmStatTile Icon="📅" Number="@_lastTransferText" Label="Last Transfer" Tone="yellow" />
-        <TmStatTile Icon="📥" Number="@_latestIn" Label="Latest In" Tone="green" />
+        <TmStatTile Icon="🚚" Number="@TotalCountText" Label="Transfers" Tone="blue" />
+        <TmStatTile Icon="📦" Number="@DistinctProductCountText" Label="Products Moved" Tone="purple" />
+        <TmStatTile Icon="⬆️" Number="@TotalUnitsText" Label="Total Units" Tone="green" />
+        <TmStatTile Icon="🏬" Number="@WarehouseCountText" Label="Warehouses" Tone="teal" />
+        <TmStatTile Icon="📅" Number="@LastTransferText" Label="Last Transfer" Tone="yellow" />
+        <TmStatTile Icon="📥" Number="@LatestInText" Label="Latest In" Tone="green" />
     </div>
 
     <!-- New transfer form -->
@@ -63,36 +63,64 @@
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by product or reference..." value="@_search" @oninput="OnSearchInput" />
+            <input placeholder="Search by product or reference..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select value="@(pagedRequest.WarehouseId?.ToString() ?? "")" @onchange="OnWarehouseChanged">
+                <option value="">All Warehouses</option>
+                @foreach (var w in _warehouses)
+                {
+                    <option value="@w.Id">@w.Name</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.From)" @onchange="OnFromChanged" title="From date" />
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(pagedRequest.To)" @onchange="OnToChanged" title="To date" />
         </div>
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
     <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading transfers...</MudText>
+            </div>
+        }
         <div class="tm-table-wrap">
             <table class="tm-table" style="min-width:820px">
                 <thead>
                     <tr>
-                        <th>📅 Date</th>
-                        <th>📦 Product</th>
-                        <th>Warehouse</th>
-                        <th style="text-align:right">Quantity</th>
-                        <th>Reference</th>
+                        <th @onclick="@(() => SortBy(Col.MovementDate))">📅 Date @SortIcon(Col.MovementDate)</th>
+                        <th @onclick="@(() => SortBy(Col.ProductName))">📦 Product @SortIcon(Col.ProductName)</th>
+                        <th @onclick="@(() => SortBy(Col.WarehouseName))">Warehouse @SortIcon(Col.WarehouseName)</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.Quantity))">Quantity @SortIcon(Col.Quantity)</th>
+                        <th @onclick="@(() => SortBy(Col.Reference))">Reference @SortIcon(Col.Reference)</th>
                         <th>Direction</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (_loading)
+                    @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="6"><TmLoading Message="Loading transfers..." /></td></tr>
+                        <tr><td colspan="6" style="text-align:center; padding:40px; color:#94a3b8;">Loading transfers...</td></tr>
                     }
-                    else if (Paged.Count == 0)
+                    else if (pagedResultNew.Items.Count == 0)
                     {
-                        <tr><td colspan="6"><div class="tm-loading">No transfers found</div></td></tr>
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No transfers found — try a different search or filter</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
                     }
                     else
                     {
-                        @foreach (var t in Paged)
+                        @foreach (var t in pagedResultNew.Items)
                         {
                             var isIn = t.Quantity >= 0;
                             <tr>
@@ -116,59 +144,148 @@
                 </tbody>
             </table>
         </div>
-        <TmPager Total="@Filtered.Count" Page="@_page" PageSize="@_pageSize" ItemNoun="transfers"
-                  PageChanged="@(p => _page = p)" PageSizeChanged="@OnPageSizeChanged" />
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="pagedResultNew.CurrentPage"
+                     PageSize="pagedResultNew.PageSize"
+                     TotalCount="pagedResultNew.TotalCount"
+                     TotalPages="pagedResultNew.TotalPages"
+                     ItemLabel="Stock Transfers"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
     </div>
 </div>
 
 @code {
-    private record TransferDisplay(DateTime MovementDate, string ProductName, string WarehouseName, int Quantity, string? Reference);
+    private static class Col
+    {
+        public const string MovementDate = "MovementDate";
+        public const string ProductName = "ProductName";
+        public const string WarehouseName = "WarehouseName";
+        public const string Quantity = "Quantity";
+        public const string Reference = "Reference";
+    }
 
-    private List<TransferDisplay> _transfers = new();
-    private List<Product> _products = new();
-    private List<Warehouse> _warehouses = new();
+    // ─── List state ───
+    // Transfers are stock movements pinned to StockMovementType.Transfer, so this page and the
+    // Stock Movements grid share one query and one pager implementation.
+    private PagedResultNew<StockMovementDto> pagedResultNew = new();
+    private StockMovementPagedRequest pagedRequest = new()
+    {
+        Type = StockMovementType.Transfer,
+        SortColumn = Col.MovementDate,
+        SortAscending = false
+    };
+
+    private List<(Guid Id, string Name, string SKU)> _products = new();
+    private List<(Guid Id, string Name)> _warehouses = new();
     private Guid _transferProductId, _sourceWarehouseId, _targetWarehouseId;
     private int _transferQty = 1;
     private bool _loading = true;
-    private string _search = "";
-    private int _page = 1;
-    private int _pageSize = 10;
-    private int _distinctProducts, _totalUnits, _latestIn;
-    private string _lastTransferText = "-";
+    private bool _hasLoadedOnce;
+    private bool _loadRunning;
+    private bool _loadQueued;
+    private CancellationTokenSource? _debounceCts;
 
     protected override async Task OnInitializedAsync()
     {
-        _products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
-        _warehouses = await DbContext.Warehouses.Where(w => w.IsActive).OrderBy(w => w.Name).ToListAsync();
+        try
+        {
+            var products = await ProductService.GetProductsAsync(new ProductPagedRequest { PageSize = 100 });
+            _products = products.Items
+                .OrderBy(p => p.Name)
+                .Select(p => (p.Id, p.Name, p.SKU))
+                .ToList();
+        }
+        catch { }
+
+        try
+        {
+            var warehouses = await ProductService.GetAllWarehousesAsync();
+            _warehouses = warehouses
+                .OrderBy(w => w.Name)
+                .Select(w => (w.Id, w.Name))
+                .ToList();
+        }
+        catch { }
+
         await Load();
     }
 
-    private List<TransferDisplay> Filtered => _transfers.Where(t =>
-        string.IsNullOrWhiteSpace(_search)
-        || t.ProductName.Contains(_search, StringComparison.OrdinalIgnoreCase)
-        || (t.Reference?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+    private async Task Refresh() => await Load();
 
-    private List<TransferDisplay> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
-
+    /// <summary>
+    /// Single-flight loader. The page and the services share one scoped DbContext, so two
+    /// overlapping queries would throw "A second operation was started on this context
+    /// instance". Callers that arrive mid-flight set a flag instead of starting a parallel
+    /// query, and the running load then re-runs once with the newest filter state.
+    /// </summary>
     private async Task Load()
+    {
+        if (_loadRunning)
+        {
+            _loadQueued = true;
+            return;
+        }
+
+        _loadRunning = true;
+        try
+        {
+            do
+            {
+                _loadQueued = false;
+                await LoadCore();
+            }
+            while (_loadQueued);
+        }
+        finally { _loadRunning = false; }
+    }
+
+    private async Task LoadCore()
     {
         _loading = true;
         try
         {
-            _transfers = await DbContext.StockMovements
-                .Include(m => m.Product).Include(m => m.Warehouse)
-                .Where(m => m.Type == StockMovementType.Transfer)
-                .OrderByDescending(m => m.MovementDate).Take(100)
-                .Select(m => new TransferDisplay(m.MovementDate, m.Product.Name, m.Warehouse.Name, m.Quantity, m.Reference))
-                .ToListAsync();
-
-            _distinctProducts = _transfers.Select(t => t.ProductName).Distinct().Count();
-            _totalUnits = _transfers.Sum(t => Math.Abs(t.Quantity));
-            _latestIn = _transfers.FirstOrDefault(t => t.Quantity > 0)?.Quantity ?? 0;
-            _lastTransferText = _transfers.Count > 0 ? _transfers[0].MovementDate.ToString("dd MMM") : "-";
+            pagedResultNew = await InventoryService.GetStockMovementsPagedAsync(pagedRequest);
+            _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
+    }
+
+    // ─── Stats / sorting helpers ───
+    private string TotalCountText => Stat("TotalCount");
+    private string DistinctProductCountText => Stat("DistinctProductCount");
+    private string TotalUnitsText => Stat("TransferUnits");
+    private string WarehouseCountText => Stat("WarehouseCount");
+    private string LatestInText =>
+        pagedResultNew.Items.FirstOrDefault(t => t.Quantity > 0)?.Quantity.ToString() ?? "0";
+
+    // The newest transfer on the current page — the grid is date-sorted, so it is the first row.
+    private string LastTransferText =>
+        pagedResultNew.Items.Count > 0 ? pagedResultNew.Items[0].MovementDate.ToString("dd MMM") : "-";
+
+    private string Stat(string key) =>
+        pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
+
+    private void SortBy(string column)
+    {
+        if (pagedRequest.SortColumn == column)
+            pagedRequest.SortAscending = !pagedRequest.SortAscending;
+        else
+        {
+            pagedRequest.SortColumn = column;
+            pagedRequest.SortAscending = true;
+        }
+        pagedRequest.CurrentPage = 0;
+    }
+
+    private string SortIcon(string column)
+    {
+        if (pagedRequest.SortColumn != column) return "";
+        return pagedRequest.SortAscending ? "▲" : "▼";
     }
 
     private async Task ExecuteTransfer()
@@ -204,21 +321,108 @@
     private static Guid ParseGuid(object? v) =>
         Guid.TryParse(v?.ToString(), out var g) ? g : Guid.Empty;
 
+    // ─── Filters ───
     private void OnSearchInput(ChangeEventArgs e)
     {
-        _search = e.Value?.ToString() ?? "";
-        _page = 1;
+        pagedRequest.SearchTerm = e.Value?.ToString() ?? "";
+        pagedRequest.CurrentPage = 0;
+
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, token);
+                if (token.IsCancellationRequested) return;
+                await InvokeAsync(async () =>
+                {
+                    await Load();
+                    StateHasChanged();
+                });
+            }
+            catch (OperationCanceledException) { }
+        });
     }
 
-    private void ResetFilters()
+    private async Task OnWarehouseChanged(ChangeEventArgs e)
     {
-        _search = "";
-        _page = 1;
+        var v = e.Value?.ToString();
+        pagedRequest.WarehouseId = string.IsNullOrEmpty(v) ? null : ParseGuid(v);
+        pagedRequest.CurrentPage = 0;
+        await Load();
     }
 
-    private void OnPageSizeChanged(int size)
+    private async Task OnFromChanged(ChangeEventArgs e)
     {
-        _pageSize = size;
-        _page = 1;
+        pagedRequest.From = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private async Task OnToChanged(ChangeEventArgs e)
+    {
+        pagedRequest.To = ParseDate(e.Value);
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private async Task ResetFilters()
+    {
+        pagedRequest.SearchTerm = "";
+        pagedRequest.WarehouseId = null;
+        pagedRequest.From = null;
+        pagedRequest.To = null;
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private static DateTime? ParseDate(object? value) =>
+        DateTime.TryParse(value?.ToString(), out var d) ? d : null;
+
+    private static string FormatDate(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "";
+
+    // ─── Paging (zero-based, matches TmPager) ───
+    private async Task GoToPage(int page)
+    {
+        pagedRequest.CurrentPage = Math.Clamp(page, 0, Math.Max(0, pagedResultNew.TotalPages - 1));
+        await Load();
+    }
+
+    private async Task GoPrevPage()
+    {
+        if (pagedRequest.CurrentPage > 0)
+        {
+            pagedRequest.CurrentPage--;
+            await Load();
+        }
+    }
+
+    private async Task GoNextPage()
+    {
+        if (pagedRequest.CurrentPage < pagedResultNew.TotalPages - 1)
+        {
+            pagedRequest.CurrentPage++;
+            await Load();
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            pagedRequest.PageSize = Math.Clamp(sz, 1, 100);
+            pagedRequest.CurrentPage = 0;
+            await Load();
+        }
+    }
+
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
     }
 }
