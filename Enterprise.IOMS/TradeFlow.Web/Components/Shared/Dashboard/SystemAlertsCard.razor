@@ -1,23 +1,26 @@
-<DashboardCardShell Title="System Alerts" ViewAllHref="/alerts">
-    <div>
+<DashboardCardShell Title="System Alerts" ViewAllHref="/admin/audit-logs" ViewAllText="Audit Logs">
+    <div class="tm-list">
         @if (!Items.Any())
         {
-            <div style="padding:12px 14px;">
+            <div class="tm-panel-body">
                 <MudAlert Severity="Severity.Success" Dense="true">No active alerts.</MudAlert>
             </div>
         }
-        @foreach (var al in Items)
+        else
         {
-            var (bg, icon) = GetAlertStyle(al.AlertType);
-            <div class="alert-row">
-                <div style="width:30px;height:30px;border-radius:50%;background:@bg;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <MudIcon Icon="@icon" Size="Size.Small" Style="color:white; font-size:15px;" />
+            @foreach (var al in Items)
+            {
+                var (bg, icon) = GetAlertStyle(al.AlertType);
+                <div class="tm-list-row">
+                    <div class="tm-list-ico" style="background:@bg;">
+                        <MudIcon Icon="@icon" Size="Size.Small" Style="color:#fff; font-size:15px;" />
+                    </div>
+                    <div class="tm-list-main">
+                        <div class="tm-list-title" title="@al.Detail">@al.Title</div>
+                        <div class="tm-list-sub">@al.TimeAgo</div>
+                    </div>
                 </div>
-                <div style="flex:1; min-width:0;">
-                    <div style="font-weight:600; font-size:0.80rem; color:#1e293b; line-height:1.2;">@al.Title</div>
-                    <div style="font-size:0.72rem; color:#64748b;">@al.TimeAgo</div>
-                </div>
-            </div>
+            }
         }
     </div>
 </DashboardCardShell>

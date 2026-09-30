@@ -1,27 +1,29 @@
 <DashboardCardShell Title="Sales Overview" FillHeight="true">
     <HeaderExtra>
-        <MudSelect T="string" Value="@Range" ValueChanged="@OnRangeChangedAsync" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:110px; background:#f8fafc; border-radius:8px; font-size:0.8rem;">
-            <MudSelectItem Value="@("Last 7 Days")">Last 7 Days</MudSelectItem>
-            <MudSelectItem Value="@("Last 30 Days")">Last 30 Days</MudSelectItem>
-            <MudSelectItem Value="@("Last 12 Months")">Last 12 Months</MudSelectItem>
-        </MudSelect>
+        <div class="tm-select" style="min-width:130px; max-width:150px;">
+            <select class="tm-panel-select" value="@Range" @onchange="OnRangeChanged">
+                <option value="Last 7 Days">Last 7 Days</option>
+                <option value="Last 30 Days">Last 30 Days</option>
+                <option value="Last 12 Months">Last 12 Months</option>
+            </select>
+        </div>
     </HeaderExtra>
     <ChildContent>
-        <div style="padding:12px 14px;">
+        <div class="tm-panel-body">
             @if (Points.Any())
             {
                 decimal maxDay = Points.Max(x => x.TotalSales);
-                <div class="mday-grid">
+                <div class="tm-day-grid">
                     @foreach (var d in Points)
                     {
                         var w = maxDay <= 0 ? 0 : (double)d.TotalSales / (double)maxDay * 100;
-                        var profitColor = d.Profit >= 0 ? "#16a34a" : "#dc2626";
-                        <div class="mday">
-                            <div class="mday-label" title="@d.Label">@d.Label</div>
-                            <div class="mday-val">@d.TotalSales.ToString("C0")</div>
-                            <div class="mday-sub" style="color:@profitColor;">@d.Profit.ToString("C0")</div>
-                            <div class="mcard-track" style="margin-top:6px;">
-                                <div class="mcard-fill" style="width:@w.ToString("0")%; background:linear-gradient(90deg,#3b82f6,#60a5fa);"></div>
+                        var profitClass = d.Profit >= 0 ? "tm-green" : "tm-red";
+                        <div class="tm-day">
+                            <div class="tm-day-label" title="@d.Label">@d.Label</div>
+                            <div class="tm-day-val">@d.TotalSales.ToString("C0")</div>
+                            <div class="tm-day-sub @profitClass">@d.Profit.ToString("C0")</div>
+                            <div class="tm-bar" style="margin-top:6px;">
+                                <div class="tm-bar-fill" style="width:@w.ToString("0")%; background:linear-gradient(90deg,#3b82f6,#60a5fa);"></div>
                             </div>
                         </div>
                     }
@@ -40,5 +42,5 @@
     [Parameter] public string Range { get; set; } = "Last 7 Days";
     [Parameter] public EventCallback<string> RangeChanged { get; set; }
 
-    private Task OnRangeChangedAsync(string v) => RangeChanged.InvokeAsync(v);
+    private Task OnRangeChanged(ChangeEventArgs e) => RangeChanged.InvokeAsync(e.Value?.ToString() ?? "Last 7 Days");
 }

@@ -1,30 +1,37 @@
-<DashboardCardShell Title="Payment Methods" ViewAllHref="/finance" FillHeight="true">
-    <div style="padding:12px 14px;">
-        @if (Items.Any())
+<DashboardCardShell Title="Payment Methods" ViewAllHref="/accounting/payments" ViewAllText="Payments" FillHeight="true">
+    <div class="tm-list">
+        @if (!Items.Any())
         {
-            decimal maxPay = Items.Max(p => p.Amount);
-            <div class="mcard-grid">
-                @foreach (var pm in Items)
-                {
-                    var col = GetPaymentColor(pm.Method);
-                    var w = maxPay <= 0 ? 0 : (double)pm.Amount / (double)maxPay * 100;
-                    <div class="mcard">
-                        <div class="mcard-head">
-                            <div class="mcard-ico" style="background:@col;">
-                                <MudIcon Icon="@GetPaymentIcon(pm.Method)" Size="Size.Small" Style="font-size:15px; color:#fff;" />
-                            </div>
-                            <div class="mcard-label" title="@pm.Method">@pm.Method</div>
-                        </div>
-                        <div class="mcard-val">@pm.Amount.ToString("C0")</div>
-                        <div class="mcard-sub">@pm.Percentage.ToString("0.0")% of sales</div>
-                        <div class="mcard-track"><div class="mcard-fill" style="width:@w.ToString("0")%; background:@col;"></div></div>
-                    </div>
-                }
+            <div class="tm-panel-body">
+                <MudAlert Severity="Severity.Info" Dense="true">No payment data.</MudAlert>
             </div>
         }
         else
         {
-            <MudAlert Severity="Severity.Info" Dense="true">No payment data.</MudAlert>
+            int rank = 1;
+            decimal maxPay = Items.Max(p => p.Amount);
+            foreach (var pm in Items)
+            {
+                var col = GetPaymentColor(pm.Method);
+                var w = maxPay <= 0 ? 0 : (double)pm.Amount / (double)maxPay * 100;
+                <div class="tm-list-row">
+                    <div class="tm-rank">@rank</div>
+                    <div class="tm-list-ico" style="background:@col;">
+                        <MudIcon Icon="@GetPaymentIcon(pm.Method)" Size="Size.Small" Style="font-size:15px; color:#fff;" />
+                    </div>
+                    <div class="tm-list-main">
+                        <div class="tm-list-title" title="@pm.Method">@pm.Method</div>
+                        <div class="tm-bar" style="margin-top:5px;">
+                            <div class="tm-bar-fill" style="width:@w.ToString("0")%; background:@col;"></div>
+                        </div>
+                    </div>
+                    <div class="tm-list-end">
+                        <div class="tm-list-amt">@pm.Amount.ToString("C0")</div>
+                        <div class="tm-list-meta">@pm.Percentage.ToString("0.0")% of sales</div>
+                    </div>
+                </div>
+                rank++;
+            }
         }
     </div>
 </DashboardCardShell>

@@ -7,76 +7,66 @@
 
 <PageTitle>Dashboard - IOMS</PageTitle>
 
-<div style="background:#f5f7fb; margin:-24px; padding:0px 20px 18px 20px;">
-    <DashboardHeader Title="Dashboard"
-                     Subtitle="Welcome back! Here's what's happening with your business today."
-                     DateRange="@_dateRange"
+<div class="tm-page">
+    <TmPageHeader Icon="📊" Title="Dashboard" Subtitle="Welcome back! Here's what's happening with your business today." WrapActions="true">
+        <Actions>
+            <DashboardQuickActions />
+        </Actions>
+    </TmPageHeader>
+
+    <DashboardHeader DateRange="@_dateRange"
                      StoreFilter="@_storeFilter"
                      DateRangeChanged="@OnDateRangeChanged"
-                     StoreFilterChanged="@OnStoreFilterChanged" />
+                     StoreFilterChanged="@OnStoreFilterChanged"
+                     OnRefresh="@LoadDashboard" />
 
     @if (_loading)
     {
-        <MudGrid>
+        <div class="tm-stats">
             @for (int i = 0; i < 6; i++)
             {
-                <MudItem xs="12" sm="6" md="2">
-                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" Style="border-radius:14px;" />
-                </MudItem>
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" Style="border-radius:10px;" />
             }
-        </MudGrid>
+        </div>
+        <div class="tm-card tm-table-card">
+            <div class="tm-loading">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <span>Loading dashboard data...</span>
+            </div>
+        </div>
     }
     else
     {
-        <MudGrid Spacing="3">
-            <MudItem xs="12" lg="9">
-                <DashboardKpiRow Kpis="@_extKpis" />
+        <div class="tm-dash">
+            <DashboardKpiRow Kpis="@_extKpis" />
 
-                <MudGrid Spacing="2" Class="mb-3" Style="width: 100%;">
-                    <MudItem xs="12">
-                        <SalesOverviewCard Points="@_salesOverview" Range="@_overviewRange" RangeChanged="@OnOverviewRangeChanged" />
-                    </MudItem>
-                </MudGrid>
+            <SalesOverviewCard Points="@_salesOverview" Range="@_overviewRange" RangeChanged="@OnOverviewRangeChanged" />
 
-                <MudGrid Spacing="2" Class="mb-3" Style="width: 100%;">
-                    <MudItem xs="12" md="6">
-                        <SalesByCategoryCard Items="@_salesByCategory" />
-                    </MudItem>
-                    <MudItem xs="12" md="6">
-                        <TopProductsCard Items="@_topProducts" />
-                    </MudItem>
-                </MudGrid>
+            <div class="tm-dash-row">
+                <SalesByCategoryCard Items="@_salesByCategory" />
+                <TopProductsCard Items="@_topProducts" />
+            </div>
 
-                <MudGrid Spacing="2" Class="mb-3" Style="width: 100%;">
-                    <MudItem xs="12" md="4">
-                        <StoreSalesCard Items="@_dailyByStore" />
-                    </MudItem>
-                    <MudItem xs="12" md="4">
-                        <InventoryStatusCard Status="@_inventoryStatus" />
-                    </MudItem>
-                    <MudItem xs="12" md="4">
-                        <PaymentMethodsCard Items="@_paymentMethods" />
-                    </MudItem>
-                </MudGrid>
+            <div class="tm-dash-row-3">
+                <StoreSalesCard Items="@_dailyByStore" />
+                <InventoryStatusCard Status="@_inventoryStatus" />
+                <PaymentMethodsCard Items="@_paymentMethods" />
+            </div>
 
-                <MudGrid Spacing="2">
-                    <MudItem xs="12" md="7">
-                        <RecentOrdersCard Items="@_recentOrdersExt" />
-                    </MudItem>
-                    <MudItem xs="12" md="3">
+            <div class="tm-dash-cols">
+                <div class="tm-dash">
+                    <RecentOrdersCard Items="@_recentOrdersExt" />
+                    <div class="tm-dash-row">
                         <BestStoresCard Items="@_bestStores" />
-                    </MudItem>
-                    <MudItem xs="12" md="2">
                         <AnalyticsPromoCard />
-                    </MudItem>
-                </MudGrid>
-            </MudItem>
-
-            <MudItem xs="12" lg="3">
-                <div class="mb-3"><RecentTransactionsCard Items="@_recentTx" /></div>
-                <SystemAlertsCard Items="@_alerts" />
-            </MudItem>
-        </MudGrid>
+                    </div>
+                </div>
+                <div class="tm-dash">
+                    <RecentTransactionsCard Items="@_recentTx" />
+                    <SystemAlertsCard Items="@_alerts" />
+                </div>
+            </div>
+        </div>
     }
 </div>
 
@@ -89,6 +79,9 @@
     private string _dateRange = "Apr 29, 2025 - May 5, 2025";
     private string _storeFilter = "All Stores";
     private string _overviewRange = "Last 7 Days";
+
+    /// <summary>Day count backing the sales overview strip; kept in sync with the range dropdown.</summary>
+    private int OverviewDays { get; set; } = 7;
 
     private DashboardKpiDto? _kpis;
     private DashboardExtendedKpiDto _extKpis = EmptyExtendedKpis;
@@ -103,9 +96,15 @@
     private List<SystemAlertDto> _alerts = new();
     private List<RecentOrderExtendedDto> _recentOrdersExt = new();
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadDashboard();
+
+    /// <summary>
+    /// Populates every dashboard tile. Also wired to the toolbar refresh button.
+    /// </summary>
+    private async Task LoadDashboard()
     {
         var started = Stopwatch.GetTimestamp();
+        _loading = true;
 
         // The twelve dashboard reads are issued one after another rather than through
         // Task.WhenAll. IDashboardService is scoped, so every call shares a single
@@ -115,7 +114,7 @@
         // and costs no database round trips.
         _kpis = await SafeAsync(() => DashboardService.GetDashboardKPIs(), EmptyKpis, "GetDashboardKPIs");
         _extKpis = await SafeAsync(() => DashboardService.GetExtendedKpis(), EmptyExtendedKpis, "GetExtendedKpis");
-        _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(7), new List<SalesOverviewPointDto>(), "GetSalesOverview");
+        _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(OverviewDays), new List<SalesOverviewPointDto>(), "GetSalesOverview");
         _salesByCategory = await SafeAsync(() => DashboardService.GetSalesByCategory(), new List<SalesByCategoryDto>(), "GetSalesByCategory");
         _paymentMethods = await SafeAsync(() => DashboardService.GetPaymentMethodBreakdown(), new List<PaymentMethodBreakdownDto>(), "GetPaymentMethodBreakdown");
         _inventoryStatus = await SafeAsync(() => DashboardService.GetInventoryStatus(), EmptyInventoryStatus, "GetInventoryStatus");
@@ -155,6 +154,7 @@
         _dateRange = v;
         var days = v.Contains("30") ? 30 : 7;
         _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(days), new List<SalesOverviewPointDto>(), "GetSalesOverview");
+        OverviewDays = days;
     }
 
     private Task OnStoreFilterChanged(string v)
@@ -167,6 +167,7 @@
     {
         _overviewRange = v;
         var days = v.Contains("30") ? 30 : v.Contains("12") ? 12 : 7;
+        OverviewDays = days;
         if (days == 12)
         {
             var monthly = await SafeAsync(() => DashboardService.GetMonthlySalesData(12), new List<MonthlySalesDto>(), "GetMonthlySalesData");

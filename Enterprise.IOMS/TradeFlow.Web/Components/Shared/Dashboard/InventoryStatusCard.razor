@@ -1,5 +1,5 @@
-<DashboardCardShell Title="Inventory Status" ViewAllHref="/products" FillHeight="true">
-    <div style="padding:12px 14px;">
+<DashboardCardShell Title="Inventory Status" ViewAllHref="/inventory/stock-levels" ViewAllText="Stock Levels" FillHeight="true">
+    <div class="tm-list">
         @{
             var invTotal = Math.Max(Status.TotalProducts, 1);
             var invItems = new[]
@@ -9,23 +9,25 @@
                 (Label: "Out of Stock", Count: Status.OutOfStock, Pct: Status.OutOfStockPct, Color: "#ef4444", Icon: Icons.Material.Filled.Error)
             };
         }
-        <div class="mcard-grid">
-            @foreach (var inv in invItems)
-            {
-                var w = (double)inv.Count / invTotal * 100;
-                <div class="mcard">
-                    <div class="mcard-head">
-                        <div class="mcard-ico" style="background:@inv.Color;">
-                            <MudIcon Icon="@inv.Icon" Size="Size.Small" Style="font-size:15px; color:#fff;" />
-                        </div>
-                        <div class="mcard-label">@inv.Label</div>
-                    </div>
-                    <div class="mcard-val">@inv.Count.ToString("N0")</div>
-                    <div class="mcard-sub">@inv.Pct.ToString("0.0")% of @Status.TotalProducts.ToString("N0")</div>
-                    <div class="mcard-track"><div class="mcard-fill" style="width:@w.ToString("0")%; background:@inv.Color;"></div></div>
+        @foreach (var inv in invItems)
+        {
+            var w = (double)inv.Count / invTotal * 100;
+            <div class="tm-list-row">
+                <div class="tm-list-ico" style="background:@inv.Color;">
+                    <MudIcon Icon="@inv.Icon" Size="Size.Small" Style="font-size:15px; color:#fff;" />
                 </div>
-            }
-        </div>
+                <div class="tm-list-main">
+                    <div class="tm-list-title">@inv.Label</div>
+                    <div class="tm-bar" style="margin-top:5px;">
+                        <div class="tm-bar-fill" style="width:@w.ToString("0")%; background:@inv.Color;"></div>
+                    </div>
+                </div>
+                <div class="tm-list-end">
+                    <div class="tm-list-amt">@inv.Count.ToString("N0")</div>
+                    <div class="tm-list-meta">@inv.Pct.ToString("0.0")% of @Status.TotalProducts.ToString("N0")</div>
+                </div>
+            </div>
+        }
     </div>
 </DashboardCardShell>
 

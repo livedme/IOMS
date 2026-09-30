@@ -984,136 +984,257 @@ table.tm-table {
 }
 
 /* ============================================================
-   Dashboard cards (shared by Components/Shared/Dashboard/*)
+   Dashboard — reuses the Product List (tm-*) design system
    ============================================================ */
-.dash-bg {
-    background: #f5f7fb;
-}
 
-.kpi-card {
-    border-radius: 14px;
-    padding: 16px 18px;
-    position: relative;
-    overflow: hidden;
-    min-height: 110px;
+/* Layout */
+.tm-dash {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    border: 1px solid rgba(0,0,0,0.06);
+    gap: 10px;
 }
 
-.kpi-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+.tm-dash-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+}
+
+.tm-dash-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.tm-dash-row-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+@media (max-width: 1300px) {
+    .tm-dash-cols {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 1000px) {
+    .tm-dash-row, .tm-dash-row-3 {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Panel = tm-card with a header strip */
+.tm-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.tm-panel-head {
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: #fff;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 14px;
+    border-bottom: 1px solid #eef0f4;
 }
 
-.kpi-value {
-    font-size: 1.55rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    line-height: 1;
-    margin: 6px 0 4px;
-}
-
-.kpi-label {
-    font-size: 0.78rem;
-    color: #4b5563;
-    font-weight: 600;
-}
-
-.kpi-trend {
-    font-size: 0.72rem;
+.tm-panel-title {
+    font-size: 13.5px;
     font-weight: 700;
+    color: #111827;
+    line-height: 1.1;
+}
+
+.tm-panel-link {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2563eb;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+    .tm-panel-link:hover {
+        text-decoration: underline;
+    }
+
+.tm-panel-body {
+    padding: 12px 14px;
+}
+
+.tm-panel-select {
+    border: 1px solid #c9ced6;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12.5px;
+    background: #fff;
+    color: #111827;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Trend line inside a tm-stat tile */
+.tm-stat-trend {
+    font-size: 10.5px;
+    font-weight: 700;
+    margin-top: 3px;
     display: flex;
     align-items: center;
     gap: 3px;
 }
 
-.dash-card {
-    border-radius: 14px;
-    background: #fff;
-    border: 1px solid #eef2f7;
-    overflow: hidden;
+.tm-stat-trend.up {
+    color: #15803d;
 }
 
-.dash-card-header {
+.tm-stat-trend.down {
+    color: #b91c1c;
+}
+
+/* Quick actions in the toolbar */
+.tm-quick {
+    flex: 1.4;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px 10px;
-    border-bottom: 1px solid #f1f5f9;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 220px;
 }
 
-.dash-card-title {
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: #1e293b;
-}
-
-.viewall-link {
-    font-size: 0.78rem;
-    color: #4361ee;
-    cursor: pointer;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.dashboard-topbar {
-    width: 100%;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 18px;
-    margin-bottom: 14px;
-}
-
-.dashboard-title-wrap {
-    min-width: 240px;
-    padding-top: 2px;
-}
-
-.dashboard-actions-panel {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
-    margin-left: auto;
-}
-
-.quick-actions-grid {
+/* Quick actions docked in the page header (right of the title) */
+.tm-quick-head {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: 12px;
-    width: 100%;
+    gap: 6px;
 }
 
-.quick-btn {
-    border-radius: 10px;
-    background: #f8fafc;
-    border: 1px solid #eef2f7;
-    padding: 4px;
+.tm-header-wrap {
+    flex-wrap: wrap;
+    row-gap: 10px;
+}
+
+.tm-header-actions-wrap {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 6px;
+}
+
+.tm-quick-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #dfe3ea;
+    background: #fff;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+    .tm-quick-btn:hover {
+        background: #f3f4f6;
+        color: #111827;
+    }
+
+.tm-quick-ico {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+/* Secondary line under a tm-list value (e.g. "12.4% of sales") */
+.tm-list-meta {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.tm-bar {
+    height: 5px;
+    background: #eef0f4;
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.tm-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+}
+
+/* Per-day strip */
+.tm-day-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+    gap: 8px;
+}
+
+.tm-day {
+    border: 1px solid #eef0f4;
+    border-radius: 8px;
+    background: #fff;
+    padding: 8px 6px;
+    text-align: center;
+    min-width: 0;
+}
+
+.tm-day-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tm-day-val {
+    font-size: 13px;
+    font-weight: 800;
+    color: #111827;
+    margin-top: 3px;
+}
+
+.tm-day-sub {
+    font-size: 10.5px;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+/* Row lists — transactions, alerts, stores */
+.tm-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.tm-list-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    cursor: pointer;
-    transition: 0.15s;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f2f5;
 }
 
-.quick-btn:hover {
-    background: #eef2ff;
-    border-color: #c7d2fe;
-}
+    .tm-list-row:last-child {
+        border-bottom: none;
+    }
 
-.quick-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 9px;
+.tm-list-ico {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1121,185 +1242,59 @@ table.tm-table {
     flex-shrink: 0;
 }
 
-.filter-row {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    flex-wrap: wrap;
+.tm-list-main {
+    flex: 1;
+    min-width: 0;
 }
 
-.tx-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    border-bottom: 1px solid #f8fafc;
+.tm-list-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.tx-row:last-child {
-    border-bottom: none;
+.tm-list-sub {
+    font-size: 11px;
+    color: #6b7280;
 }
 
-.alert-row {
-    display: flex;
-    gap: 10px;
-    padding: 10px 14px;
-    align-items: flex-start;
-    border-bottom: 1px solid #f8fafc;
+.tm-list-end {
+    text-align: right;
+    white-space: nowrap;
 }
 
-.top-rank {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
+.tm-list-amt {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.tm-rank {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.72rem;
+    font-size: 11.5px;
     font-weight: 800;
     background: #f1f5f9;
     color: #334155;
     flex-shrink: 0;
 }
 
-.progress-track {
-    height: 6px;
-    background: #eef2f7;
-    border-radius: 99px;
-    overflow: hidden;
-    flex: 1;
-}
-
-.progress-fill {
-    height: 100%;
-    border-radius: 99px;
-}
-
-.status-chip {
-    font-size: 0.68rem;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 99px;
-}
-
-/* Item cards (replace charts) */
-.mcard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
-    gap: 9px;
-}
-
-.mcard {
-    border: 1px solid #eef2f7;
-    border-radius: 12px;
-    background: #fff;
-    padding: 10px 11px;
+/* Promotion panel */
+.tm-promo {
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f2f6ff 0%, #eef6ff 50%, #f7f9ff 100%);
+    border: 1px solid #d8e4ff;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-    transition: 0.15s;
-}
-
-.mcard:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 1px 3px rgba(16,24,40,.06);
-}
-
-.mcard-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-}
-
-.mcard-ico {
-    width: 28px;
-    height: 28px;
-    border-radius: 9px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    flex-shrink: 0;
-}
-
-.mcard-label {
-    font-size: 0.74rem;
-    font-weight: 700;
-    color: #475569;
-    line-height: 1.15;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-}
-
-.mcard-val {
-    font-size: 1.02rem;
-    font-weight: 800;
-    color: #1e293b;
-    line-height: 1.05;
-    letter-spacing: -0.3px;
-}
-
-.mcard-sub {
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: #64748b;
-}
-
-.mcard-track {
-    height: 5px;
-    background: #eef2f7;
-    border-radius: 99px;
-    overflow: hidden;
-}
-
-.mcard-fill {
-    height: 100%;
-    border-radius: 99px;
-}
-
-/* Compact per-day strip */
-.mday-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
-    gap: 8px;
-}
-
-.mday {
-    border: 1px solid #eef2f7;
-    border-radius: 11px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    padding: 9px 7px;
-    text-align: center;
-    min-width: 0;
-}
-
-.mday-label {
-    font-size: 0.64rem;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.mday-val {
-    font-size: 0.9rem;
-    font-weight: 800;
-    color: #1e293b;
-    margin-top: 4px;
-    letter-spacing: -0.3px;
-}
-
-.mday-sub {
-    font-size: 0.64rem;
-    font-weight: 700;
-    margin-top: 2px;
+    justify-content: space-between;
+    padding: 14px;
 }
 .tm-stat-clickable:hover {
     transform: translateY(-1px);

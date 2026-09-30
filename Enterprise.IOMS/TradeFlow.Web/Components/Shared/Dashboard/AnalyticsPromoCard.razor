@@ -1,14 +1,11 @@
 @inject NavigationManager Nav
 
-<div class="dash-card" style="height:100%; background:linear-gradient(135deg,#e0f2fe 0%,#dbeafe 50%,#eff6ff 100%); display:flex; flex-direction:column; justify-content:space-between; padding:16px;">
+<div class="tm-promo" style="height:100%;">
     <div>
-        <div style="font-weight:800; font-size:0.95rem; color:#1e3a5f; line-height:1.2;">Grow Your Retail Business</div>
-        <div style="font-size:0.74rem; color:#475569; margin-top:6px; line-height:1.4;">Better insights. Higher sales. Happier customers.</div>
+        <div style="font-weight:800; font-size:13.5px; color:#111827; line-height:1.2;">Grow Your Retail Business</div>
+        <div style="font-size:11.5px; color:#4b5563; margin-top:6px; line-height:1.4;">Better insights. Higher sales. Happier customers.</div>
     </div>
-    <div style="margin-top:12px;">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Style="border-radius:8px; text-transform:none; font-weight:700;" EndIcon="@Icons.Material.Filled.ArrowForward" OnClick="@(() => Nav.NavigateTo("/analytics"))">Explore Analytics</MudButton>
-        <div style="margin-top:12px; display:flex; justify-content:center;">
-            <MudIcon Icon="@Icons.Material.Filled.Person" Style="font-size:56px; color:#94a3b8; opacity:0.7;" />
-        </div>
+    <div class="mt-3">
+        <button class="tm-add-btn" @onclick="@(() => Nav.NavigateTo("/reports/sales"))">Explore Analytics</button>
     </div>
 </div>

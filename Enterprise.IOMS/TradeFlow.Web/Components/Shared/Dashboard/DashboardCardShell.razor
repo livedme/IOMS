@@ -1,13 +1,13 @@
 @inject NavigationManager Nav
 
-<div class="dash-card" style="@(FillHeight ? "height:100%;" : null)">
-    <div class="dash-card-header">
-        <span class="dash-card-title">@Title</span>
+<div class="tm-card tm-panel" style="@(FillHeight ? "height:100%;" : null)">
+    <div class="tm-panel-head">
+        <span class="tm-panel-title">@Title</span>
         <div class="d-flex align-center" style="gap:10px;">
             @HeaderExtra
             @if (!string.IsNullOrEmpty(ViewAllHref))
             {
-                <a class="viewall-link" @onclick='() => Nav.NavigateTo(ViewAllHref)'>@ViewAllText</a>
+                <a class="tm-panel-link" @onclick='() => Nav.NavigateTo(ViewAllHref)'>@ViewAllText ›</a>
             }
         </div>
     </div>

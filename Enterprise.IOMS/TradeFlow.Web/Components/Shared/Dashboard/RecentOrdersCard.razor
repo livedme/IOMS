@@ -1,28 +1,36 @@
-<DashboardCardShell Title="Recent Orders" ViewAllHref="/orders/sales">
-    <div style="overflow-x:auto;">
-        <table style="width:100%; border-collapse:collapse; font-size:0.82rem;">
+<DashboardCardShell Title="Recent Orders" ViewAllHref="/sales/orders" ViewAllText="All Orders">
+    <div class="tm-table-wrap">
+        <table class="tm-table" style="min-width:620px;">
             <thead>
-                <tr style="background:#f8fafc; color:#64748b; font-size:0.74rem; text-align:left;">
-                    <th style="padding:8px 14px; font-weight:700;">Order #</th>
-                    <th style="padding:8px 10px; font-weight:700;">Customer</th>
-                    <th style="padding:8px 10px; font-weight:700;">Store</th>
-                    <th style="padding:8px 10px; font-weight:700;">Date</th>
-                    <th style="padding:8px 10px; font-weight:700;">Status</th>
-                    <th style="padding:8px 14px; font-weight:700; text-align:right;">Amount</th>
+                <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Store</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th style="text-align:right">Amount</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var o in Items)
+                @if (!Items.Any())
                 {
-                    var (bg, fg) = GetStatusChip(o.Status);
-                    <tr style="border-bottom:1px solid #f1f5f9;">
-                        <td style="padding:9px 14px; font-weight:700; color:#1e293b;">@o.OrderNumber</td>
-                        <td style="padding:9px 10px; color:#334155;">@o.Customer</td>
-                        <td style="padding:9px 10px; color:#64748b;">@o.Store</td>
-                        <td style="padding:9px 10px; color:#64748b; white-space:nowrap;">@o.Date.ToString("dd MMM yyyy hh:mm tt")</td>
-                        <td style="padding:9px 10px;"><span class="status-chip" style="background:@bg; color:@fg;">● @o.Status</span></td>
-                        <td style="padding:9px 14px; text-align:right; font-weight:700; color:#1e293b;">@o.Amount.ToString("C")</td>
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:32px; color:#94a3b8;">No recent orders.</td>
                     </tr>
+                }
+                else
+                {
+                    @foreach (var o in Items)
+                    {
+                        <tr>
+                            <td><span class="tm-veh">@o.OrderNumber</span></td>
+                            <td class="tm-dim">@o.Customer</td>
+                            <td class="tm-dim">@o.Store</td>
+                            <td class="tm-dim">@o.Date.ToString("dd MMM yyyy hh:mm tt")</td>
+                            <td><span class="@GetStatusPill(o.Status)"><span class="tm-dot"></span>@o.Status</span></td>
+                            <td class="tm-money" style="text-align:right; font-weight:700;">@o.Amount.ToString("C")</td>
+                        </tr>
+                    }
                 }
             </tbody>
         </table>
@@ -32,12 +40,14 @@
 @code {
     [Parameter] public IReadOnlyList<RecentOrderExtendedDto> Items { get; set; } = Array.Empty<RecentOrderExtendedDto>();
 
-    private static (string bg, string fg) GetStatusChip(string s) => s switch
+    private static string GetStatusPill(string s) => s switch
     {
-        "Completed" => ("#dcfce7", "#166534"),
-        "Processing" => ("#dbeafe", "#1e40af"),
-        "Shipped" => ("#e0e7ff", "#3730a3"),
-        "Pending" => ("#fef9c3", "#854d0e"),
-        _ => ("#f1f5f9", "#334155")
+        "Completed" => "tm-pill tm-pill-green",
+        "Delivered" => "tm-pill tm-pill-green",
+        "Processing" => "tm-pill tm-pill-blue",
+        "Shipped" => "tm-pill tm-pill-purple",
+        "Pending" => "tm-pill tm-pill-amber",
+        "Cancelled" => "tm-pill tm-pill-red",
+        _ => "tm-pill tm-pill-gray"
     };
 }

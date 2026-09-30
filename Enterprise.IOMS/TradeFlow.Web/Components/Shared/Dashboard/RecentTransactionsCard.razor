@@ -1,28 +1,31 @@
-<DashboardCardShell Title="Recent Transactions" ViewAllHref="/finance">
-    <div>
+<DashboardCardShell Title="Recent Transactions" ViewAllHref="/accounting/payments" ViewAllText="Payments">
+    <div class="tm-list">
         @if (!Items.Any())
         {
-            <div style="padding:12px 14px;">
+            <div class="tm-panel-body">
                 <MudAlert Severity="Severity.Info" Dense="true">No recent transactions.</MudAlert>
             </div>
         }
-        @foreach (var tx in Items)
+        else
         {
-            var (icon, bg) = GetTxIcon(tx.Type);
-            var (sBg, sFg) = GetTxStatusStyle(tx.Status);
-            <div class="tx-row">
-                <div style="width:34px;height:34px;border-radius:50%;background:@bg;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <MudIcon Icon="@icon" Size="Size.Small" Style="color:white; font-size:16px;" />
+            @foreach (var tx in Items)
+            {
+                var (icon, bg) = GetTxIcon(tx.Type);
+                var (pillBg, pillFg) = GetTxStatusStyle(tx.Status);
+                <div class="tm-list-row">
+                    <div class="tm-list-ico" style="background:@bg;">
+                        <MudIcon Icon="@icon" Size="Size.Small" Style="color:#fff; font-size:15px;" />
+                    </div>
+                    <div class="tm-list-main">
+                        <div class="tm-list-title">@tx.Number</div>
+                        <div class="tm-list-sub">@tx.Type · @tx.TimeAgo</div>
+                    </div>
+                    <div class="tm-list-end">
+                        <div class="tm-list-amt">@tx.Amount.ToString("C")</div>
+                        <span class="tm-pill" style="background:@pillBg; color:@pillFg; border-color:@pillBg; margin-top:3px;">@tx.Status</span>
+                    </div>
                 </div>
-                <div style="flex:1; min-width:0;">
-                    <div style="font-weight:700; font-size:0.82rem; color:#1e293b;">@tx.Number</div>
-                    <div style="font-size:0.72rem; color:#64748b;">@tx.TimeAgo</div>
-                </div>
-                <div style="text-align:right;">
-                    <div style="font-weight:800; font-size:0.83rem; color:#1e293b;">@tx.Amount.ToString("C")</div>
-                    <span style="font-size:0.68rem; font-weight:700; padding:1px 7px; border-radius:99px; background:@sBg; color:@sFg;">@tx.Status</span>
-                </div>
-            </div>
+            }
         }
     </div>
 </DashboardCardShell>

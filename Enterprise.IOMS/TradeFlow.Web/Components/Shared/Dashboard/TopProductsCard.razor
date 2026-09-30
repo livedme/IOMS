@@ -1,5 +1,5 @@
-<DashboardCardShell Title="Top Selling Products" ViewAllHref="/products" FillHeight="true">
-    <div style="padding:6px 14px 10px;">
+<DashboardCardShell Title="Top Selling Products" ViewAllHref="/products" ViewAllText="All Products" FillHeight="true">
+    <div class="tm-panel-body" style="padding:4px 6px 8px;">
         @if (Items.Any())
         {
             int rank = 1;
@@ -7,17 +7,14 @@
             foreach (var p in Items.Take(5))
             {
                 var widthPct = maxRev == 0 ? 0 : (double)p.Revenue / maxRev * 100;
-                <div class="d-flex align-center" style="gap:10px; padding:8px 0; border-bottom:1px solid #f8fafc;">
-                    <div class="top-rank">@rank</div>
-                    <MudAvatar Size="Size.Medium" Style="width:36px;height:36px; background:#f1f5f9; border:1px solid #e2e8f0;">
-                        <MudIcon Icon="@Icons.Material.Filled.Smartphone" Size="Size.Small" Color="Color.Secondary" />
-                    </MudAvatar>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight:700; font-size:0.83rem; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@p.ProductName</div>
-                        <div style="font-size:0.72rem; color:#64748b;">@p.UnitsSold sold</div>
-                        <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
-                            <div class="progress-track"><div class="progress-fill" style="width:@widthPct.ToString("0")%; background:#3b82f6;"></div></div>
-                            <span style="font-size:0.76rem; font-weight:700; color:#334155;">@p.Revenue.ToString("C0")</span>
+                <div class="tm-list-row">
+                    <div class="tm-rank">@rank</div>
+                    <div class="tm-list-main">
+                        <div class="tm-list-title" title="@p.ProductName">@p.ProductName</div>
+                        <div class="tm-list-sub">@p.UnitsSold sold</div>
+                        <div class="d-flex align-center" style="gap:8px; margin-top:4px;">
+                            <div class="tm-bar" style="flex:1;"><div class="tm-bar-fill" style="width:@widthPct.ToString("0")%; background:#3b82f6;"></div></div>
+                            <span class="tm-list-amt">@p.Revenue.ToString("C0")</span>
                         </div>
                     </div>
                 </div>

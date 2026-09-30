@@ -1,0 +1,26 @@
+@inject NavigationManager Nav
+
+@* Quick action buttons — rendered in the page header, right of the title. *@
+<div class="tm-quick-head">
+    @foreach (var a in Actions)
+    {
+        <button class="tm-quick-btn" @onclick='() => Nav.NavigateTo(a.Href)'>
+            <span class="tm-quick-ico" style="background:@a.Color;">
+                <MudIcon Icon="@a.Icon" Size="Size.Small" Style="color:#fff;" />
+            </span>
+            @a.Label
+        </button>
+    }
+</div>
+
+@code {
+    private static readonly (string Label, string Icon, string Color, string Href)[] Actions =
+    {
+        ("New Sale",       Icons.Material.Outlined.PointOfSale,  "#10b981", "/sales/list"),
+        ("Add Product",    Icons.Material.Outlined.Add,          "#0ea5e9", "/products/list"),
+        ("New Purchase",   Icons.Material.Outlined.ShoppingCart, "#8b5cf6", "/purchasing/list"),
+        ("Add Customer",   Icons.Material.Outlined.GroupAdd,     "#f59e0b", "/sales/customers"),
+        ("Stock Transfer", Icons.Material.Outlined.SyncAlt,      "#14b8a6", "/inventory/transfers"),
+        ("Reports",        Icons.Material.Outlined.Description,  "#6366f1", "/reports/sales")
+    };
+}

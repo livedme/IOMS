@@ -3,6 +3,13 @@
     <div>
         <div class="tm-stat-num">@Number</div>
         <div class="tm-stat-label">@Label</div>
+        @if (Trend.HasValue)
+        {
+            <div class="tm-stat-trend @(Trend >= 0 ? "up" : "down")">
+                <MudIcon Icon="@(Trend >= 0 ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)" Size="Size.Small" Style="font-size:12px;" />
+                @Math.Abs(Trend.Value).ToString("0.0")%@TrendSuffix
+            </div>
+        }
     </div>
     @if (OnClick.HasDelegate)
     {
@@ -16,5 +23,8 @@
     [Parameter] public string Label { get; set; } = "";
     /// <summary>One of: blue, green, yellow, purple, red, teal</summary>
     [Parameter] public string Tone { get; set; } = "blue";
+    /// <summary>Signed percentage. When null the trend line is omitted.</summary>
+    [Parameter] public double? Trend { get; set; }
+    [Parameter] public string TrendSuffix { get; set; } = "";
     [Parameter] public EventCallback OnClick { get; set; }
 }
