@@ -112,7 +112,8 @@ public class MappingProfile : Profile
                 s.Notes,
                 s.ExchangeRate,
                 s.ExpectedDeliveryDate,
-                ctx.Mapper.Map<List<SalesOrderItemDto>>(s.Items)));
+                ctx.Mapper.Map<List<SalesOrderItemDto>>(s.Items),
+                s.Items.Count));
 
         CreateMap<SalesOrderItem, SalesOrderItemDto>()
             .ConstructUsing(s => new SalesOrderItemDto(

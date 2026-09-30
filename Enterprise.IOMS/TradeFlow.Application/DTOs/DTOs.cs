@@ -190,7 +190,12 @@ public record StockTransferDto(Guid ProductId, Guid SourceWarehouseId, Guid Targ
 public record SalesOrderDto(Guid Id, string OrderNumber, Guid CustomerId, CustomerDto Customer, Guid? BranchId, BranchDto? Branch,
     DateTime OrderDate, OrderStatus Status, string Naration, string Chalan, decimal SubTotal, decimal TruckCharge, decimal LabourCharge, decimal TaxAmount,
     decimal DiscountAmount, DiscountType DiscountType, decimal TotalAmount, decimal PaidAmount, decimal DueAmount, string? Notes, decimal ExchangeRate,
-    DateTime? ExpectedDeliveryDate, List<SalesOrderItemDto> Items);
+    DateTime? ExpectedDeliveryDate, List<SalesOrderItemDto> Items,
+    /// <summary>
+    /// Line count for grid use. The paged list query projects this as a subquery instead of
+    /// materialising <see cref="Items"/>, which is what the list grid actually renders.
+    /// </summary>
+    int ItemCount = 0);
 public record SalesOrderItemDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU,
     int Quantity, int ShippedQuantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscount, decimal LineTotalPrice);
 

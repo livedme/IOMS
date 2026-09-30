@@ -1,0 +1,50 @@
+-- Pending model drift (NOT part of the ListGridPagingIndexes migration)
+--
+-- Found while scaffolding that migration: the current EF model no longer matches what the
+-- existing migrations built, independently of any pagination work. Scaffolding a migration now
+-- picks up these changes too, which is why the index migration was trimmed down to indexes only.
+--
+-- Applying these alters column types on live data, so it is a deliberate call rather than
+-- something to fold into a performance change. Review, then run deliberately.
+--
+-- 1. nvarchar(max) -> nvarchar(450)
+--    The model now caps these at 450 characters. Anything longer than 450 characters in these
+--    columns will FAIL the ALTER, so check first:
+--
+--       SELECT 'Warehouses.Name'    AS Col, MAX(DATALENGTH(Name))    AS MaxBytes, COUNT(*) AS RowsOver450 FROM Warehouses    WHERE LEN(Name)    > 450
+--    UNION ALL SELECT 'Branches.Name',      MAX(DATALENGTH(Name)),      COUNT(*) FROM Branches     WHERE LEN(Name)    > 450
+--    UNION ALL SELECT 'Categories.Name',    MAX(DATALENGTH(Name)),      COUNT(*) FROM Categories   WHERE LEN(Name)    > 450
+--    UNION ALL SELECT 'Brands.Name',        MAX(DATALENGTH(Name)),      COUNT(*) FROM Brands       WHERE LEN(Name)    > 450
+--    UNION ALL SELECT 'Products.Name',      MAX(DATALENGTH(Name)),      COUNT(*) FROM Products     WHERE LEN(Name)    > 450
+--    UNION ALL SELECT 'Customers.CustomerName', MAX(DATALENGTH(CustomerName)), COUNT(*) FROM Customers WHERE LEN(CustomerName) > 450
+--    UNION ALL SELECT 'Suppliers.SupplierName', MAX(DATALENGTH(SupplierName)), COUNT(*) FROM Suppliers WHERE LEN(SupplierName) > 450
+--    UNION ALL SELECT 'SalesOrders.Naration',    MAX(DATALENGTH(Naration)),    COUNT(*) FROM SalesOrders    WHERE LEN(Naration)    > 450
+--    UNION ALL SELECT 'SalesOrders.Notes',       MAX(DATALENGTH(Notes)),       COUNT(*) FROM SalesOrders    WHERE LEN(Notes)       > 450
+--    UNION ALL SELECT 'PurchaseOrders.Notes',    MAX(DATALENGTH(Notes)),       COUNT(*) FROM PurchaseOrders WHERE LEN(Notes)       > 450
+--    ;
+--
+--    (Adjust the exact column list to match the scaffolded migration; EF printed it when the
+--     migration was generated.)
+--
+-- ALTER TABLE dbo.Warehouses     ALTER COLUMN [Name] nvarchar(450) NOT NULL;
+-- ALTER TABLE dbo.Branches       ALTER COLUMN [Name] nvarchar(450) NOT NULL;
+-- ALTER TABLE dbo.Categories     ALTER COLUMN [Name] nvarchar(450) NOT NULL;
+-- ALTER TABLE dbo.Brands         ALTER COLUMN [Name] nvarchar(450) NOT NULL;
+-- ALTER TABLE dbo.Products       ALTER COLUMN [Name] nvarchar(450) NOT NULL;
+-- ALTER TABLE dbo.Customers      ALTER COLUMN [CustomerName] nvarchar(450) NOT NULL;
+-- ALTER TABLE dbo.Suppliers      ALTER COLUMN [SupplierName] nvarchar(450) NOT NULL;
+-- ALTER TABLE dbo.SalesOrders    ALTER COLUMN [Naration] nvarchar(450) NULL;
+-- ALTER TABLE dbo.SalesOrders    ALTER COLUMN [Notes] nvarchar(450) NULL;
+-- ALTER TABLE dbo.PurchaseOrders ALTER COLUMN [Notes] nvarchar(450) NULL;
+--
+-- 2. Auto-created foreign-key indexes EF wants to record
+--    Stocktakes, SalesReturns, PurchaseReturns, Kits and Branches have a single-column
+--    IX_<Table>_TenantId that exists in the database but was never recorded by a migration, so EF
+--    drops and recreates it on every scaffold. Recording them removes that churn; it is safe
+--    because the new composite indexes cover the same leading column.
+--
+-- CREATE INDEX [IX_Stocktakes_TenantId]      ON [dbo].[Stocktakes]      ([TenantId]);
+-- CREATE INDEX [IX_SalesReturns_TenantId]    ON [dbo].[SalesReturns]    ([TenantId]);
+-- CREATE INDEX [IX_PurchaseReturns_TenantId] ON [dbo].[PurchaseReturns] ([TenantId]);
+-- CREATE INDEX [IX_Kits_TenantId]            ON [dbo].[Kits]            ([TenantId]);
+-- CREATE INDEX [IX_Branches_TenantId]        ON [dbo].[Branches]        ([TenantId]);

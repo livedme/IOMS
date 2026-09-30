@@ -758,16 +758,71 @@ public class OrderService : IOrderService
 
         var totalCount = await query.CountAsync();
 
-        var items = await query
-            .AsSplitQuery()
-            .Include(o => o.Customer)
-            .Include(o => o.Branch)
-            .Include(o => o.Items).ThenInclude(i => i.Product)
+        // Projected, not Include()d: the grid renders order header fields plus a line count,
+        // so materialising the full item graph joined to products cost ~5x the time (and two
+        // extra round trips under AsSplitQuery) for data no column shows. The drawer still gets
+        // its lines from GetSalesOrderById, which loads the graph for a single order.
+        var rows = await query
+            .Select(o => new
+            {
+                o.Id,
+                o.OrderNumber,
+                o.CustomerId,
+                CustomerName = o.Customer.CustomerName,
+                o.BranchId,
+                BranchName = o.Branch == null ? null : o.Branch.Name,
+                o.OrderDate,
+                o.Status,
+                o.Naration,
+                o.Chalan,
+                o.SubTotal,
+                o.TruckCharge,
+                o.LabourCharge,
+                o.TaxAmount,
+                o.DiscountAmount,
+                o.DiscountType,
+                o.TotalAmount,
+                o.PaidAmount,
+                o.DueAmount,
+                o.Notes,
+                o.ExchangeRate,
+                o.ExpectedDeliveryDate,
+                ItemCount = o.Items.Count,
+            })
             .Skip(page * pageSize)
             .Take(pageSize)
             .ToListAsync();
 
-        response.Items = _mapper.Map<List<SalesOrderDto>>(items);
+        response.Items = rows
+            .Select(o => new SalesOrderDto(
+                o.Id,
+                o.OrderNumber,
+                o.CustomerId,
+                new CustomerDto { Id = o.CustomerId, CustomerName = o.CustomerName },
+                o.BranchId,
+                o.BranchId.HasValue
+                    ? new BranchDto(o.BranchId.Value, o.BranchName, null, null, null, true)
+                    : null,
+                o.OrderDate,
+                o.Status,
+                o.Naration,
+                o.Chalan,
+                o.SubTotal,
+                o.TruckCharge,
+                o.LabourCharge,
+                o.TaxAmount,
+                o.DiscountAmount,
+                o.DiscountType,
+                o.TotalAmount,
+                o.PaidAmount,
+                o.DueAmount,
+                o.Notes,
+                o.ExchangeRate,
+                o.ExpectedDeliveryDate,
+                new List<SalesOrderItemDto>(),
+                o.ItemCount))
+            .ToList();
+
         response.TotalCount = totalCount;
         response.CurrentPage = page;
         response.PageSize = pageSize;
@@ -1118,16 +1173,61 @@ public class PurchaseService : IPurchaseService
 
         var totalCount = await query.CountAsync();
 
+        // Projected, not Include()d: the grid renders PO header fields only, so materialising the
+        // full item graph joined to products cost ~5x the time (and two extra round trips under
+        // AsSplitQuery) for data no column shows. The drawer and Receive Goods still load lines
+        // via GetPurchaseOrderById, which builds the graph for a single order.
         var items = await query
-            .AsSplitQuery()
-            .Include(p => p.Supplier)
-            .Include(p => p.Warehouse)
-            .Include(p => p.Items).ThenInclude(i => i.Product)
+            .Select(p => new
+            {
+                p.Id,
+                p.OrderNumber,
+                p.SupplierId,
+                SupplierName = p.Supplier.SupplierName,
+                p.WarehouseId,
+                WarehouseName = p.Warehouse == null ? null : p.Warehouse.Name,
+                p.PurchaseDate,
+                p.Status,
+                p.SubTotal,
+                p.LabourCharge,
+                p.TruckCharge,
+                p.DiscountAmount,
+                p.DiscountType,
+                p.TotalAmount,
+                p.TaxAmount,
+                p.PaidAmount,
+                p.DueAmount,
+                p.Notes,
+                p.ExpectedDeliveryDate,
+            })
             .Skip(page * pageSize)
             .Take(pageSize)
             .ToListAsync();
 
-        response.Items = _mapper.Map<List<PurchaseOrderDto>>(items);
+        response.Items = items
+            .Select(p => new PurchaseOrderDto(
+                p.Id,
+                p.OrderNumber,
+                p.SupplierId,
+                p.SupplierName,
+                p.WarehouseId ?? Guid.Empty,
+                p.WarehouseName ?? string.Empty,
+                p.PurchaseDate,
+                p.Status,
+                p.SubTotal,
+                p.LabourCharge,
+                p.TruckCharge,
+                p.DiscountAmount,
+                p.DiscountType,
+                p.TotalAmount,
+                p.TaxAmount,
+                p.PaidAmount,
+                p.DueAmount,
+                p.Notes,
+                p.ExpectedDeliveryDate,
+                new List<PurchaseOrderItemDto>()))
+            .ToList();
+
         response.TotalCount = totalCount;
         response.CurrentPage = page;
         response.PageSize = pageSize;

@@ -1,5 +1,5 @@
 @using TradeFlow.Infrastructure.Data
-@using TradeFlow.Web.Components.Pages.Inventory
+@using TradeFlow.Web.Components.Pages.Product
 
 <MudDialog Class="bg-dialog-sales">
     <DialogContent>
@@ -11,7 +11,8 @@
                 <MudAutocomplete T="ControlItemsDto"
                                  @ref="dataModel.SupplierDdlControl.ControlRef"
                                  Label="Supplier"
-                                 Required="true"
+                                 Required="true" 
+                                 RequiredError=""
                                  @key="dataModel.SupplierDdlControl.SelectedIndex"
                                  @bind-Value="dataModel.SupplierDdlControl.SelectedItem"
                                  @bind-Text="dataModel.SupplierDdlControl.SelectedText"

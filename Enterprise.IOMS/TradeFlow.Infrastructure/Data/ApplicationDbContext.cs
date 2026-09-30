@@ -507,6 +507,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     private static void ConfigureIndexes(ModelBuilder builder)
     {
+        // The multi-tenant global filter puts `TenantId = @tenant AND IsDeleted = 0` on every query,
+        // and the grids sort by a date column. An index that leads with the filter columns and
+        // then the sort column lets SQL Server seek the page instead of scanning and sorting the
+        // whole table, which is what the list pages do on every page change.
+        builder.Entity<PurchaseOrder>().HasIndex(o => new { o.TenantId, o.IsDeleted, o.PurchaseDate });
+        builder.Entity<SalesOrder>().HasIndex(o => new { o.TenantId, o.IsDeleted, o.OrderDate });
+        builder.Entity<Stocktake>().HasIndex(s => new { s.TenantId, s.IsDeleted, s.StartDate });
+        builder.Entity<Stocktake>().HasIndex(s => new { s.TenantId, s.IsDeleted, s.Status });
+        builder.Entity<StockMovement>().HasIndex(m => new { m.TenantId, m.IsDeleted, m.MovementDate });
+        builder.Entity<Inventory>().HasIndex(i => new { i.TenantId, i.IsDeleted, i.WarehouseId });
+        builder.Entity<SalesQuote>().HasIndex(q => new { q.TenantId, q.IsDeleted, q.QuoteDate });
+        builder.Entity<PurchaseReturn>().HasIndex(r => new { r.TenantId, r.IsDeleted, r.CreatedAt });
+        builder.Entity<SalesReturn>().HasIndex(r => new { r.TenantId, r.IsDeleted, r.CreatedAt });
+        builder.Entity<Kit>().HasIndex(k => new { k.TenantId, k.IsDeleted });
+
         builder.Entity<Product>().HasIndex(p => new { p.TenantId, p.SKU }).IsUnique();
         builder.Entity<Product>().HasIndex(p => p.Barcode);
         builder.Entity<Product>().HasIndex(p => new { p.TenantId, p.Name });

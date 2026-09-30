@@ -1,4 +1,4 @@
-@page "/orders/sales"
+@page "/sales/list"
 @rendermode InteractiveServer
 @attribute [Authorize]
 @implements IDisposable
@@ -128,7 +128,7 @@
                                 <td class="tm-dim">@o.OrderDate.ToString("dd MMM yyyy")</td>
                                 <td class="tm-branch">@(o.Customer?.CustomerName ?? "-")</td>
                                 <td class="tm-dim">@(o.Branch?.Name ?? "-")</td>
-                                <td class="tm-num" style="text-align:right">@o.Items.Count</td>
+                                <td class="tm-num" style="text-align:right">@o.ItemCount</td>
                                 <td class="tm-money" style="text-align:right">@o.SubTotal.ToString("N0")</td>
                                 <td class="tm-money" style="text-align:right">@o.TaxAmount.ToString("N0")</td>
                                 <td class="tm-money" style="text-align:right"><strong>@o.TotalAmount.ToString("N0")</strong></td>

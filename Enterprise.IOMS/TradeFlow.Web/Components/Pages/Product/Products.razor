@@ -1,4 +1,4 @@
-@page "/products"
+@page "/products/list"
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject IProductService ProductService
@@ -222,7 +222,7 @@
         await LoadProducts();
     }
 
-    private void NavigateToDetail(Guid id) => Navigation.NavigateTo($"/products/{id}");
+    private void NavigateToDetail(Guid id) => Navigation.NavigateTo($"/products/details/{id}");
 
     private string GetStockStatus(ProductDto p)
     {
