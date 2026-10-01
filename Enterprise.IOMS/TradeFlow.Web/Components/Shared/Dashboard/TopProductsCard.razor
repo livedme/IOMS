@@ -1,8 +1,12 @@
-<DashboardCardShell Title="Top Selling Products" ViewAllHref="/products" ViewAllText="All Products" FillHeight="true">
+<DashboardCardShell Title="Top Selling Products by Revenue" ViewAllHref="/products/list" ViewAllText="All Products" FillHeight="true">
     <div class="tm-panel-body" style="padding:4px 6px 8px;">
         @if (Items.Any())
         {
             int rank = 1;
+
+            // Items arrive ordered by revenue (GetTopProducts groups by product and sorts on
+            // SUM(Quantity * UnitPrice) descending), and the bar is scaled against the top seller
+            // so the leader always fills the track.
             double maxRev = Items.Max(x => (double)x.Revenue);
             foreach (var p in Items.Take(5))
             {
@@ -11,7 +15,7 @@
                     <div class="tm-rank">@rank</div>
                     <div class="tm-list-main">
                         <div class="tm-list-title" title="@p.ProductName">@p.ProductName</div>
-                        <div class="tm-list-sub">@p.UnitsSold sold</div>
+                        <div class="tm-list-sub">@p.UnitsSold.ToString("N0") sold · @((p.UnitsSold == 0 ? 0m : p.Revenue / p.UnitsSold).ToString("C0")) avg</div>
                         <div class="d-flex align-center" style="gap:8px; margin-top:4px;">
                             <div class="tm-bar" style="flex:1;"><div class="tm-bar-fill" style="width:@widthPct.ToString("0")%; background:#3b82f6;"></div></div>
                             <span class="tm-list-amt">@p.Revenue.ToString("C0")</span>

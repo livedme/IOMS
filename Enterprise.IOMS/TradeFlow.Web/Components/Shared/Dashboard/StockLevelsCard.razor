@@ -1,0 +1,71 @@
+<DashboardCardShell Title="Stock Levels" ViewAllHref="/inventory/stock-levels" ViewAllText="Manage Stock" FillHeight="true">
+    <div class="tm-table-wrap">
+        <table class="tm-table" style="min-width:600px;">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Warehouse</th>
+                    <th style="text-align:right">On Hand</th>
+                    <th style="text-align:right">Reserved</th>
+                    <th style="text-align:right">Available</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Items.Any())
+                {
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:32px; color:#94a3b8;">No stock records yet.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var s in Items)
+                    {
+                        var (label, pill) = Classify(s);
+                        <tr>
+                            <td>
+                                <div style="font-weight:600;">@s.ProductName</div>
+                                <div class="tm-dim" style="font-size:11px;">
+                                    @s.ProductSKU@(string.IsNullOrWhiteSpace(s.BinLocation) ? "" : $" · {s.BinLocation}")
+                                </div>
+                            </td>
+                            <td class="tm-dim">@s.WarehouseName</td>
+                            <td class="tm-num" style="text-align:right;">@s.Quantity.ToString("N0")</td>
+                            <td class="tm-dim" style="text-align:right;">@s.ReservedQuantity.ToString("N0")</td>
+                            <td style="text-align:right; font-weight:700; color:@(s.AvailableQuantity < 0 ? "#dc2626" : "#111827");">
+                                @s.AvailableQuantity.ToString("N0")
+                            </td>
+                            <td>
+                                <span class="@pill"><span class="tm-dot"></span>@label</span>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</DashboardCardShell>
+
+@code {
+    [Parameter] public IReadOnlyList<StockLevelDto> Items { get; set; } = Array.Empty<StockLevelDto>();
+
+    /// <summary>
+    /// Health is judged on the reorder level, which is the same threshold the rest of the app uses
+    /// for its low-stock alerts. A negative available quantity (reserved beyond physical stock) is
+    /// called out separately because it is a data-integrity problem rather than a normal shortage.
+    /// </summary>
+    private static (string Label, string Pill) Classify(StockLevelDto s)
+    {
+        if (s.AvailableQuantity < 0) return ("Oversold", "tm-pill tm-pill-red");
+
+        if (s.ReorderStockLevel > 0 && s.AvailableQuantity <= s.ReorderStockLevel)
+            return ("Reorder", "tm-pill tm-pill-amber");
+
+        if (s.AvailableQuantity <= 0) return ("Out of stock", "tm-pill tm-pill-red");
+        if (s.ReorderStockLevel > 0 && s.AvailableQuantity <= s.ReorderStockLevel * 2)
+            return ("Low", "tm-pill tm-pill-yellow");
+
+        return ("Healthy", "tm-pill tm-pill-green");
+    }
+}

@@ -3,6 +3,7 @@
 @attribute [Authorize]
 @using System.Diagnostics
 @inject IDashboardService DashboardService
+@inject IBranchService BranchService
 @inject ILogger<Home> Logger
 
 <PageTitle>Dashboard - IOMS</PageTitle>
@@ -16,6 +17,7 @@
 
     <DashboardHeader DateRange="@_dateRange"
                      StoreFilter="@_storeFilter"
+                     Stores="@_stores"
                      DateRangeChanged="@OnDateRangeChanged"
                      StoreFilterChanged="@OnStoreFilterChanged"
                      OnRefresh="@LoadDashboard" />
@@ -25,7 +27,7 @@
         <div class="tm-stats">
             @for (int i = 0; i < 6; i++)
             {
-                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" Style="border-radius:10px;" />
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px;" Style="border-radius:10px;" />
             }
         </div>
         <div class="tm-card tm-table-card">
@@ -40,61 +42,95 @@
         <div class="tm-dash">
             <DashboardKpiRow Kpis="@_extKpis" />
 
-            <SalesOverviewCard Points="@_salesOverview" Range="@_overviewRange" RangeChanged="@OnOverviewRangeChanged" />
-
+            @* ── Sales and purchasing over time ────────────────────────────── *@
+            @* Paired in an equal two-column row: the two overview cards share a layout, and
+               tm-dash-cols (3fr/1fr) would squeeze the purchase chart to a third of the
+               width and leave its axis unreadable. *@
             <div class="tm-dash-row">
-                <SalesByCategoryCard Items="@_salesByCategory" />
+                <SalesOverviewCard Points="@_salesOverview" Range="@_range" />
+                <PurchaseOverviewCard Points="@_purchaseOverview" Range="@_range" />
+            </div>
+
+            @* ── Product leaders and the stock behind them ──────────────────── *@
+            <div class="tm-dash-row">
                 <TopProductsCard Items="@_topProducts" />
+                <StockLevelsCard Items="@_stockLevels" />
+            </div>
+
+            @* ── Inventory and store position ───────────────────────────────── *@
+            <div class="tm-dash-row">
+                <InventoryOverviewCard Overview="@_inventoryOverview" />
+                <StoreOverviewCard Items="@FilteredStores" />
             </div>
 
             <div class="tm-dash-row-3">
-                <StoreSalesCard Items="@_dailyByStore" />
+                <BestStoresCard Items="@_bestStores" />
                 <InventoryStatusCard Status="@_inventoryStatus" />
                 <PaymentMethodsCard Items="@_paymentMethods" />
             </div>
 
-            <div class="tm-dash-cols">
-                <div class="tm-dash">
-                    <RecentOrdersCard Items="@_recentOrdersExt" />
-                    <div class="tm-dash-row">
-                        <BestStoresCard Items="@_bestStores" />
-                        <AnalyticsPromoCard />
-                    </div>
-                </div>
-                <div class="tm-dash">
-                    <RecentTransactionsCard Items="@_recentTx" />
-                    <SystemAlertsCard Items="@_alerts" />
-                </div>
+            @* ── Live operational feeds ─────────────────────────────────────── *@
+            <div class="tm-dash-row">
+                <RecentOrdersCard Items="@_recentOrdersExt" />
+                <RecentTransactionsCard Items="@_recentTx" />
             </div>
+
+            <div class="tm-dash-row">
+                <RecentActivitiesCard Items="@_recentActivities" />
+                <SystemAlertsCard Items="@_alerts" />
+            </div>
+
+            <AnalyticsPromoCard />
         </div>
     }
 </div>
 
 @code {
-    private static readonly DashboardExtendedKpiDto EmptyExtendedKpis = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    // Argument order is TotalSales, TotalSalesGrowth, TodaysSales, TodaysSalesGrowth, TotalOrders,
+    // TotalOrdersGrowth, TotalProfit, TotalProfitGrowth, InventoryValue, InventoryValueGrowth,
+    // LowStockItems, LowStockGrowth. The two growth figures are nullable and start at null so the
+    // tiles render no trend arrow until a real prior-period baseline is available.
+    private static readonly DashboardExtendedKpiDto EmptyExtendedKpis = new(0, 0, 0, 0, 0, 0, 0, 0, 0, null, 0, null);
+    private static readonly InventoryOverviewDto EmptyInventoryOverview = new(0, 0, 0, 0, 0, 0, 0, 0m, 0m);
     private static readonly InventoryStatusDto EmptyInventoryStatus = new(0, 0, 0, 0, 0, 0, 0);
-    private static readonly DashboardKpiDto EmptyKpis = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
     private bool _loading = true;
-    private string _dateRange = "Apr 29, 2025 - May 5, 2025";
-    private string _storeFilter = "All Stores";
-    private string _overviewRange = "Last 7 Days";
 
-    /// <summary>Day count backing the sales overview strip; kept in sync with the range dropdown.</summary>
-    private int OverviewDays { get; set; } = 7;
+    private const string AllStores = "All Stores";
 
-    private DashboardKpiDto? _kpis;
+    private string _dateRange = DashboardRanges.DefaultLabel;
+    private string _storeFilter = AllStores;
+
+    /// <summary>
+    /// Resolved window behind the filter strip's range selector. It drives both overview cards, and
+    /// is re-resolved on every change so each card's period label and span caption describe the
+    /// exact period in force.
+    /// </summary>
+    private DashboardRange _range = DashboardRanges.Resolve(DashboardRanges.DefaultLabel, DateTime.UtcNow);
+
+    /// <summary>Day count behind the sales overview strip; kept in sync with the range dropdown.</summary>
+    private int _overviewDays = 7;
+
+    /// <summary>Day count behind the purchase overview strip.</summary>
+    private int _purchaseDays = 7;
+
+    private List<string> _stores = new();
+
     private DashboardExtendedKpiDto _extKpis = EmptyExtendedKpis;
     private List<SalesOverviewPointDto> _salesOverview = new();
-    private List<SalesByCategoryDto> _salesByCategory = new();
+    private List<PurchaseOverviewPointDto> _purchaseOverview = new();
     private List<PaymentMethodBreakdownDto> _paymentMethods = new();
     private InventoryStatusDto _inventoryStatus = EmptyInventoryStatus;
-    private List<DailySalesByStoreDto> _dailyByStore = new();
+    private InventoryOverviewDto _inventoryOverview = EmptyInventoryOverview;
+    private List<StoreOverviewDto> _storeOverview = new();
+    private List<StoreOverviewDto> FilteredStores => FilterByStore(_storeOverview);
     private List<BestStoreDto> _bestStores = new();
     private List<TopProductDto> _topProducts = new();
+    private List<StockLevelDto> _stockLevels = new();
     private List<RecentTransactionDto> _recentTx = new();
     private List<SystemAlertDto> _alerts = new();
     private List<RecentOrderExtendedDto> _recentOrdersExt = new();
+    private List<RecentActivityDto> _recentActivities = new();
 
     protected override async Task OnInitializedAsync() => await LoadDashboard();
 
@@ -106,24 +142,42 @@
         var started = Stopwatch.GetTimestamp();
         _loading = true;
 
-        // The twelve dashboard reads are issued one after another rather than through
-        // Task.WhenAll. IDashboardService is scoped, so every call shares a single
-        // ApplicationDbContext, and EF Core throws "A second operation was started on this context
-        // instance" if two of these overlap. Genuine fan-out would need a separate DbContext per
-        // read (IDbContextFactory). Repeating a render inside the TTL window is served from cache
-        // and costs no database round trips.
-        _kpis = await SafeAsync(() => DashboardService.GetDashboardKPIs(), EmptyKpis, "GetDashboardKPIs");
+        // The dashboard reads are issued one after another rather than through Task.WhenAll.
+        // IDashboardService is scoped, so every call shares a single ApplicationDbContext, and EF
+        // Core throws "A second operation was started on this context instance" if two of these
+        // overlap. Genuine fan-out would need a separate DbContext per read (IDbContextFactory).
+        // Repeating a render inside the TTL window is served from cache and costs no round trips.
         _extKpis = await SafeAsync(() => DashboardService.GetExtendedKpis(), EmptyExtendedKpis, "GetExtendedKpis");
-        _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(OverviewDays), new List<SalesOverviewPointDto>(), "GetSalesOverview");
-        _salesByCategory = await SafeAsync(() => DashboardService.GetSalesByCategory(), new List<SalesByCategoryDto>(), "GetSalesByCategory");
+        _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(_overviewDays), new List<SalesOverviewPointDto>(), "GetSalesOverview");
+        _purchaseOverview = await SafeAsync(() => DashboardService.GetPurchaseOverview(_purchaseDays), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview");
         _paymentMethods = await SafeAsync(() => DashboardService.GetPaymentMethodBreakdown(), new List<PaymentMethodBreakdownDto>(), "GetPaymentMethodBreakdown");
         _inventoryStatus = await SafeAsync(() => DashboardService.GetInventoryStatus(), EmptyInventoryStatus, "GetInventoryStatus");
-        _dailyByStore = await SafeAsync(() => DashboardService.GetDailySalesByStore(), new List<DailySalesByStoreDto>(), "GetDailySalesByStore");
+        _inventoryOverview = await SafeAsync(() => DashboardService.GetInventoryOverview(), EmptyInventoryOverview, "GetInventoryOverview");
+        _storeOverview = await SafeAsync(() => DashboardService.GetStoreOverview(), new List<StoreOverviewDto>(), "GetStoreOverview");
         _bestStores = await SafeAsync(() => DashboardService.GetBestPerformingStores(), new List<BestStoreDto>(), "GetBestPerformingStores");
         _topProducts = await SafeAsync(() => DashboardService.GetTopProducts(5), new List<TopProductDto>(), "GetTopProducts");
+        _stockLevels = await SafeAsync(() => DashboardService.GetStockLevels(8), new List<StockLevelDto>(), "GetStockLevels");
         _recentTx = await SafeAsync(() => DashboardService.GetRecentTransactions(5), new List<RecentTransactionDto>(), "GetRecentTransactions");
         _alerts = await SafeAsync(() => DashboardService.GetSystemAlerts(5), new List<SystemAlertDto>(), "GetSystemAlerts");
         _recentOrdersExt = await SafeAsync(() => DashboardService.GetRecentOrdersExtended(5), new List<RecentOrderExtendedDto>(), "GetRecentOrdersExtended");
+        _recentActivities = await SafeAsync(() => DashboardService.GetRecentActivities(8), new List<RecentActivityDto>(), "GetRecentActivities");
+
+        // Branch names drive the store selector. If this fails the selector simply stays on
+        // "All Stores" and every store-scoped card shows the full set, which is the safe default.
+        var branches = await SafeAsync(() => BranchService.GetBranches(), new List<BranchDto>(), "GetBranches");
+        _stores = branches
+            .Where(b => !string.IsNullOrWhiteSpace(b.Name))
+            .Select(b => b.Name!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n)
+            .ToList();
+
+        // A store that no longer exists (deleted while the filter was applied) would otherwise
+        // leave the dashboard showing nothing with no obvious way back.
+        if (_storeFilter != AllStores && !_stores.Contains(_storeFilter, StringComparer.OrdinalIgnoreCase))
+        {
+            _storeFilter = AllStores;
+        }
 
         _loading = false;
 
@@ -152,32 +206,37 @@
     private async Task OnDateRangeChanged(string v)
     {
         _dateRange = v;
-        var days = v.Contains("30") ? 30 : 7;
+        _range = DashboardRanges.Resolve(v, DateTime.UtcNow);
+
+        var days = _range.Days;
+        if (days == _overviewDays && days == _purchaseDays) return;
+
+        _overviewDays = days;
+        _purchaseDays = days;
         _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(days), new List<SalesOverviewPointDto>(), "GetSalesOverview");
-        OverviewDays = days;
+        _purchaseOverview = await SafeAsync(() => DashboardService.GetPurchaseOverview(days), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview");
     }
 
+    /// <summary>
+    /// The store selector narrows the cards that are per-store by nature. The headline KPIs and the
+    /// sales/purchase strips are tenant-wide aggregates and are not narrowed, because the underlying
+    /// reads group across every branch and re-running them per branch would mean one query per
+    /// branch on every filter change.
+    /// </summary>
     private Task OnStoreFilterChanged(string v)
     {
         _storeFilter = v;
         return Task.CompletedTask;
     }
 
-    private async Task OnOverviewRangeChanged(string v)
+    private List<StoreOverviewDto> FilterByStore(List<StoreOverviewDto> source)
     {
-        _overviewRange = v;
-        var days = v.Contains("30") ? 30 : v.Contains("12") ? 12 : 7;
-        OverviewDays = days;
-        if (days == 12)
-        {
-            var monthly = await SafeAsync(() => DashboardService.GetMonthlySalesData(12), new List<MonthlySalesDto>(), "GetMonthlySalesData");
-            _salesOverview = monthly
-                .Select(x => new SalesOverviewPointDto(x.Period, x.Amount, x.Amount * 0.26m))
-                .ToList();
-        }
-        else
-        {
-            _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(days), new List<SalesOverviewPointDto>(), "GetSalesOverview");
-        }
+        if (_storeFilter == AllStores) return source;
+
+        // "Unassigned" is the bucket for orders with no branch, so it is included when the user
+        // explicitly picks it rather than being dropped by the name comparison.
+        return source
+            .Where(s => string.Equals(s.StoreName, _storeFilter, StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 }

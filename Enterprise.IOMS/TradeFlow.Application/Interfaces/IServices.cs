@@ -129,6 +129,11 @@ public interface IDashboardService
     Task<List<RecentTransactionDto>> GetRecentTransactions(int count);
     Task<List<SystemAlertDto>> GetSystemAlerts(int count);
     Task<List<RecentOrderExtendedDto>> GetRecentOrdersExtended(int count);
+    Task<List<PurchaseOverviewPointDto>> GetPurchaseOverview(int days);
+    Task<InventoryOverviewDto> GetInventoryOverview();
+    Task<List<StoreOverviewDto>> GetStoreOverview();
+    Task<List<StockLevelDto>> GetStockLevels(int count);
+    Task<List<RecentActivityDto>> GetRecentActivities(int count);
 }
 
 public interface ISearchService

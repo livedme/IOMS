@@ -475,13 +475,19 @@ public record RecentOrderDto(Guid Id, string OrderNumber, string CustomerOrSuppl
     DateTime Date, decimal TotalAmount, string Status);
 
 // ── Screenshot-aligned dashboard DTOs ──────────────────────────────
+/// <summary>
+/// Headline KPIs. The four sales-derived growth figures compare a measured period against the
+/// period immediately before it, so they are always real. Inventory value and low-stock count have
+/// no stored prior-period baseline, so their growth is nullable and the tile omits the trend arrow
+/// rather than displaying a fabricated percentage.
+/// </summary>
 public record DashboardExtendedKpiDto(
     decimal TotalSales, double TotalSalesGrowth,
     decimal TodaysSales, double TodaysSalesGrowth,
     int TotalOrders, double TotalOrdersGrowth,
     decimal TotalProfit, double TotalProfitGrowth,
-    decimal InventoryValue, double InventoryValueGrowth,
-    int LowStockItems, double LowStockGrowth);
+    decimal InventoryValue, double? InventoryValueGrowth,
+    int LowStockItems, double? LowStockGrowth);
 
 public record SalesByCategoryDto(string Category, decimal Amount, double Percentage);
 public record PaymentMethodBreakdownDto(string Method, decimal Amount, double Percentage);
@@ -493,6 +499,30 @@ public record RecentTransactionDto(string Type, string Number, string TimeAgo, d
 public record SystemAlertDto(string Title, string Detail, string TimeAgo, string AlertType, string Icon);
 public record RecentOrderExtendedDto(Guid Id, string OrderNumber, string Customer, string Store, DateTime Date, string Status, decimal Amount);
 public record SalesOverviewPointDto(string Label, decimal TotalSales, decimal Profit);
+
+/// <summary>One day (or month) of purchasing activity for the Purchase Overview strip.</summary>
+public record PurchaseOverviewPointDto(string Label, decimal TotalPurchases, int OrderCount);
+
+/// <summary>
+/// Aggregate inventory position across every product and warehouse: how much stock is on hand,
+/// how much of it is already committed to orders, and what it is worth at cost and at retail.
+/// </summary>
+public record InventoryOverviewDto(
+    int TotalProducts, int InStock, int LowStock, int OutOfStock,
+    int TotalQuantity, int ReservedQuantity, int AvailableQuantity,
+    decimal InventoryValueAtCost, decimal InventoryValueAtRetail);
+
+/// <summary>
+/// Per-store trading performance. Revenue and cost are both derived from sales order lines so the
+/// margin is measured, and <paramref name="SharePct"/> is the store's slice of tenant-wide revenue.
+/// </summary>
+public record StoreOverviewDto(string StoreName, decimal Revenue, decimal Cost, decimal Profit, int Orders, double SharePct);
+
+/// <summary>
+/// A single entry in the dashboard activity feed, sourced from the audit log rather than invented,
+/// so it reflects who actually changed what and when.
+/// </summary>
+public record RecentActivityDto(string Title, string Detail, string Actor, string TimeAgo, string Icon, string Tone);
 
 // Audit log
 public record AuditLogDto(Guid Id, string TableName, Guid RecordId, string Action,

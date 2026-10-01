@@ -1,0 +1,36 @@
+<DashboardCardShell Title="Recent Activities" ViewAllHref="/admin/audit-logs" ViewAllText="Audit Log" FillHeight="true">
+    <div class="tm-list">
+        @if (!Items.Any())
+        {
+            <div class="tm-panel-body">
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    No recorded activity yet. Changes to products, orders and stock appear here as they happen.
+                </MudAlert>
+            </div>
+        }
+        else
+        {
+            @foreach (var a in Items)
+            {
+                <div class="tm-list-row">
+                    <div class="tm-list-ico" style="background:@a.Tone;">
+                        <MudIcon Icon="@a.Icon" Size="Size.Small" Style="font-size:15px; color:#fff;" />
+                    </div>
+                    <div class="tm-list-main">
+                        <div class="tm-list-title">@a.Title</div>
+                        <div class="tm-list-sub">
+                            @a.Actor@(string.IsNullOrWhiteSpace(a.Detail) ? "" : $" · {a.Detail}")
+                        </div>
+                    </div>
+                    <div class="tm-list-end">
+                        <div class="tm-list-meta">@a.TimeAgo</div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</DashboardCardShell>
+
+@code {
+    [Parameter] public IReadOnlyList<RecentActivityDto> Items { get; set; } = Array.Empty<RecentActivityDto>();
+}

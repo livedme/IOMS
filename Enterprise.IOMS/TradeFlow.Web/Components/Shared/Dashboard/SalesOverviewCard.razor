@@ -1,46 +1,57 @@
-<DashboardCardShell Title="Sales Overview" FillHeight="true">
-    <HeaderExtra>
-        <div class="tm-select" style="min-width:130px; max-width:150px;">
-            <select class="tm-panel-select" value="@Range" @onchange="OnRangeChanged">
-                <option value="Last 7 Days">Last 7 Days</option>
-                <option value="Last 30 Days">Last 30 Days</option>
-                <option value="Last 12 Months">Last 12 Months</option>
-            </select>
+@* Sales Overview card. Header, area plot and footer layout is shared with Purchase Overview so
+   the two read identically; only the series, accent colour and footer labels differ. *@
+
+<div class="tm-card tm-panel">
+    <div class="tm-panel-head" style="align-items:flex-start;">
+        <div>
+            <span class="tm-panel-title" style="font-size:15px;">Sales Overview</span>
+            <div class="tm-ov-sub">@Subtitle</div>
         </div>
-    </HeaderExtra>
-    <ChildContent>
-        <div class="tm-panel-body">
-            @if (Points.Any())
-            {
-                decimal maxDay = Points.Max(x => x.TotalSales);
-                <div class="tm-day-grid">
-                    @foreach (var d in Points)
-                    {
-                        var w = maxDay <= 0 ? 0 : (double)d.TotalSales / (double)maxDay * 100;
-                        var profitClass = d.Profit >= 0 ? "tm-green" : "tm-red";
-                        <div class="tm-day">
-                            <div class="tm-day-label" title="@d.Label">@d.Label</div>
-                            <div class="tm-day-val">@d.TotalSales.ToString("C0")</div>
-                            <div class="tm-day-sub @profitClass">@d.Profit.ToString("C0")</div>
-                            <div class="tm-bar" style="margin-top:6px;">
-                                <div class="tm-bar-fill" style="width:@w.ToString("0")%; background:linear-gradient(90deg,#3b82f6,#60a5fa);"></div>
-                            </div>
-                        </div>
-                    }
+        <div style="text-align:right;">
+            @* The period is a label, not a control: the range selector in the filter strip above is
+               the single control for both overview cards. *@
+            <span class="tm-ov-period">@Range.Label.ToUpperInvariant()</span>
+            <div class="tm-ov-total">@Total.ToString("C0")</div>
+        </div>
+    </div>
+
+    <div class="tm-panel-body">
+        @if (Points.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">No sales data yet.</MudAlert>
+        }
+        else
+        {
+            <TmAreaChart Points="@ChartPoints" Accent="#3b82f6"
+                         AccessibleLabel="@($"Sales over the {Subtitle}")" />
+
+            <div class="tm-ov-foot">
+                <div>
+                    <span class="tm-dim">Peak day</span>
+                    <span class="tm-ov-peak">@Peak.ToString("C0")</span>
                 </div>
-            }
-            else
-            {
-                <MudAlert Severity="Severity.Info" Dense="true">No sales data yet.</MudAlert>
-            }
-        </div>
-    </ChildContent>
-</DashboardCardShell>
+                <div>
+                    <span class="tm-dim">Gross profit</span>
+                    <span class="@(GrossProfit < 0 ? "tm-red" : "tm-green")">@GrossProfit.ToString("C0")</span>
+                </div>
+            </div>
+        }
+    </div>
+</div>
 
 @code {
     [Parameter] public IReadOnlyList<SalesOverviewPointDto> Points { get; set; } = Array.Empty<SalesOverviewPointDto>();
-    [Parameter] public string Range { get; set; } = "Last 7 Days";
-    [Parameter] public EventCallback<string> RangeChanged { get; set; }
 
-    private Task OnRangeChanged(ChangeEventArgs e) => RangeChanged.InvokeAsync(e.Value?.ToString() ?? "Last 7 Days");
+    /// <summary>Period currently applied by the dashboard filter strip. Only used for the header
+    /// label and the span caption; the series itself is read by the page.</summary>
+    [Parameter] public DashboardRange Range { get; set; } = DashboardRanges.Resolve(DashboardRanges.DefaultLabel, DateTime.UtcNow);
+
+    private decimal Total => Points.Sum(p => p.TotalSales);
+    private decimal GrossProfit => Points.Sum(p => p.Profit);
+    private decimal Peak => Points.Count == 0 ? 0m : Points.Max(p => p.TotalSales);
+
+    private List<(string Label, decimal Value)> ChartPoints =>
+        Points.Select(p => (p.Label, p.TotalSales)).ToList();
+
+    private string Subtitle => Points.Count == 0 ? string.Empty : Range.Caption;
 }

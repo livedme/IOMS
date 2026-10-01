@@ -1,0 +1,57 @@
+<DashboardCardShell Title="Store Overview" ViewAllHref="/shop/branches" ViewAllText="All Stores" FillHeight="true">
+    <div class="tm-table-wrap">
+        <table class="tm-table" style="min-width:560px;">
+            <thead>
+                <tr>
+                    <th>Store</th>
+                    <th style="text-align:right">Orders</th>
+                    <th style="text-align:right">Revenue</th>
+                    <th style="text-align:right">Cost</th>
+                    <th style="text-align:right">Profit</th>
+                    <th style="text-align:right">Share</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Items.Any())
+                {
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:32px; color:#94a3b8;">No store sales yet. Assign a branch to a sales order to see per-store performance.</td>
+                    </tr>
+                }
+                else
+                {
+                    var maxRevenue = Items.Max(x => x.Revenue);
+                    @foreach (var s in Items)
+                    {
+                        var widthPct = maxRevenue <= 0 ? 0 : (double)s.Revenue / (double)maxRevenue * 100;
+                        var marginPct = s.Revenue == 0 ? 0 : Math.Round((double)(s.Profit / s.Revenue * 100), 1);
+                        <tr>
+                            <td>
+                                <div class="d-flex align-center" style="gap:8px;">
+                                    <div class="tm-bar" style="width:64px; flex:none;">
+                                        <div class="tm-bar-fill" style="width:@widthPct.ToString("0")%; background:#3b82f6;"></div>
+                                    </div>
+                                    <span style="font-weight:600;">@s.StoreName</span>
+                                </div>
+                            </td>
+                            <td class="tm-num" style="text-align:right;">@s.Orders.ToString("N0")</td>
+                            <td class="tm-money" style="text-align:right; font-weight:600;">@s.Revenue.ToString("C0")</td>
+                            <td class="tm-dim" style="text-align:right;">@s.Cost.ToString("C0")</td>
+                            <td class="tm-money" style="text-align:right; font-weight:600; color:@(s.Profit < 0 ? "#dc2626" : "#16a34a");">
+                                @s.Profit.ToString("C0")
+                                <span style="font-size:10.5px; font-weight:500;">(@marginPct.ToString("0.#")%)</span>
+                            </td>
+                            <td style="text-align:right;">
+                                <span class="tm-pill tm-pill-blue">@s.SharePct.ToString("0.#")%</span>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</DashboardCardShell>
+
+@code {
+    [Parameter] public IReadOnlyList<StoreOverviewDto> Items { get; set; } = Array.Empty<StoreOverviewDto>();
+}

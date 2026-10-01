@@ -1,0 +1,66 @@
+@* Purchase Overview card. Mirrors the Sales Overview layout exactly: same header (title, date-range
+   subtitle, period selector, right-aligned total), same shared TmAreaChart plot, same footer row.
+   Only the series, the accent colour and the footer labels differ. *@
+
+<div class="tm-card tm-panel">
+    <div class="tm-panel-head" style="align-items:flex-start;">
+        <div>
+            <span class="tm-panel-title" style="font-size:15px;">Purchase Overview</span>
+            <div class="tm-ov-sub">@Subtitle</div>
+        </div>
+        <div style="text-align:right;">
+            @* The period is a label, not a control: the range selector in the filter strip above is
+               the single control for both overview cards. *@
+            <span class="tm-ov-period">@Range.Label.ToUpperInvariant()</span>
+            <div class="tm-ov-total">@Total.ToString("C0")</div>
+        </div>
+    </div>
+
+    <div class="tm-panel-body">
+        @if (Points.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">No purchase data yet.</MudAlert>
+        }
+        else
+        {
+            <TmAreaChart Points="@ChartPoints" Accent="#f59e0b"
+                         AccessibleLabel="@($"Purchases over the {Subtitle}")" />
+
+            <div class="tm-ov-foot">
+                <div>
+                    <span class="tm-dim">Peak day</span>
+                    <span class="tm-ov-peak">@Peak.ToString("C0")</span>
+                </div>
+                <div>
+                    <span class="tm-dim">Purchase orders</span>
+                    <span class="tm-green">@TotalOrders.ToString("N0")</span>
+                </div>
+                <div>
+                    <span class="tm-dim">Avg / order</span>
+                    <span class="tm-ov-peak">@AveragePerOrder.ToString("C0")</span>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<PurchaseOverviewPointDto> Points { get; set; } = Array.Empty<PurchaseOverviewPointDto>();
+
+    /// <summary>Period currently applied by the dashboard filter strip. Only used for the header
+    /// label and the span caption; the series itself is read by the page.</summary>
+    [Parameter] public DashboardRange Range { get; set; } = DashboardRanges.Resolve(DashboardRanges.DefaultLabel, DateTime.UtcNow);
+
+    private decimal Total => Points.Sum(p => p.TotalPurchases);
+    private int TotalOrders => Points.Sum(p => p.OrderCount);
+    private decimal Peak => Points.Count == 0 ? 0m : Points.Max(p => p.TotalPurchases);
+
+    /// <summary>Guarded against a zero-order window, which would otherwise divide by zero.</summary>
+    private decimal AveragePerOrder => TotalOrders == 0 ? 0m : Total / TotalOrders;
+
+    private List<(string Label, decimal Value)> ChartPoints =>
+        Points.Select(p => (p.Label, p.TotalPurchases)).ToList();
+
+    /// <summary>Mirrors the Sales Overview subtitle, e.g. "30 days to 1 Oct 2026".</summary>
+    private string Subtitle => Points.Count == 0 ? string.Empty : Range.Caption;
+}

@@ -2,20 +2,24 @@
 <div class="tm-card tm-filters">
     <div class="tm-select">
         <select value="@DateRange" @onchange="OnDateRangeChanged" title="Date range">
-            <option value="Apr 29, 2025 - May 5, 2025">Apr 29, 2025 - May 5, 2025</option>
-            <option value="Last 7 Days">Last 7 Days</option>
-            <option value="Last 30 Days">Last 30 Days</option>
-            <option value="This Month">This Month</option>
+            @foreach (var option in DashboardRanges.Labels)
+            {
+                <option value="@option">@option</option>
+            }
         </select>
     </div>
 
     <div class="tm-select">
-        <select value="@StoreFilter" @onchange="OnStoreFilterChanged" title="Store">
+        @* Options come from the tenant's real branches. This list used to be hard-coded to
+           Dhaka / Chattogram / Sylhet / Khulna, which matched no actual data and silently
+           filtered nothing. The comparison is explicit because a bare int would render
+           disabled="0", which HTML still treats as disabled. *@
+        <select value="@StoreFilter" @onchange="OnStoreFilterChanged" title="Store" disabled="@(Stores.Count == 0)">
             <option value="All Stores">All Stores</option>
-            <option value="Dhaka">Dhaka</option>
-            <option value="Chattogram">Chattogram</option>
-            <option value="Sylhet">Sylhet</option>
-            <option value="Khulna">Khulna</option>
+            @foreach (var b in Stores)
+            {
+                <option value="@b">@b</option>
+            }
         </select>
     </div>
 
@@ -23,12 +27,16 @@
 </div>
 
 @code {
-    [Parameter] public string DateRange { get; set; } = "";
-    [Parameter] public string StoreFilter { get; set; } = "";
+    [Parameter] public string DateRange { get; set; } = DashboardRanges.DefaultLabel;
+    [Parameter] public string StoreFilter { get; set; } = "All Stores";
+
+    /// <summary>Branch names for the store selector, supplied by the page.</summary>
+    [Parameter] public IReadOnlyList<string> Stores { get; set; } = Array.Empty<string>();
+
     [Parameter] public EventCallback<string> DateRangeChanged { get; set; }
     [Parameter] public EventCallback<string> StoreFilterChanged { get; set; }
     [Parameter] public EventCallback OnRefresh { get; set; }
 
-    private Task OnDateRangeChanged(ChangeEventArgs e) => DateRangeChanged.InvokeAsync(e.Value?.ToString() ?? "");
-    private Task OnStoreFilterChanged(ChangeEventArgs e) => StoreFilterChanged.InvokeAsync(e.Value?.ToString() ?? "");
+    private Task OnDateRangeChanged(ChangeEventArgs e) => DateRangeChanged.InvokeAsync(e.Value?.ToString() ?? DashboardRanges.DefaultLabel);
+    private Task OnStoreFilterChanged(ChangeEventArgs e) => StoreFilterChanged.InvokeAsync(e.Value?.ToString() ?? "All Stores");
 }

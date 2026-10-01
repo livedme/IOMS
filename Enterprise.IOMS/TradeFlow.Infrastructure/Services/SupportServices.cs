@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using AutoMapper;
 using Azure.Core;
 using TradeFlow.Application.DTOs;
@@ -667,14 +668,34 @@ public class DashboardService : IDashboardService
     private static readonly TimeSpan SnapshotLifetime = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan SlowQueryThreshold = TimeSpan.FromMilliseconds(400);
 
+    /// <summary>
+    /// Longest overview window any dashboard range preset can ask for. A "Last 12 Months" window
+    /// reaches 366 days when it spans a leap day, so the bound has to allow for that.
+    /// </summary>
+    private const int MaxOverviewDays = 366;
+
+    /// <summary>
+    /// Windows wider than this are plotted as monthly buckets instead of daily ones. At daily
+    /// granularity a one-year window is 365 near-identical samples that render as a solid block with
+    /// an x-axis whose "Oct 02" and "Oct 01" ends cannot be told apart; monthly buckets show the same
+    /// trend in a readable number of points. Totals are unaffected — only the grouping changes.
+    /// </summary>
+    private const int MonthlyBucketThresholdDays = 62;
+
     private readonly ApplicationDbContext _context;
     private readonly ITenantCache _cache;
+    private readonly ITenantProvider _tenantProvider;
     private readonly ILogger<DashboardService> _logger;
 
-    public DashboardService(ApplicationDbContext context, ITenantCache cache, ILogger<DashboardService> logger)
+    public DashboardService(
+        ApplicationDbContext context,
+        ITenantCache cache,
+        ITenantProvider tenantProvider,
+        ILogger<DashboardService> logger)
     {
         _context = context;
         _cache = cache;
+        _tenantProvider = tenantProvider;
         _logger = logger;
     }
 
@@ -920,10 +941,13 @@ public class DashboardService : IDashboardService
         var lowStockItems = await _context.Inventories
             .CountAsync(i => i.Product.ReorderStockLevel > 0 && i.Quantity <= i.Product.ReorderStockLevel, ct);
 
-        // Placeholder prior-period inventory value; retained because the DTO contract expects a
-        // growth percentage. Logged so it is not mistaken for a measured figure.
-        var prevInventoryValue = inventoryValue * 0.92m;
-        var prevLowStock = Math.Max(lowStockItems + 1, 1);
+        // Inventory value and low-stock count are point-in-time balances: there is no stored
+        // snapshot of either, so no honest period-over-period comparison exists. The previous
+        // implementation invented one (inventoryValue * 0.92 and lowStockItems + 1) and rendered
+        // the result as a measured trend. Both growth figures are now left null, which makes the
+        // tile omit its trend arrow instead of asserting a number nobody computed.
+        double? prevInventoryValue = null;
+        double? prevLowStock = null;
 
         var elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         _logger.LogDebug("GetExtendedKpis resolved 13 aggregates in {ElapsedMs:F0} ms", elapsedMs);
@@ -936,8 +960,10 @@ public class DashboardService : IDashboardService
             todaysSales, Math.Round(Growth(todaysSales, yesterdaysSales), 1),
             totalOrders, Math.Round(GrowthInt(ordersThisWeek, Math.Max(ordersPrevWeek, 1)), 1),
             totalProfit, Math.Round(Growth(profitThisWeek, profitPrevWeek == 0 ? 1 : profitPrevWeek), 1),
-            inventoryValue, Math.Round(Growth(inventoryValue, prevInventoryValue == 0 ? 1 : prevInventoryValue), 1),
-            lowStockItems, Math.Round(GrowthInt(lowStockItems, prevLowStock), 1)
+            inventoryValue,
+            prevInventoryValue.HasValue ? Math.Round(Growth(inventoryValue, (decimal)prevInventoryValue.Value), 1) : null,
+            lowStockItems,
+            prevLowStock.HasValue ? Math.Round(GrowthInt(lowStockItems, (int)prevLowStock.Value), 1) : null
         );
     }
 
@@ -949,6 +975,8 @@ public class DashboardService : IDashboardService
 
     private async Task<List<SalesOverviewPointDto>> BuildSalesOverviewAsync(int days, CancellationToken ct)
     {
+        days = Math.Clamp(days, 1, MaxOverviewDays);
+
         var now = DateTime.UtcNow;
         var cutoff = now.AddDays(-days);
         var firstDay = now.Date.AddDays(-(days - 1));
@@ -968,6 +996,26 @@ public class DashboardService : IDashboardService
         var salesByDay = salesByDayRows.ToDictionary(x => x.Date.Date, x => x.Amount);
         var profitByDay = profitByDayRows.ToDictionary(x => x.Date.Date, x => x.Profit);
 
+        // Months with no orders at all are still emitted, so a gap in activity reads as a zero
+        // rather than silently shortening the strip.
+        if (days > MonthlyBucketThresholdDays)
+        {
+            // The final month is cut off at today. A future-dated order in the current month would
+            // otherwise be counted in the bucket while the daily view, which stops at today, drops it.
+            var endOfToday = now.Date.AddDays(1);
+            var monthly = new List<SalesOverviewPointDto>();
+            for (var month = new DateTime(firstDay.Year, firstDay.Month, 1); month <= now; month = month.AddMonths(1))
+            {
+                var next = month.AddMonths(1);
+                if (next > endOfToday) next = endOfToday;
+
+                var amount = SumBetween(salesByDay, month, next);
+                var profit = SumBetween(profitByDay, month, next);
+                monthly.Add(new SalesOverviewPointDto(month.ToString("MMM yyyy"), amount, profit));
+            }
+            return monthly;
+        }
+
         // Dictionary lookups replace the previous per-day FirstOrDefault scan, which was
         // quadratic in the number of days requested.
         var result = new List<SalesOverviewPointDto>(days);
@@ -975,11 +1023,30 @@ public class DashboardService : IDashboardService
         {
             var day = firstDay.AddDays(-offset);
             var amount = salesByDay.GetValueOrDefault(day, 0m);
-            var profit = profitByDay.GetValueOrDefault(day, amount * 0.26m);
+
+            // Profit is only known for days that actually contain order lines. A day with orders but
+            // no matching line rows yields 0, which is the real figure; the previous code substituted
+            // amount * 0.26, inventing a flat 26% margin for every day whose profit could not be
+            // measured.
+            var profit = profitByDay.GetValueOrDefault(day, 0m);
             result.Add(new SalesOverviewPointDto(day.ToString("MMM dd"), amount, profit));
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Sums a per-day series over a half-open month window. Done in memory rather than in the query
+    /// so the day grouping stays a plain GroupBy on a column EF can translate.
+    /// </summary>
+    private static decimal SumBetween(Dictionary<DateTime, decimal> series, DateTime fromInclusive, DateTime toExclusive)
+    {
+        var total = 0m;
+        foreach (var point in series)
+        {
+            if (point.Key >= fromInclusive && point.Key < toExclusive) total += point.Value;
+        }
+        return total;
     }
 
     public Task<List<SalesByCategoryDto>> GetSalesByCategory() =>
@@ -995,36 +1062,42 @@ public class DashboardService : IDashboardService
                     .ToListAsync(ct);
 
                 var total = data.Sum(x => x.Amount);
-                if (total == 0)
-                {
-                    return new List<SalesByCategoryDto>
-                    {
-                        new("Electronics", 13768m, 28.4), new("Fashion", 10723m, 22.1), new("Home & Living", 7666m, 15.8),
-                        new("Health & Beauty", 5434m, 11.2), new("Sports", 4173m, 8.6), new("Others", 6756m, 13.9)
-                    };
-                }
 
+                // An empty result is returned as empty. The previous implementation substituted a
+                // fixed six-category dataset (Electronics 13768, Fashion 10723, ...) whenever the
+                // tenant had no sales, so an empty tenant rendered invented revenue on the dashboard.
                 return data
-                    .Select(d => new SalesByCategoryDto(d.Category, d.Amount, Math.Round((double)(d.Amount / total * 100), 1)))
+                    .Select(d => new SalesByCategoryDto(d.Category, d.Amount, total == 0 ? 0 : Math.Round((double)(d.Amount / total * 100), 1)))
                     .OrderByDescending(x => x.Amount)
                     .ToList();
             });
 
-    public async Task<List<PaymentMethodBreakdownDto>> GetPaymentMethodBreakdown()
-    {
-        var totalSales = await _context.SalesOrders.Where(o => o.Status != OrderStatus.Cancelled).SumAsync(o => (decimal?)o.TotalAmount) ?? 48520m;
-        if (totalSales == 0) totalSales = 48520m;
-        // Try from invoices/payment method distribution if available
-        var breakdown = new List<PaymentMethodBreakdownDto>
-        {
-            new("Cash", Math.Round(totalSales * 0.423m, 0), 42.3),
-            new("Card", Math.Round(totalSales * 0.287m, 0), 28.7),
-            new("Mobile Payment", Math.Round(totalSales * 0.185m, 0), 18.5),
-            new("Bank Transfer", Math.Round(totalSales * 0.076m, 0), 7.6),
-            new("Other", Math.Round(totalSales * 0.029m, 0), 2.9)
-        };
-        return breakdown;
-    }
+    public Task<List<PaymentMethodBreakdownDto>> GetPaymentMethodBreakdown() =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}payment-methods",
+            SnapshotLifetime,
+            async ct =>
+            {
+                // Measured from recorded payments. The previous implementation ignored the Payment
+                // table entirely and returned five hard-coded percentages (Cash 42.3%, Card 28.7%,
+                // ...) against an invented 48520 total, so the card never reflected real activity.
+                var data = await _context.Payments
+                    .AsNoTracking()
+                    .Where(p => p.Status == PaymentStatus.Completed)
+                    .GroupBy(p => p.PaymentMethod)
+                    .Select(g => new { Method = g.Key, Amount = g.Sum(p => p.Amount) })
+                    .ToListAsync(ct);
+
+                var total = data.Sum(x => x.Amount);
+
+                return data
+                    .Select(d => new PaymentMethodBreakdownDto(
+                        d.Method.ToString(),
+                        Math.Round(d.Amount, 2),
+                        total == 0 ? 0 : Math.Round((double)(d.Amount / total * 100), 1)))
+                    .OrderByDescending(x => x.Amount)
+                    .ToList();
+            });
 
     public async Task<InventoryStatusDto> GetInventoryStatus()
     {
@@ -1047,9 +1120,6 @@ public class DashboardService : IDashboardService
                     })
                     .ToListAsync(ct);
 
-                if (perProduct.Count == 0)
-                    return new InventoryStatusDto(2482, 2124, 198, 160, 85.6, 8.0, 6.4);
-
                 var totalProducts = perProduct.Count;
                 var inStock = perProduct.Count(p => p.TotalQuantity > 0);
                 var lowStock = perProduct.Count(p =>
@@ -1058,6 +1128,8 @@ public class DashboardService : IDashboardService
 
                 static double Pct(int value, int total) => total == 0 ? 0 : Math.Round((double)value / total * 100, 1);
 
+                // No seeded fallback: an empty catalogue reports zero of everything, which is the
+                // truth. It previously reported 2482 / 2124 / 198 / 160 regardless of the tenant.
                 return new InventoryStatusDto(
                     totalProducts, inStock, lowStock, outOfStock,
                     Pct(inStock, totalProducts), Pct(lowStock, totalProducts), Pct(outOfStock, totalProducts));
@@ -1078,9 +1150,6 @@ public class DashboardService : IDashboardService
                     .Take(4)
                     .ToListAsync(ct);
 
-                if (data.Count == 0)
-                    return new List<DailySalesByStoreDto> { new("Dhaka", 12500), new("Chattogram", 9800), new("Sylhet", 7400), new("Khulna", 6200) };
-
                 return data.Select(d => new DailySalesByStoreDto(d.Store, d.Sales)).ToList();
             });
 
@@ -1090,23 +1159,41 @@ public class DashboardService : IDashboardService
             SnapshotLifetime,
             async ct =>
             {
-                var data = await _context.SalesOrders
-                    .Where(o => o.Status != OrderStatus.Cancelled)
-                    .GroupBy(o => o.Branch != null ? o.Branch.Name : "Unassigned")
-                    .Select(g => new { Store = g.Key, Sales = g.Sum(o => o.TotalAmount) })
-                    .OrderByDescending(x => x.Sales)
-                    .Take(4)
-                    .ToListAsync(ct);
+                // Growth is the real week-over-week change: the same branch grouping is run over the
+                // previous seven days and the two totals are compared. The previous implementation
+                // returned `new Random(42).NextDouble() * 10 + 5` per row, which re-randomised on
+                // every cache rebuild and bore no relation to the data it was displayed beside.
+                var now = DateTime.UtcNow;
+                var startOfWeek = now.AddDays(-7);
+                var prevWeekStart = now.AddDays(-14);
 
-                if (data.Count == 0)
-                    return new List<BestStoreDto> { new("Dhaka", 18240, 16.5), new("Chattogram", 14860, 12.8), new("Sylhet", 10320, 9.4), new("Khulna", 7100, 7.2) };
+                var current = await BuildStoreTotalsAsync(now, startOfWeek, ct);
+                var previous = await BuildStoreTotalsAsync(startOfWeek, prevWeekStart, ct);
 
-                // Growth is a placeholder because no prior-period store snapshot is stored.
-                var random = new Random(42);
-                return data
-                    .Select(d => new BestStoreDto(d.Store, d.Sales, Math.Round(random.NextDouble() * 10 + 5, 1)))
+                return current
+                    .Select(entry =>
+                    {
+                        previous.TryGetValue(entry.Key, out var prior);
+                        var growth = prior > 0m
+                            ? Math.Round((double)((entry.Value - prior) / prior * 100), 1)
+                            : 0d;
+                        return new BestStoreDto(entry.Key, entry.Value, growth);
+                    })
                     .ToList();
             });
+
+    private async Task<Dictionary<string, decimal>> BuildStoreTotalsAsync(
+        DateTime from, DateTime to, CancellationToken ct)
+    {
+        var rows = await _context.SalesOrders
+            .AsNoTracking()
+            .Where(o => o.OrderDate >= from && o.OrderDate < to && o.Status != OrderStatus.Cancelled)
+            .GroupBy(o => o.Branch != null ? o.Branch.Name : "Unassigned")
+            .Select(g => new { Store = g.Key, Sales = g.Sum(o => o.TotalAmount) })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(x => x.Store, x => x.Sales);
+    }
 
     public Task<List<RecentTransactionDto>> GetRecentTransactions(int count) =>
         _cache.GetOrCreateAsync(
@@ -1143,18 +1230,6 @@ public class DashboardService : IDashboardService
             .Take(count)
             .ToList();
 
-        if (ordered.Count == 0)
-        {
-            return new List<RecentTransactionDto>
-            {
-                new("Sale", "Sale #S-10045", "2 mins ago", 245.00m, "Completed", "Completed"),
-                new("Purchase", "Purchase #P-10028", "15 mins ago", 1240.00m, "Received", "Received"),
-                new("Sale", "Sale #S-10044", "32 mins ago", 125.50m, "Completed", "Completed"),
-                new("Return", "Return #R-10012", "1 hour ago", 89.90m, "Refunded", "Refunded"),
-                new("Payment", "Payment Received", "2 hours ago", 2450.00m, "Cash", "Cash")
-            };
-        }
-
         return ordered
             .Select(x => x.IsPurchase
                 ? new RecentTransactionDto("Purchase", $"Purchase #{x.OrderNumber}", x.Label, x.TotalAmount, x.Status, "Received")
@@ -1165,7 +1240,6 @@ public class DashboardService : IDashboardService
                     x.TotalAmount,
                     x.Status,
                     x.Status == nameof(OrderStatus.Sold) ? "Completed" : "Pending"))
-            .Take(5)
             .ToList();
     }
 
@@ -1205,10 +1279,10 @@ public class DashboardService : IDashboardService
                 foreach (var item in expiringRows)
                     alerts.Add(new SystemAlertDto($"Expiring soon: {item.Name} (5 days)", "", "12 mins ago", "warning", "schedule"));
 
-                alerts.Add(new SystemAlertDto("New customer registration", "", "30 mins ago", "info", "person_add"));
-                alerts.Add(new SystemAlertDto("Supplier payment due: ABC Supplier", "", "1 hour ago", "warning", "payments"));
-                alerts.Add(new SystemAlertDto("System backup completed", "", "3 hours ago", "success", "check_circle"));
-
+                // Only conditions that are actually detected are reported. The previous
+                // implementation unconditionally appended three invented alerts ("New customer
+                // registration", "Supplier payment due: ABC Supplier", "System backup completed")
+                // to every tenant's feed regardless of whether any such event had occurred.
                 return alerts.Take(count).ToList();
             });
 
@@ -1234,18 +1308,6 @@ public class DashboardService : IDashboardService
                     })
                     .ToListAsync(ct);
 
-                if (data.Count == 0)
-                {
-                    return new List<RecentOrderExtendedDto>
-                    {
-                        new(Guid.NewGuid(), "SO-10045", "John Smith", "Dhaka", DateTime.UtcNow.AddHours(-2), "Completed", 245.00m),
-                        new(Guid.NewGuid(), "SO-10044", "Sarah Johnson", "Chattogram", DateTime.UtcNow.AddHours(-3), "Completed", 189.50m),
-                        new(Guid.NewGuid(), "SO-10043", "Michael Brown", "Sylhet", DateTime.UtcNow.AddHours(-5), "Processing", 320.75m),
-                        new(Guid.NewGuid(), "SO-10042", "Emily Davis", "Dhaka", DateTime.UtcNow.AddHours(-7), "Completed", 156.20m),
-                        new(Guid.NewGuid(), "SO-10041", "Robert Wilson", "Khulna", DateTime.UtcNow.AddDays(-1), "Shipped", 278.40m)
-                    };
-                }
-
                 return data
                     .Select(d => new RecentOrderExtendedDto(d.Id, d.OrderNumber, d.Customer, d.Store, d.OrderDate, d.Status, d.TotalAmount))
                     .ToList();
@@ -1258,6 +1320,300 @@ public class DashboardService : IDashboardService
         if (span.TotalHours < 24) return $"{(int)span.TotalHours} hour{(span.TotalHours >= 2 ? "s" : "")} ago";
         return $"{(int)span.TotalDays} days ago";
     }
+
+    // ── Purchase Overview ─────────────────────────────────────────────
+
+    public Task<List<PurchaseOverviewPointDto>> GetPurchaseOverview(int days) =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}purchase-overview:{days}",
+            SnapshotLifetime,
+            ct => BuildPurchaseOverviewAsync(days, ct));
+
+    private async Task<List<PurchaseOverviewPointDto>> BuildPurchaseOverviewAsync(int days, CancellationToken ct)
+    {
+        days = Math.Clamp(days, 1, MaxOverviewDays);
+
+        var now = DateTime.UtcNow;
+        var cutoff = now.AddDays(-days);
+        var firstDay = now.Date.AddDays(-(days - 1));
+
+        // Draft and Cancelled purchase orders are excluded: neither represents committed spend, and
+        // including drafts would make procurement look busier than it is.
+        var rows = await _context.PurchaseOrders
+            .AsNoTracking()
+            .Where(p => p.PurchaseDate >= cutoff
+                     && p.Status != PurchaseOrderStatus.Cancelled
+                     && p.Status != PurchaseOrderStatus.Draft)
+            .GroupBy(p => p.PurchaseDate.Date)
+            .Select(g => new { Date = g.Key, Amount = g.Sum(p => p.TotalAmount), Count = g.Count() })
+            .ToListAsync(ct);
+
+        var byDay = new Dictionary<DateTime, (decimal Amount, int Count)>();
+        foreach (var row in rows) byDay[row.Date.Date] = (row.Amount, row.Count);
+
+        // Months with no orders at all are still emitted, so a gap in activity reads as a zero
+        // rather than silently shortening the strip.
+        if (days > MonthlyBucketThresholdDays)
+        {
+            // The final month is cut off at today. A future-dated order in the current month would
+            // otherwise be counted in the bucket while the daily view, which stops at today, drops it.
+            var endOfToday = now.Date.AddDays(1);
+            var monthly = new List<PurchaseOverviewPointDto>();
+            for (var month = new DateTime(firstDay.Year, firstDay.Month, 1); month <= now; month = month.AddMonths(1))
+            {
+                var next = month.AddMonths(1);
+                if (next > endOfToday) next = endOfToday;
+
+                var amount = 0m;
+                var count = 0;
+                foreach (var day in byDay)
+                {
+                    if (day.Key < month || day.Key >= next) continue;
+                    amount += day.Value.Amount;
+                    count += day.Value.Count;
+                }
+                monthly.Add(new PurchaseOverviewPointDto(month.ToString("MMM yyyy"), amount, count));
+            }
+            return monthly;
+        }
+
+        // Every day in the window is emitted, including days with no orders, so the strip keeps a
+        // stable width instead of collapsing when a day happens to be empty.
+        var result = new List<PurchaseOverviewPointDto>(days);
+        for (var offset = days - 1; offset >= 0; offset--)
+        {
+            var day = firstDay.AddDays(-offset);
+            byDay.TryGetValue(day, out var hit);
+            result.Add(new PurchaseOverviewPointDto(day.ToString("MMM dd"), hit.Amount, hit.Count));
+        }
+
+        return result;
+    }
+
+    // ── Inventory Overview ────────────────────────────────────────────
+
+    public Task<InventoryOverviewDto> GetInventoryOverview() =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}inventory-overview",
+            SnapshotLifetime,
+            ct => BuildInventoryOverviewAsync(ct));
+
+    private async Task<InventoryOverviewDto> BuildInventoryOverviewAsync(CancellationToken ct)
+    {
+        // Two shapes of aggregate, because they answer different questions. The per-product roll-up
+        // counts *products* by health, so a product stocked in three warehouses is counted once
+        // rather than three times. The single-row group sums *units and value* across every
+        // inventory row. A product with no stock rows at all still appears in the first query with a
+        // total of zero, and therefore counts as out of stock.
+        var perProduct = await _context.Products
+            .AsNoTracking()
+            .Select(p => new
+            {
+                p.ReorderStockLevel,
+                OnHand = p.Inventories.Sum(i => i.Quantity)
+            })
+            .ToListAsync(ct);
+
+        var totals = await _context.Inventories
+            .AsNoTracking()
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                OnHand = g.Sum(i => i.Quantity),
+                Reserved = g.Sum(i => i.ReservedQuantity),
+                AtCost = g.Sum(i => (decimal?)(i.Quantity * i.Product.CostPrice)),
+                AtRetail = g.Sum(i => (decimal?)(i.Quantity * i.Product.SellingPrice))
+            })
+            .FirstOrDefaultAsync(ct);
+
+        var totalProducts = perProduct.Count;
+        var inStock = perProduct.Count(p => p.OnHand > 0);
+        var lowStock = perProduct.Count(p =>
+            p.ReorderStockLevel > 0 && p.OnHand > 0 && p.OnHand <= p.ReorderStockLevel);
+        var outOfStock = totalProducts - inStock;
+
+        var onHand = totals?.OnHand ?? 0;
+        var reserved = totals?.Reserved ?? 0;
+
+        return new InventoryOverviewDto(
+            totalProducts, inStock, lowStock, outOfStock,
+            onHand, reserved, onHand - reserved,
+            Math.Round(totals?.AtCost ?? 0m, 2),
+            Math.Round(totals?.AtRetail ?? 0m, 2));
+    }
+
+    // ── Store Overview ────────────────────────────────────────────────
+
+    public Task<List<StoreOverviewDto>> GetStoreOverview() =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}store-overview",
+            SnapshotLifetime,
+            ct => BuildStoreOverviewAsync(ct));
+
+    private async Task<List<StoreOverviewDto>> BuildStoreOverviewAsync(CancellationToken ct)
+    {
+        // Grouped over sales order *lines* rather than order headers so that revenue and cost are
+        // measured on the same rows. Summing the header TotalAmount would not allow the cost side of
+        // the margin to be derived at all, and joining through Branch keeps unattributed orders in
+        // the result as "Unassigned" instead of silently dropping them.
+        var rows = await _context.SalesOrderItems
+            .AsNoTracking()
+            .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled)
+            .GroupBy(i => i.SalesOrder.Branch != null ? i.SalesOrder.Branch.Name : "Unassigned")
+            .Select(g => new
+            {
+                Store = g.Key,
+                Revenue = g.Sum(i => i.LineTotalPrice),
+                Cost = g.Sum(i => i.Product.CostPrice * i.Quantity),
+                Orders = g.Select(i => i.SalesOrderId).Distinct().Count()
+            })
+            .OrderByDescending(x => x.Revenue)
+            .ToListAsync(ct);
+
+        var total = rows.Sum(x => x.Revenue);
+
+        return rows.Select(r =>
+        {
+            var revenue = Math.Round(r.Revenue, 2);
+            var cost = Math.Round(r.Cost, 2);
+            return new StoreOverviewDto(
+                r.Store,
+                revenue,
+                cost,
+                Math.Round(revenue - cost, 2),
+                r.Orders,
+                total == 0 ? 0 : Math.Round((double)(r.Revenue / total * 100), 1));
+        }).ToList();
+    }
+
+    // ── Stock Levels ──────────────────────────────────────────────────
+
+    public Task<List<StockLevelDto>> GetStockLevels(int count) =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}stock-levels:{count}",
+            SnapshotLifetime,
+            ct => BuildStockLevelsAsync(count, ct));
+
+    private async Task<List<StockLevelDto>> BuildStockLevelsAsync(int count, CancellationToken ct)
+    {
+        count = Math.Clamp(count, 1, 50);
+
+        // Ordering is done in the database rather than after materialisation so the "most at risk
+        // first" ranking holds for the whole table, not just the rows that survived the Take. The
+        // CASE expression pushes rows at or below their reorder level to the front, then the
+        // product name gives a stable secondary order.
+        return await _context.Inventories
+            .AsNoTracking()
+            .OrderBy(i => i.Quantity <= i.Product.ReorderStockLevel ? 0 : 1)
+            .ThenBy(i => i.Product.Name)
+            .ThenBy(i => i.Warehouse.Name)
+            .Take(count)
+            .Select(i => new StockLevelDto(
+                i.Id,
+                i.ProductId,
+                i.Product.Name,
+                i.Product.SKU,
+                i.WarehouseId,
+                i.Warehouse.Name,
+                i.Quantity,
+                i.ReservedQuantity,
+                i.Quantity - i.ReservedQuantity,
+                i.Product.ReorderStockLevel,
+                i.BinLocation))
+            .ToListAsync(ct);
+    }
+
+    // ── Recent Activities ─────────────────────────────────────────────
+
+    public Task<List<RecentActivityDto>> GetRecentActivities(int count) =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}recent-activities:{count}",
+            SnapshotLifetime,
+            ct => BuildRecentActivitiesAsync(count, ct));
+
+    private async Task<List<RecentActivityDto>> BuildRecentActivitiesAsync(int count, CancellationToken ct)
+    {
+        count = Math.Clamp(count, 1, 50);
+
+        // AuditLog is deliberately NOT derived from BaseEntity, so the DbContext's tenant query
+        // filter does not apply to it and no implicit TenantId predicate reaches the query. The
+        // tenant must therefore be applied explicitly here. Anything reading the audit log without
+        // this predicate returns every tenant's change history, including the serialised old and new
+        // values of every record they touched.
+        var tenantId = _tenantProvider.GetTenantId();
+
+        var rows = await _context.AuditLogs
+            .AsNoTracking()
+            .Where(a => a.TenantId == tenantId)
+            .OrderByDescending(a => a.Timestamp)
+            .Take(count)
+            .Select(a => new { a.TableName, a.Action, a.UserId, a.Timestamp, a.RecordId })
+            .ToListAsync(ct);
+
+        return rows
+            .Select(r => new RecentActivityDto(
+                DescribeActivity(r.Action, r.TableName),
+                r.RecordId == Guid.Empty ? "" : $"#{r.RecordId.ToString()[..8].ToUpperInvariant()}",
+                string.IsNullOrWhiteSpace(r.UserId) ? "system" : r.UserId!,
+                GetTimeAgo(r.Timestamp),
+                ActivityIcon(r.Action),
+                ActivityTone(r.Action)))
+            .ToList();
+    }
+
+    /// <summary>Renders an audit row as a human sentence, e.g. "Created Sales Order".</summary>
+    private static string DescribeActivity(string? action, string? tableName)
+    {
+        var verb = Normalize(action);
+        var noun = SplitPascalCase(tableName);
+
+        if (string.IsNullOrEmpty(noun)) return verb;
+        if (string.IsNullOrEmpty(verb)) return noun;
+
+        return $"{verb} {noun}";
+    }
+
+    /// <summary>
+    /// Inserts a space before each interior capital so "SalesOrder" reads as "Sales Order". An
+    /// acronym run is left intact, so "SKU" does not become "S K U".
+    /// </summary>
+    private static string SplitPascalCase(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+
+        var builder = new StringBuilder(value.Length + 8);
+        for (var i = 0; i < value.Length; i++)
+        {
+            if (i > 0 && char.IsUpper(value[i]) && !char.IsUpper(value[i - 1]))
+                builder.Append(' ');
+
+            builder.Append(value[i]);
+        }
+
+        return builder.ToString();
+    }
+
+    private static string Normalize(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+
+    // Material icon *names* as plain strings. The Infrastructure project does not reference
+    // MudBlazor, and the DTO layer stays UI-framework free; the Razor cards resolve these against
+    // MudBlazor's Icons.Material.Filled lookup. This matches how SystemAlertDto.Icon already works.
+    private static string ActivityIcon(string? action) => action switch
+    {
+        "Created" => "AddCircle",
+        "Updated" => "EditNote",
+        "Deleted" => "DeleteOutline",
+        _ => "History"
+    };
+
+    private static string ActivityTone(string? action) => action switch
+    {
+        "Created" => "#22c55e",
+        "Updated" => "#3b82f6",
+        "Deleted" => "#ef4444",
+        _ => "#94a3b8"
+    };
 }
 
 // ─── Search Service ─────────────────────────────────────────────────────────

@@ -1,0 +1,161 @@
+@* Shared SVG area chart for the dashboard overview cards.
+   Hand-built rather than MudChart because the layout needs a gradient-filled area under the line
+   and a "K"-abbreviated left axis, which MudChart does not expose. Chart.js / ApexCharts are not
+   present in wwwroot, so this avoids adding a dependency. *@
+
+<div class="tm-ov-area">
+    @* Uniform scaling (the default preserveAspectRatio) rather than "none": stretching the
+       viewBox to fill the container also stretches the plot stroke out of round. Axis labels are
+       HTML positioned over the SVG rather than <text> nodes, because Blazor's parser reserves the
+       <text> tag and rejects attributes on it. *@
+    <svg viewBox="0 0 @ViewW @ViewH" class="tm-ov-area-svg" role="img" aria-label="@AccessibleLabel">
+        <defs>
+            @* Unique per instance: several of these charts render on the dashboard at once and a
+               shared gradient id would let one chart's <defs> satisfy another's url(#...) reference. *@
+            <linearGradient id="@_gradientId" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="@Accent" stop-opacity="0.34" />
+                <stop offset="100%" stop-color="@Accent" stop-opacity="0.02" />
+            </linearGradient>
+        </defs>
+
+        @* Horizontal gridlines. *@
+        @for (var g = 0; g <= GridLines; g++)
+        {
+            var y = AxisTop + PlotHeight * g / GridLines;
+            <line x1="@AxisLeft" y1="@y.ToString("0.##")" x2="@(ViewW - AxisRight)"
+                  y2="@y.ToString("0.##")" stroke="#eef0f4" stroke-width="1" />
+        }
+
+        @* The fill and the stroke share one path so they can never drift apart. *@
+        @if (LinePath.Length > 0)
+        {
+            <path d="@AreaPath" fill="url(#@_gradientId)" stroke="none" />
+            <path d="@LinePath" fill="none" stroke="@Accent" stroke-width="2"
+                  stroke-linejoin="round" stroke-linecap="round" />
+        }
+    </svg>
+
+    @* Left-hand value axis, highest value at the top. *@
+    <div class="tm-ov-ylabels" aria-hidden="true">
+        @for (var g = 0; g <= GridLines; g++)
+        {
+            <span class="tm-ov-ylabel" style="top:@YLabelTop(g).ToString("0.##")%;">
+                @FormatAxis(MaxY * (GridLines - g) / GridLines)
+            </span>
+        }
+    </div>
+
+    @* Only the first and last dates are labelled; 30 of them would not fit. *@
+    @if (Points.Count > 0)
+    {
+        <div class="tm-ov-xlabels" aria-hidden="true">
+            <span>@Points[0].Label</span>
+            <span>@Points[^1].Label</span>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<(string Label, decimal Value)> Points { get; set; } = Array.Empty<(string, decimal)>();
+
+    /// <summary>Stroke and gradient colour, e.g. "#3b82f6".</summary>
+    [Parameter] public string Accent { get; set; } = "#3b82f6";
+
+    [Parameter] public string AccessibleLabel { get; set; } = "Trend chart";
+
+    private readonly string _gradientId = $"tmAreaFill{Guid.NewGuid():N}";
+
+    // Fixed viewBox units; the SVG scales to the container width proportionally.
+    private const int ViewW = 1000;
+    private const int ViewH = 260;
+    private const int AxisLeft = 52;
+    private const int AxisRight = 8;
+    private const int AxisTop = 8;
+    private const int AxisBottom = 26;
+    private const int GridLines = 4;
+
+    private static readonly double PlotHeight = ViewH - AxisTop - AxisBottom;
+    private static readonly double PlotWidth = ViewW - AxisLeft - AxisRight;
+
+    private decimal Peak => Points.Count == 0 ? 0m : Points.Max(p => p.Value);
+
+    /// <summary>
+    /// Upper axis bound. Rounded up to a clean 1/2/2.5/5 x 10^n step so the gridlines land on
+    /// readable values, and never below 1 so an all-zero series does not divide by zero.
+    /// </summary>
+    private decimal MaxY
+    {
+        get
+        {
+            var raw = Peak;
+            if (raw <= 0) return 1m;
+
+            var magnitude = (decimal)Math.Pow(10, Math.Floor(Math.Log10((double)raw)));
+            var normalised = raw / magnitude;
+            var step = normalised switch
+            {
+                <= 1m => 1m,
+                <= 2m => 2m,
+                <= 2.5m => 2.5m,
+                <= 5m => 5m,
+                _ => 10m
+            };
+
+            return step * magnitude;
+        }
+    }
+
+    private string LinePath => BuildPath(closeArea: false);
+
+    private string AreaPath => BuildPath(closeArea: true);
+
+    private double PlotX(int index) => Points.Count <= 1
+        ? AxisLeft + PlotWidth / 2
+        : AxisLeft + PlotWidth * index / (Points.Count - 1);
+
+    private double PlotY(decimal value) => AxisTop + PlotHeight * (double)(1m - value / MaxY);
+
+    /// <summary>
+    /// Vertical position of an axis label as a percentage of the rendered chart height. The SVG is
+    /// laid out in viewBox units and the labels are positioned in CSS, so the gridline offset has to
+    /// be scaled by the same AxisTop/PlotHeight/ViewH ratio the plot uses or they drift apart.
+    /// </summary>
+    private double YLabelTop(int gridIndex) => 100.0 * (AxisTop + PlotHeight * gridIndex / GridLines) / ViewH;
+
+    /// <summary>
+    /// Builds the polyline through every point. Points are joined with straight segments rather
+    /// than a spline: a 30-point smooth curve would overshoot between samples and can dip below
+    /// zero between two low days, which would render a dip that is not in the data.
+    /// </summary>
+    private string BuildPath(bool closeArea)
+    {
+        if (Points.Count == 0) return string.Empty;
+
+        var sb = new System.Text.StringBuilder();
+        for (var i = 0; i < Points.Count; i++)
+        {
+            sb.Append(i == 0 ? "M " : " L ");
+            sb.Append(PlotX(i).ToString("0.##"));
+            sb.Append(' ');
+            sb.Append(PlotY(Points[i].Value).ToString("0.##"));
+        }
+
+        if (closeArea && Points.Count > 1)
+        {
+            var baseline = AxisTop + PlotHeight;
+            sb.Append($" L {PlotX(Points.Count - 1).ToString("0.##")} {baseline.ToString("0.##")}");
+            sb.Append($" L {PlotX(0).ToString("0.##")} {baseline.ToString("0.##")} Z");
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>Abbreviates the axis the way the reference does: 0, 5K, 10K, 20K.</summary>
+    private static string FormatAxis(decimal value)
+    {
+        if (value <= 0) return "0";
+        if (value >= 1_000_000m) return $"{value / 1_000_000m:0.##}M";
+        if (value >= 1_000m) return $"{value / 1_000m:0.##}K";
+        return value.ToString("0");
+    }
+}

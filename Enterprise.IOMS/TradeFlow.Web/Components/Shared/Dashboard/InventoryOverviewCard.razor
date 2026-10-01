@@ -1,0 +1,68 @@
+<DashboardCardShell Title="Inventory Overview" ViewAllHref="/inventory/stock-levels" ViewAllText="Stock Levels" FillHeight="true">
+    <div class="tm-list">
+        @{
+            // Cost and retail valuation are both measured from the same quantity rows, so the
+            // difference between them is genuine unrealised margin rather than an assumed margin
+            // percentage applied to a cost figure.
+            var margin = Overview.InventoryValueAtRetail - Overview.InventoryValueAtCost;
+            var marginPct = Overview.InventoryValueAtCost == 0
+                ? 0
+                : Math.Round((double)(margin / Overview.InventoryValueAtCost * 100), 1);
+            var reservedPct = Overview.TotalQuantity == 0
+                ? 0
+                : Math.Round((double)Overview.ReservedQuantity / Overview.TotalQuantity * 100, 1);
+
+            var rows = new[]
+            {
+                (Label: "Units on Hand",      Value: Overview.TotalQuantity.ToString("N0"),       Note: "Physical stock across all warehouses", Color: "#3b82f6", Icon: Icons.Material.Filled.Inventory2),
+                (Label: "Available to Sell",  Value: Overview.AvailableQuantity.ToString("N0"),  Note: $"On hand less {Overview.ReservedQuantity:N0} reserved ({reservedPct:0.#}%)", Color: "#22c55e", Icon: Icons.Material.Filled.CheckCircle),
+                (Label: "Reserved",           Value: Overview.ReservedQuantity.ToString("N0"),   Note: "Committed to open orders", Color: "#f59e0b", Icon: Icons.Material.Filled.Lock),
+                (Label: "Value at Cost",      Value: Overview.InventoryValueAtCost.ToString("C0"), Note: "What the stock was bought for", Color: "#8b5cf6", Icon: Icons.Material.Filled.Receipt),
+                (Label: "Value at Retail",    Value: Overview.InventoryValueAtRetail.ToString("C0"), Note: $"Same stock at selling price (+{marginPct:0.#}% margin)", Color: "#0ea5e9", Icon: Icons.Material.Filled.Sell)
+            };
+        }
+        @foreach (var r in rows)
+        {
+            <div class="tm-list-row">
+                <div class="tm-list-ico" style="background:@r.Color;">
+                    <MudIcon Icon="@r.Icon" Size="Size.Small" Style="font-size:15px; color:#fff;" />
+                </div>
+                <div class="tm-list-main">
+                    <div class="tm-list-title">@r.Label</div>
+                    <div class="tm-list-sub">@r.Note</div>
+                </div>
+                <div class="tm-list-end">
+                    <div class="tm-list-amt">@r.Value</div>
+                </div>
+            </div>
+        }
+
+        <div class="tm-list-row">
+            <div class="tm-list-ico" style="background:#111827;">
+                <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" Style="font-size:15px; color:#fff;" />
+            </div>
+            <div class="tm-list-main">
+                <div class="tm-list-title">@Overview.TotalProducts.ToString("N0") products tracked</div>
+                <div class="tm-list-sub">
+                    @Overview.InStock.ToString("N0") in stock ·
+                    @Overview.LowStock.ToString("N0") at or below reorder level ·
+                    @Overview.OutOfStock.ToString("N0") out of stock
+                </div>
+            </div>
+        </div>
+    </div>
+    @if (Overview.AvailableQuantity < Overview.ReservedQuantity)
+    {
+        <div class="tm-panel-body" style="padding-top:0;">
+            <MudAlert Severity="Severity.Warning" Dense="true" Icon="@Icons.Material.Filled.Warning">
+                Reserved stock exceeds available stock. Some reservations are no longer covered by physical inventory.
+            </MudAlert>
+        </div>
+    }
+</DashboardCardShell>
+
+@code {
+    private static readonly InventoryOverviewDto Empty = new(0, 0, 0, 0, 0, 0, 0, 0m, 0m);
+
+    [Parameter] public InventoryOverviewDto Overview { get; set; } = Empty;
+}
