@@ -119,7 +119,13 @@ public interface IDashboardService
     Task<List<RecentOrderDto>> GetRecentSalesOrders(int count);
     Task<List<RecentOrderDto>> GetRecentPurchaseOrders(int count);
     // Screenshot-aligned extensions
-    Task<DashboardExtendedKpiDto> GetExtendedKpis();
+
+    /// <summary>
+    /// Headline KPI row covering the <paramref name="days"/>-day window ending today. The range
+    /// matches the dashboard filter so the tiles and the charts always describe the same period.
+    /// </summary>
+    Task<DashboardKpiSetDto> GetKpis(int days);
+
     Task<List<SalesOverviewPointDto>> GetSalesOverview(int days);
     Task<List<SalesByCategoryDto>> GetSalesByCategory();
     Task<List<PaymentMethodBreakdownDto>> GetPaymentMethodBreakdown();

@@ -24,10 +24,10 @@
 
     @if (_loading)
     {
-        <div class="tm-stats">
+        <div class="tm-kpis">
             @for (int i = 0; i < 6; i++)
             {
-                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px;" Style="border-radius:10px;" />
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="150px;" Style="border-radius:12px;" />
             }
         </div>
         <div class="tm-card tm-table-card">
@@ -40,7 +40,7 @@
     else
     {
         <div class="tm-dash">
-            <DashboardKpiRow Kpis="@_extKpis" />
+            <DashboardKpiRow Kpis="@_kpis" Days="@_overviewDays" />
 
             @* ── Sales and purchasing over time ────────────────────────────── *@
             @* Paired in an equal two-column row: the two overview cards share a layout, and
@@ -63,12 +63,6 @@
                 <StoreOverviewCard Items="@FilteredStores" />
             </div>
 
-            <div class="tm-dash-row-3">
-                <BestStoresCard Items="@_bestStores" />
-                <InventoryStatusCard Status="@_inventoryStatus" />
-                <PaymentMethodsCard Items="@_paymentMethods" />
-            </div>
-
             @* ── Live operational feeds ─────────────────────────────────────── *@
             <div class="tm-dash-row">
                 <RecentOrdersCard Items="@_recentOrdersExt" />
@@ -86,13 +80,7 @@
 </div>
 
 @code {
-    // Argument order is TotalSales, TotalSalesGrowth, TodaysSales, TodaysSalesGrowth, TotalOrders,
-    // TotalOrdersGrowth, TotalProfit, TotalProfitGrowth, InventoryValue, InventoryValueGrowth,
-    // LowStockItems, LowStockGrowth. The two growth figures are nullable and start at null so the
-    // tiles render no trend arrow until a real prior-period baseline is available.
-    private static readonly DashboardExtendedKpiDto EmptyExtendedKpis = new(0, 0, 0, 0, 0, 0, 0, 0, 0, null, 0, null);
     private static readonly InventoryOverviewDto EmptyInventoryOverview = new(0, 0, 0, 0, 0, 0, 0, 0m, 0m);
-    private static readonly InventoryStatusDto EmptyInventoryStatus = new(0, 0, 0, 0, 0, 0, 0);
 
     private bool _loading = true;
 
@@ -116,15 +104,12 @@
 
     private List<string> _stores = new();
 
-    private DashboardExtendedKpiDto _extKpis = EmptyExtendedKpis;
+    private DashboardKpiSetDto _kpis = DashboardKpiSetDto.Empty;
     private List<SalesOverviewPointDto> _salesOverview = new();
     private List<PurchaseOverviewPointDto> _purchaseOverview = new();
-    private List<PaymentMethodBreakdownDto> _paymentMethods = new();
-    private InventoryStatusDto _inventoryStatus = EmptyInventoryStatus;
     private InventoryOverviewDto _inventoryOverview = EmptyInventoryOverview;
     private List<StoreOverviewDto> _storeOverview = new();
     private List<StoreOverviewDto> FilteredStores => FilterByStore(_storeOverview);
-    private List<BestStoreDto> _bestStores = new();
     private List<TopProductDto> _topProducts = new();
     private List<StockLevelDto> _stockLevels = new();
     private List<RecentTransactionDto> _recentTx = new();
@@ -147,14 +132,11 @@
         // Core throws "A second operation was started on this context instance" if two of these
         // overlap. Genuine fan-out would need a separate DbContext per read (IDbContextFactory).
         // Repeating a render inside the TTL window is served from cache and costs no round trips.
-        _extKpis = await SafeAsync(() => DashboardService.GetExtendedKpis(), EmptyExtendedKpis, "GetExtendedKpis");
+        _kpis = await SafeAsync(() => DashboardService.GetKpis(_overviewDays), DashboardKpiSetDto.Empty, "GetKpis");
         _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(_overviewDays), new List<SalesOverviewPointDto>(), "GetSalesOverview");
         _purchaseOverview = await SafeAsync(() => DashboardService.GetPurchaseOverview(_purchaseDays), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview");
-        _paymentMethods = await SafeAsync(() => DashboardService.GetPaymentMethodBreakdown(), new List<PaymentMethodBreakdownDto>(), "GetPaymentMethodBreakdown");
-        _inventoryStatus = await SafeAsync(() => DashboardService.GetInventoryStatus(), EmptyInventoryStatus, "GetInventoryStatus");
         _inventoryOverview = await SafeAsync(() => DashboardService.GetInventoryOverview(), EmptyInventoryOverview, "GetInventoryOverview");
         _storeOverview = await SafeAsync(() => DashboardService.GetStoreOverview(), new List<StoreOverviewDto>(), "GetStoreOverview");
-        _bestStores = await SafeAsync(() => DashboardService.GetBestPerformingStores(), new List<BestStoreDto>(), "GetBestPerformingStores");
         _topProducts = await SafeAsync(() => DashboardService.GetTopProducts(5), new List<TopProductDto>(), "GetTopProducts");
         _stockLevels = await SafeAsync(() => DashboardService.GetStockLevels(8), new List<StockLevelDto>(), "GetStockLevels");
         _recentTx = await SafeAsync(() => DashboardService.GetRecentTransactions(5), new List<RecentTransactionDto>(), "GetRecentTransactions");
@@ -213,6 +195,10 @@
 
         _overviewDays = days;
         _purchaseDays = days;
+
+        // The KPI row covers the same window as the charts, so it is reloaded with them rather than
+        // left describing the range that was in force before the change.
+        _kpis = await SafeAsync(() => DashboardService.GetKpis(days), DashboardKpiSetDto.Empty, "GetKpis");
         _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(days), new List<SalesOverviewPointDto>(), "GetSalesOverview");
         _purchaseOverview = await SafeAsync(() => DashboardService.GetPurchaseOverview(days), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview");
     }

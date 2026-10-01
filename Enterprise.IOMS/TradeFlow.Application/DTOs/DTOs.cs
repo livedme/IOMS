@@ -475,19 +475,52 @@ public record RecentOrderDto(Guid Id, string OrderNumber, string CustomerOrSuppl
     DateTime Date, decimal TotalAmount, string Status);
 
 // ── Screenshot-aligned dashboard DTOs ──────────────────────────────
+/// <summary>How a KPI tile renders its headline figure.</summary>
+public enum DashboardKpiFormat
+{
+    Currency,
+    Count
+}
+
 /// <summary>
-/// Headline KPIs. The four sales-derived growth figures compare a measured period against the
-/// period immediately before it, so they are always real. Inventory value and low-stock count have
-/// no stored prior-period baseline, so their growth is nullable and the tile omits the trend arrow
-/// rather than displaying a fabricated percentage.
+/// One headline KPI. <see cref="Value"/> covers the selected range and <see cref="Growth"/> is the
+/// change against the immediately preceding window of equal length. Growth is null whenever that
+/// comparison does not exist — either the measure has no stored history, or the prior window was
+/// empty and the ratio is undefined — and the tile then omits the arrow rather than printing a
+/// percentage nobody computed. <see cref="Trend"/> is the per-day series behind the sparkline, and is
+/// empty for the same reason; the tile renders without a line instead of with an invented one.
 /// </summary>
-public record DashboardExtendedKpiDto(
-    decimal TotalSales, double TotalSalesGrowth,
-    decimal TodaysSales, double TodaysSalesGrowth,
-    int TotalOrders, double TotalOrdersGrowth,
-    decimal TotalProfit, double TotalProfitGrowth,
-    decimal InventoryValue, double? InventoryValueGrowth,
-    int LowStockItems, double? LowStockGrowth);
+public record DashboardKpiTileDto(
+    string Label,
+    decimal Value,
+    DashboardKpiFormat Format,
+    double? Growth,
+    IReadOnlyList<decimal> Trend);
+
+/// <summary>
+/// The headline KPI row. Named fields rather than a list so the row cannot silently re-order or drop
+/// a tile, and so the page's placeholder is obvious when a read fails.
+/// </summary>
+public record DashboardKpiSetDto(
+    DashboardKpiTileDto TotalSales,
+    DashboardKpiTileDto TotalPurchases,
+    DashboardKpiTileDto InventoryValue,
+    DashboardKpiTileDto TotalCustomers,
+    DashboardKpiTileDto TotalSuppliers,
+    DashboardKpiTileDto PendingOrders)
+{
+    /// <summary>
+    /// Placeholder rendered during the first load and after a failed read. Every tile is empty and
+    /// trendless, which is visibly different from a genuine all-zero result.
+    /// </summary>
+    public static DashboardKpiSetDto Empty { get; } = new(
+        new DashboardKpiTileDto("Total Sales", 0m, DashboardKpiFormat.Currency, null, Array.Empty<decimal>()),
+        new DashboardKpiTileDto("Total Purchases", 0m, DashboardKpiFormat.Currency, null, Array.Empty<decimal>()),
+        new DashboardKpiTileDto("Inventory Value", 0m, DashboardKpiFormat.Currency, null, Array.Empty<decimal>()),
+        new DashboardKpiTileDto("Total Customers", 0m, DashboardKpiFormat.Count, null, Array.Empty<decimal>()),
+        new DashboardKpiTileDto("Total Suppliers", 0m, DashboardKpiFormat.Count, null, Array.Empty<decimal>()),
+        new DashboardKpiTileDto("Pending Orders", 0m, DashboardKpiFormat.Count, null, Array.Empty<decimal>()));
+}
 
 public record SalesByCategoryDto(string Category, decimal Amount, double Percentage);
 public record PaymentMethodBreakdownDto(string Method, decimal Amount, double Percentage);

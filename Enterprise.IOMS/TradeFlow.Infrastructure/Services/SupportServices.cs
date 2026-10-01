@@ -879,92 +879,162 @@ public class DashboardService : IDashboardService
     }
 
     // ── Screenshot-aligned extensions ────────────────────────────────────
-    public Task<DashboardExtendedKpiDto> GetExtendedKpis() =>
-        _cache.GetOrCreateAsync(
-            $"{CachePrefix}kpis:extended",
-            KpiLifetime,
-            ct => BuildExtendedKpisAsync(ct));
 
-    private async Task<DashboardExtendedKpiDto> BuildExtendedKpisAsync(CancellationToken ct)
+    /// <summary>
+    /// A daily series across the selected window, plus the matching totals for that window and for
+    /// the equally long window immediately before it.
+    /// </summary>
+    private readonly record struct KpiWindow(decimal Current, decimal Previous, decimal[] Series);
+
+    public Task<DashboardKpiSetDto> GetKpis(int days) =>
+        _cache.GetOrCreateAsync(
+            $"{CachePrefix}kpi-set:{days}",
+            KpiLifetime,
+            ct => BuildKpisAsync(days, ct));
+
+    private async Task<DashboardKpiSetDto> BuildKpisAsync(int days, CancellationToken ct)
     {
         var started = Stopwatch.GetTimestamp();
-        var now = DateTime.UtcNow;
-        var startOfWeek = now.AddDays(-7);
-        var prevWeekStart = now.AddDays(-14);
-        var todayStart = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
-        var yesterdayStart = todayStart.AddDays(-1);
+        days = Math.Clamp(days, 1, MaxOverviewDays);
 
-        // These aggregates are independent but must be issued sequentially: EF Core's DbContext
-        // does not allow two concurrent operations, and fanning them out over one instance
-        // throws. See BuildDashboardKpisAsync for the same trade-off.
-        var totalSales = await _context.SalesOrders
-            .Where(o => o.Status != OrderStatus.Cancelled)
-            .SumAsync(o => (decimal?)o.TotalAmount, ct) ?? 0m;
+        var today = DateTime.UtcNow.Date;
+        var from = today.AddDays(-(days - 1));
+        // Queries start here so one round trip covers both the window and the one it is compared to.
+        var previousFrom = from.AddDays(-days);
 
-        var salesThisWeek = await _context.SalesOrders
-            .Where(o => o.OrderDate >= startOfWeek && o.Status != OrderStatus.Cancelled)
-            .SumAsync(o => (decimal?)o.TotalAmount, ct) ?? 0m;
+        // Issued one after another, not through Task.WhenAll: the scoped ApplicationDbContext cannot
+        // run two operations concurrently and throws if they overlap.
 
-        var salesPrevWeek = await _context.SalesOrders
-            .Where(o => o.OrderDate >= prevWeekStart && o.OrderDate < startOfWeek && o.Status != OrderStatus.Cancelled)
-            .SumAsync(o => (decimal?)o.TotalAmount, ct) ?? 0m;
+        var salesRows = await _context.SalesOrders
+            .AsNoTracking()
+            .Where(o => o.OrderDate >= previousFrom && o.Status != OrderStatus.Cancelled)
+            .GroupBy(o => o.OrderDate.Date)
+            .Select(g => new { Date = g.Key, Amount = g.Sum(o => o.TotalAmount) })
+            .ToListAsync(ct);
+        var salesByDay = salesRows.ToDictionary(x => x.Date.Date, x => x.Amount);
 
-        var todaysSales = await _context.SalesOrders
-            .Where(o => o.OrderDate >= todayStart && o.Status != OrderStatus.Cancelled)
-            .SumAsync(o => (decimal?)o.TotalAmount, ct) ?? 0m;
+        var purchaseRows = await _context.PurchaseOrders
+            .AsNoTracking()
+            .Where(p => p.PurchaseDate >= previousFrom
+                     && p.Status != PurchaseOrderStatus.Cancelled
+                     && p.Status != PurchaseOrderStatus.Draft)
+            .GroupBy(p => p.PurchaseDate.Date)
+            .Select(g => new { Date = g.Key, Amount = g.Sum(p => p.TotalAmount) })
+            .ToListAsync(ct);
+        var purchasesByDay = purchaseRows.ToDictionary(x => x.Date.Date, x => x.Amount);
 
-        var yesterdaysSales = await _context.SalesOrders
-            .Where(o => o.OrderDate >= yesterdayStart && o.OrderDate < todayStart && o.Status != OrderStatus.Cancelled)
-            .SumAsync(o => (decimal?)o.TotalAmount, ct) ?? 0m;
+        // New counterpart parties per day. The sparkline plots the running total, so the tile shows
+        // the base growing rather than the noisier daily signups.
+        var customerRows = await _context.Customers
+            .AsNoTracking()
+            .Where(c => c.CreatedAt >= previousFrom)
+            .GroupBy(c => c.CreatedAt.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+        var newCustomersByDay = customerRows.ToDictionary(x => x.Date.Date, x => (decimal)x.Count);
 
-        var totalOrders = await _context.SalesOrders.CountAsync(o => o.Status != OrderStatus.Cancelled, ct);
-        var ordersThisWeek = await _context.SalesOrders
-            .CountAsync(o => o.OrderDate >= startOfWeek && o.Status != OrderStatus.Cancelled, ct);
-        var ordersPrevWeek = await _context.SalesOrders
-            .CountAsync(o => o.OrderDate >= prevWeekStart && o.OrderDate < startOfWeek && o.Status != OrderStatus.Cancelled, ct);
+        var supplierRows = await _context.Suppliers
+            .AsNoTracking()
+            .Where(s => s.CreatedAt >= previousFrom)
+            .GroupBy(s => s.CreatedAt.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+        var newSuppliersByDay = supplierRows.ToDictionary(x => x.Date.Date, x => (decimal)x.Count);
 
-        var totalProfit = await _context.SalesOrderItems
-            .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled)
-            .SumAsync(i => (decimal?)(i.LineTotalPrice - i.Product.CostPrice * i.Quantity), ct) ?? 0m;
+        var pendingRows = await _context.SalesOrders
+            .AsNoTracking()
+            .Where(o => o.OrderDate >= previousFrom && o.Status == OrderStatus.Pending)
+            .GroupBy(o => o.OrderDate.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+        var pendingByDay = pendingRows.ToDictionary(x => x.Date.Date, x => (decimal)x.Count);
 
-        var profitThisWeek = await _context.SalesOrderItems
-            .Where(i => i.SalesOrder.OrderDate >= startOfWeek && i.SalesOrder.Status != OrderStatus.Cancelled)
-            .SumAsync(i => (decimal?)(i.LineTotalPrice - i.Product.CostPrice * i.Quantity), ct) ?? 0m;
+        var totalCustomers = await _context.Customers.CountAsync(ct);
+        var customersBeforeWindow = await _context.Customers.CountAsync(c => c.CreatedAt < from, ct);
 
-        var profitPrevWeek = await _context.SalesOrderItems
-            .Where(i => i.SalesOrder.OrderDate >= prevWeekStart && i.SalesOrder.OrderDate < startOfWeek && i.SalesOrder.Status != OrderStatus.Cancelled)
-            .SumAsync(i => (decimal?)(i.LineTotalPrice - i.Product.CostPrice * i.Quantity), ct) ?? 0m;
+        var totalSuppliers = await _context.Suppliers.CountAsync(ct);
+        var suppliersBeforeWindow = await _context.Suppliers.CountAsync(s => s.CreatedAt < from, ct);
 
+        // Inventory value is a point-in-time balance at current cost. StockMovement records
+        // quantities but carries no cost column, and Product.CostPrice is today's cost, so a
+        // back-dated valuation would be wrong for every period in which prices moved. There is
+        // therefore no honest prior window and no honest sparkline here; both are left empty and the
+        // tile renders without them. The previous implementation invented a -8% trend.
         var inventoryValue = await _context.Inventories
             .SumAsync(i => (decimal?)(i.Quantity * i.Product.CostPrice), ct) ?? 0m;
 
-        var lowStockItems = await _context.Inventories
-            .CountAsync(i => i.Product.ReorderStockLevel > 0 && i.Quantity <= i.Product.ReorderStockLevel, ct);
-
-        // Inventory value and low-stock count are point-in-time balances: there is no stored
-        // snapshot of either, so no honest period-over-period comparison exists. The previous
-        // implementation invented one (inventoryValue * 0.92 and lowStockItems + 1) and rendered
-        // the result as a measured trend. Both growth figures are now left null, which makes the
-        // tile omit its trend arrow instead of asserting a number nobody computed.
-        double? prevInventoryValue = null;
-        double? prevLowStock = null;
-
         var elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-        _logger.LogDebug("GetExtendedKpis resolved 13 aggregates in {ElapsedMs:F0} ms", elapsedMs);
+        _logger.LogDebug("GetKpis resolved 10 aggregates over a {Days}-day window in {ElapsedMs:F0} ms", days, elapsedMs);
 
-        static double Growth(decimal cur, decimal prev) => prev == 0 ? 0 : (double)((cur - prev) / prev * 100);
-        static double GrowthInt(int cur, int prev) => prev == 0 ? 0 : (double)(cur - prev) / prev * 100;
+        var sales = SplitWindow(salesByDay, days, from);
+        var purchases = SplitWindow(purchasesByDay, days, from);
+        var pending = SplitWindow(pendingByDay, days, from);
+        var signups = SplitWindow(newCustomersByDay, days, from);
+        var onboarded = SplitWindow(newSuppliersByDay, days, from);
 
-        return new DashboardExtendedKpiDto(
-            totalSales, Math.Round(Growth(salesThisWeek, salesPrevWeek), 1),
-            todaysSales, Math.Round(Growth(todaysSales, yesterdaysSales), 1),
-            totalOrders, Math.Round(GrowthInt(ordersThisWeek, Math.Max(ordersPrevWeek, 1)), 1),
-            totalProfit, Math.Round(Growth(profitThisWeek, profitPrevWeek == 0 ? 1 : profitPrevWeek), 1),
-            inventoryValue,
-            prevInventoryValue.HasValue ? Math.Round(Growth(inventoryValue, (decimal)prevInventoryValue.Value), 1) : null,
-            lowStockItems,
-            prevLowStock.HasValue ? Math.Round(GrowthInt(lowStockItems, (int)prevLowStock.Value), 1) : null
-        );
+        return new DashboardKpiSetDto(
+            new DashboardKpiTileDto("Total Sales", sales.Current, DashboardKpiFormat.Currency,
+                Growth(sales.Current, sales.Previous), sales.Series),
+
+            new DashboardKpiTileDto("Total Purchases", purchases.Current, DashboardKpiFormat.Currency,
+                Growth(purchases.Current, purchases.Previous), purchases.Series),
+
+            new DashboardKpiTileDto("Inventory Value", inventoryValue, DashboardKpiFormat.Currency,
+                null, Array.Empty<decimal>()),
+
+            new DashboardKpiTileDto("Total Customers", totalCustomers, DashboardKpiFormat.Count,
+                Growth(totalCustomers, customersBeforeWindow), RunningTotal(customersBeforeWindow, signups.Series)),
+
+            new DashboardKpiTileDto("Total Suppliers", totalSuppliers, DashboardKpiFormat.Count,
+                Growth(totalSuppliers, suppliersBeforeWindow), RunningTotal(suppliersBeforeWindow, onboarded.Series)),
+
+            new DashboardKpiTileDto("Pending Orders", pending.Current, DashboardKpiFormat.Count,
+                Growth(pending.Current, pending.Previous), pending.Series));
+    }
+
+    /// <summary>
+    /// Cuts a per-day dictionary into the selected window's series and totals, and into the totals of
+    /// the equally long window before it. Days with no activity read as zero, so both the sparkline
+    /// and the comparison stay aligned to the calendar.
+    /// </summary>
+    private static KpiWindow SplitWindow(Dictionary<DateTime, decimal> byDay, int days, DateTime from)
+    {
+        var series = new decimal[days];
+        var current = 0m;
+        var previous = 0m;
+
+        for (var i = 0; i < days; i++)
+        {
+            var value = byDay.GetValueOrDefault(from.AddDays(i), 0m);
+            series[i] = value;
+            current += value;
+            previous += byDay.GetValueOrDefault(from.AddDays(i - days), 0m);
+        }
+
+        return new KpiWindow(current, previous, series);
+    }
+
+    /// <summary>
+    /// Period-over-period change, rounded for display. Null when the prior window was zero: the ratio
+    /// is undefined there, and reporting 0% would read as "flat" when the truth is "no baseline".
+    /// </summary>
+    private static double? Growth(decimal current, decimal previous) =>
+        previous == 0 ? null : Math.Round((double)((current - previous) / previous * 100), 1);
+
+    /// <summary>
+    /// Turns per-day increments into a running total, for a measure that accumulates over time rather
+    /// than being spent.
+    /// </summary>
+    private static decimal[] RunningTotal(decimal opening, decimal[] daily)
+    {
+        var result = new decimal[daily.Length];
+        var running = opening;
+        for (var i = 0; i < daily.Length; i++)
+        {
+            running += daily[i];
+            result[i] = running;
+        }
+        return result;
     }
 
     public Task<List<SalesOverviewPointDto>> GetSalesOverview(int days) =>

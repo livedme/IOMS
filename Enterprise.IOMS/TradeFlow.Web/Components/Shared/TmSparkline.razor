@@ -1,0 +1,65 @@
+@* Inline sparkline for a KPI tile. No axes and no labels: the tile's headline figure already
+   carries the magnitude, so the line only has to show shape. Stretched to fill whatever width the
+   flex row gives it, which would distort the stroke, so the stroke is pinned with vector-effect. *@
+
+@if (Points.Count > 0)
+{
+    <svg class="tm-spark" viewBox="0 0 @ViewW @ViewH" preserveAspectRatio="none"
+         role="img" aria-label="@AccessibleLabel">
+        <path d="@LinePath" fill="none" stroke="@Color" stroke-width="1.5"
+              stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+    </svg>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<decimal> Points { get; set; } = Array.Empty<decimal>();
+    [Parameter] public string Color { get; set; } = "#2563eb";
+    [Parameter] public string AccessibleLabel { get; set; } = "Trend";
+
+    private const int ViewW = 100;
+    private const int ViewH = 28;
+
+    /// <summary>Two units of headroom top and bottom so a peak is not clipped by the stroke.</summary>
+    private const int PadY = 2;
+
+    private decimal Min => Points.Count == 0 ? 0m : Points.Min();
+    private decimal Max => Points.Count == 0 ? 0m : Points.Max();
+
+    private string LinePath
+    {
+        get
+        {
+            if (Points.Count == 0) return string.Empty;
+
+            // A single sample has no shape to draw, so it becomes a level line across the full width
+            // rather than a dot, which the non-uniform scale would render as a squashed ellipse.
+            if (Points.Count == 1)
+            {
+                var mid = ScaleY(Points[0]).ToString("0.##");
+                return $"M 0 {mid} L {ViewW} {mid}";
+            }
+
+            var sb = new System.Text.StringBuilder();
+            for (var i = 0; i < Points.Count; i++)
+            {
+                var x = ViewW * i / (double)(Points.Count - 1);
+                sb.Append(i == 0 ? "M " : " L ");
+                sb.Append(x.ToString("0.##"));
+                sb.Append(' ');
+                sb.Append(ScaleY(Points[i]).ToString("0.##"));
+            }
+            return sb.ToString();
+        }
+    }
+
+    /// <summary>
+    /// Maps a value onto the viewBox, highest value at the top. A flat series has no span to scale
+    /// against and would divide by zero, so it is drawn down the middle of the tile.
+    /// </summary>
+    private double ScaleY(decimal value)
+    {
+        var span = Max - Min;
+        if (span == 0) return ViewH / 2d;
+        return PadY + (ViewH - (PadY * 2)) * (double)(1m - (value - Min) / span);
+    }
+}

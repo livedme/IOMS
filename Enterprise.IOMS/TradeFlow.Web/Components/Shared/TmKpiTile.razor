@@ -1,0 +1,59 @@
+@* Headline KPI tile: tinted icon and label, the figure itself, then the change against the prior
+   period beside a sparkline of the same measure. Both the arrow and the sparkline are optional —
+   the DTO leaves them out when no honest comparison exists, and the tile closes up around them. *@
+
+<div class="tm-kpi tm-k-@Tone">
+    <div class="tm-kpi-head">
+        <span class="tm-kpi-ico">
+            <MudIcon Icon="@Icon" Size="Size.Small" Style="font-size:18px;" />
+        </span>
+        <span class="tm-kpi-label">@Kpi.Label</span>
+    </div>
+
+    <div class="tm-kpi-value">@FormattedValue</div>
+
+    <div class="tm-kpi-foot">
+        @if (Kpi.Growth.HasValue)
+        {
+            var up = Kpi.Growth.Value >= 0;
+            <span class="tm-kpi-trend @(up ? "up" : "down")">
+                <MudIcon Icon="@(up ? Icons.Material.Filled.TrendingUp : Icons.Material.Filled.TrendingDown)"
+                         Size="Size.Small" Style="font-size:16px;" />
+                @Math.Abs(Kpi.Growth.Value).ToString("0.0")%
+            </span>
+        }
+        @if (Kpi.Trend.Count > 0)
+        {
+            <TmSparkline Points="@Kpi.Trend" Color="@Accent"
+                         AccessibleLabel="@($"{Kpi.Label} trend over {Kpi.Trend.Count} days")" />
+        }
+    </div>
+
+    <div class="tm-kpi-cap">@Caption</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public DashboardKpiTileDto Kpi { get; set; } = default!;
+    [Parameter, EditorRequired] public string Icon { get; set; } = default!;
+
+    /// <summary>One of: blue, green, purple, yellow, pink, teal. Tints the icon and the sparkline.</summary>
+    [Parameter] public string Tone { get; set; } = "blue";
+
+    /// <summary>Basis of the comparison, e.g. "vs last 7 days".</summary>
+    [Parameter] public string Caption { get; set; } = "";
+
+    private string FormattedValue => Kpi.Format == DashboardKpiFormat.Currency
+        ? Kpi.Value.ToString("C0")
+        : Kpi.Value.ToString("N0");
+
+    /// <summary>Sparkline stroke, matched to the icon tint of the tile's tone.</summary>
+    private string Accent => Tone switch
+    {
+        "green" => "#16a34a",
+        "purple" => "#7c3aed",
+        "yellow" => "#d97706",
+        "pink" => "#db2777",
+        "teal" => "#0d9488",
+        _ => "#2563eb"
+    };
+}

@@ -1,12 +1,23 @@
-<div class="tm-stats">
-    <TmStatTile Icon="💰" Number="@Kpis.TotalSales.ToString("C0")" Label="Total Sales" Tone="blue" Trend="@Kpis.TotalSalesGrowth" />
-    <TmStatTile Icon="🛒" Number="@Kpis.TodaysSales.ToString("C0")" Label="Today's Sales" Tone="green" Trend="@Kpis.TodaysSalesGrowth" TrendSuffix=" vs yest." />
-    <TmStatTile Icon="🧾" Number="@Kpis.TotalOrders.ToString("N0")" Label="Total Orders" Tone="purple" Trend="@Kpis.TotalOrdersGrowth" />
-    <TmStatTile Icon="📈" Number="@Kpis.TotalProfit.ToString("C0")" Label="Total Profit" Tone="yellow" Trend="@Kpis.TotalProfitGrowth" />
-    <TmStatTile Icon="📦" Number="@Kpis.InventoryValue.ToString("C0")" Label="Inventory Value" Tone="teal" Trend="@Kpis.InventoryValueGrowth" />
-    <TmStatTile Icon="⚠" Number="@Kpis.LowStockItems.ToString()" Label="Low Stock Items" Tone="red" Trend="@Kpis.LowStockGrowth" />
+@* Headline KPI row. Each tile owns its own figure, so the row only decides which measure gets which
+   icon and tint. *@
+<div class="tm-kpis">
+    <TmKpiTile Kpi="@Kpis.TotalSales" Icon="@Icons.Material.Filled.ShoppingCart" Tone="blue" Caption="@Comparison" />
+    <TmKpiTile Kpi="@Kpis.TotalPurchases" Icon="@Icons.Material.Filled.ShoppingCartCheckout" Tone="green" Caption="@Comparison" />
+    @* No stored inventory history, so no arrow and no sparkline — see DashboardService.BuildKpisAsync. *@
+    <TmKpiTile Kpi="@Kpis.InventoryValue" Icon="@Icons.Material.Filled.Inventory2" Tone="purple" Caption="point-in-time balance" />
+    <TmKpiTile Kpi="@Kpis.TotalCustomers" Icon="@Icons.Material.Filled.People" Tone="yellow" Caption="@Comparison" />
+    <TmKpiTile Kpi="@Kpis.TotalSuppliers" Icon="@Icons.Material.Filled.LocalShipping" Tone="pink" Caption="@Comparison" />
+    <TmKpiTile Kpi="@Kpis.PendingOrders" Icon="@Icons.Material.Filled.ReceiptLong" Tone="teal" Caption="@Comparison" />
 </div>
 
 @code {
-    [Parameter, EditorRequired] public DashboardExtendedKpiDto Kpis { get; set; } = default!;
+    [Parameter, EditorRequired] public DashboardKpiSetDto Kpis { get; set; } = default!;
+
+    /// <summary>
+    /// Width of the window the figures cover, used only to word the comparison caption. Kept as a
+    /// parameter rather than read off the page so the row renders correctly in isolation.
+    /// </summary>
+    [Parameter] public int Days { get; set; } = 30;
+
+    private string Comparison => $"vs last {Days} days";
 }

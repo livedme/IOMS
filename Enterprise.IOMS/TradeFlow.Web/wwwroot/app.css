@@ -1007,12 +1007,6 @@ table.tm-table {
     gap: 10px;
 }
 
-.tm-dash-row-3 {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-}
-
 @media (max-width: 1300px) {
     .tm-dash-cols {
         grid-template-columns: minmax(0, 1fr);
@@ -1020,7 +1014,7 @@ table.tm-table {
 }
 
 @media (max-width: 1000px) {
-    .tm-dash-row, .tm-dash-row-3 {
+    .tm-dash-row {
         grid-template-columns: minmax(0, 1fr);
     }
 }
@@ -1074,6 +1068,150 @@ table.tm-table {
     color: #111827;
     outline: none;
     cursor: pointer;
+}
+
+/* ── Dashboard KPI row ─────────────────────────────────────────────── */
+/* Distinct from .tm-stats, which is the compact horizontal tile used by the inventory pages and is
+   left as-is. These tiles are taller and carry a sparkline, so they get their own grid and names. */
+
+.tm-kpis {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+@media (max-width: 1400px) {
+    .tm-kpis {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 860px) {
+    .tm-kpis {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 520px) {
+    .tm-kpis {
+        grid-template-columns: 1fr;
+    }
+}
+
+.tm-kpi {
+    background: #fff;
+    border: 1px solid #eef0f4;
+    border-radius: 12px;
+    padding: 14px 16px 12px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    min-width: 0;
+}
+
+.tm-kpi-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tm-kpi-ico {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.tm-kpi-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.tm-kpi-value {
+    font-size: 25px;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+    margin: 11px 0 9px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The min-height keeps every tile the same height whether or not this measure has a sparkline, so
+   the row never looks ragged. */
+.tm-kpi-foot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 26px;
+}
+
+.tm-kpi-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 11.5px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.tm-kpi-trend.up {
+    color: #16a34a;
+}
+
+.tm-kpi-trend.down {
+    color: #dc2626;
+}
+
+/* flex-basis 0 lets the line absorb whatever width the trend arrow leaves; min-width 0 is what
+   allows it to shrink below its intrinsic size inside the grid cell. */
+.tm-spark {
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+    width: 100%;
+    height: 26px;
+}
+
+.tm-kpi-cap {
+    margin-top: 7px;
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.tm-k-blue .tm-kpi-ico {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.tm-k-green .tm-kpi-ico {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.tm-k-purple .tm-kpi-ico {
+    background: #ede9fe;
+    color: #7c3aed;
+}
+
+.tm-k-yellow .tm-kpi-ico {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.tm-k-pink .tm-kpi-ico {
+    background: #fce7f3;
+    color: #db2777;
+}
+
+.tm-k-teal .tm-kpi-ico {
+    background: #ccfbf1;
+    color: #0d9488;
 }
 
 /* ── Overview cards (Sales + Purchase) and the shared TmAreaChart ───────── */
