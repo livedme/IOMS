@@ -25,7 +25,7 @@
                                      @bind-Text="DataModel.CategoryControl.SelectedText"
                                      @bind-Value:after="OnCategoryChanged"
                                      SearchFunc="SearchCategories"
-                                     ToStringFunc="@(c => c?.Text1 ?? c?.Name ?? "")"
+                                     ToStringFunc="@(c => c?.Name ?? c?.Text1 ?? "")"
                                      ResetValueOnEmptyText="true"
                                      CoerceText="true"
                                      Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
