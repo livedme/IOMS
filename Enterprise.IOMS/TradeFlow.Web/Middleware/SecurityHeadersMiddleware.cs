@@ -100,12 +100,17 @@ public sealed class SecurityHeadersMiddleware
     // The reporting policy omits frame-ancestors (report-only silently ignores it) and relaxes
     // the script/style sources MudBlazor's runtime needs, so violations surface in reports
     // before the enforcing policy is tightened.
+    //
+    // font-src must be listed explicitly here. Without it font requests fall back to
+    // default-src 'self', which rejects fonts.gstatic.com, and every page load reported a
+    // violation for a font the enforcing policy was already allowing.
     private static string BuildReportOnlyCsp() =>
         string.Join("; ", new[]
         {
             "default-src 'self'",
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob: data:",
             "style-src 'self' 'unsafe-inline' https:",
+            "font-src 'self' data: https://fonts.gstatic.com",
             "connect-src 'self' ws: wss: https:",
             "img-src * data: blob:",
             "object-src 'none'",

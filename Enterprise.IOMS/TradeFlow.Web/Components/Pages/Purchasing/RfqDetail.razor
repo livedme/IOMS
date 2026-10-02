@@ -4,8 +4,7 @@
 @inject IRfqService RfqService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+@inject ISupplierService SupplierService
 
 <PageTitle>RFQ Detail - IOMS</PageTitle>
 
@@ -103,7 +102,7 @@ else
 @code {
     [Parameter] public Guid Id { get; set; }
     private RfqRequestDto? _rfq;
-    private List<Supplier> _suppliers = new();
+    private List<SupplierDto> _suppliers = new();
     private bool _showResponse;
     private Guid _respSupplierId;
     private decimal _respPrice;
@@ -112,7 +111,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _suppliers = await DbContext.Suppliers.Where(s => s.IsActive).OrderBy(s => s.SupplierName).ToListAsync();
+        _suppliers = await SupplierService.GetActiveSuppliersAsync();
         await Load();
     }
 

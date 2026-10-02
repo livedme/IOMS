@@ -1,11 +1,10 @@
 @page "/products/details/{Id:guid}"
 @rendermode InteractiveServer
 @attribute [Authorize]
-@inject ApplicationDbContext DbContext
+@inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
-
 
 <PageTitle>@(_product?.Name ?? "Product Detail") - IOMS</PageTitle>
 
@@ -73,10 +72,10 @@ else
         @if (_activeTab == "overview")
         {
             <div class="ov-cards">
-                <div class="ov-card"><div class="n">@_totalAvailable</div><div class="l">Total Available</div></div>
+                <div class="ov-card"><div class="n">@_product.TotalAvailable</div><div class="l">Total Available</div></div>
                 <div class="ov-card"><div class="n">@_inventories.Sum(x => x.ReservedQuantity)</div><div class="l">Total Reserved</div></div>
-                <div class="ov-card"><div class="n">@_last30DaysSales</div><div class="l">Last 30 Days Sales</div></div>
-                <div class="ov-card"><div class="n">@((_totalAvailable * _product.CostPrice).ToString("C"))</div><div class="l">Stock Value (Cost)</div></div>
+                <div class="ov-card"><div class="n">@_product.Last30DaysSales</div><div class="l">Last 30 Days Sales</div></div>
+                <div class="ov-card"><div class="n">@((_product.TotalAvailable * _product.CostPrice).ToString("C"))</div><div class="l">Stock Value (Cost)</div></div>
             </div>
             <div class="ov-grid">
                 <div>
@@ -86,17 +85,17 @@ else
                     <div class="ov-value"><span class="@GetStockPillClass()"><span class="tm-dot"></span>@GetStockStatus()</span></div>
                     <hr class="ov-divider" />
                     <div class="ov-label">Preferred Supplier</div>
-                    <div class="ov-value">@(_preferredSupplier?.SupplierName ?? "N/A")</div>
+                    <div class="ov-value">@(_product.PreferredSupplierName ?? "N/A")</div>
                     <hr class="ov-divider" />
                     <div class="ov-label">Origin Country / Manufacturer</div>
                     <div class="ov-value">@(_product.OriginCountry ?? "-") / @(_product.OriginManufacturer ?? "-")</div>
                 </div>
                 <div>
                     <div class="ov-label">Category</div>
-                    <div class="ov-value">@(!string.IsNullOrEmpty(_parentCategoryName) ? _parentCategoryName + " > " : "")@(_product.Category?.Name ?? "-")</div>
+                    <div class="ov-value">@(!string.IsNullOrEmpty(_product.ParentCategoryName) ? _product.ParentCategoryName + " > " : "")@(_product.CategoryName ?? "-")</div>
                     <hr class="ov-divider" />
                     <div class="ov-label">Brand</div>
-                    <div class="ov-value">@(_product.Brand?.Name ?? "-")</div>
+                    <div class="ov-value">@(_product.BrandName ?? "-")</div>
                     <hr class="ov-divider" />
                     <div class="ov-label">Model</div>
                     <div class="ov-value">@(_product.Model ?? "-")</div>
@@ -122,7 +121,7 @@ else
                         @if (!_inventories.Any()) { <tr><td colspan="5" style="text-align:center;color:#6b7280">No stock records found.</td></tr> }
                         else { @foreach (var inv in _inventories) {
                             <tr>
-                                <td class="tm-strong">@inv.Warehouse.Name</td>
+                                <td class="tm-strong">@inv.WarehouseName</td>
                                 <td>@inv.AvailableQuantity</td>
                                 <td>@inv.ReservedQuantity</td>
                                 <td>@((inv.AvailableQuantity * _product.CostPrice).ToString("C"))</td>
@@ -144,8 +143,8 @@ else
                         else { @foreach (var m in _movements) {
                             <tr>
                                 <td>@m.MovementDate.ToString("dd MMM yyyy")</td>
-                                <td>@m.Warehouse?.Name</td>
-                                <td>@m.Type</td>
+                                <td>@m.WarehouseName</td>
+                                <td>@m.MovementType</td>
                                 <td class="@(m.Quantity >= 0 ? "tm-green" : "tm-red")">@(m.Quantity > 0 ? "+" : "")@m.Quantity</td>
                                 <td>@m.Reference</td>
                                 <td>@m.Notes</td>
@@ -167,7 +166,7 @@ else
                         else { @foreach (var s in _salesOrderLines) {
                             <tr>
                                 <td class="tm-strong">@s.OrderNumber</td>
-                                <td>@s.CustomerName</td>
+                                <td>@s.PartyName</td>
                                 <td>@s.OrderDate.ToString("dd MMM yyyy")</td>
                                 <td>@s.Quantity</td>
                                 <td>@s.UnitPrice.ToString("C")</td>
@@ -190,7 +189,7 @@ else
                         else { @foreach (var p in _purchaseOrderLines) {
                             <tr>
                                 <td class="tm-strong">@p.OrderNumber</td>
-                                <td>@p.SupplierName</td>
+                                <td>@p.PartyName</td>
                                 <td>@p.OrderDate.ToString("dd MMM yyyy")</td>
                                 <td>@p.Quantity</td>
                                 <td>@p.UnitPrice.ToString("C")</td>
@@ -205,8 +204,7 @@ else
     </div>
 
     <div class="tm-bottom">
-        <button class="tm-btn tm-btn-primary" @onclick="SaveChanges">✔ Save Changes</button>
-        <button class="tm-btn" style="color:#dc2626;border-color:#fecaca" @onclick="DeleteProduct">🗑 Delete Product</button>
+<button class="tm-btn" style="color:#dc2626;border-color:#fecaca" @onclick="DeleteProduct">🗑 Delete Product</button>
     </div>
 </div>
 }
@@ -214,18 +212,13 @@ else
 @code {
     [Parameter] public Guid Id { get; set; }
 
-    private Product? _product;
+    private ProductDetailViewDto? _product;
     private bool _loading = true;
     private string _activeTab = "overview";
-    private List<Inventory> _inventories = new();
-    private List<StockMovement> _movements = new();
-    private List<SalesOrderLineView> _salesOrderLines = new();
-    private List<PurchaseOrderLineView> _purchaseOrderLines = new();
-    private Supplier? _preferredSupplier;
-    private string? _parentCategoryName;
-    private bool _isFastMoving;
-    private int _last30DaysSales;
-    private int _totalAvailable;
+    private List<ProductWarehouseStockDto> _inventories = new();
+    private List<StockMovementReportRowDto> _movements = new();
+    private List<ProductOrderLineDto> _salesOrderLines = new();
+    private List<ProductOrderLineDto> _purchaseOrderLines = new();
 
     private int Margin => _product is { SellingPrice: > 0 }
         ? (int)((_product.SellingPrice - _product.CostPrice) / _product.SellingPrice * 100)
@@ -236,7 +229,7 @@ else
     private string GetStockStatus()
     {
         if (_product == null) return "-";
-        var total = _totalAvailable;
+        var total = _product.TotalAvailable;
         if (total <= 0) return "Out of Stock";
         if (total <= _product.ReorderStockLevel) return "Low Stock";
         return "In Stock";
@@ -266,78 +259,14 @@ else
         _loading = true;
         try
         {
-            _product = await DbContext.Products
-                .Include(p => p.Category)
-                    .ThenInclude(c => c!.ParentCategory)
-                .Include(p => p.Brand)
-                .Include(p => p.Inventories)
-                    .ThenInclude(i => i.Warehouse)
-                .FirstOrDefaultAsync(p => p.Id == Id);
+            _product = await ProductService.GetProductDetailViewAsync(Id);
 
             if (_product != null)
             {
-                _parentCategoryName = _product.Category?.ParentCategory?.Name;
-
-                _inventories = _product.Inventories
-                    .OrderBy(i => i.Warehouse.Name)
-                    .ToList();
-
-                _totalAvailable = _inventories.Sum(i => i.AvailableQuantity);
-
-                _movements = await DbContext.StockMovements
-                    .Include(m => m.Warehouse)
-                    .Where(m => m.ProductId == Id)
-                    .OrderByDescending(m => m.MovementDate)
-                    .Take(50)
-                    .ToListAsync();
-
-                var cutoff = DateTime.UtcNow.AddDays(-30);
-                _last30DaysSales = await DbContext.SalesOrderItems
-                    .Where(x => x.ProductId == Id && x.SalesOrder.OrderDate >= cutoff)
-                    .SumAsync(x => (int?)x.Quantity) ?? 0;
-
-                _isFastMoving = _last30DaysSales > 20;
-
-                var latestSupplierId = await DbContext.PurchaseOrderItems
-                    .Where(x => x.ProductId == Id)
-                    .OrderByDescending(x => x.PurchaseOrder)
-                    .Select(x => (Guid?)x.PurchaseOrder.SupplierId)
-                    .FirstOrDefaultAsync();
-
-                if (latestSupplierId.HasValue)
-                    _preferredSupplier = await DbContext.Suppliers.FindAsync(latestSupplierId.Value);
-
-                _salesOrderLines = await DbContext.SalesOrderItems
-                    .Include(x => x.SalesOrder)
-                        .ThenInclude(o => o.Customer)
-                    .Where(x => x.ProductId == Id)
-                    .OrderByDescending(x => x.SalesOrder.OrderDate)
-                    .Take(50)
-                    .Select(x => new SalesOrderLineView(
-                        x.SalesOrder.Id,
-                        x.SalesOrder.OrderNumber,
-                        x.SalesOrder.Customer.CustomerName,
-                        x.SalesOrder.OrderDate,
-                        x.SalesOrder.Status.ToString(),
-                        x.Quantity,
-                        x.UnitPrice))
-                    .ToListAsync();
-
-                _purchaseOrderLines = await DbContext.PurchaseOrderItems
-                    .Include(x => x.PurchaseOrder)
-                        .ThenInclude(o => o.Supplier)
-                    .Where(x => x.ProductId == Id)
-                    .OrderByDescending(x => x.PurchaseOrder.PurchaseDate)
-                    .Take(50)
-                    .Select(x => new PurchaseOrderLineView(
-                        x.PurchaseOrder.Id,
-                        x.PurchaseOrder.OrderNumber,
-                        x.PurchaseOrder.Supplier.SupplierName,
-                        x.PurchaseOrder.PurchaseDate,
-                        x.PurchaseOrder.Status.ToString(),
-                        x.Quantity,
-                        x.UnitPrice))
-                    .ToListAsync();
+                _inventories = _product.WarehouseStock;
+                _movements = _product.Movements;
+                _salesOrderLines = _product.SalesOrderLines;
+                _purchaseOrderLines = _product.PurchaseOrderLines;
             }
         }
         catch (Exception ex)
@@ -377,19 +306,6 @@ else
         return Task.CompletedTask;
     }
 
-    private async Task SaveChanges()
-    {
-        try
-        {
-            await DbContext.SaveChangesAsync();
-            Snackbar.Add("Product saved successfully.", Severity.Success);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error saving: {ex.Message}", Severity.Error);
-        }
-    }
-
     private async Task DeleteProduct()
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
@@ -399,16 +315,16 @@ else
 
         if (confirmed == true && _product != null)
         {
-            _product.IsDeleted = true;
-            await DbContext.SaveChangesAsync();
-            Snackbar.Add("Product deleted.", Severity.Success);
-            Navigation.NavigateTo("/products");
+            try
+            {
+                await ProductService.DeleteProductAsync(_product.Id);
+                Snackbar.Add("Product deleted.", Severity.Success);
+                Navigation.NavigateTo("/products");
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error deleting: {ex.Message}", Severity.Error);
+            }
         }
     }
-
-    private record SalesOrderLineView(Guid OrderId, string OrderNumber, string CustomerName,
-        DateTime OrderDate, string Status, int Quantity, decimal UnitPrice);
-
-    private record PurchaseOrderLineView(Guid OrderId, string OrderNumber, string SupplierName,
-        DateTime OrderDate, string Status, int Quantity, decimal UnitPrice);
 }

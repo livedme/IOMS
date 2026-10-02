@@ -61,44 +61,12 @@ namespace Microsoft.AspNetCore.Routing
                 return TypedResults.LocalRedirect(redirectTo);
             });
 
-            accountGroup.MapPost("/PasskeyCreationOptions", async (
-                HttpContext context,
-                [FromServices] UserManager<ApplicationUser> userManager,
-                [FromServices] SignInManager<ApplicationUser> signInManager,
-                [FromServices] IAntiforgery antiforgery) =>
-            {
-                await antiforgery.ValidateRequestAsync(context);
-
-                var user = await userManager.GetUserAsync(context.User);
-                if (user is null)
-                {
-                    return Results.NotFound($"Unable to load user with ID '{userManager.GetUserId(context.User)}'.");
-                }
-
-                var userId = await userManager.GetUserIdAsync(user);
-                var userName = await userManager.GetUserNameAsync(user) ?? "User";
-                var optionsJson = await signInManager.MakePasskeyCreationOptionsAsync(new()
-                {
-                    Id = userId,
-                    Name = userName,
-                    DisplayName = userName
-                });
-                return TypedResults.Content(optionsJson, contentType: "application/json");
-            });
-
-            accountGroup.MapPost("/PasskeyRequestOptions", async (
-                HttpContext context,
-                [FromServices] UserManager<ApplicationUser> userManager,
-                [FromServices] SignInManager<ApplicationUser> signInManager,
-                [FromServices] IAntiforgery antiforgery,
-                [FromQuery] string? username) =>
-            {
-                await antiforgery.ValidateRequestAsync(context);
-
-                var user = string.IsNullOrEmpty(username) ? null : await userManager.FindByNameAsync(username);
-                var optionsJson = await signInManager.MakePasskeyRequestOptionsAsync(user);
-                return TypedResults.Content(optionsJson, contentType: "application/json");
-            });
+            // Registered as method groups rather than lambdas. The antiforgery failure path returns a
+            // different TypedResults kind from the success paths, and C# has no way to annotate a
+            // lambda's return type, so an inline lambda leaves the return type uninferable and MapPost
+            // fails to resolve an overload.
+            accountGroup.MapPost("/PasskeyCreationOptions", PasskeyCreationOptionsAsync);
+            accountGroup.MapPost("/PasskeyRequestOptions", PasskeyRequestOptionsAsync);
 
             var manageGroup = accountGroup.MapGroup("/Manage").RequireAuthorization();
 
@@ -159,6 +127,83 @@ namespace Microsoft.AspNetCore.Routing
             });
 
             return accountGroup;
+        }
+
+        private static async Task<IResult> PasskeyCreationOptionsAsync(
+            HttpContext context,
+            [FromServices] UserManager<ApplicationUser> userManager,
+            [FromServices] SignInManager<ApplicationUser> signInManager,
+            [FromServices] IAntiforgery antiforgery)
+        {
+            if (!await TryValidateAntiforgeryAsync(context, antiforgery))
+            {
+                return TypedResults.BadRequest("The antiforgery token was missing or invalid.");
+            }
+
+            var user = await userManager.GetUserAsync(context.User);
+            if (user is null)
+            {
+                return TypedResults.NotFound($"Unable to load user with ID '{userManager.GetUserId(context.User)}'.");
+            }
+
+            var userId = await userManager.GetUserIdAsync(user);
+            var userName = await userManager.GetUserNameAsync(user) ?? "User";
+            var optionsJson = await signInManager.MakePasskeyCreationOptionsAsync(new()
+            {
+                Id = userId,
+                Name = userName,
+                DisplayName = userName
+            });
+
+            return TypedResults.Content(optionsJson, contentType: "application/json");
+        }
+
+        private static async Task<IResult> PasskeyRequestOptionsAsync(
+            HttpContext context,
+            [FromServices] UserManager<ApplicationUser> userManager,
+            [FromServices] SignInManager<ApplicationUser> signInManager,
+            [FromServices] IAntiforgery antiforgery,
+            [FromQuery] string? username)
+        {
+            if (!await TryValidateAntiforgeryAsync(context, antiforgery))
+            {
+                return TypedResults.BadRequest("The antiforgery token was missing or invalid.");
+            }
+
+            // Conditional-mediation autofill runs the moment the sign-in page loads, before the user
+            // has typed anything, so an absent username is the normal case rather than an error.
+            // FindByNameAsync returns null for an unknown name, which MakePasskeyRequestOptionsAsync
+            // accepts as "no allow credentials", so neither is dereferenced and neither can throw.
+            var user = string.IsNullOrEmpty(username) ? null : await userManager.FindByNameAsync(username);
+            var optionsJson = await signInManager.MakePasskeyRequestOptionsAsync(user);
+
+            return TypedResults.Content(optionsJson, contentType: "application/json");
+        }
+
+        /// <summary>
+        /// Validates the antiforgery token, reporting a failure as <c>false</c> rather than letting
+        /// <see cref="AntiforgeryValidationException"/> escape.
+        /// </summary>
+        /// <remarks>
+        /// These endpoints are called by <c>PasskeySubmit.razor.js</c> with fetch, outside the
+        /// <c>UseAntiforgery</c> middleware's automatic validation, so the token is checked by hand.
+        /// Unhandled, that exception propagated out of the endpoint and surfaced as a 500 with a
+        /// generic "An unexpected error occurred" body — which reads as a server fault and writes a
+        /// false stack trace to the log for what is really a stale or absent token. The passkey
+        /// autofill in particular posts as soon as the sign-in page loads, so it is the path most
+        /// likely to hit a token that no longer matches.
+        /// </remarks>
+        private static async Task<bool> TryValidateAntiforgeryAsync(HttpContext context, IAntiforgery antiforgery)
+        {
+            try
+            {
+                await antiforgery.ValidateRequestAsync(context);
+                return true;
+            }
+            catch (AntiforgeryValidationException)
+            {
+                return false;
+            }
         }
     }
 }

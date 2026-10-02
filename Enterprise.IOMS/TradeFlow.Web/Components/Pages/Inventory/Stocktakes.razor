@@ -3,12 +3,12 @@
 @attribute [Authorize]
 @implements IDisposable
 @inject IStocktakeService StocktakeService
-@inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+
+@inject IWarehousesService WarehousesService
+
 
 <PageTitle>Stocktakes</PageTitle>
 
@@ -173,7 +173,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try { _warehouses = await ProductService.GetAllWarehousesAsync(); }
+        try { _warehouses = await WarehousesService.GetAllWarehousesAsync(); }
         catch { }
 
         await LoadData();
@@ -251,9 +251,7 @@
 
     private async Task CreateNew()
     {
-        // StocktakeCreateDialog binds to Warehouse entities, so the dialog path still reads
-        // through the context. It only runs on explicit user action, never alongside a list load.
-        var warehouses = await DbContext.Set<Warehouse>().Where(w => w.IsActive).OrderBy(w => w.Name).ToListAsync();
+        var warehouses = await WarehousesService.GetActiveWarehousesAsync();
         var parameters = new DialogParameters<StocktakeCreateDialog> { { x => x.Warehouses, warehouses } };
         var dialog = await DialogService.ShowAsync<StocktakeCreateDialog>("New Stocktake", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });

@@ -1,12 +1,10 @@
 @page "/product/categories"
 @attribute [Authorize]
-@using TradeFlow.Infrastructure.Data
 @rendermode InteractiveServer
 @implements IDisposable
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject IProductService ProductService
-@inject ApplicationDbContext DbContext
+@inject ICategoryService CategoryService
 
 <PageTitle>Categories - IOMS</PageTitle>
 
@@ -87,7 +85,8 @@
                     }
                     else
                     {
-                        @foreach (var c in pagedResultNew.Items)
+                        var items= pagedResultNew.Items.OrderBy(c => c.Path).ToList();
+                        @foreach (var c in items)
                         {
                             var icoBg = GetIconBg(c.Name);
                             var pill = (c.ProductCount ?? 0) > 0 ? "tm-pill tm-pill-green" : "tm-pill tm-pill-amber";
@@ -158,7 +157,7 @@
     {
         // The create/edit dialogs offer the full category tree as a parent picker, so the whole
         // (small) list is fetched once through the service rather than the grid query.
-        try { _allCategories = await ProductService.GetAllCategoriesAsync(); }
+        try { _allCategories = await CategoryService.GetAllCategoriesAsync(); }
         catch { }
 
         await LoadCategories();
@@ -198,7 +197,7 @@
         _loading = true;
         try
         {
-            pagedResultNew = await ProductService.GetCategoriesPagedAsync(pagedRequest);
+            pagedResultNew = await CategoryService.GetCategoriesPagedAsync(pagedRequest);
             _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add($"Error loading categories: {ex.Message}", Severity.Error); }
@@ -350,8 +349,6 @@
         }
     }
 
-    // Category writes still go through the context: the dialogs bind to entities and the
-    // parent-picker needs the unsaved tree. They only run on explicit user action.
     private async Task OpenCreateDialog()
     {
         var parameters = new DialogParameters<CategoryDialog>
@@ -364,13 +361,7 @@
 
         if (result != null && !result.Canceled && result.Data is CreateCategoryDto dto)
         {
-            DbContext.Categories.Add(new TradeFlow.Domain.Entities.Category
-            {
-                Name = dto.Name,
-                Description = dto.Description,
-                ParentCategoryId = dto.ParentCategoryId
-            });
-            await DbContext.SaveChangesAsync();
+            await CategoryService.CreateCategoryAsync(dto);
             Snackbar.Add("Category created", Severity.Success);
             await ReloadAll();
         }
@@ -389,17 +380,7 @@
 
         if (result != null && !result.Canceled && result.Data is CreateCategoryDto dto)
         {
-            var entity = await DbContext.Categories.FindAsync(category.Id);
-            if (entity == null) return;
-
-            var parent = dto.ParentCategoryId == null ? null : await DbContext.Categories.FindAsync(dto.ParentCategoryId);
-            var path = parent == null ? "" : parent.ParentCategory == null ? $"{parent.Name} > {entity.Name}" : $"{parent.ParentCategory.Name} > {parent.Name} > {entity.Name}";
-
-            entity.Name = dto.Name;
-            entity.Description = dto.Description;
-            entity.Path = path;
-            entity.ParentCategoryId = dto.ParentCategoryId;
-            await DbContext.SaveChangesAsync();
+            await CategoryService.UpdateCategoryAsync(category.Id, dto);
             Snackbar.Add("Category updated", Severity.Success);
             await ReloadAll();
         }
@@ -410,7 +391,7 @@
         var confirm = await DialogService.ShowMessageBoxAsync("Confirm Delete", "Are you sure you want to delete this category?", "Delete", "Cancel");
         if (confirm == true)
         {
-            await ProductService.DeleteCategoryAsync(id);
+            await CategoryService.DeleteCategoryAsync(id);
             Snackbar.Add("Category deleted", Severity.Success);
             await ReloadAll();
         }
@@ -419,7 +400,7 @@
     /// <summary>Refetches the parent-picker tree alongside the grid after a write.</summary>
     private async Task ReloadAll()
     {
-        try { _allCategories = await ProductService.GetAllCategoriesAsync(); }
+        try { _allCategories = await CategoryService.GetAllCategoriesAsync(); }
         catch { }
         await LoadCategories();
     }

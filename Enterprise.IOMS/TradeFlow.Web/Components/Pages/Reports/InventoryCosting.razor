@@ -1,9 +1,11 @@
 @page "/reports/inventory-costing"
 @rendermode InteractiveServer
 @attribute [Authorize]
-@inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
+
 @inject ILandedCostService LandedCostService
+@inject IReportsService ReportsService
 @inject ISnackbar Snackbar
+
 
 <PageTitle>Inventory Costing</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4">Inventory Costing</MudText>
@@ -117,34 +119,21 @@
         _loading = true;
         try
         {
-            var inventories = await DbContext.Inventories
-                .Include(i => i.Product)
-                .Where(i => i.Quantity > 0)
-                .GroupBy(i => new { i.ProductId, i.Product.Name, i.Product.SKU, i.Product.CostPrice })
-                .Select(g => new
-                {
-                    g.Key.ProductId,
-                    g.Key.Name,
-                    g.Key.SKU,
-                    g.Key.CostPrice,
-                    TotalQty = g.Sum(i => i.Quantity)
-                })
-                .AsNoTracking()
-                .ToListAsync();
+            var inventories = await ReportsService.GetInventoryCostingRowsAsync();
 
             var allocations = await LandedCostService.GetAllocations(null);
             var landedByPo = allocations.GroupBy(a => a.PurchaseOrderId)
                 .ToDictionary(g => g.Key ?? Guid.Empty, g => g.Sum(a => a.Amount));
 
             var totalLanded = landedByPo.Values.Sum();
-            var totalInventoryValue = inventories.Sum(i => i.TotalQty * i.CostPrice);
+            var totalInventoryValue = inventories.Sum(i => i.TotalQuantity * i.UnitCost);
 
             _rows = inventories.Select(i =>
             {
-                var value = i.TotalQty * i.CostPrice;
+                var value = i.TotalQuantity * i.UnitCost;
                 var landedShare = totalInventoryValue > 0 ? totalLanded * (value / totalInventoryValue) : 0;
-                var effectiveCost = i.TotalQty > 0 ? (value + landedShare) / i.TotalQty : i.CostPrice;
-                return new CostingRow(i.Name, i.SKU, i.TotalQty, i.CostPrice, value, landedShare, effectiveCost);
+                var effectiveCost = i.TotalQuantity > 0 ? (value + landedShare) / i.TotalQuantity : i.UnitCost;
+                return new CostingRow(i.ProductName, i.SKU, i.TotalQuantity, i.UnitCost, value, landedShare, effectiveCost);
             })
             .OrderByDescending(r => r.TotalValue)
             .ToList();

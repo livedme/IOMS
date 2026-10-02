@@ -4,8 +4,8 @@
 @inject IAccountingService AccountingService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+
+
 
 <PageTitle>Payments - IOMS</PageTitle>
 
@@ -149,12 +149,7 @@
         _loading = true;
         try
         {
-            var data = await DbContext.Payments
-                .Include(p => p.Customer)
-                .Include(p => p.Supplier)
-                .OrderByDescending(p => p.PaymentDate)
-                .Take(500)
-                .ToListAsync();
+            var data = await AccountingService.GetRecentPayments(500);
 
             _payments = data.Select(p => new PaymentDisplayDto
             {
@@ -164,7 +159,7 @@
                 PaymentMethod = p.PaymentMethod,
                 Amount = p.Amount,
                 Reference = p.Reference ?? "",
-                EntityName = p.Customer?.CustomerName ?? p.Supplier?.SupplierName ?? ""
+                EntityName = p.PartyName
             }).ToList();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

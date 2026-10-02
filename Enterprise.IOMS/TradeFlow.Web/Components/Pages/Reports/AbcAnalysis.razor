@@ -1,7 +1,7 @@
 @page "/reports/abc-analysis"
 @rendermode InteractiveServer
 @attribute [Authorize]
-@inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
+@inject IReportsService ReportsService
 @inject ISnackbar Snackbar
 
 <PageTitle>ABC Analysis</PageTitle>
@@ -135,13 +135,7 @@
         _loading = true;
         try
         {
-            var items = await DbContext.SalesOrderItems
-                .Include(i => i.Product)
-                .GroupBy(i => new { i.ProductId, i.Product.Name, i.Product.SKU })
-                .Select(g => new { g.Key.Name, g.Key.SKU, Revenue = g.Sum(i => i.LineTotalPrice) })
-                .OrderByDescending(x => x.Revenue)
-                .AsNoTracking()
-                .ToListAsync();
+            var items = await ReportsService.GetProductRevenueAsync();
 
             var totalRevenue = items.Sum(i => i.Revenue);
             if (totalRevenue == 0) totalRevenue = 1;
@@ -152,7 +146,7 @@
                 var pct = i.Revenue / totalRevenue * 100;
                 cumulative += pct;
                 var cls = cumulative <= _aPercent ? "A" : cumulative <= _aPercent + _bPercent ? "B" : "C";
-                return new AbcRow(i.Name, i.SKU, i.Revenue, pct, cumulative, cls);
+                return new AbcRow(i.ProductName, i.SKU, i.Revenue, pct, cumulative, cls);
             }).ToList();
 
             _aItems = _allItems.Where(i => i.Class == "A").ToList();

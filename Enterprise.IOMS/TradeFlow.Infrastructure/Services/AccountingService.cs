@@ -458,6 +458,75 @@ public class AccountingService : IAccountingService
             ?? throw new DomainException($"System account {code} not found. Please run seed data.");
     }
 
+    /// <summary>
+    /// Journal lines for the ledger screen. Replaces a query the page ran against its own scoped
+    /// context, which had to include the entry and account graphs before it could project.
+    /// </summary>
+    public async Task<List<GeneralLedgerLineDto>> GetGeneralLedgerLines(Guid? accountId, DateTime? from, DateTime? to)
+    {
+        var query = _context.JournalEntryLines.AsQueryable();
+
+        if (accountId.HasValue)
+            query = query.Where(l => l.AccountId == accountId.Value);
+        if (from.HasValue)
+            query = query.Where(l => l.JournalEntry.EntryDate >= from.Value);
+        if (to.HasValue)
+            query = query.Where(l => l.JournalEntry.EntryDate <= to.Value);
+
+        return await query
+            .OrderBy(l => l.JournalEntry.EntryDate)
+            .ThenBy(l => l.JournalEntry.Reference)
+            .Select(l => new GeneralLedgerLineDto(
+                l.JournalEntry.EntryDate,
+                l.JournalEntry.Reference,
+                l.Account.Code,
+                l.Account.Name,
+                l.JournalEntry.Description,
+                l.Debit,
+                l.Credit))
+            .ToListAsync();
+    }
+
+    public async Task<List<PaymentListItemDto>> GetRecentPayments(int count)
+    {
+        return await _context.Payments
+            .AsNoTracking()
+            .OrderByDescending(p => p.PaymentDate)
+            .Take(count)
+            .Select(p => new PaymentListItemDto(
+                p.PaymentNumber,
+                p.PaymentDate,
+                p.PaymentType,
+                p.PaymentMethod,
+                p.Amount,
+                p.Reference,
+                p.Customer != null ? p.Customer.CustomerName : p.Supplier != null ? p.Supplier.SupplierName : ""))
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Invoices and receipts for one customer over a window. The statement screen ran both
+    /// queries against its own context; the running-balance and chart work stays in the page.
+    /// </summary>
+    public async Task<CustomerStatementDto> GetCustomerStatement(Guid customerId, DateTime from, DateTime to)
+    {
+        var invoices = await _context.Invoices
+            .Where(i => i.CustomerId == customerId && i.InvoiceDate >= from && i.InvoiceDate < to)
+            .OrderBy(i => i.InvoiceDate)
+            .AsNoTracking()
+            .Select(i => new StatementInvoiceRowDto(i.Id, i.InvoiceNumber, i.InvoiceDate, i.TotalAmount))
+            .ToListAsync();
+
+        var payments = await _context.Payments
+            .Where(p => p.CustomerId == customerId && p.PaymentDate >= from && p.PaymentDate < to)
+            .OrderBy(p => p.PaymentDate)
+            .AsNoTracking()
+            .Select(p => new StatementPaymentRowDto(p.Id, p.PaymentNumber, p.PaymentDate, p.Amount))
+            .ToListAsync();
+
+        return new CustomerStatementDto(invoices, payments);
+    }
+
     private async Task<decimal> GetAccountBalance(Guid accountId)
     {
         var lines = await _context.JournalEntryLines

@@ -29,7 +29,12 @@ async function createCredential(headers, signal) {
 }
 
 async function requestCredential(email, mediation, headers, signal) {
-    const optionsResponse = await fetchWithErrorHandling(`/Account/PasskeyRequestOptions?username=${email}`, {
+    // encodeURIComponent matters here: an address contains '@' and '+', both of which change the
+    // meaning of an unescaped query string. An absent field arrives as null during conditional-
+    // mediation autofill, before the user has typed anything, and is sent as an empty parameter so
+    // the server takes its "no allow credentials" path instead of looking up the literal "null".
+    const username = email ? encodeURIComponent(email) : '';
+    const optionsResponse = await fetchWithErrorHandling(`/Account/PasskeyRequestOptions?username=${username}`, {
         method: 'POST',
         headers,
         signal,

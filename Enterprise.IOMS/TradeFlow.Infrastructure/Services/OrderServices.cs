@@ -1235,6 +1235,24 @@ public class PurchaseService : IPurchaseService
         return response;
     }
 
+    /// <summary>
+    /// Newest purchase orders for the dropdowns that only need the number. LandedCost.razor and
+    /// PurchaseReturnDialog.razor each loaded the tracked entity — items and all — for this.
+    /// </summary>
+    public async Task<List<PurchaseOrderOptionDto>> GetRecentPurchaseOrders(int count)
+    {
+        return await _context.PurchaseOrders
+            .AsNoTracking()
+            .OrderByDescending(p => p.PurchaseDate)
+            .Take(count)
+            .Select(p => new PurchaseOrderOptionDto(
+                p.Id,
+                p.OrderNumber,
+                p.PurchaseDate,
+                p.Status))
+            .ToListAsync();
+    }
+
     private static IQueryable<PurchaseOrder> ApplyPurchaseOrderFilters(
         IQueryable<PurchaseOrder> query, PurchaseOrderPagedRequest request, string? search, bool hasSearch)
     {
@@ -1393,7 +1411,19 @@ public class BranchService : IBranchService
         return response ?? new List<BranchDto>();
     }
 
-    public async Task UpdateBranch(Guid id, CreateBranchDto dto)
+        /// <summary>
+        /// Active branches for the order filters. Orders.razor was reading this straight off the
+        /// context; the projection here matches the one it was doing by hand.
+        /// </summary>
+        public async Task<List<BranchDto>> GetActiveBranchesAsync() =>
+            await _context.Branches
+                .AsNoTracking()
+                .Where(b => b.IsActive)
+                .OrderBy(b => b.Name)
+                .Select(b => new BranchDto(b.Id, b.Name, b.Code, b.Location, b.Address, b.IsActive))
+                .ToListAsync();
+
+        public async Task UpdateBranch(Guid id, CreateBranchDto dto)
     {
         var entity = await _context.Branches.FindAsync(id) ?? throw new EntityNotFoundException("Branches", id);
         if (entity != null)

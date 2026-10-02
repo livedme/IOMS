@@ -1,7 +1,8 @@
 @inject IAccountingService AccountingService
+@inject ICustomerService CustomerService
+@inject ISupplierService SupplierService
 @inject ISnackbar Snackbar
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+
 
 <MudDialog>
     <TitleContent><MudText Typo="Typo.h6">Record Payment</MudText></TitleContent>
@@ -79,13 +80,13 @@
     private string _reference = "";
     private string _notes = "";
 
-    private List<Customer> _customers = new();
-    private List<Supplier> _suppliers = new();
+    private List<CustomerDto> _customers = new();
+    private List<SupplierDto> _suppliers = new();
 
     protected override async Task OnInitializedAsync()
     {
-        _customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToListAsync();
-        _suppliers = await DbContext.Suppliers.Where(s => s.IsActive).OrderBy(s => s.SupplierName).ToListAsync();
+        _customers = await CustomerService.GetActiveCustomersAsync();
+        _suppliers = await SupplierService.GetActiveSuppliersAsync();
     }
 
     private async Task Submit()

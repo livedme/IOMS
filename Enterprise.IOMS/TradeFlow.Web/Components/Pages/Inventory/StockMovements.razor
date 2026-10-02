@@ -3,8 +3,8 @@
 @attribute [Authorize]
 @implements IDisposable
 @inject IInventoryService InventoryService
-@inject IProductService ProductService
 @inject ISnackbar Snackbar
+@inject IWarehousesService WarehousesService
 
 <PageTitle>Stock Movements - IOMS</PageTitle>
 
@@ -161,7 +161,7 @@
     {
         try
         {
-            var warehouses = await ProductService.GetAllWarehousesAsync();
+            var warehouses = await WarehousesService.GetAllWarehousesAsync();
             _warehouses = warehouses
                 .OrderBy(w => w.Name)
                 .Select(w => (w.Id, w.Name))

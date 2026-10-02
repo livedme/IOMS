@@ -5,6 +5,7 @@
 @inject IInventoryService InventoryService
 @inject IProductService ProductService
 @inject ISnackbar Snackbar
+@inject IWarehousesService WarehousesService
 
 <PageTitle>Stock Transfers - IOMS</PageTitle>
 
@@ -203,7 +204,7 @@
 
         try
         {
-            var warehouses = await ProductService.GetAllWarehousesAsync();
+            var warehouses = await WarehousesService.GetAllWarehousesAsync();
             _warehouses = warehouses
                 .OrderBy(w => w.Name)
                 .Select(w => (w.Id, w.Name))

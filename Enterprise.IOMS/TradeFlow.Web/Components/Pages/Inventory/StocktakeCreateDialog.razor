@@ -22,7 +22,7 @@
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
-    [Parameter] public List<Warehouse> Warehouses { get; set; } = new();
+    [Parameter] public List<WarehouseDto> Warehouses { get; set; } = new();
 
     private Guid _warehouseId;
     private string? _notes;

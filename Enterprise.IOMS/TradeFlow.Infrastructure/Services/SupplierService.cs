@@ -21,15 +21,69 @@ namespace TradeFlow.Infrastructure.Services
             _mapper = mapper;
             _dbFactory = dbFactory;
         }
+        /// <summary>
+        /// Simple paged supplier list for pickers and lookups. The Supplier grid uses the
+        /// <see cref="GetSuppliersAsync(SupplierPagedRequest)"/> overload instead.
+        /// </summary>
+        /// <remarks>
+        /// The count is awaited, not taken with a synchronous LINQ Count. The context is registered
+        /// with EnableRetryOnFailure, so every operation is routed through a retrying execution
+        /// strategy; a synchronous Count runs that strategy outside the async path and blocks a
+        /// thread-pool thread inside an async method. Its CustomerService twin already does this
+        /// correctly, and this overload had drifted away from it.
+        /// </remarks>
         public async Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search = "", int page = 1, int pageSize = 100)
         {
-            var query = _db.Suppliers.AsQueryable();
+            // Guard the inputs rather than trusting them. pageSize also feeds PagedResult.TotalPages,
+            // which divides by it, so a zero here produced a divide-by-zero instead of an empty list.
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 1000);
+
+            // AsNoTracking: this is a read-only list, so change tracking is pure overhead on every
+            // row returned.
+            IQueryable<Supplier> query = _db.Suppliers.AsNoTracking();
+
             if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(s => s.SupplierName.Contains(search) || (s.SupplierEmail != null && s.SupplierEmail.Contains(search)));
-            var total = query.Count(); 
-            var items = query.OrderBy(s => s.SupplierName).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            {
+                var term = search.Trim();
+                query = query.Where(s => s.SupplierName.Contains(term)
+                                         || (s.SupplierEmail != null && s.SupplierEmail.Contains(term)));
+            }
+
+            var total = await query.CountAsync();
+            var items = await query
+                .OrderBy(s => s.SupplierName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
             return new PagedResult<SupplierDto>(_mapper.Map<List<SupplierDto>>(items), total, page, pageSize);
         }
+
+        /// <summary>
+        /// Active suppliers for pickers. Was duplicated across PaymentDialog and RfqDetail as a raw
+        /// <c>DbContext.Suppliers</c> read that materialised tracked entities.
+        /// </summary>
+        public async Task<List<SupplierDto>> GetActiveSuppliersAsync() =>
+            await _db.Suppliers
+                .AsNoTracking()
+                .Where(s => s.IsActive)
+                .OrderBy(s => s.SupplierName)
+                .Select(s => new SupplierDto
+                {
+                    Id = s.Id,
+                    SupplierName = s.SupplierName,
+                    SupplierEmail = s.SupplierEmail,
+                    SupplierPhone = s.SupplierPhone,
+                    ContactPersonName = s.ContactPersonName,
+                    Address = s.Address,
+                    City = s.City,
+                    PaymentTerms = s.PaymentTerms,
+                    LeadTimeDays = s.LeadTimeDays,
+                    Rating = s.Rating,
+                    IsActive = s.IsActive
+                })
+                .ToListAsync();
 
         /// <summary>
         /// Server-side paged supplier list used by the Supplier grid. Mirrors

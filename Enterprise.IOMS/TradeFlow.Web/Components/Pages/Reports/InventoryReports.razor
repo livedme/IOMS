@@ -1,8 +1,11 @@
 @page "/reports/inventory"
 @rendermode InteractiveServer
 @attribute [Authorize]
-@inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
+
+@inject IWarehousesService WarehousesService
+@inject IReportsService ReportsService
 @inject ISnackbar Snackbar
+
 
 <PageTitle>Inventory Reports</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4">Inventory Reports</MudText>
@@ -141,9 +144,9 @@ else if (_reportType == "Movements")
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.MovementDate.ToShortDateString()</MudTd>
-            <MudTd>@context.Product.Name</MudTd>
-            <MudTd>@context.Warehouse.Name</MudTd>
-            <MudTd><MudChip T="string" Size="Size.Small">@context.Type</MudChip></MudTd>
+            <MudTd>@context.ProductName</MudTd>
+            <MudTd>@context.WarehouseName</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small">@context.MovementType</MudChip></MudTd>
             <MudTd Style="text-align:right">@context.Quantity</MudTd>
             <MudTd>@context.Reference</MudTd>
         </RowTemplate>
@@ -195,9 +198,9 @@ else if (_reportType == "Valuation")
 
     private string _reportType = "StockLevel";
     private Guid? _warehouseId;
-    private List<Warehouse> _warehouses = new();
+    private List<WarehouseDto> _warehouses = new();
     private List<StockRow> _stockTotals = new();
-    private List<StockMovement> _movements = new();
+    private List<StockMovementReportRowDto> _movements = new();
     private List<ValuationRow> _valuationRows = new();
     private bool _loading;
 
@@ -219,7 +222,7 @@ else if (_reportType == "Valuation")
 
     protected override async Task OnInitializedAsync()
     {
-        _warehouses = await DbContext.Warehouses.Where(w => w.IsActive).OrderBy(w => w.Name).AsNoTracking().ToListAsync();
+        _warehouses = await WarehousesService.GetActiveWarehousesAsync();
         await LoadData();
     }
 
@@ -228,22 +231,15 @@ else if (_reportType == "Valuation")
         _loading = true;
         try
         {
+            var report = await ReportsService.GetInventoryReportAsync(_reportType, _warehouseId);
+
             if (_reportType == "StockLevel")
             {
-                var query = DbContext.Inventories
-                    .Include(i => i.Product)
-                    .Include(i => i.Warehouse)
-                    .AsNoTracking()
-                    .AsQueryable();
-
-                if (_warehouseId.HasValue)
-                    query = query.Where(i => i.WarehouseId == _warehouseId.Value);
-
-                _stockTotals = await query.Select(i => new StockRow(
-                    i.Product.Name, i.Product.SKU, i.Warehouse.Name,
-                    i.Quantity, i.ReservedQuantity, i.Quantity - i.ReservedQuantity,
-                    i.Quantity * i.Product.CostPrice))
-                    .ToListAsync();
+                _stockTotals = report.Stock
+                    .Select(s => new StockRow(
+                        s.ProductName, s.SKU, s.WarehouseName,
+                        s.Quantity, s.Reserved, s.Available, s.Value))
+                    .ToList();
 
                 // Warehouse donut chart
                 var whGroups = _stockTotals.GroupBy(s => s.WarehouseName).ToList();
@@ -260,19 +256,10 @@ else if (_reportType == "Valuation")
             }
             else if (_reportType == "Movements")
             {
-                var query = DbContext.StockMovements
-                    .Include(m => m.Product)
-                    .Include(m => m.Warehouse)
-                    .AsNoTracking()
-                    .AsQueryable();
-
-                if (_warehouseId.HasValue)
-                    query = query.Where(m => m.WarehouseId == _warehouseId.Value);
-
-                _movements = await query.OrderByDescending(m => m.MovementDate).Take(200).ToListAsync();
+                _movements = report.Movements;
 
                 // Movement type pie
-                var typeGroups = _movements.GroupBy(m => m.Type).ToList();
+                var typeGroups = _movements.GroupBy(m => m.MovementType).ToList();
                 _movementTypeLabels = typeGroups.Select(g => g.Key.ToString()).ToArray();
                 _movementTypeData = typeGroups.Select(g => (double)g.Count()).ToArray();
 
@@ -286,19 +273,9 @@ else if (_reportType == "Valuation")
             }
             else
             {
-                var query = DbContext.Inventories
-                    .Include(i => i.Product)
-                    .AsNoTracking()
-                    .AsQueryable();
-
-                if (_warehouseId.HasValue)
-                    query = query.Where(i => i.WarehouseId == _warehouseId.Value);
-
-                _valuationRows = await query
-                    .GroupBy(i => new { i.ProductId, i.Product.Name, i.Product.SKU, i.Product.CostPrice })
-                    .Select(g => new ValuationRow(g.Key.Name, g.Key.SKU, g.Sum(i => i.Quantity), g.Key.CostPrice, g.Sum(i => i.Quantity) * g.Key.CostPrice))
-                    .OrderByDescending(v => v.TotalValue)
-                    .ToListAsync();
+                _valuationRows = report.Valuation
+                    .Select(v => new ValuationRow(v.ProductName, v.SKU, v.TotalQuantity, v.CostPrice, v.TotalValue))
+                    .ToList();
 
                 // Valuation bar chart
                 var topValuation = _valuationRows.Take(10).ToList();

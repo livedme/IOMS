@@ -1,5 +1,5 @@
-@using TradeFlow.Infrastructure.Data
 @using TradeFlow.Web.Components.Pages.Product
+
 <MudDialog Class="bg-dialog-sales">
     <DialogContent>
         <div class="sales-order-form">
@@ -227,9 +227,14 @@
     </DialogContent>
 </MudDialog>
 
-@inject ApplicationDbContext DbContext
+
 @inject IDialogService DialogService
 @inject IBranchService BranchService
+@inject ICustomerService CustomerService
+@inject IProductService ProductService
+@inject ICategoryService CategoryService
+@inject IBrandService BrandService
+@inject IProductSerialService ProductSerialService
 @inject ISnackbar Snackbar
 
 @code {
@@ -260,7 +265,7 @@
     private static readonly ControlItemsDto AddNewProductOption = new(){ Id = Guid.Empty, Name = "Add New", IsSelected = false };
 
 
-    private List<ProductSerial> _availableSerials = new();
+    private List<ProductSerialDto> _availableSerials = new();
     private IReadOnlyCollection<Guid> _selectedSerialSet = Array.Empty<Guid>();
 
     protected override async Task OnInitializedAsync()
@@ -313,66 +318,18 @@
 
             await dataModel.CustomerDdlControl.ControlRef.ResetAsync();
 
-            if (result != null && !result.Canceled && result.Data is CustomerDto dto)
+if (result != null && !result.Canceled && result.Data is CustomerDto dto)
             {
-                var newCustomer = new TradeFlow.Domain.Entities.Customer
-                {
-                    CustomerName = dto.CustomerName,
-                    CustomerEmail = dto.CustomerEmail,
-                    CustomerPhone = dto.CustomerPhone,
-                    ContactPersonName = dto.ContactPersonName,
-                    ContactPersonPhone = dto.ContactPersonPhone,
-                    ContactPersonEmail = dto.ContactPersonEmail,
-                    Address = dto.Address,
-                    City = dto.City,
-                    State = dto.State,
-                    Country = dto.Country,
-                    PostalCode = dto.PostalCode,
-                    CreditLimit = dto.CreditLimit,
-                    PaymentTerms = dto.PaymentTerms,
-                    IsTaxExempt = dto.IsTaxExempt
-                };
+                // The service owns the insert + SaveChanges; the old code hand-built an entity and
+                // saved through the page's scoped DbContext, which leaked a tracked entity here.
+                var newCustomerId = await CustomerService.CreateCustomerAsync(dto);
+                Snackbar.Add("Customer created successfully", Severity.Success);
 
-                // await DbContext.SaveChangesAsync();
-                // Snackbar.Add("Customer updated", Severity.Success);
-                // await LoadData();
+                Customers = await CustomerService.GetActiveCustomersAsync();
 
-                DbContext.Customers.Add(newCustomer);
-                await DbContext.SaveChangesAsync();
-                var latestCustomer = await DbContext.Customers.ToListAsync();
-                Customers = latestCustomer.Select(c => new CustomerDto()
-                {
-                    Id = c.Id,
-                    CustomerName = c.CustomerName,
-                    CustomerEmail = c.CustomerEmail,
-                    CustomerPhone = c.CustomerPhone,
-                    ContactPersonName = c.ContactPersonName,
-                    ContactPersonPhone = c.ContactPersonPhone,
-                    ContactPersonEmail = c.ContactPersonEmail,
-                    Address = c.Address,
-                    City = c.City,
-                    Zila = c.Zila,
-                    State = c.State,
-                    Country = c.Country,
-                    PostalCode = c.PostalCode,
-                    CreditLimit = c.CreditLimit,
-                    PaymentTerms = c.PaymentTerms,
-                    IsActive = c.IsActive,
-                    IsTaxExempt = c.IsTaxExempt
-                }).ToList();
-
-                cust = new ControlItemsDto(){ Id = newCustomer.Id, Name = newCustomer.CustomerName };
-
-                //var latestCustomers = await DbContext.Customers.ToListAsync();
+                cust = new ControlItemsDto(){ Id = newCustomerId, Name = dto.CustomerName };
 
                 await UpdateControlSelection(dataModel.CustomerDdlControl,cust);
-
-                //dataModel.CustomerDdlControl.SelectedItem = cust;// Customers.Where(x => x.Id == newCustomer.Id).Select(c => new ControlItemsDto() { Id = c.Id, Name = c.CustomerName }).FirstOrDefault();
-                //dataModel.CustomerDdlControl.SelectedItem
-                //_selectedCustomer = Customers.FirstOrDefault();
-                //_lastCustomerSelection = dataModel.SelectedCustomer;
-                //_customerId = _selectedCustomer?.Id ?? Guid.Empty;
-                //_customerText = dataModel.SelectedCustomer?.Name;
 
                 StateHasChanged();
             }
@@ -429,7 +386,13 @@
                 .Select(c => new ControlItemsDto(){ Id = c.Id, Name = c.CustomerName });
         }
 
-        var results = new[] { AddNewCustomerOption }.Concat(baseResults).DistinctBy(c => c.Id);
+        
+        
+        var results = baseResults.OrderBy(x => x.Name).DistinctBy(c => c.Id);
+        results = baseResults.Concat(new[] { AddNewCustomerOption });
+        
+
+       // var results = new[] { AddNewCustomerOption }.Concat(baseResults).DistinctBy(c => c.Id);
         //var results = baseResults.Append(AddNewCustomerOption).DistinctBy(c => c.Id).ToList();
 
         return Task.FromResult(results);
@@ -563,12 +526,12 @@
 
         if (prod?.Id == Guid.Empty)
         {
-            var categories = await DbContext.Categories.ToListAsync(); // TradeFlow.Web.Utility.Common.GetCategoryList(DbContext);
-            var brands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
+            var categories = await CategoryService.GetAllCategoriesAsync();
+            var brands = await BrandService.GetAllBrandsAsync();
             var parameters = new DialogParameters<ProductAddEditDialog>
             {   { x => x.DataModel, new ProductDetailsDto() },
-                { x => x.Categories, categories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId,"",0,c.Path)).ToList() },
-                { x => x.Brands, brands.Select(b => new BrandDto(b.Id, b.Name, b.BrandCode, b.Description,0)).ToList() }
+                { x => x.Categories, categories },
+                { x => x.Brands, brands }
             };
 
             var dialog = await DialogService.ShowAsync<ProductAddEditDialog>("New Product", parameters,
@@ -579,30 +542,16 @@
 
             if (result != null && !result.Canceled && result.Data is ProductDetailsDto dto)
             {
-                var product = new TradeFlow.Domain.Entities.Product
-                {
-                    Name = dto.Name,
-                    SKU = dto.SKU,
-                    Barcode = dto.Barcode,
-                    Description = dto.Description,
-                    CostPrice = dto.CostPrice,
-                    SellingPrice = dto.SellingPrice,
-                    MinOrderQuantity = dto.MinOrderQuantity,
-                    ReorderStockLevel = dto.ReorderStockLevel,
-                    CategoryId = dto.CategoryId,
-                    BrandId = dto.BrandId,
-                    ImageUrl = dto.ImageUrl,
-                    Model = dto.Model
-                };
-                DbContext.Products.Add(product);
-                await DbContext.SaveChangesAsync();
+                // The service owns the insert + SaveChanges (and the product cache invalidation);
+                // the old code hand-built the entity and saved through the page's DbContext.
+                var newProductId = await ProductService.CreateProductAsync(dto);
                 Snackbar.Add("Product created successfully", Severity.Success);
 
-                var latestProduct = await DbContext.Products.ToListAsync();
-                Products = latestProduct.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
+                var latestProducts = await ProductService.GetProductOptionsAsync();
+                Products = latestProducts.Select(p => (p.Id, p.Name, p.Sku, p.SellingPrice)).ToList();
 
-                prod = new ControlItemsDto(){ Id = product.Id, Name = product.Name, IsSelected = false };
-               
+                prod = new ControlItemsDto(){ Id = newProductId, Name = dto.Name, IsSelected = false };
+
 
                 var p = Products.FirstOrDefault(p => p.Id == prod.Id);
                 if (p != default)
@@ -655,9 +604,7 @@
 
                 // Load available serials for this product
                 _selectedSerialSet = Array.Empty<Guid>();
-                _availableSerials = await DbContext.ProductSerials
-                    .Where(ps => ps.ProductId == p.Id && ps.Status == ProductSerialStatus.Available)
-                    .ToListAsync();
+                _availableSerials = await ProductSerialService.GetAvailableSerialsByProduct(p.Id);
             }
             await UpdateControlSelection(dataModel.ProductObj.ProductDdlControl, prod);
         }

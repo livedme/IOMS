@@ -11,10 +11,10 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class ProductService : IProductService
     {
-        /// <summary>Reference lists change rarely and are read on every page render, so they are cached.</summary>
-        private static readonly TimeSpan ReferenceDataLifetime = TimeSpan.FromMinutes(15);
-
-        private const string ReferenceCachePrefix = "products:reference:";
+        // The brand, category and warehouse reference lists that used to be cached here now live in
+        // BrandService, CategoryService and WarehousesService behind ReferenceDataCache, so this
+        // service keeps only its own catalogue prefix. The IDbContextFactory went with them too: its
+        // only user was the warehouse paged read.
         private const string ProductCachePrefix = "products:";
 
         private readonly ApplicationDbContext _db;
@@ -22,22 +22,19 @@ namespace TradeFlow.Infrastructure.Services
         private readonly ITenantCache _cache;
         private readonly ITenantProvider _tenantProvider;
         private readonly ILogger<ProductService> _logger;
-        private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
         public ProductService(
             ApplicationDbContext db,
             IMapper mapper,
             ITenantCache cache,
             ITenantProvider tenantProvider,
-            ILogger<ProductService> logger,
-            IDbContextFactory<ApplicationDbContext> dbFactory)
+            ILogger<ProductService> logger)
         {
             _db = db;
             _mapper = mapper;
             _cache = cache;
             _tenantProvider = tenantProvider;
             _logger = logger;
-            _dbFactory = dbFactory;
         }
 
         public async Task<PagedResultNew<ProductDto>> GetProductsAsync(ProductPagedRequest request)
@@ -116,7 +113,7 @@ namespace TradeFlow.Infrastructure.Services
                 int.MaxValue);
 
             var items = await filtered
-                .OrderBy(x => x.Product.Name)
+                .OrderByDescending(x => x.Product.CreatedAt)
                 .Skip(page * pageSize)
                 .Take(pageSize)
                 .Select(x => new ProductDto(
@@ -179,6 +176,18 @@ namespace TradeFlow.Infrastructure.Services
                 ["OutOfStockCount"] = stats?.OutOfStock ?? 0
             };
         }
+
+        /// <summary>
+        /// Lightweight product list for pickers. A dozen components used to run
+        /// <c>DbContext.Products.ToListAsync()</c> — no filter, no ordering, tracked entities
+        /// included — purely to fill a dropdown that reads four columns.
+        /// </summary>
+        public async Task<List<ProductOptionDto>> GetProductOptionsAsync() =>
+            await _db.Products
+                .AsNoTracking()
+                .OrderBy(p => p.Name)
+                .Select(p => new ProductOptionDto(p.Id, p.Name, p.SKU, p.SellingPrice, p.CostPrice))
+                .ToListAsync();
 
         public async Task<ProductDto?> GetProductByIdAsync(Guid id)
         {
@@ -261,6 +270,142 @@ namespace TradeFlow.Infrastructure.Services
             _logger.LogInformation("Soft-deleted product {ProductId}", id);
         }
 
+        /// <summary>
+        /// Assembles the product detail screen in one place.
+        /// </summary>
+        /// <remarks>
+        /// The page used to issue eight queries against its own scoped context, starting with a
+        /// tracked product that pulled in the category tree and the whole inventory graph. That
+        /// tracked entity was then handed straight to the Save Changes button, which re-saved an
+        /// unmodified graph. Everything here is <c>AsNoTracking</c> and projected, and the screen
+        /// is read-only, so there is nothing left to persist.
+        /// </remarks>
+        public async Task<ProductDetailViewDto?> GetProductDetailViewAsync(Guid id)
+        {
+            var header = await _db.Products
+                .AsNoTracking()
+                .Where(p => p.Id == id)
+                .Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.SKU,
+                    p.Barcode,
+                    p.Description,
+                    p.ImageUrl,
+                    p.CostPrice,
+                    p.SellingPrice,
+                    p.WholeSellingPrice,
+                    p.ReorderStockLevel,
+                    p.MinOrderQuantity,
+                    p.Model,
+                    p.OriginCountry,
+                    p.OriginManufacturer,
+                    CategoryName = p.Category.Name,
+                    ParentCategoryName = p.Category.ParentCategory == null ? null : p.Category.ParentCategory.Name,
+                    BrandName = p.Brand == null ? null : p.Brand.Name
+                })
+                .FirstOrDefaultAsync();
+
+            if (header == null)
+                return null;
+
+            var warehouseStock = await _db.Inventories
+                .AsNoTracking()
+                .Where(i => i.ProductId == id)
+                .OrderBy(i => i.Warehouse.Name)
+                .Select(i => new ProductWarehouseStockDto(
+                    i.WarehouseId,
+                    i.Warehouse.Name,
+                    i.Quantity,
+                    i.ReservedQuantity,
+                    i.Quantity - i.ReservedQuantity))
+                .ToListAsync();
+
+            var movements = await _db.StockMovements
+                .AsNoTracking()
+                .Where(m => m.ProductId == id)
+                .OrderByDescending(m => m.MovementDate)
+                .Take(50)
+                .Select(m => new StockMovementReportRowDto(
+                    m.MovementDate,
+                    "",
+                    m.Warehouse.Name,
+                    m.Type.ToString(),
+                    m.Quantity,
+                    m.Reference,
+                    m.Notes))
+                .ToListAsync();
+
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+            var last30DaysSales = await _db.SalesOrderItems
+                .Where(x => x.ProductId == id && x.SalesOrder.OrderDate >= cutoff)
+                .SumAsync(x => (int?)x.Quantity) ?? 0;
+
+            var salesOrderLines = await _db.SalesOrderItems
+                .AsNoTracking()
+                .Where(x => x.ProductId == id)
+                .OrderByDescending(x => x.SalesOrder.OrderDate)
+                .Take(50)
+                .Select(x => new ProductOrderLineDto(
+                    x.SalesOrderId,
+                    x.SalesOrder.OrderNumber,
+                    x.SalesOrder.Customer.CustomerName,
+                    x.SalesOrder.OrderDate,
+                    x.SalesOrder.Status.ToString(),
+                    x.Quantity,
+                    x.UnitPrice))
+                .ToListAsync();
+
+            var purchaseOrderLines = await _db.PurchaseOrderItems
+                .AsNoTracking()
+                .Where(x => x.ProductId == id)
+                .OrderByDescending(x => x.PurchaseOrder.PurchaseDate)
+                .Take(50)
+                .Select(x => new ProductOrderLineDto(
+                    x.PurchaseOrderId,
+                    x.PurchaseOrder.OrderNumber,
+                    x.PurchaseOrder.Supplier.SupplierName,
+                    x.PurchaseOrder.PurchaseDate,
+                    x.PurchaseOrder.Status.ToString(),
+                    x.Quantity,
+                    x.UnitPrice))
+                .ToListAsync();
+
+            // The supplier on the most recent purchase line is the product's preferred source.
+            var preferredSupplierName = await _db.PurchaseOrderItems
+                .Where(x => x.ProductId == id)
+                .OrderByDescending(x => x.PurchaseOrder.PurchaseDate)
+                .Select(x => x.PurchaseOrder.Supplier.SupplierName)
+                .FirstOrDefaultAsync();
+
+            return new ProductDetailViewDto(
+                header.Id,
+                header.Name,
+                header.SKU,
+                header.Barcode,
+                header.Description,
+                header.ImageUrl,
+                header.CostPrice,
+                header.SellingPrice,
+                header.WholeSellingPrice,
+                header.ReorderStockLevel,
+                header.MinOrderQuantity,
+                header.Model,
+                header.OriginCountry,
+                header.OriginManufacturer,
+                header.CategoryName,
+                header.ParentCategoryName,
+                header.BrandName,
+                preferredSupplierName,
+                last30DaysSales,
+                warehouseStock.Sum(i => i.AvailableQuantity),
+                warehouseStock,
+                movements,
+                salesOrderLines,
+                purchaseOrderLines);
+        }
+
         /// <summary>Stock and catalogue changes alter both the reference lists and the stock counts.</summary>
         private Task InvalidateProductCachesAsync() => _cache.RemoveByPrefixAsync(ProductCachePrefix);
 
@@ -286,419 +431,6 @@ namespace TradeFlow.Infrastructure.Services
             product.BaseUoMId = dto.BaseUoMId;
             product.ImageUrl = dto.ImageUrl;
             product.Description = dto.Description;
-        }
-
-        public async Task<PagedResult<BrandDto>> GetBrandsAsync(string? search, int page, int pageSize)
-        {
-            var query = _db.Brands.AsNoTracking();
-            if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(b => b.Name.Contains(search)
-                    || (b.BrandCode != null && b.BrandCode.Contains(search))
-                    || (b.Description != null && b.Description.Contains(search))
-                    || (b.OriginCompany != null && b.OriginCompany.Contains(search))
-                    || (b.OriginCountry != null && b.OriginCountry.Contains(search)));
-
-            var total = await query.CountAsync();
-            var items = await query.OrderBy(b => b.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-            return new PagedResult<BrandDto>(_mapper.Map<List<BrandDto>>(items), total, page, pageSize);
-        }
-
-        public Task<List<BrandDto>> GetAllBrandsAsync() =>
-            _cache.GetOrCreateAsync(
-                $"{ReferenceCachePrefix}brands",
-                ReferenceDataLifetime,
-                async ct =>
-                {
-                    var brands = await _db.Brands.AsNoTracking().OrderBy(b => b.Name).ToListAsync(ct);
-                    return _mapper.Map<List<BrandDto>>(brands);
-                });
-
-        public async Task<BrandDto> GetBrandByIdAsync(Guid id)
-        {
-            var brand = await _db.Brands.FindAsync(id);
-            if (brand == null) throw new KeyNotFoundException("Brand not found");
-            return _mapper.Map<BrandDto>(brand);
-        }
-        public async Task<Guid> CreateBrandAsync(CreateBrandDto dto)
-        {
-            var brand = new Brand
-            {
-                Name = dto.Name,
-                BrandCode = dto.BrandCode,
-                Description = dto.Description,
-                LogoUrl = dto.LogoUrl,
-                Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status,
-                OriginCompany = dto.OriginCompany,
-                OriginCountry = dto.OriginCountry,
-                FoundedYear = dto.FoundedYear
-            };
-            _db.Brands.Add(brand);
-            await _db.SaveChangesAsync();
-            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
-            return brand.Id;
-        }
-        public async Task<bool> UpdateBrandAsync(Guid id, CreateBrandDto dto)
-        {
-            var brand = await _db.Brands.FindAsync(id) ?? throw new KeyNotFoundException("Brand not found");
-            brand.Name = dto.Name;
-            brand.BrandCode = dto.BrandCode;
-            brand.Description = dto.Description;
-            brand.LogoUrl = dto.LogoUrl;
-            brand.Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status;
-            brand.OriginCompany = dto.OriginCompany;
-            brand.OriginCountry = dto.OriginCountry;
-            brand.FoundedYear = dto.FoundedYear;
-            await _db.SaveChangesAsync();
-            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
-            return true;
-        }
-        public async Task<bool> DeleteBrandAsync(Guid id)
-        {
-            var brand = await _db.Brands.FindAsync(id) ?? throw new KeyNotFoundException("Brand not found");
-            brand.IsDeleted = true;
-            await _db.SaveChangesAsync();
-            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
-            return true;
-        }
-
-        public async Task<PagedResult<CategoryDto>> GetCategoriesAsync(string? search, int page, int pageSize)
-        {
-            var query = _db.Categories.AsNoTracking();
-            if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(c => c.Name.Contains(search));
-            var total = await query.CountAsync();
-            var items = await query.OrderBy(c => c.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-            return new PagedResult<CategoryDto>(_mapper.Map<List<CategoryDto>>(items), total, page, pageSize);
-        }
-
-
-        public Task<List<CategoryDto>> GetAllCategoriesAsync() =>
-            _cache.GetOrCreateAsync(
-                $"{ReferenceCachePrefix}categories",
-                ReferenceDataLifetime,
-                async ct =>
-                {
-                    var categories = await _db.Categories
-                        .AsNoTracking()
-                        .Include(c => c.ParentCategory)
-                        .OrderBy(c => c.Name)
-                        .ToListAsync(ct);
-                    return _mapper.Map<List<CategoryDto>>(categories);
-                });
-
-        public async Task<Guid> CreateCategoryAsync(CreateCategoryDto dto)
-        {
-            var category = new Category { Name = dto.Name, Description = dto.Description, ParentCategoryId = dto.ParentCategoryId };
-            _db.Categories.Add(category);
-            await _db.SaveChangesAsync();
-            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
-            return category.Id;
-        }
-
-        public async Task DeleteCategoryAsync(Guid id)
-        {
-            var category = await _db.Categories.FindAsync(id) ?? throw new KeyNotFoundException("Category not found");
-            category.IsDeleted = true;
-            await _db.SaveChangesAsync();
-            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
-        }
-
-        public async Task<PagedResultNew<WarehouseDto>> GetWarehousesPagedAsync(WarehousePagedRequest request)
-        {
-            // Own context for the whole read: the list can be re-entered while another query on the
-            // scoped context is still in flight, and a DbContext cannot run two commands at once.
-            await using var read = await _dbFactory.CreateDbContextAsync();
-            var response = new PagedResultNew<WarehouseDto>();
-
-            var page = Math.Max(0, request.CurrentPage);
-            var pageSize = Math.Clamp(request.PageSize, 1, 100);
-            var search = request.SearchTerm?.Trim();
-
-            var query = read.Warehouses.AsNoTracking();
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
-                query = query.Where(w => w.TenantId == request.TenantId.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(w =>
-                    EF.Functions.Like(w.Name, $"%{search}%") ||
-                    EF.Functions.Like(w.Code, $"%{search}%") ||
-                    EF.Functions.Like(w.Location, $"%{search}%") ||
-                    EF.Functions.Like(w.Address, $"%{search}%"));
-            }
-
-            // Stats ignore the active filter so the tiles keep showing both buckets.
-            var statRows = await query
-                .GroupBy(w => w.IsActive)
-                .Select(g => new { g.Key, Count = g.Count() })
-                .ToListAsync();
-
-            response.Stats["TotalCount"] = statRows.Sum(r => r.Count);
-            response.Stats["ActiveCount"] = statRows.Where(r => r.Key).Sum(r => r.Count);
-            response.Stats["InactiveCount"] = statRows.Where(r => !r.Key).Sum(r => r.Count);
-            response.Stats["WithLocationCount"] = await query
-                .CountAsync(w => w.Location != null && w.Location != string.Empty);
-            response.Stats["UniqueCodeCount"] = await query.Select(w => w.Code).Distinct().CountAsync();
-
-            if (request.IsActive.HasValue)
-                query = query.Where(w => w.IsActive == request.IsActive.Value);
-
-            var sortAsc = request.SortAscending;
-            query = (request.SortColumn ?? "Name") switch
-            {
-                "Code" => sortAsc ? query.OrderBy(w => w.Code) : query.OrderByDescending(w => w.Code),
-                "Location" => sortAsc ? query.OrderBy(w => w.Location) : query.OrderByDescending(w => w.Location),
-                "Address" => sortAsc ? query.OrderBy(w => w.Address) : query.OrderByDescending(w => w.Address),
-                "IsActive" => sortAsc ? query.OrderBy(w => w.IsActive) : query.OrderByDescending(w => w.IsActive),
-                _ => sortAsc ? query.OrderBy(w => w.Name) : query.OrderByDescending(w => w.Name),
-            };
-
-            var totalCount = await query.CountAsync();
-            var items = await query.Skip(page * pageSize).Take(pageSize).ToListAsync();
-
-            response.Items = items
-                .Select(w => new WarehouseDto(w.Id, w.Name, w.Code, w.Location, w.Address, w.IsActive))
-                .ToList();
-            response.TotalCount = totalCount;
-            response.CurrentPage = page;
-            response.PageSize = pageSize;
-
-            return response;
-        }
-
-        public async Task<PagedResultNew<BrandDto>> GetBrandsPagedAsync(BrandPagedRequest request)
-        {
-            await using var read = await _dbFactory.CreateDbContextAsync();
-            var response = new PagedResultNew<BrandDto>();
-
-            var page = Math.Max(0, request.CurrentPage);
-            var pageSize = Math.Clamp(request.PageSize, 1, 100);
-            var search = request.SearchTerm?.Trim();
-
-            var query = read.Brands.AsNoTracking();
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
-                query = query.Where(b => b.TenantId == request.TenantId.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(b =>
-                    EF.Functions.Like(b.Name, $"%{search}%") ||
-                    EF.Functions.Like(b.BrandCode, $"%{search}%") ||
-                    EF.Functions.Like(b.Description, $"%{search}%") ||
-                    EF.Functions.Like(b.OriginCompany, $"%{search}%") ||
-                    EF.Functions.Like(b.OriginCountry, $"%{search}%"));
-            }
-
-            var statRows = await query
-                .GroupBy(b => b.Status)
-                .Select(g => new { g.Key, Count = g.Count() })
-                .ToListAsync();
-
-            response.Stats["TotalCount"] = statRows.Sum(r => r.Count);
-            response.Stats["ActiveCount"] = statRows.Where(r => r.Key == "Active").Sum(r => r.Count);
-            response.Stats["InactiveCount"] = statRows.Where(r => r.Key != "Active").Sum(r => r.Count);
-            response.Stats["WithProductsCount"] = await query.CountAsync(b => b.Products.Any());
-            response.Stats["WithoutProductsCount"] = await query.CountAsync(b => !b.Products.Any());
-            response.Stats["WithLogoCount"] = await query
-                .CountAsync(b => b.LogoUrl != null && b.LogoUrl != string.Empty);
-            response.Stats["CountryCount"] = await query
-                .Where(b => b.OriginCountry != null && b.OriginCountry != string.Empty)
-                .Select(b => b.OriginCountry)
-                .Distinct()
-                .CountAsync();
-
-            if (!string.IsNullOrWhiteSpace(request.Status) && request.Status != "All")
-            {
-                var status = request.Status;
-                query = query.Where(b => b.Status == status);
-            }
-
-            if (request.HasLogo.HasValue)
-            {
-                query = request.HasLogo.Value
-                    ? query.Where(b => b.LogoUrl != null && b.LogoUrl != string.Empty)
-                    : query.Where(b => b.LogoUrl == null || b.LogoUrl == string.Empty);
-            }
-
-            if (!string.IsNullOrWhiteSpace(request.OriginCountry))
-            {
-                var country = request.OriginCountry;
-                query = query.Where(b => b.OriginCountry == country);
-            }
-
-            if (request.ProductFilter == "With Products")
-                query = query.Where(b => b.Products.Any());
-            else if (request.ProductFilter == "Without Products")
-                query = query.Where(b => !b.Products.Any());
-
-            var sortAsc = request.SortAscending;
-            query = (request.SortColumn ?? "Name") switch
-            {
-                "BrandCode" => sortAsc ? query.OrderBy(b => b.BrandCode) : query.OrderByDescending(b => b.BrandCode),
-                "Description" => sortAsc ? query.OrderBy(b => b.Description) : query.OrderByDescending(b => b.Description),
-                "OriginCompany" => sortAsc ? query.OrderBy(b => b.OriginCompany) : query.OrderByDescending(b => b.OriginCompany),
-                "OriginCountry" => sortAsc ? query.OrderBy(b => b.OriginCountry) : query.OrderByDescending(b => b.OriginCountry),
-                "FoundedYear" => sortAsc ? query.OrderBy(b => b.FoundedYear) : query.OrderByDescending(b => b.FoundedYear),
-                "ProductCount" => sortAsc
-                    ? query.OrderBy(b => b.Products.Count).ThenBy(b => b.Name)
-                    : query.OrderByDescending(b => b.Products.Count).ThenBy(b => b.Name),
-                "Status" => sortAsc ? query.OrderBy(b => b.Status) : query.OrderByDescending(b => b.Status),
-                _ => sortAsc ? query.OrderBy(b => b.Name) : query.OrderByDescending(b => b.Name),
-            };
-
-            var totalCount = await query.CountAsync();
-            var items = await query
-                .Select(b => new { Brand = b, ProductCount = b.Products.Count })
-                .Skip(page * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            response.Items = items
-                .Select(x => new BrandDto(x.Brand.Id, x.Brand.Name, x.Brand.BrandCode, x.Brand.Description, x.ProductCount))
-                .ToList();
-            response.TotalCount = totalCount;
-            response.CurrentPage = page;
-            response.PageSize = pageSize;
-
-            return response;
-        }
-
-        public async Task<PagedResultNew<CategoryDto>> GetCategoriesPagedAsync(CategoryPagedRequest request)
-        {
-            await using var read = await _dbFactory.CreateDbContextAsync();
-            var response = new PagedResultNew<CategoryDto>();
-
-            var page = Math.Max(0, request.CurrentPage);
-            var pageSize = Math.Clamp(request.PageSize, 1, 100);
-            var search = request.SearchTerm?.Trim();
-
-            var query = read.Categories.AsNoTracking();
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
-                query = query.Where(c => c.TenantId == request.TenantId.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(c =>
-                    EF.Functions.Like(c.Name, $"%{search}%") ||
-                    EF.Functions.Like(c.Description, $"%{search}%") ||
-                    EF.Functions.Like(c.Path, $"%{search}%"));
-            }
-
-            var statRows = await query
-                .GroupBy(c => new { c.ParentCategoryId, HasProducts = c.Products.Any() })
-                .Select(g => new { g.Key, Count = g.Count() })
-                .ToListAsync();
-
-            response.Stats["TotalCount"] = statRows.Sum(r => r.Count);
-            response.Stats["TopLevelCount"] = statRows.Count(r => r.Key.ParentCategoryId == null);
-            response.Stats["SubLevelCount"] = statRows.Count(r => r.Key.ParentCategoryId != null);
-            response.Stats["WithProductsCount"] = statRows.Where(r => r.Key.HasProducts).Sum(r => r.Count);
-            response.Stats["WithoutProductsCount"] = statRows.Where(r => !r.Key.HasProducts).Sum(r => r.Count);
-
-            // Depth is the number of " > " separators in Path, which SQL cannot count cheaply and
-            // MaxAsync throws on an empty set, so the (small) reference table is projected first.
-            var paths = await query
-                .Where(c => c.Path != null && c.Path != string.Empty)
-                .Select(c => c.Path!)
-                .ToListAsync();
-            response.Stats["MaxDepth"] = paths.Count == 0
-                ? 1
-                : paths.Max(p => p.Count(ch => ch == '>') + 1);
-
-            if (request.Level == 1)
-                query = query.Where(c => c.ParentCategoryId == null);
-            else if (request.Level == 2)
-                query = query.Where(c => c.ParentCategoryId != null);
-
-            if (request.ProductFilter == "With Products")
-                query = query.Where(c => c.Products.Any());
-            else if (request.ProductFilter == "Without Products")
-                query = query.Where(c => !c.Products.Any());
-
-            var sortAsc = request.SortAscending;
-            query = (request.SortColumn ?? "Name") switch
-            {
-                "Description" => sortAsc ? query.OrderBy(c => c.Description) : query.OrderByDescending(c => c.Description),
-                "Path" => sortAsc ? query.OrderBy(c => c.Path) : query.OrderByDescending(c => c.Path),
-                "ProductCount" => sortAsc
-                    ? query.OrderBy(c => c.Products.Count).ThenBy(c => c.Name)
-                    : query.OrderByDescending(c => c.Products.Count).ThenBy(c => c.Name),
-                _ => sortAsc ? query.OrderBy(c => c.Name) : query.OrderByDescending(c => c.Name),
-            };
-
-            var totalCount = await query.CountAsync();
-            var items = await query
-                .Select(c => new { Category = c, ProductCount = c.Products.Count })
-                .Skip(page * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            response.Items = items
-                .Select(x => new CategoryDto(
-                    x.Category.Id,
-                    x.Category.Name,
-                    x.Category.Description,
-                    x.Category.ParentCategoryId,
-                    x.Category.ParentCategory == null ? null : x.Category.ParentCategory.Name,
-                    x.ProductCount,
-                    x.Category.Path))
-                .ToList();
-            response.TotalCount = totalCount;
-            response.CurrentPage = page;
-            response.PageSize = pageSize;
-
-            return response;
-        }
-
-        public async Task UpdateWarehouseAsync(Guid id, CreateWarehouseDto dto)
-        {
-            var warehouse = await _db.Warehouses.FindAsync(id) ?? throw new KeyNotFoundException("Warehouse not found");
-            warehouse.Name = dto.Name;
-            warehouse.Code = dto.Code;
-            warehouse.Location = dto.Location;
-            warehouse.Address = dto.Address;
-            await _db.SaveChangesAsync();
-            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
-        }
-
-        public async Task<PagedResult<WarehouseDto>> GetWarehousesAsync(string? search, int page, int pageSize)
-        {
-            var query = _db.Warehouses.AsNoTracking();
-            if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(w => w.Name.Contains(search) || w.Code.Contains(search));
-            var total = await query.CountAsync();
-            var items = await query.OrderBy(w => w.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-            return new PagedResult<WarehouseDto>(_mapper.Map<List<WarehouseDto>>(items), total, page, pageSize);
-        }
-
-        public Task<List<WarehouseDto>> GetAllWarehousesAsync() =>
-            _cache.GetOrCreateAsync(
-                $"{ReferenceCachePrefix}warehouses",
-                ReferenceDataLifetime,
-                async ct =>
-                {
-                    var warehouses = await _db.Warehouses.AsNoTracking()
-                        .Where(w => w.IsActive)
-                        .OrderBy(w => w.Name)
-                        .ToListAsync(ct);
-                    return _mapper.Map<List<WarehouseDto>>(warehouses);
-                });
-
-        public async Task<Guid> CreateWarehouseAsync(CreateWarehouseDto dto)
-        {
-            var warehouse = new Warehouse { Name = dto.Name, Code = dto.Code, Location = dto.Location, Address = dto.Address };
-            _db.Warehouses.Add(warehouse);
-            await _db.SaveChangesAsync();
-            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
-            return warehouse.Id;
-        }
-
-        public async Task DeleteWarehouseAsync(Guid id)
-        {
-            var warehouse = await _db.Warehouses.FindAsync(id) ?? throw new KeyNotFoundException("Warehouse not found");
-            warehouse.IsDeleted = true;
-            await _db.SaveChangesAsync();
-            await _cache.RemoveByPrefixAsync(ReferenceCachePrefix);
         }
     }
 }

@@ -1,5 +1,3 @@
-@using TradeFlow.Infrastructure.Data
-
 <MudDialog>
     <DialogContent>
         <MudForm @ref="_form">
@@ -83,8 +81,10 @@
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
     </DialogActions>
 </MudDialog>
-@inject ApplicationDbContext DbContext
+
 @inject IDialogService DialogService
+@inject ICategoryService CategoryService
+@inject IBrandService BrandService
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -155,7 +155,8 @@
                  (c.Text1 != null && c.Text1.Contains(text, StringComparison.OrdinalIgnoreCase))));
         }
 
-        var results = new[] { AddNewCategoryOption }.Concat(baseResults).DistinctBy(c => c.Id);
+        var results = baseResults.OrderBy(x => x.Name).DistinctBy(c => c.Id);
+        results = baseResults.Concat(new[] { AddNewCategoryOption });
         return Task.FromResult(results);
     }
 
@@ -174,7 +175,10 @@
                 b.Name.Contains(text, StringComparison.OrdinalIgnoreCase));
         }
 
-        var results = new[] { AddNewBrandOption }.Concat(baseResults).DistinctBy(b => b.Id);
+        
+        var results = baseResults.OrderBy(x => x.Name).DistinctBy(c => c.Id);
+        results = baseResults.Concat(new[] { AddNewBrandOption });
+        
         return Task.FromResult(results);
     }
 
@@ -198,31 +202,12 @@
 
             if (result != null && !result.Canceled && result.Data is CreateCategoryDto dto)
             {
-                var parent = await DbContext.Categories.FindAsync(dto.ParentCategoryId);
-                var path = parent == null ? dto.Name : parent.ParentCategory == null ? $"{parent.Name} > {dto.Name}" : $"{parent.ParentCategory.Name} > {parent.Name} > {dto.Name}";
+                var categoryId = await CategoryService.CreateCategoryAsync(dto);
+                var created = await CategoryService.GetCategoryByIdAsync(categoryId);
 
-                var category = new TradeFlow.Domain.Entities.Category
-                    {
-                        Name = dto.Name,
-                        Path = path,
-                        Description = dto.Description,
-                        ParentCategoryId = dto.ParentCategoryId
-                    };
-                DbContext.Categories.Add(category);
-                await DbContext.SaveChangesAsync();
-                //  Snackbar.Add("Category created", Severity.Success);
-                //  await LoadCategories();
+                cat = new ControlItemsDto() { Id = created.Id, Name = created.Name, Text1 = created.Description, Text2 = created.Path };
 
-                cat = new ControlItemsDto() { Id = category.Id, Name = category.Name, Text1 = category.Description, Text2 = category.Path };
-
-                var myCategories = await DbContext.Categories.ToListAsync();
-                Categories = myCategories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList();
-
-                // DataModel.CategoryControl.SelectedItem = cat;
-                // DataModel.CategoryControl.LastSelectedItem = cat;
-                // DataModel.CategoryId = cat?.Id ?? Guid.Empty;
-                // DataModel.CategoryControl.SelectedText = CategoryToDisplay(cat);
-                // DataModel.CategoryControl.SelectedIndex++;
+                Categories = await CategoryService.GetAllCategoriesAsync();
 
                 await UpdateCategorySelection(cat);
 
@@ -249,10 +234,10 @@
             // DataModel.CategoryControl.SelectedText = CategoryToDisplay(cat);
         }
 
-        if (DataModel.CategoryControl.ControlRef is not null)
-        {
+        if (DataModel.BrandControl.ControlRef is not null)
+        {   
             await Task.Delay(50);
-            await DataModel.CategoryControl.ControlRef.FocusAsync();
+            await DataModel.BrandControl.ControlRef.FocusAsync();
         }
     }
 
@@ -302,37 +287,11 @@
 
             if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
             {
-                var entity = new TradeFlow.Domain.Entities.Brand
-                {
-                    Name = dto.Name,
-                    BrandCode = dto.BrandCode,
-                    Description = dto.Description,
-                    LogoUrl = dto.LogoUrl,
-                    Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status,
-                    OriginCompany = dto.OriginCompany,
-                    OriginCountry = dto.OriginCountry,
-                    FoundedYear = dto.FoundedYear
-                };
+                var brandId = await BrandService.CreateBrandAsync(dto);
 
-                DbContext.Brands.Add(entity);
-                await DbContext.SaveChangesAsync();
+                Brands = await BrandService.GetAllBrandsAsync();
 
-                var allBrands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
-                Brands = allBrands.Select(b => new BrandDto(b.Id, b.Name, b.BrandCode, b.Description, 0)
-                {
-                    Id = b.Id,
-                    Name = b.Name,
-                    BrandCode = b.BrandCode,
-                    Description = b.Description,
-                    LogoUrl = b.LogoUrl,
-                    Status = b.Status,
-                    OriginCompany = b.OriginCompany,
-                    OriginCountry = b.OriginCountry,
-                    FoundedYear = b.FoundedYear,
-
-                }).ToList();
-
-                var newBrand = new ControlItemsDto { Id = entity.Id, Name = entity.Name, Text1 = entity.Description, Text2 = entity.LogoUrl };
+                var newBrand = new ControlItemsDto { Id = brandId, Name = dto.Name, Text1 = dto.Description, Text2 = dto.LogoUrl };
                 AllBrands.Add(newBrand);
 
                 await UpdateBrandSelection(newBrand);

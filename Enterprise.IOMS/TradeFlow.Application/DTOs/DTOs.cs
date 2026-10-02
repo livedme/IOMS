@@ -588,6 +588,12 @@ public record PagedResult<T>(List<T> Items, int TotalCount, int Page, int PageSi
 // Global Search
 public record GlobalSearchResultDto(string EntityType, Guid Id, string Title, string SubTitle, string Url);
 
+/// <summary>
+/// The minimum a product picker needs. Ten-plus components were fetching the whole Product entity
+/// graph and materialising it in order to bind a dropdown that only ever reads the name.
+/// </summary>
+public record ProductOptionDto(Guid Id, string Name, string Sku, decimal SellingPrice, decimal CostPrice);
+
 // Tax Calculation
 public record TaxCalculationResult(decimal Amount, decimal TaxAmount, decimal TaxRate, string? TaxName, Guid? TaxRateId);
 

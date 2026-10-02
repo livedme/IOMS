@@ -3,8 +3,8 @@
 @attribute [Authorize]
 @implements IDisposable
 @inject IInventoryService InventoryService
-@inject IProductService ProductService
 @inject ISnackbar Snackbar
+@inject IWarehousesService WarehousesService
 
 <PageTitle>Stock Levels - IOMS</PageTitle>
 
@@ -202,7 +202,7 @@
     {
         try
         {
-            var whs = await ProductService.GetAllWarehousesAsync();
+            var whs = await WarehousesService.GetAllWarehousesAsync();
             _warehouses = whs.Select(w => new WhItem(w.Id, w.Name, w.Code)).ToList();
         }
         catch { }

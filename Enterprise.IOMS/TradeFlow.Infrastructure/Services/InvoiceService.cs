@@ -43,6 +43,17 @@ namespace TradeFlow.Infrastructure.Services
             return invoice == null ? null : _mapper.Map<InvoiceDto>(invoice);
         }
 
+        /// <summary>Invoices for the credit- and debit-note pickers, which only need number and amount.</summary>
+        public async Task<List<InvoiceOptionDto>> GetRecentInvoiceOptions(int count)
+        {
+            return await _db.Invoices
+                .AsNoTracking()
+                .OrderByDescending(i => i.InvoiceDate)
+                .Take(count)
+                .Select(i => new InvoiceOptionDto(i.Id, i.InvoiceNumber, i.TotalAmount))
+                .ToListAsync();
+        }
+
         public async Task<Guid> CreateInvoiceAsync(CreateInvoiceDto dto)
         {
             var invoice = new Invoice

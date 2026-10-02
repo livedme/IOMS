@@ -2,9 +2,9 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @implements IDisposable
-@inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject IWarehousesService WarehousesService
 
 <PageTitle>Warehouses - IOMS</PageTitle>
 
@@ -180,7 +180,7 @@
         _loading = true;
         try
         {
-            pagedResultNew = await ProductService.GetWarehousesPagedAsync(pagedRequest);
+            pagedResultNew = await WarehousesService.GetWarehousesPagedAsync(pagedRequest);
             _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
@@ -222,7 +222,7 @@
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateWarehouseDto dto)
         {
-            await ProductService.CreateWarehouseAsync(dto);
+            await WarehousesService.CreateWarehouseAsync(dto);
             Snackbar.Add("Warehouse created", Severity.Success);
             await LoadData();
         }
@@ -236,7 +236,7 @@
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is CreateWarehouseDto dto)
         {
-            await ProductService.UpdateWarehouseAsync(item.Id, dto);
+            await WarehousesService.UpdateWarehouseAsync(item.Id, dto);
             Snackbar.Add("Warehouse updated", Severity.Success);
             await LoadData();
         }

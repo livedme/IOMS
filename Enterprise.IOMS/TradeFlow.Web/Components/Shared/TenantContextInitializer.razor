@@ -2,7 +2,17 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject TradeFlow.Infrastructure.Services.TenantContext TenantContext
 
+@* Wraps the routed page rather than sitting beside it. Blazor only guarantees that it awaits a
+   *parent's* OnInitializedAsync before initialising that parent's children; two components rendered
+   next to each other are initialised in render order with no ordering guarantee between them, and a
+   sibling that yields (which GetAuthenticationStateAsync does whenever revalidation is in flight)
+   lets the page's first query run first. TenantProvider fails closed on an unresolved tenant, so
+   that race surfaces as a failed circuit rather than as wrong data. *@
+@ChildContent
+
 @code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
     /// <summary>
     /// Populates the circuit-scoped <see cref="TradeFlow.Infrastructure.Services.TenantContext"/>
     /// from the Blazor authentication state.
@@ -10,9 +20,7 @@
     /// <remarks>
     /// <c>IHttpContextAccessor.HttpContext</c> is <c>null</c> once a Blazor Server circuit is
     /// established, so the tenant has to be captured from the <c>AuthenticationStateProvider</c>
-    /// once and held for the life of the circuit. Blazor awaits a parent's
-    /// <c>OnInitializedAsync</c> before initialising child components, so rendering this before
-    /// the routed page guarantees the tenant is available to the page's first data access.
+    /// once and held for the life of the circuit.
     /// </remarks>
     protected override async Task OnInitializedAsync()
     {

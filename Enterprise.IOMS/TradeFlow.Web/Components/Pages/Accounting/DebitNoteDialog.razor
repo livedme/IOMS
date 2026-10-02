@@ -1,7 +1,9 @@
 @using TradeFlow.Web.Components.Shared
 @inject ICreditDebitNoteService NoteService
+@inject IInvoiceService InvoiceService
 @inject ISnackbar Snackbar
-@inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
+
+
 
 <MudDialog>
     <DialogContent>
@@ -26,11 +28,11 @@
     private Guid _invoiceId;
     private decimal _amount;
     private string? _reason;
-    private List<Invoice> _invoices = new();
+    private List<InvoiceOptionDto> _invoices = new();
 
     protected override async Task OnInitializedAsync()
     {
-        _invoices = await DbContext.Set<Invoice>().OrderByDescending(i => i.InvoiceDate).Take(100).AsNoTracking().ToListAsync();
+        _invoices = await InvoiceService.GetRecentInvoiceOptions(100);
     }
 
     private void Cancel() => MudDialog.Cancel();

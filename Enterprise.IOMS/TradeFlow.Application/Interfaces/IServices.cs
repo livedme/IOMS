@@ -43,6 +43,12 @@ public interface IPurchaseService
     Task<PurchaseOrderDto?> GetPurchaseOrderById(Guid id);
     Task<PagedResult<PurchaseOrderDto>> GetPurchaseOrders(string? search, PurchaseOrderStatus? status, int page, int pageSize);
     Task<PagedResultNew<PurchaseOrderDto>> GetPurchaseOrdersAsync(PurchaseOrderPagedRequest request);
+
+    /// <summary>
+    /// Newest purchase orders, number and date only. The landed-cost screen and the purchase-return
+    /// dialog both loaded the full tracked entity — with its items — to fill a dropdown.
+    /// </summary>
+    Task<List<PurchaseOrderOptionDto>> GetRecentPurchaseOrders(int count);
 }
 
 public interface IAccountingService
@@ -62,6 +68,19 @@ public interface IAccountingService
     Task RecordPayment(RecordPaymentDto dto);
     Task<List<AgingReportDto>> GetArAging();
     Task<List<AgingReportDto>> GetApAging();
+
+    /// <summary>
+    /// Journal lines for the ledger screen, unfiltered when an argument is null. The page was
+    /// composing this against the context, including the <c>JournalEntry</c> and <c>Account</c>
+    /// includes the projection needs.
+    /// </summary>
+    Task<List<GeneralLedgerLineDto>> GetGeneralLedgerLines(Guid? accountId, DateTime? from, DateTime? to);
+
+    /// <summary>Most recent payments with their counterparty resolved, for the payments screen.</summary>
+    Task<List<PaymentListItemDto>> GetRecentPayments(int count);
+
+    /// <summary>Invoices and payments for one customer over a window, for the statement screen.</summary>
+    Task<CustomerStatementDto> GetCustomerStatement(Guid customerId, DateTime from, DateTime to);
 }
 
 public interface ITaxService
@@ -296,32 +315,63 @@ public interface IProductService
     Task<PagedResultNew<ProductDto>> GetProductsAsync(ProductPagedRequest request);
     Task<ProductDto?> GetProductByIdAsync(Guid id);
     Task<ProductDetailsDto?> GetProductDetailsByIdAsync(Guid id);
+
+    /// <summary>
+    /// Lightweight product list for pickers. Replaces a dozen <c>DbContext.Products.ToListAsync()</c>
+    /// calls that pulled the full entity — including its tracked navigation state — to populate a
+    /// dropdown that only ever shows the name and price.
+    /// </summary>
+    Task<List<ProductOptionDto>> GetProductOptionsAsync();
+
     Task<Guid> CreateProductAsync(ProductDetailsDto dto);
     Task<Guid> CreateProductDetailsAsync(ProductDetailsDto dto);
     Task UpdateProductAsync(ProductDetailsDto dto);
     Task UpdateProductDetailsAsync(ProductDetailsDto dto);
     Task DeleteProductAsync(Guid id);
 
-
+    /// <summary>
+    /// One round trip for the read-only detail screen: header, per-warehouse stock, recent
+    /// movements and the sales and purchase lines. Replaces eight queries the page issued
+    /// against its own context, including a tracked product graph.
+    /// </summary>
+    Task<ProductDetailViewDto?> GetProductDetailViewAsync(Guid id);
+    }
+public interface IBrandService
+{
+    Task<List<BrandDto>> GetAllBrandsAsync();
+    Task<BrandDto> GetBrandByIdAsync(Guid id); 
     Task<PagedResult<BrandDto>> GetBrandsAsync(string? search, int page, int pageSize);
     Task<PagedResultNew<BrandDto>> GetBrandsPagedAsync(BrandPagedRequest request);
-    Task<List<BrandDto>> GetAllBrandsAsync();
-    Task<BrandDto> GetBrandByIdAsync(Guid id);
     Task<Guid> CreateBrandAsync(CreateBrandDto dto);
     Task<bool> UpdateBrandAsync(Guid id, CreateBrandDto dto);
     Task<bool> DeleteBrandAsync(Guid id);
-
-
-    Task<PagedResult<CategoryDto>> GetCategoriesAsync(string? search, int page, int pageSize);
-    Task<PagedResultNew<CategoryDto>> GetCategoriesPagedAsync(CategoryPagedRequest request);
+    }
+public interface ICategoryService
+{
     Task<List<CategoryDto>> GetAllCategoriesAsync();
+    Task<CategoryDto> GetCategoryByIdAsync(Guid id);
+    Task<PagedResult<CategoryDto>> GetCategoriesAsync(string? search, int page, int pageSize);
+    Task<PagedResultNew<CategoryDto>> GetCategoriesPagedAsync(CategoryPagedRequest request);    
     Task<Guid> CreateCategoryAsync(CreateCategoryDto dto);
+    Task<Guid> UpdateCategoryAsync(Guid id, CreateCategoryDto dto);
     Task DeleteCategoryAsync(Guid id);
-    Task<PagedResult<WarehouseDto>> GetWarehousesAsync(string? search, int page, int pageSize);
-    Task<PagedResultNew<WarehouseDto>> GetWarehousesPagedAsync(WarehousePagedRequest request);
-    Task UpdateWarehouseAsync(Guid id, CreateWarehouseDto dto);
+
+}
+public interface IWarehousesService
+{
     Task<List<WarehouseDto>> GetAllWarehousesAsync();
+
+    /// <summary>
+    /// Active warehouses, for the stocktake dialog which used to load them straight off the context
+    /// and hand the tracked entities to a MudBlazor select.
+    /// </summary>
+    Task<List<WarehouseDto>> GetActiveWarehousesAsync();
+
+    Task<WarehouseDto> GetWarehouseByIdAsync(Guid id);
+    Task<PagedResult<WarehouseDto>> GetWarehousesAsync(string? search, int page, int pageSize);
+    Task<PagedResultNew<WarehouseDto>> GetWarehousesPagedAsync(WarehousePagedRequest request);    
     Task<Guid> CreateWarehouseAsync(CreateWarehouseDto dto);
+    Task UpdateWarehouseAsync(Guid id, CreateWarehouseDto dto);
     Task DeleteWarehouseAsync(Guid id);
 }
 
@@ -331,6 +381,13 @@ public interface ICustomerService
     Task<PagedResultNew<CustomerDto>> GetCustomersAsync(CustomerPagedRequest request);
     Task<List<string>> GetCustomerCitiesAsync();
     Task<CustomerDto?> GetCustomerByIdAsync(Guid id);
+
+    /// <summary>
+    /// Active customers, for pickers. Was hand-written into seven components against the raw
+    /// <c>DbContext</c>, each with a different projection.
+    /// </summary>
+    Task<List<CustomerDto>> GetActiveCustomersAsync();
+
     Task<Guid> CreateCustomerAsync(CustomerDto dto);
     Task UpdateCustomerAsync(Guid id, CustomerDto dto);
     Task DeleteCustomerAsync(Guid id);
@@ -342,6 +399,10 @@ public interface ISupplierService
     Task<PagedResultNew<SupplierDto>> GetSuppliersAsync(SupplierPagedRequest request);
     Task<List<string>> GetSupplierCitiesAsync();
     Task<SupplierDto?> GetSupplierByIdAsync(Guid id);
+
+    /// <summary>Active suppliers, for pickers. See <see cref="ICustomerService.GetActiveCustomersAsync"/>.</summary>
+    Task<List<SupplierDto>> GetActiveSuppliersAsync();
+
     Task<Guid> CreateSupplierAsync(SupplierDto dto);
     Task UpdateSupplierAsync(Guid id, SupplierDto dto);
     Task DeleteSupplierAsync(Guid id);
@@ -354,6 +415,9 @@ public interface IInvoiceService
     Task<Guid> CreateInvoiceAsync(CreateInvoiceDto dto);
     Task<Guid> GenerateInvoiceFromSalesOrderAsync(Guid salesOrderId);
     Task<Guid> GenerateInvoiceFromPurchaseOrderAsync(Guid purchaseOrderId);
+
+    /// <summary>Invoices for the credit- and debit-note pickers. Was read off the context.</summary>
+    Task<List<InvoiceOptionDto>> GetRecentInvoiceOptions(int count);
 }
 
 public interface IUoMService
@@ -379,6 +443,9 @@ public interface INotificationTemplateService
     Task<Guid> CreateTemplate(CreateNotificationTemplateDto dto);
     Task UpdateTemplate(Guid id, CreateNotificationTemplateDto dto);
     Task DeleteTemplate(Guid id);
+
+    /// <summary>Recent delivery attempts, for the settings screen. Was read straight off the context.</summary>
+    Task<List<NotificationLogDto>> GetRecentLogs(int count);
 }
 
 public interface IUserManagementService
@@ -393,9 +460,45 @@ public interface IUserManagementService
     Task CreateRole(string roleName);
     Task DeleteRole(string roleName);
 }
+
+/// <summary>
+/// Read-only reporting queries behind the reports section. Each method replaces a block of EF
+/// that used to sit inside a page's <c>@code</c>; the page still owns the grouping, the running
+/// totals and the chart series, so these return rows rather than finished reports.
+/// </summary>
+public interface IReportsService
+{
+    /// <summary>Orders with their items, plus sales invoices and customer receipts, for one date window.</summary>
+    Task<SalesReportDataDto> GetSalesReportAsync(DateTime from, DateTime to);
+
+    /// <summary>
+    /// Stock levels, recent movements and inventory valuation for a warehouse. Only the
+    /// non-empty section is populated, matching the report type the page is showing.
+    /// </summary>
+    Task<InventoryReportDataDto> GetInventoryReportAsync(string reportType, Guid? warehouseId);
+
+    Task<TaxReportDto> GetTaxReportAsync(DateTime from, DateTime to);
+
+    /// <summary>On-hand quantity and unit cost per product. Landed cost is applied by the page.</summary>
+    Task<List<InventoryCostingRowDto>> GetInventoryCostingRowsAsync();
+
+    /// <summary>Lifetime revenue per product, ranked, for the ABC classification.</summary>
+    Task<List<ProductRevenueRowDto>> GetProductRevenueAsync();
+
+    /// <summary>
+    /// On-hand lines whose product/warehouse pair has not moved for at least
+    /// <paramref name="daysThreshold"/> days. A line with no movement at all is reported as the
+    /// threshold plus one, matching what the page computed inline.
+    /// </summary>
+    Task<List<DeadStockItemDto>> GetDeadStockAsync(int daysThreshold);
+}
 public interface IBranchService
 {
     Task<List<BranchDto>> GetBranches();
+
+    /// <summary>Active branches only, for the order filters that previously read the context directly.</summary>
+    Task<List<BranchDto>> GetActiveBranchesAsync();
+
     Task<PagedResultNew<BranchDto>> GetBranchesPagedAsync(BranchPagedRequest request);
     Task<BranchDto?> GetBranchById(Guid id);
     Task<Guid> CreateBranch(CreateBranchDto dto);

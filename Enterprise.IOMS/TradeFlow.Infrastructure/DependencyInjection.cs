@@ -131,6 +131,9 @@ public static class DependencyInjection
         services.AddScoped<IBranchService, BranchService>();
         // Entity CRUD Services
         services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<IBrandService, BrandService>();
+        services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IWarehousesService, WarehousesService>();
         services.AddScoped<IProductSerialService, ProductSerialService>();
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<ISupplierService, SupplierService>();
@@ -139,6 +142,7 @@ public static class DependencyInjection
         services.AddScoped<IExchangeRateService, ExchangeRateService>();
         services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
+        services.AddScoped<IReportsService, ReportsService>();
         services.AddSingleton<ISharedNumberGenerator, SharedNumberGenerator>();
 
         return services;

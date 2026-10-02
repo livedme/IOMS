@@ -33,6 +33,30 @@ namespace TradeFlow.Infrastructure.Services
         }
 
         /// <summary>
+        /// Active customers for pickers. Was duplicated across seven components as a raw
+        /// <c>DbContext.Customers</c> read, each with a slightly different projection.
+        /// </summary>
+        public async Task<List<CustomerDto>> GetActiveCustomersAsync() =>
+            await _db.Customers
+                .AsNoTracking()
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.CustomerName)
+                .Select(c => new CustomerDto
+                {
+                    Id = c.Id,
+                    CustomerName = c.CustomerName,
+                    CustomerEmail = c.CustomerEmail,
+                    CustomerPhone = c.CustomerPhone,
+                    ContactPersonName = c.ContactPersonName,
+                    Address = c.Address,
+                    City = c.City,
+                    CreditLimit = c.CreditLimit,
+                    PaymentTerms = c.PaymentTerms,
+                    IsActive = c.IsActive
+                })
+                .ToListAsync();
+
+        /// <summary>
         /// Server-side paged customer list used by the Customer grid. Mirrors
         /// OrderService.GetSalesOrdersAsync: zero-based paging, filterable, sortable,
         /// and returns the tile counts in <see cref="PagedResultNew{T}.Stats"/>.

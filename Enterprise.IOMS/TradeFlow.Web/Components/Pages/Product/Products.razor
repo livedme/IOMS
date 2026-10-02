@@ -5,6 +5,8 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
+@inject IBrandService BrandService
+@inject ICategoryService CategoryService
 
 <PageTitle>Products - IOMS</PageTitle>
 
@@ -209,13 +211,13 @@
     {
         try
         {
-            _categories = await ProductService.GetAllCategoriesAsync();
+            _categories = await CategoryService.GetAllCategoriesAsync();
             //_categoryCount = _categories.Count; 
         }
         catch { }
         try
         {
-            _brands = await ProductService.GetAllBrandsAsync();
+            _brands = await BrandService.GetAllBrandsAsync();
             //_brandCount = _brands.Count;
         }
         catch { }
@@ -357,8 +359,8 @@
 
     private async Task OpenAddEditDialog(ProductDto? product)
     {
-        var categories = await ProductService.GetAllCategoriesAsync();
-        var brands = await ProductService.GetAllBrandsAsync();
+        var categories = await CategoryService.GetAllCategoriesAsync();
+        var brands = await BrandService.GetAllBrandsAsync();
         var detailsDto = new ProductDetailsDto();
         if (product != null)
         {

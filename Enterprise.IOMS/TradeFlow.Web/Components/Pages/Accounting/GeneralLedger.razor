@@ -3,8 +3,8 @@
 @attribute [Authorize]
 @inject IAccountingService AccountingService
 @inject ISnackbar Snackbar
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+
+
 
 <PageTitle>General Ledger - IOMS</PageTitle>
 
@@ -96,28 +96,13 @@
         _loading = true;
         try
         {
-            var query = DbContext.JournalEntryLines
-                .Include(l => l.JournalEntry)
-                .Include(l => l.Account)
-                .AsQueryable();
-
-            if (_selectedAccountId.HasValue)
-                query = query.Where(l => l.AccountId == _selectedAccountId.Value);
-            if (_fromDate.HasValue)
-                query = query.Where(l => l.JournalEntry.EntryDate >= _fromDate.Value);
-            if (_toDate.HasValue)
-                query = query.Where(l => l.JournalEntry.EntryDate <= _toDate.Value);
-
-            var lines = await query.OrderBy(l => l.JournalEntry.EntryDate)
-                .ThenBy(l => l.JournalEntry.Reference)
-                .Select(l => new { l.JournalEntry.EntryDate, EntryNumber = l.JournalEntry.Reference, l.Account.Code, l.Account.Name, l.JournalEntry.Description, DebitAmount = l.Debit, CreditAmount = l.Credit })
-                .ToListAsync();
+            var lines = await AccountingService.GetGeneralLedgerLines(_selectedAccountId, _fromDate, _toDate);
 
             decimal runningBalance = 0;
             _entries = lines.Select(l =>
             {
-                runningBalance += l.DebitAmount - l.CreditAmount;
-                return new GeneralLedgerEntryDto(l.EntryDate, l.EntryNumber, l.Code, l.Name, l.Description, l.DebitAmount, l.CreditAmount, runningBalance);
+                runningBalance += l.Debit - l.Credit;
+                return new GeneralLedgerEntryDto(l.EntryDate, l.EntryNumber, l.AccountCode, l.AccountName, l.Description, l.Debit, l.Credit, runningBalance);
             }).ToList();
         }
         catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }

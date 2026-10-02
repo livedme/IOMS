@@ -2,10 +2,9 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject IPricingService PricingService
+@inject IExchangeRateService ExchangeRateService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
 
 <PageTitle>Currencies - IOMS</PageTitle>
 
@@ -74,16 +73,17 @@
         _loadingRates = true;
         try
         {
-            var data = await DbContext.ExchangeRates
-                .Include(r => r.FromCurrency).Include(r => r.ToCurrency)
-                .OrderByDescending(r => r.EffectiveDate).Take(50).ToListAsync();
-            _rates = data.Select(r => new ExchangeRateDisplayDto
-            {
-                FromCurrency = r.FromCurrency?.Code ?? "",
-                ToCurrency = r.ToCurrency?.Code ?? "",
-                Rate = r.Rate,
-                EffectiveDate = r.EffectiveDate
-            }).ToList();
+            var data = await ExchangeRateService.GetExchangeRates();
+            _rates = data
+                .OrderByDescending(r => r.EffectiveDate)
+                .Take(50)
+                .Select(r => new ExchangeRateDisplayDto
+                {
+                    FromCurrency = r.FromCurrencyCode,
+                    ToCurrency = r.ToCurrencyCode,
+                    Rate = r.Rate,
+                    EffectiveDate = r.EffectiveDate
+                }).ToList();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         _loadingRates = false;

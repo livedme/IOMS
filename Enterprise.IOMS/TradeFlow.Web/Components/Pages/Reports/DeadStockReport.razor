@@ -1,8 +1,10 @@
 @page "/reports/dead-stock"
 @rendermode InteractiveServer
 @attribute [Authorize]
-@inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
+
+@inject IReportsService ReportsService
 @inject ISnackbar Snackbar
+
 
 <PageTitle>Dead Stock Report</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4">Dead Stock Report</MudText>
@@ -126,33 +128,7 @@
         _loading = true;
         try
         {
-            var cutoffDate = DateTime.UtcNow.AddDays(-_daysThreshold);
-            var inventories = await DbContext.Inventories
-                .Include(i => i.Product)
-                .Include(i => i.Warehouse)
-                .Where(i => i.Quantity > 0)
-                .AsNoTracking()
-                .ToListAsync();
-
-            var productIds = inventories.Select(i => i.ProductId).Distinct().ToList();
-            var lastMovements = await DbContext.StockMovements
-                .Where(m => productIds.Contains(m.ProductId))
-                .GroupBy(m => new { m.ProductId, m.WarehouseId })
-                .Select(g => new { g.Key.ProductId, g.Key.WarehouseId, LastDate = g.Max(m => m.MovementDate) })
-                .ToListAsync();
-
-            _items = inventories
-                .Select(inv =>
-                {
-                    var lm = lastMovements.FirstOrDefault(m => m.ProductId == inv.ProductId && m.WarehouseId == inv.WarehouseId);
-                    var lastDate = lm?.LastDate;
-                    var days = lastDate.HasValue ? (int)(DateTime.UtcNow - lastDate.Value).TotalDays : 999;
-                    return new DeadStockItemDto(inv.ProductId, inv.Product.Name, inv.Product.SKU,
-                        inv.Warehouse.Name, inv.Quantity, inv.Quantity * inv.Product.CostPrice, lastDate, days);
-                })
-                .Where(d => d.DaysSinceLastMovement >= _daysThreshold)
-                .OrderByDescending(d => d.DaysSinceLastMovement)
-                .ToList();
+            _items = await ReportsService.GetDeadStockAsync(_daysThreshold);
 
             // Warehouse donut
             var whGroups = _items.GroupBy(i => i.WarehouseName).ToList();

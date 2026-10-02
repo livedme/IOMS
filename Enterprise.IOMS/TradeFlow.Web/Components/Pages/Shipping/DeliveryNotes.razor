@@ -5,7 +5,8 @@
 @inject IOrderService OrderService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
-@inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
+
+
 
 <PageTitle>Delivery Notes</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4">Delivery Notes</MudText>
@@ -53,19 +54,8 @@
         _loading = true;
         try
         {
-            var query = DbContext.Set<DeliveryNote>()
-                .Include(d => d.SalesOrder)
-                .AsNoTracking()
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(_search))
-                query = query.Where(d => d.DeliveryNoteNumber.Contains(_search)
-                    || d.SalesOrder.OrderNumber.Contains(_search));
-
-            _deliveryNotes = await query.OrderByDescending(d => d.Date)
-                .Select(d => new DeliveryNoteDto(d.Id, d.DeliveryNoteNumber, d.SalesOrderId,
-                    d.SalesOrder.OrderNumber, d.Date, d.ShippedBy, d.TrackingNumber))
-                .ToListAsync();
+            var paged = await ShippingService.GetDeliveryNotesPagedAsync(_search, 1, 100);
+            _deliveryNotes = paged.Items;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }

@@ -1,14 +1,17 @@
 ﻿@using TradeFlow.Web.Components.Account.Shared
 <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
-        @* Must precede the routed page: it resolves the circuit tenant, which TenantProvider
-           needs because IHttpContextAccessor is null once the circuit is established. *@
-        <TenantContextInitializer />
-        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
-            <NotAuthorized>
-                <RedirectToLogin />
-            </NotAuthorized>
-        </AuthorizeRouteView>
+        @* Wraps the routed page rather than preceding it: Blazor awaits a parent's
+           OnInitializedAsync before initialising that parent's children, but does not order two
+           siblings against each other. As a sibling, the tenant could still be unresolved when the
+           page's first query ran, and TenantProvider fails closed on an unresolved tenant. *@
+        <TenantContextInitializer>
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                <NotAuthorized>
+                    <RedirectToLogin />
+                </NotAuthorized>
+            </AuthorizeRouteView>
+        </TenantContextInitializer>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>

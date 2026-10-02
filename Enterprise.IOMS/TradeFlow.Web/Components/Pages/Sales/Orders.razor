@@ -3,10 +3,12 @@
 @attribute [Authorize]
 @implements IDisposable
 @inject IOrderService OrderService
+@inject ICustomerService CustomerService
+@inject IBranchService BranchService
+@inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+@inject ILogger<Orders> Logger
 
 <PageTitle>Sales Orders - IOMS</PageTitle>
 
@@ -293,25 +295,27 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // These two lookups used bare `catch { }` blocks, so a failed query left the customer/branch
+        // dropdowns silently empty and read as "no customers exist". Surface the failure instead.
         try
         {
-            _customers = await DbContext.Customers
-                .Where(c => c.IsActive)
-                .OrderBy(c => c.CustomerName)
-                .Select(c => new CustomerDto { Id = c.Id, CustomerName = c.CustomerName })
-                .ToListAsync();
+            _customers = await CustomerService.GetActiveCustomersAsync();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load active customers for the order filter");
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
 
         try
         {
-            _branches = await DbContext.Branches
-                .Where(b => b.IsActive)
-                .OrderBy(b => b.Name)
-                .Select(b => new BranchDto(b.Id, b.Name, b.Code, b.Location, b.Address, b.IsActive))
-                .ToListAsync();
+            _branches = await BranchService.GetActiveBranchesAsync();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load active branches for the order filter");
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
 
         await LoadOrders();
     }
@@ -570,13 +574,18 @@
 
     private async Task OpenCreate()
     {
-        var customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToListAsync();
-        var products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
+        // BUGFIX (was a duplicate lookup): the customer list is already loaded — and name-sorted —
+        // by OnInitializedAsync. Only re-query when that load failed, otherwise reuse _customers.
+        var customers = _customers.Count > 0
+            ? _customers
+            : await CustomerService.GetActiveCustomersAsync();
+
+        var products = await ProductService.GetProductOptionsAsync();
 
         var parameters = new DialogParameters<SalesOrderDialog>
         {
-            { x => x.Customers, customers.Select(c => new CustomerDto(){ Id = c.Id, CustomerName = c.CustomerName, CustomerEmail = c.CustomerEmail, CustomerPhone = c.CustomerPhone, Address = c.Address, City = c.City, Zila = c.Zila, State = c.State, Country = c.Country, PostalCode = c.PostalCode, CreditLimit = c.CreditLimit, PaymentTerms = c.PaymentTerms, IsActive = c.IsActive, IsTaxExempt = c.IsTaxExempt }).ToList() },
-            { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList() }
+            { x => x.Customers, customers },
+            { x => x.Products, products.Select(p => (p.Id, p.Name, p.Sku, p.SellingPrice)).ToList() }
         };
 
         var dialog = await DialogService.ShowAsync<SalesOrderDialog>("New Sales Order", parameters,

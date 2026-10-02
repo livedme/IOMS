@@ -2,9 +2,10 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject ILandedCostService LandedCostService
+@inject IPurchaseService PurchaseService
 @inject ISnackbar Snackbar
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+
+
 
 <PageTitle>Landed Costs - IOMS</PageTitle>
 
@@ -125,7 +126,7 @@
 @code {
     private List<LandedCostComponentDto> _components = new();
     private List<LandedCostAllocationDto> _allocations = new();
-    private List<PurchaseOrder> _purchaseOrders = new();
+    private List<PurchaseOrderOptionDto> _purchaseOrders = new();
     private Guid? _filterPoId;
     private bool _showAdd;
     private string _newName = "", _newType = "";
@@ -139,7 +140,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _purchaseOrders = await DbContext.PurchaseOrders.OrderByDescending(p => p.PurchaseDate).Take(100).ToListAsync();
+        _purchaseOrders = await PurchaseService.GetRecentPurchaseOrders(100);
         await Load();
     }
 

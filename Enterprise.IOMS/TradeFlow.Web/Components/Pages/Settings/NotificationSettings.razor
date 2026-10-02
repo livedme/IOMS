@@ -1,9 +1,8 @@
 @page "/settings/notifications"
 @rendermode InteractiveServer
 @attribute [Authorize]
+@inject INotificationTemplateService TemplateService
 @inject ISnackbar Snackbar
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
 
 <PageTitle>Notification Settings - IOMS</PageTitle>
 
@@ -44,15 +43,15 @@
 </MudPaper>
 
 @code {
-    private List<NotificationTemplate> _templates = new();
-    private List<NotificationLog> _logs = new();
+    private List<NotificationTemplateDto> _templates = new();
+    private List<NotificationLogDto> _logs = new();
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
     {
         _loading = true;
-        _templates = await DbContext.Set<NotificationTemplate>().OrderBy(t => t.EventType).ToListAsync();
-        _logs = await DbContext.Set<NotificationLog>().OrderByDescending(l => l.SentAt).Take(50).ToListAsync();
+        _templates = await TemplateService.GetTemplates();
+        _logs = await TemplateService.GetRecentLogs(50);
         _loading = false;
     }
 }

@@ -1,8 +1,11 @@
 @page "/reports/customer-statements"
 @rendermode InteractiveServer
 @attribute [Authorize]
-@inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
+
+@inject IAccountingService AccountingService
+@inject ICustomerService CustomerService
 @inject ISnackbar Snackbar
+
 
 <PageTitle>Customer Statements</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4">Customer Statements</MudText>
@@ -125,11 +128,11 @@
 @code {
     private record StatementLine(DateTime Date, string Type, string Reference, decimal Debit, decimal Credit, decimal RunningBalance);
 
-    private List<Customer> _customers = new();
+    private List<CustomerDto> _customers = new();
     private Guid? _customerId;
     private DateTime? _from = DateTime.Today.AddMonths(-3);
     private DateTime? _to = DateTime.Today;
-    private Customer? _selectedCustomer;
+    private CustomerDto? _selectedCustomer;
     private List<StatementLine> _statementLines = new();
     private decimal _totalInvoiced;
     private decimal _totalPaid;
@@ -144,7 +147,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _customers = await DbContext.Customers.Where(c => c.IsActive).OrderBy(c => c.CustomerName).AsNoTracking().ToListAsync();
+        _customers = await CustomerService.GetActiveCustomersAsync();
     }
 
     private async Task LoadData()
@@ -157,17 +160,9 @@
             var fromDate = _from ?? DateTime.Today.AddMonths(-3);
             var toDate = (_to ?? DateTime.Today).AddDays(1);
 
-            var invoices = await DbContext.Invoices
-                .Where(i => i.CustomerId == _customerId.Value && i.InvoiceDate >= fromDate && i.InvoiceDate < toDate)
-                .OrderBy(i => i.InvoiceDate)
-                .AsNoTracking()
-                .ToListAsync();
-
-            var payments = await DbContext.Payments
-                .Where(p => p.CustomerId == _customerId.Value && p.PaymentDate >= fromDate && p.PaymentDate < toDate)
-                .OrderBy(p => p.PaymentDate)
-                .AsNoTracking()
-                .ToListAsync();
+            var statement = await AccountingService.GetCustomerStatement(_customerId.Value, fromDate, toDate);
+            var invoices = statement.Invoices;
+            var payments = statement.Payments;
 
             var lines = new List<StatementLine>();
             decimal balance = 0;

@@ -2,10 +2,9 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @implements IDisposable
-@using TradeFlow.Infrastructure.Data
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject IProductService ProductService
+@inject IBrandService BrandService
 
 <PageTitle>Brands - IOMS</PageTitle>
 
@@ -172,7 +171,7 @@
         // reference list once rather than from the current (filtered) page of the grid.
         try
         {
-            var all = await ProductService.GetAllBrandsAsync();
+            var all = await BrandService.GetAllBrandsAsync();
             _countries = all
                 .Select(b => b.OriginCountry)
                 .Where(c => !string.IsNullOrWhiteSpace(c))
@@ -220,7 +219,7 @@
         _loading = true;
         try
         {
-            pagedResultNew = await ProductService.GetBrandsPagedAsync(pagedRequest);
+            pagedResultNew = await BrandService.GetBrandsPagedAsync(pagedRequest);
             _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
@@ -394,7 +393,7 @@
 
         if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
         {
-            await ProductService.CreateBrandAsync(new CreateBrandDto
+            await BrandService.CreateBrandAsync(new CreateBrandDto
             {
                 Name = dto.Name,
                 BrandCode = dto.BrandCode,
@@ -425,7 +424,7 @@
 
         if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
         {
-            var entity = await ProductService.UpdateBrandAsync(brand.Id, dto);
+            var entity = await BrandService.UpdateBrandAsync(brand.Id, dto);
             if (entity)
             {
                 Snackbar.Add("Brand updated", Severity.Success);
@@ -440,7 +439,7 @@
         var confirm = await DialogService.ShowMessageBoxAsync("Confirm Delete", "Are you sure you want to delete this brand?", "Delete", "Cancel");
         if (confirm == true)
         {
-            await ProductService.DeleteBrandAsync(id);
+            await BrandService.DeleteBrandAsync(id);
             Snackbar.Add("Brand deleted", Severity.Success);
             await ReloadCountries();
             await LoadBrands();
@@ -452,7 +451,7 @@
     {
         try
         {
-            var all = await ProductService.GetAllBrandsAsync();
+            var all = await BrandService.GetAllBrandsAsync();
             _countries = all
                 .Select(b => b.OriginCountry)
                 .Where(c => !string.IsNullOrWhiteSpace(c))

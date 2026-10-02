@@ -4,8 +4,8 @@
 @inject IPricingService PricingService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+
+
 
 <PageTitle>Price Lists - IOMS</PageTitle>
 
@@ -81,7 +81,7 @@
         _loadingDiscounts = true;
         try
         {
-            var data = await DbContext.Discounts.OrderBy(d => d.Name).ToListAsync();
+            var data = await PricingService.GetDiscounts();
             _discounts = data.Select(d => new DiscountDisplayDto
             {
                 Id = d.Id, Name = d.Name, DiscountType = d.Type, Value = d.Value,

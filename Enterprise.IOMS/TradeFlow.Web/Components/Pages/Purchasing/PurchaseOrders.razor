@@ -8,6 +8,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ILogger<PurchaseOrders> Logger
+@inject IWarehousesService WarehousesService
 
 <PageTitle>Purchase Order - IOMS</PageTitle>
 
@@ -268,7 +269,7 @@
     }
 </TmSlideDrawer>
 
-@code {
+    @code {
     private static class Col
     {
         public const string OrderNumber = "OrderNumber";
@@ -290,7 +291,10 @@
         SortAscending = false
     };
 
+
     private List<SupplierDto> _suppliers = new();
+    private List<ProductDto> productDtos = new();
+
     private List<(Guid Id, string Name)> _warehouses = new();
     private bool _loading = true;
     private bool _hasLoadedOnce;
@@ -354,20 +358,34 @@
     {
         try
         {
-            var suppliers = await SupplierService.GetSuppliersAsync("", 1, 500);
+            var suppliers = await SupplierService.GetSuppliersAsync("", 1, 1000);
             _suppliers = suppliers.Items;
+            var result = await ProductService.GetProductsAsync(new ProductPagedRequest());
+            productDtos = result.Items;
+
         }
-        catch { }
+        catch (Exception ex)
+        {
+            // Previously an empty catch. An unlogged swallow here left the supplier picker silently
+            // empty, which is indistinguishable from a tenant that has no suppliers — and left no
+            // error anywhere to diagnose it from.
+            Logger.LogError(ex, "Supplier lookup failed; the new-order supplier picker will be empty.");
+            Snackbar.Add("Could not load suppliers.", Severity.Error);
+        }
 
         try
         {
-            var warehouses = await ProductService.GetAllWarehousesAsync();
+            var warehouses = await WarehousesService.GetAllWarehousesAsync();
             _warehouses = warehouses
                 .OrderBy(w => w.Name)
                 .Select(w => new ValueTuple<Guid, string>(w.Id, w.Name))
                 .ToList();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Warehouse lookup failed; the new-order warehouse picker will be empty.");
+            Snackbar.Add("Could not load warehouses.", Severity.Error);
+        }
 
         await LoadOrders();
     }
@@ -625,13 +643,11 @@
         // Reference data comes from the services, not the page's DbContext — the page and the
         // services share one scoped context, so querying it directly races the list query.
         var suppliers = _suppliers;
-        var products = (await ProductService.GetProductsAsync(new ProductPagedRequest())).Items;
         var wareHouse = _warehouses;
         var dataModel = new PurchaseOrderDtoModels();
         string dialogTitle = "New Purchase Order";
 
-        if (orderId.HasValue)
-        {
+        if (orderId.HasValue){
             var order = await PurchaseService.GetPurchaseOrderById(orderId.Value);
             if (order == null) { Snackbar.Add("Purchase order not found", Severity.Error); return; }
 
@@ -668,7 +684,7 @@
         var parameters = new DialogParameters<PurchaseOrderDialog>
         {
             { x => x.Suppliers, suppliers.Where(s => s.IsActive).ToList() },
-            { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.CostPrice)).ToList() },
+            { x => x.Products, productDtos.Select(p => (p.Id, p.Name, p.SKU, p.CostPrice)).ToList() },
             { x => x.WareHouses, wareHouse.Select(p => (p.Id, p.Name)).ToList() },
             {x=>x.dataModel, dataModel }
         };

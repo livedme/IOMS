@@ -1,8 +1,10 @@
 @page "/reports/sales"
 @rendermode InteractiveServer
 @attribute [Authorize]
-@inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
+
+@inject IReportsService ReportsService
 @inject ISnackbar Snackbar
+
 
 <PageTitle>Sales Reports</PageTitle>
 <MudText Typo="Typo.h4" Class="mb-4">Sales Reports</MudText>
@@ -312,27 +314,10 @@ else if (_summaryLoaded)
             var fromDate = _from ?? DateTime.Today.AddMonths(-1);
             var toDate = (_to ?? DateTime.Today).AddDays(1);
 
-            // ── Load orders with items ──
-            var orders = await DbContext.SalesOrders
-                .Include(o => o.Customer)
-                .Include(o => o.Items).ThenInclude(i => i.Product)
-                .Where(o => o.OrderDate >= fromDate && o.OrderDate < toDate)
-                .AsNoTracking()
-                .ToListAsync();
-
-            // ── Load invoices for the same period ──
-            var invoices = await DbContext.Invoices
-                .Where(i => i.InvoiceType == InvoiceType.Sales && i.InvoiceDate >= fromDate && i.InvoiceDate < toDate)
-                .Include(i => i.Customer)
-                .AsNoTracking()
-                .ToListAsync();
-
-            // ── Load payments for the same period ──
-            var payments = await DbContext.Payments
-                .Where(p => p.PaymentType == PaymentType.Receipt && p.Status == PaymentStatus.Completed
-                            && p.PaymentDate >= fromDate && p.PaymentDate < toDate)
-                .AsNoTracking()
-                .ToListAsync();
+            var report = await ReportsService.GetSalesReportAsync(fromDate, toDate);
+            var orders = report.Orders;
+            var invoices = report.Invoices;
+            var payments = report.Payments;
 
             // ── KPIs ──
             _totalOrders = orders.Count;
@@ -345,7 +330,7 @@ else if (_summaryLoaded)
 
             // ── Customer breakdown (orders + invoices + payments) ──
             var invByCustomer = invoices.Where(i => i.CustomerId.HasValue)
-                .GroupBy(i => i.Customer?.CustomerName ?? "Unknown")
+                .GroupBy(i => i.CustomerName)
                 .ToDictionary(g => g.Key, g => g.Sum(i => i.TotalAmount));
 
             var paidByCustomer = payments.Where(p => p.CustomerId.HasValue)
@@ -353,12 +338,12 @@ else if (_summaryLoaded)
                 .ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
 
             // Build a customer-name-to-id lookup from invoices
-            var custNameIdMap = invoices.Where(i => i.CustomerId.HasValue && i.Customer != null)
-                .Select(i => new { i.Customer!.CustomerName, i.CustomerId!.Value })
+            var custNameIdMap = invoices.Where(i => i.CustomerId.HasValue)
+                .Select(i => new { i.CustomerName, CustomerId = i.CustomerId!.Value })
                 .DistinctBy(x => x.CustomerName)
-                .ToDictionary(x => x.CustomerName, x => x.Value);
+                .ToDictionary(x => x.CustomerName, x => x.CustomerId);
 
-            _customerData = orders.GroupBy(o => o.Customer.CustomerName)
+            _customerData = orders.GroupBy(o => o.CustomerName)
                 .Select(g =>
                 {
                     var custName = g.Key;
@@ -372,14 +357,14 @@ else if (_summaryLoaded)
 
             // ── Product breakdown ──
             _productData = orders.SelectMany(o => o.Items)
-                .GroupBy(i => i.Product.Name)
+                .GroupBy(i => i.ProductName)
                 .Select(g => new ProductSalesRow(g.Key, g.Sum(i => i.LineTotalPrice), g.Sum(i => i.Quantity), 0))
                 .OrderByDescending(p => p.Revenue)
                 .ToList();
 
             // ── Recent orders ──
             _recentOrders = orders.OrderByDescending(o => o.OrderDate).Take(20)
-                .Select(o => new RecentOrderRow(o.OrderNumber, o.OrderDate, o.Customer.CustomerName, o.Status.ToString(), o.TotalAmount))
+                .Select(o => new RecentOrderRow(o.OrderNumber, o.OrderDate, o.CustomerName, o.Status.ToString(), o.TotalAmount))
                 .ToList();
 
             BuildChartData(orders, invoices, payments);
@@ -388,7 +373,7 @@ else if (_summaryLoaded)
         finally { _loading = false; }
     }
 
-    private void BuildChartData(List<SalesOrder> orders, List<Invoice> invoices, List<Payment> payments)
+    private void BuildChartData(List<SalesReportOrderDto> orders, List<SalesReportInvoiceDto> invoices, List<SalesReportPaymentDto> payments)
     {
         // ── Daily sales trend (line) ──
         var dailyGroups = orders.GroupBy(o => o.OrderDate.Date).OrderBy(g => g.Key).ToList();

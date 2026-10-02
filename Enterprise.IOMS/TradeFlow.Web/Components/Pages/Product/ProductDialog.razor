@@ -1,6 +1,6 @@
-@using TradeFlow.Infrastructure.Data
 @using TradeFlow.Web.Utility
 @using MudBlazor
+
 
 <MudDialog>
     <DialogContent>
@@ -65,8 +65,10 @@
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
     </DialogActions>
 </MudDialog>
-@inject ApplicationDbContext DbContext
+
 @inject IDialogService DialogService
+@inject ICategoryService CategoryService
+@inject IBrandService BrandService
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -227,25 +229,18 @@
 
             if (result != null && !result.Canceled && result.Data is CreateCategoryDto dto)
             {
-                var parent = await DbContext.Categories.FindAsync(dto.ParentCategoryId);
-                var path = parent == null ? dto.Name : parent.ParentCategory == null ? $"{parent.Name} > {dto.Name}" : $"{parent.ParentCategory.Name} > {parent.Name} > {dto.Name}";
+                // CategoryService.CreateCategoryAsync does not derive the hierarchy Path, and the old
+                // razor code read it off a ParentCategory navigation that was never loaded - so the
+                // path was always wrong for anything below level 2. Rebuild it from the already-loaded
+                // tree (parent, then grandparent) instead.
+                var allCategories = await CategoryService.GetAllCategoriesAsync();
+                var path = BuildCategoryPath(allCategories, dto.Name, dto.ParentCategoryId);
 
-                var category = new TradeFlow.Domain.Entities.Category
-                    {
-                        Name = dto.Name,
-                        Path = path,
-                        Description = dto.Description,
-                        ParentCategoryId = dto.ParentCategoryId
-                    };
-                DbContext.Categories.Add(category);
-                await DbContext.SaveChangesAsync();
-                //  Snackbar.Add("Category created", Severity.Success);
-                //  await LoadCategories();
+                var newCategoryId = await CategoryService.CreateCategoryAsync(dto);
 
-                cat = new CategoryDto(category.Id, category.Name, category.Description, category.ParentCategoryId, null, 0, category.Path);
+                cat = new CategoryDto(newCategoryId, dto.Name, dto.Description, dto.ParentCategoryId, null, 0, path);
 
-                var myCategories = await DbContext.Categories.ToListAsync();
-                Categories = myCategories.Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList();
+                Categories = allCategories.Append(cat).ToList();
 
                 _selectedCategory = GetRealCategoryById(cat.Id);
                 _lastCategorySelection = _selectedCategory;
@@ -283,6 +278,30 @@
         return Categories.FirstOrDefault(c => c.Id == categoryId);
     }
 
+    /// <summary>
+    /// Rebuilds "Grandparent &gt; Parent &gt; Child" from the loaded category tree. The tree is the
+    /// whole category table (<see cref="ICategoryService.GetAllCategoriesAsync"/>), so no context or
+    /// navigation property is needed - and a missing/blank parent id is treated as a root category
+    /// rather than being passed to a lookup that would throw on null.
+    /// </summary>
+    private static string BuildCategoryPath(List<CategoryDto> tree, string name, Guid? parentCategoryId)
+    {
+        if (parentCategoryId is null || parentCategoryId == Guid.Empty)
+            return name;
+
+        var parent = tree.FirstOrDefault(c => c.Id == parentCategoryId.Value);
+        if (parent is null)
+            return name;
+
+        var grandParent = parent.ParentCategoryId is Guid grandParentId && grandParentId != Guid.Empty
+            ? tree.FirstOrDefault(c => c.Id == grandParentId)
+            : null;
+
+        return grandParent is null
+            ? $"{parent.Name} > {name}"
+            : $"{grandParent.Name} > {parent.Name} > {name}";
+    }
+
     private async Task OnBrandChanged()
     {
         var brand = _selectedBrand;
@@ -299,36 +318,11 @@
 
             if (result != null && !result.Canceled && result.Data is CreateBrandDto dto)
             {
-                var entity = new TradeFlow.Domain.Entities.Brand
-                {
-                    Name = dto.Name,
-                    BrandCode = dto.BrandCode,
-                    Description = dto.Description,
-                    LogoUrl = dto.LogoUrl,
-                    Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status,
-                    OriginCompany = dto.OriginCompany,
-                    OriginCountry = dto.OriginCountry,
-                    FoundedYear = dto.FoundedYear
-                };
+                var newBrandId = await BrandService.CreateBrandAsync(dto);
 
-                DbContext.Brands.Add(entity);
-                await DbContext.SaveChangesAsync();
+                Brands = await BrandService.GetAllBrandsAsync();
 
-                var allBrands = await DbContext.Brands.OrderBy(b => b.Name).ToListAsync();
-                Brands = allBrands.Select(b => new BrandDto(b.Id, b.Name, b.BrandCode, b.Description, 0)
-                {
-                    Id = b.Id,
-                    Name = b.Name,
-                    BrandCode = b.BrandCode,
-                    Description = b.Description,
-                    LogoUrl = b.LogoUrl,
-                    Status = b.Status,
-                    OriginCompany = b.OriginCompany,
-                    OriginCountry = b.OriginCountry,
-                    FoundedYear = b.FoundedYear
-                }).ToList();
-
-                _selectedBrand = GetRealBrandById(entity.Id);
+                _selectedBrand = GetRealBrandById(newBrandId);
                 _lastBrandSelection = _selectedBrand;
                 _brandId = _selectedBrand?.Id;
                 _brandText = BrandToDisplay(_selectedBrand);

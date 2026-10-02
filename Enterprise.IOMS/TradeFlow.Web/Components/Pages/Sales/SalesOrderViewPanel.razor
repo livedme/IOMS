@@ -1,12 +1,12 @@
 @inject IOrderService OrderService
+@inject ICustomerService CustomerService
+@inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@inject ApplicationDbContext DbContext
-@using TradeFlow.Infrastructure.Data
-@using Microsoft.EntityFrameworkCore
 
 @if (_open)
 {
+
     <div class="so-backdrop" @onclick="Close"></div>
 
     <div class="so-side-panel @(_animateIn ? "so-panel-open" : "")">
@@ -270,14 +270,10 @@
     {
         if (_order == null) return;
 
-        var customers = await DbContext.Customers
-            .Where(c => c.IsActive)
-            .OrderBy(c => c.CustomerName)
-            .ToListAsync();
-
-        var products = await DbContext.Products
-            .OrderBy(p => p.Name)
-            .ToListAsync();
+        // One service call each — this previously ran the same customer + product lookup twice
+        // (once against the page's scoped DbContext) only to bind the editor's pickers.
+        var customers = await CustomerService.GetActiveCustomersAsync();
+        var products = await ProductService.GetProductOptionsAsync();
 
         var editModel = new CreateSalesOrderDtoModels
         {
@@ -313,27 +309,8 @@
 
         var parameters = new DialogParameters<SalesOrderDialog>
         {
-            { x => x.Customers, customers.Select(c => new CustomerDto()
-                {
-                    Id = c.Id,
-                    CustomerName = c.CustomerName,
-                    CustomerEmail = c.CustomerEmail,
-                    CustomerPhone = c.CustomerPhone,
-                    ContactPersonName = c.ContactPersonName,
-                    ContactPersonPhone = c.ContactPersonPhone,
-                    ContactPersonEmail = c.ContactPersonEmail,
-                    Address = c.Address,
-                    City = c.City,
-                    Zila = c.Zila,
-                    State = c.State,
-                    Country = c.Country,
-                    PostalCode = c.PostalCode,
-                    CreditLimit = c.CreditLimit,
-                    PaymentTerms = c.PaymentTerms,
-                    IsActive = c.IsActive,
-                    IsTaxExempt = c.IsTaxExempt
-                }).ToList() },
-            { x => x.Products, products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList() },
+            { x => x.Customers, customers },
+            { x => x.Products, products.Select(p => (p.Id, p.Name, p.Sku, p.SellingPrice)).ToList() },
             { x => x.dataModel, editModel }
         };
 

@@ -1,6 +1,6 @@
 @inject IKitService KitService
+@inject IProductService ProductService
 @inject ISnackbar Snackbar
-@inject TradeFlow.Infrastructure.Data.ApplicationDbContext DbContext
 
 <MudDialog>
     <DialogContent>
@@ -9,7 +9,7 @@
                 <MudSelect @bind-Value="_productId" Label="Product" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var p in _products)
                     {
-                        <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
+                        <MudSelectItem Value="@p.Id">@p.Name (@p.Sku)</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
@@ -23,7 +23,7 @@
                             <MudSelect @bind-Value="_components[idx].ComponentProductId" Label="Component Product" Variant="Variant.Outlined" Margin="Margin.Dense">
                                 @foreach (var p in _products.Where(p => p.Id != _productId))
                                 {
-                                    <MudSelectItem Value="@p.Id">@p.Name (@p.SKU)</MudSelectItem>
+                                    <MudSelectItem Value="@p.Id">@p.Name (@p.Sku)</MudSelectItem>
                                 }
                             </MudSelect>
                         </MudItem>
@@ -52,7 +52,7 @@
 
     private Guid _productId;
     private List<ComponentRow> _components = new() { new() };
-    private List<Product> _products = new();
+    private List<ProductOptionDto> _products = new();
 
     private class ComponentRow
     {
@@ -62,7 +62,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _products = await DbContext.Set<Product>().OrderBy(p => p.Name).AsNoTracking().ToListAsync();
+        _products = await ProductService.GetProductOptionsAsync();
     }
 
     private void AddComponent() => _components.Add(new ComponentRow());

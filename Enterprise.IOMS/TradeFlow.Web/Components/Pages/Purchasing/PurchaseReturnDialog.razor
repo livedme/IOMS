@@ -1,10 +1,10 @@
 @using TradeFlow.Application.DTOs
 @using TradeFlow.Application.Interfaces
-@using TradeFlow.Infrastructure.Data
 @using static TradeFlow.Application.DTOs.PurchaseReturnDto
 @inject IPurchaseReturnService PurchaseReturnService
-@inject ApplicationDbContext DbContext
+
 @inject ISnackbar Snackbar
+
 
 <MudDialog>
     <TitleContent>New Purchase Return</TitleContent>
@@ -92,14 +92,13 @@
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
-    private List<PurchaseOrder> _purchaseOrders = new();
+    private List<PurchaseOrderOptionDto> _purchaseOrders = new();
     private PurchaseReturnDto purchaseReturnDto = new PurchaseReturnDto();
     private SupplierDto supplierDto = null;
-    
+
     protected override async Task OnInitializedAsync()
     {
-        _purchaseOrders = await DbContext.PurchaseOrders.OrderByDescending(p => p.PurchaseDate).Take(50).ToListAsync();
-        //_products = await DbContext.Products.OrderBy(p => p.Name).ToListAsync();
+        _purchaseOrders = await PurchaseService.GetRecentPurchaseOrders(50);
     }
     private Task<IEnumerable<ControlItemsDto>> SearchPurchaseOrder(string text, CancellationToken _)
     {

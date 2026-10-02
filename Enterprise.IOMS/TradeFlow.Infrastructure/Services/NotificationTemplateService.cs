@@ -22,6 +22,16 @@ namespace TradeFlow.Infrastructure.Services
             return _mapper.Map<List<NotificationTemplateDto>>(items);
         }
 
+        public async Task<List<NotificationLogDto>> GetRecentLogs(int count)
+        {
+            return await _db.NotificationLogs
+                .AsNoTracking()
+                .OrderByDescending(l => l.SentAt)
+                .Take(count)
+                .Select(l => new NotificationLogDto(l.Id, l.UserId, l.EventType, l.Channel, l.Status, l.SentAt))
+                .ToListAsync();
+        }
+
         public async Task<Guid> CreateTemplate(CreateNotificationTemplateDto dto)
         {
             var template = new NotificationTemplate { EventType = dto.EventType, Channel = dto.Channel, Subject = dto.Subject, BodyTemplate = dto.BodyTemplate };

@@ -3,8 +3,9 @@
 @attribute [Authorize]
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
+@inject IInvoiceService InvoiceService
+
+
 
 <PageTitle>Invoices - IOMS</PageTitle>
 
@@ -119,6 +120,11 @@
 </div>
 
 @code {
+    // The old query pulled at most 500 rows (Take(500)) and then filtered/paged/stat-counted them in
+    // memory. GetInvoicesAsync pages server-side, so ask for one big page to keep that exact window:
+    // _items stays "the 500 newest matching invoices" and every stat tile / Paged below still works.
+    private const int MaxRows = 500;
+
     private List<InvoiceDto> _items = new();
     private string _search = "";
     private InvoiceType? _typeFilter;
@@ -151,20 +157,12 @@
         _loading = true;
         try
         {
-            var query = DbContext.Invoices
-                .Include(i => i.Customer)
-                .Include(i => i.Supplier)
-                .AsQueryable();
-
-            if (_typeFilter.HasValue) query = query.Where(i => i.InvoiceType == _typeFilter.Value);
-            if (_statusFilter.HasValue) query = query.Where(i => i.Status == _statusFilter.Value);
-            if (!string.IsNullOrWhiteSpace(_search))
-                query = query.Where(i => i.InvoiceNumber.Contains(_search));
-
-            var data = await query.OrderByDescending(i => i.InvoiceDate).Take(500).ToListAsync();
-            _items = data.Select(i => new InvoiceDto(i.Id, i.InvoiceNumber, i.InvoiceType, i.Status,
-                i.CustomerId, i.Customer?.CustomerName, i.SupplierId, i.Supplier?.SupplierName,
-                i.InvoiceDate, i.DueDate, i.SubTotal, i.TaxAmount, i.TotalAmount, i.PaidAmount, i.BalanceDue)).ToList();
+            // The Include(i => i.Customer)/Include(i => i.Supplier) this page used to declare were
+            // only ever read to fill InvoiceDto.CustomerName / SupplierName — GetInvoicesAsync does
+            // that join internally and returns the DTOs directly, so they are no longer needed here.
+            var result = await InvoiceService.GetInvoicesAsync(
+                search: _search, status: _statusFilter, type: _typeFilter, page: 1, pageSize: MaxRows);
+            _items = result.Items;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }

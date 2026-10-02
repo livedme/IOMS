@@ -4,8 +4,6 @@
 @inject ITaxService TaxService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@using TradeFlow.Infrastructure.Data
-@inject ApplicationDbContext DbContext
 
 <PageTitle>Tax Settings - IOMS</PageTitle>
 
@@ -81,11 +79,13 @@
         _loadingJurisdictions = true;
         try
         {
-            var data = await DbContext.TaxJurisdictions.OrderBy(j => j.Name).ToListAsync();
-            _jurisdictions = data.Select(j => new TaxJurisdictionDisplayDto
-            {
-                Id = j.Id, Name = j.Name, Code = j.Code, Country = j.Country, State = j.State ?? ""
-            }).ToList();
+            var data = await TaxService.GetJurisdictions();
+            _jurisdictions = data
+                .OrderBy(j => j.Name)
+                .Select(j => new TaxJurisdictionDisplayDto
+                {
+                    Id = j.Id, Name = j.Name, Code = j.Code, Country = j.Country, State = j.State ?? ""
+                }).ToList();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         _loadingJurisdictions = false;
