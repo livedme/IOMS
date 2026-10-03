@@ -4,8 +4,10 @@
 @implements IDisposable
 @inject IQuotationService QuotationService
 @inject ICustomerService CustomerService
+@inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject ILogger<Quotations> Logger
 
 <PageTitle>Quotations - IOMS</PageTitle>
 
@@ -144,7 +146,7 @@
     </div>
 </div>
 
-<TmSlideDrawer @bind-Open="_drawerOpen" Title="@_drawerTitle" Width="1000px">
+<TmSlideDrawer @bind-Open="_drawerOpen" Title="@_drawerTitle">
     @if (_viewQuote == null)
     {
         <MudProgressCircular Indeterminate="true" />
@@ -274,6 +276,8 @@
         SortAscending = false
     };
 
+    
+    private List<ProductOptionDto> _productOptionDtos = new();
     private List<CustomerDto> _customers = new();
     private bool _loading = true;
     private bool _hasLoadedOnce;
@@ -288,12 +292,19 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // This lookup used a bare `catch { }`, so a failed query left the customer dropdown
+        // silently empty and read as "no customers exist". Surface the failure instead.
         try
         {
-            var customers = await CustomerService.GetCustomersAsync(null, 1, 500);
-            _customers = customers.Items;
+            _customers = await CustomerService.GetActiveCustomersAsync();
+            _productOptionDtos = await ProductService.GetProductOptionsAsync();
+
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load active customers for the quotation filter");
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
 
         await Load();
     }
@@ -335,7 +346,7 @@
             pagedResultNew = await QuotationService.GetSalesQuotesAsync(pagedRequest);
             _hasLoadedOnce = true;
         }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Error loading quotations: {ex.Message}", Severity.Error); }
         finally { _loading = false; }
     }
 
@@ -500,14 +511,46 @@
 
     private void CloseDrawer() => _drawerOpen = false;
 
-    private async Task OpenCreateDialog()
+    private async Task OpenCreateDialog() => await ShowSalesQuotationDialog("New Quotation");
+
+    private async Task ShowSalesQuotationDialog(string title)
     {
-        var dialog = await DialogService.ShowAsync<QuotationDialog>("New Quotation", new DialogParameters(),
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
-        var result = await dialog.Result;
-        if (result != null && !result.Canceled)
-            await Load();
+     
+
+        var parameters = new DialogParameters<QuotationDialog>
+        {
+            { x => x.Customers, _customers },
+            { x => x.Products, _productOptionDtos },
+            { x => x.dataModel, new CreateSalesQuotationDto() },
+            { x => x.OnSubmit, EventCallback.Factory.Create<CreateSalesQuoteDto>(this, HandleFormSubmit) },
+            { x => x.OnSubmitAndPrint, EventCallback.Factory.Create<CreateSalesQuoteDto>(this, HandleFormSubmitAndPrint) }
+        };
+
+        await DialogService.ShowAsync<QuotationDialog>(title, parameters,
+            new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseOnEscapeKey = true,
+                CloseButton = true
+            });
     }
+    private async Task HandleFormSubmit(CreateSalesQuoteDto model)
+    {
+        if (model == null) return;
+
+        try
+        {
+            await QuotationService.CreateSalesQuote(model);
+            Snackbar.Add("Quotation created successfully", Severity.Success);
+            await Load();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    // Quote PDF/print generation isn't wired up yet. Kept so the dialog's second button has
+    // somewhere to land; today it is the same save.
+    private async Task HandleFormSubmitAndPrint(CreateSalesQuoteDto model) => await HandleFormSubmit(model);
 
     private async Task AcceptQuote(Guid id)
     {
@@ -522,6 +565,10 @@
 
     private async Task RejectQuote(Guid id)
     {
+        var confirm = await DialogService.ShowMessageBoxAsync("Reject Quotation",
+            "Are you sure? This cannot be undone.", "Yes, Reject", "No");
+        if (confirm != true) return;
+
         try
         {
             await QuotationService.RejectQuote(id, "Rejected by user");
@@ -533,6 +580,10 @@
 
     private async Task ConvertToOrder(Guid id)
     {
+        var confirm = await DialogService.ShowMessageBoxAsync("Convert to Order",
+            "A new sales order will be created from this quotation. Continue?", "Yes, Convert", "No");
+        if (confirm != true) return;
+
         try
         {
             await QuotationService.ConvertQuoteToOrder(id);
@@ -563,8 +614,16 @@
     private async Task ReloadView(Guid id)
     {
         if (!_drawerOpen) return;
-        var refreshed = await QuotationService.GetSalesQuoteById(id);
-        if (refreshed != null) _viewQuote = refreshed;
+        try
+        {
+            var refreshed = await QuotationService.GetSalesQuoteById(id);
+            if (refreshed != null) _viewQuote = refreshed;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to refresh quotation {QuoteId} in the drawer", id);
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 
     private static string GetStatusPill(QuoteStatus status) => status switch

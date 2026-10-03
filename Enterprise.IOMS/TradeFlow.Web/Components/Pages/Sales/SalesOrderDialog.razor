@@ -107,9 +107,9 @@
                             }
                             <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudTd>
-                        <MudTd Style="width:auto;" class="pe-2 text-end mb-5 px-0 d-flex">
-                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Color="Color.Primary" OnClick="AddItem" />
-                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => dataModel.ItemsLine.Remove(context))" />
+                        <MudTd Style="width:auto;padding: 6px !important;" class="">
+                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Class="float-start" Color="Color.Primary" OnClick="AddItem" />
+                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Class="float-end" Color="Color.Secondary" OnClick="@(() => dataModel.ItemsLine.Remove(context))" />
                         </MudTd>
                     }
                     else
@@ -149,9 +149,9 @@
                                 }
                                 <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudTd>
-                            <MudTd Style="width:auto;" class="pe-2 text-end mb-5 px-0">
-                                <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Color="Color.Primary" OnClick="@(() => SaveEditItem(itemIndex))" />
-                                <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Color="Color.Secondary" OnClick="CancelEditItem" />
+                            <MudTd Style="width:auto;padding: 6px !important;" class="">
+                                <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Class="float-start" Color="Color.Primary" OnClick="@(() => SaveEditItem(itemIndex))" />
+                                <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Class="float-end" Color="Color.Secondary" OnClick="CancelEditItem" />
                             </MudTd>
                         }
                         else
