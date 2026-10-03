@@ -1,4 +1,4 @@
-﻿using TradeFlow.Domain.Enums;
+using TradeFlow.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -29,4 +29,18 @@ namespace TradeFlow.Application.DTOs
             public bool IsSelected { get; set; }
         }
     }
+
+    // Purchase Returns
+    //public record PurchaseReturnDto(Guid Id, string ReturnNumber, Guid PurchaseOrderId,
+    //    string PurchaseOrderNumber, PurchaseReturnStatus Status, decimal TotalAmount,
+    //    string? Reason, List<PurchaseReturnItemDto> Items);
+
+    //public record PurchaseReturnItemDto(Guid Id, Guid ProductId, string ProductName,
+    //    int Quantity, decimal UnitCost, decimal LineTotal);
+
+    //public record CreatePurchaseReturnDto(Guid PurchaseOrderId, string? Reason,
+    //    List<CreatePurchaseReturnItemDto> Items);
+
+    //public record CreatePurchaseReturnItemDto(Guid ProductId, int Quantity, decimal UnitCost);
+
 }

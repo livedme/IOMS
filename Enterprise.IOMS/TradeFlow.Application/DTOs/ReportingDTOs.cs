@@ -184,3 +184,25 @@ public record PurchaseOrderOptionDto(
     PurchaseOrderStatus Status);
 
 public record InvoiceOptionDto(Guid Id, string InvoiceNumber, decimal TotalAmount);
+
+public record TrialBalanceDto(DateTime AsOfDate, List<TrialBalanceLineDto> Lines,
+    decimal TotalDebits, decimal TotalCredits);
+
+public record TrialBalanceLineDto(string AccountCode, string AccountName, AccountType AccountType,
+    decimal Debit, decimal Credit);
+
+public record ProfitAndLossDto(DateTime From, DateTime To, decimal TotalRevenue,
+    decimal TotalExpenses, decimal NetProfit, List<PnlLineDto> RevenueLines,
+    List<PnlLineDto> ExpenseLines);
+
+public record PnlLineDto(string AccountCode, string AccountName, decimal Amount);
+
+public record BalanceSheetDto(DateTime AsOfDate, decimal TotalAssets, decimal TotalLiabilities,
+    decimal TotalEquity, List<BsLineDto> Assets, List<BsLineDto> Liabilities,
+    List<BsLineDto> Equity);
+
+public record BsLineDto(string AccountCode, string AccountName, decimal Amount);
+
+// AR/AP Aging
+public record AgingReportDto(string EntityName, Guid EntityId, decimal Current,
+    decimal Days1to30, decimal Days31to60, decimal Days61to90, decimal Days90Plus, decimal Total);

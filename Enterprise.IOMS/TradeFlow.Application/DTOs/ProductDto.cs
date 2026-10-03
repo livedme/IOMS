@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -50,5 +50,12 @@ namespace TradeFlow.Application.DTOs
         public string OriginCountry { get; set; }
         public string OriginManufacturer { get; set; }
     }
+
+    /// <summary>
+    /// The minimum a product picker needs. Ten-plus components were fetching the whole Product entity
+    /// graph and materialising it in order to bind a dropdown that only ever reads the name.
+    /// </summary>
+    public record ProductOptionDto(Guid Id, string Name, string Sku, decimal SellingPrice, decimal CostPrice);
+
 
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using TradeFlow.Domain.Enums;
@@ -21,4 +21,11 @@ namespace TradeFlow.Application.DTOs
 
     public record StockAdjustmentDto(Guid ProductId, Guid WarehouseId, int QuantityChange, string Reason);
     public record StockTransferDto(Guid ProductId, Guid SourceWarehouseId, Guid TargetWarehouseId, int Quantity);
+
+    public record StockTransferRequestDto(Guid ProductId, Guid SourceWarehouseId, Guid TargetWarehouseId, int Quantity, string? Notes);
+
+    // Dead Stock
+    public record DeadStockItemDto(Guid ProductId, string ProductName, string SKU, string WarehouseName,
+        int Quantity, decimal Value, DateTime? LastMovementDate, int DaysSinceLastMovement);
+
 }

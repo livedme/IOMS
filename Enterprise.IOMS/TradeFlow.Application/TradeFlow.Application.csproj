@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DTOs\Class1 - Copy %285%29.cs" />
+    <Compile Remove="DTOs\Class1 - Copy %286%29.cs" />
+    <Compile Remove="DTOs\Class1 - Copy.cs" />
+    <Compile Remove="DTOs\Class1.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AutoMapper" Version="16.2.0" />
     <PackageReference Include="MediatR" Version="14.2.0" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />

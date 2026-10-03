@@ -5,29 +5,29 @@ public static class NumberGenerator
     private static readonly Random _random = new();
 
     public static string GenerateOrderNumber(string prefix = "SO")
-        => $"{prefix}-{DateTime.UtcNow:yyyyMMdd}-{_random.Next(1000, 9999)}";
+        => $"{prefix}-{DateTime.UtcNow:yyMMdd}-{_random.Next(10, 999999)}";
 
     public static string GenerateInvoiceNumber()
-        => $"INV-{DateTime.UtcNow:yyyyMMdd}-{_random.Next(1000, 9999)}";
+        => $"INV-{DateTime.UtcNow:yyMMdd}-{_random.Next(10, 999999)}";
 
     public static string GenerateQuoteNumber()
-        => $"QT-{DateTime.UtcNow:yyyyMMdd}-{_random.Next(1000, 9999)}";
+        => $"QT-{DateTime.UtcNow:yyMMdd}-{_random.Next(10, 999999)}";
 
     public static string GenerateRfqNumber()
-        => $"RFQ-{DateTime.UtcNow:yyyyMMdd}-{_random.Next(1000, 9999)}";
+        => $"RFQ-{DateTime.UtcNow:yyMMdd}-{_random.Next(10, 999999)}";
 
     public static string GenerateReturnNumber(string prefix = "RET")
-        => $"{prefix}-{DateTime.UtcNow:yyyyMMdd}-{_random.Next(1000, 9999)}";
+        => $"{prefix}-{DateTime.UtcNow:yyMMdd}-{_random.Next(10, 999999)}";
 
     public static string GenerateDeliveryNoteNumber()
-        => $"DN-{DateTime.UtcNow:yyyyMMdd}-{_random.Next(1000, 9999)}";
+        => $"DN-{DateTime.UtcNow:yyMMdd}-{_random.Next(10, 999999)}";
 
     public static string GenerateCreditNoteNumber()
-        => $"CN-{DateTime.UtcNow:yyyyMMdd}-{_random.Next(1000, 9999)}";
+        => $"CN-{DateTime.UtcNow:yyMMdd}-{_random.Next(10, 999999)}";
 
     public static string GenerateDebitNoteNumber()
-        => $"DBN-{DateTime.UtcNow:yyyyMMdd}-{_random.Next(1000, 9999)}";
+        => $"DBN-{DateTime.UtcNow:yyMMdd}-{_random.Next(10, 999999)}";
 
     public static string GenerateJournalReference()
-        => $"JE-{DateTime.UtcNow:yyyyMMdd}-{_random.Next(1000, 9999)}";
+        => $"JE-{DateTime.UtcNow:yyMMdd}-{_random.Next(10, 999999)}";
 }

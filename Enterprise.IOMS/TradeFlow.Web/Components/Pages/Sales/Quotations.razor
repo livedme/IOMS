@@ -98,6 +98,7 @@
                     }
                     else
                     {
+                        var items=pagedResultNew.Items.OrderByDescending(x=>x.QuoteDate).ToList();
                         @foreach (var q in pagedResultNew.Items)
                         {
                             var isExpired = q.ValidUntil < DateTime.Today;
