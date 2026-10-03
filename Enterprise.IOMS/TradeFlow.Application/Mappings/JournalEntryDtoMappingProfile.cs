@@ -1,0 +1,13 @@
+using AutoMapper;
+using TradeFlow.Application.DTOs;
+using TradeFlow.Domain.Entities;
+
+namespace TradeFlow.Application.Mappings;
+
+public class JournalEntryDtoMappingProfile : Profile
+{
+    public JournalEntryDtoMappingProfile()
+    {
+        CreateMap<JournalEntry, JournalEntryDto>();
+    }
+}
