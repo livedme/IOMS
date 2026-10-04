@@ -26,6 +26,7 @@
                 <MudSelect T="Guid" @ref="RefWarehouse"
                            @bind-Value="dataModel.WarehouseId"
                            @bind-Text="dataModel.WarehouseText"
+                           @bind-Value:after="OnWarehouseChanged"
                            Label="WareHouse"
                            Clearable="true" 
                            Required="true"
@@ -38,7 +39,7 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="4">
-                <MudTextField @bind-Value="dataModel.Notes" Label="Notes" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField  @ref="RefNote" @bind-Value="dataModel.Notes" Label="Notes" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
         </MudGrid>
 
@@ -247,6 +248,7 @@
     private static readonly ControlItemsDto AddNewOption = new(){Id = Guid.Empty, Name = "Add New", IsSelected = false};
     private MudNumericField<int>? RefQuantity;
     private MudSelect<Guid>? RefWarehouse;
+    private MudTextField<string>? RefNote;
 
     //private PurchaseOrderDtoModels dataModel = new PurchaseOrderDtoModels();    
 
@@ -385,6 +387,26 @@
         }
     }
 
+    
+    private async Task OnWarehouseChanged()
+    {
+        var warehouse = dataModel.WarehouseId;
+        if (warehouse == Guid.Empty)
+        {
+            dataModel.WarehouseText = string.Empty;
+        }
+        else
+        {
+            var selectedWarehouse = WareHouses.FirstOrDefault(w => w.Id == warehouse);
+            dataModel.WarehouseText = selectedWarehouse.Name;
+        }
+
+        if (RefNote is not null)
+        {
+            await RefNote.FocusAsync();
+        }
+    }
+
     private async Task UpdateControlSelection(ControlDto control, ControlItemsDto? selectedItem)
     {
         if (selectedItem != null)
@@ -395,6 +417,7 @@
             control.SelectedIndex++;
         }
     }
+   
     private Task<IEnumerable<ControlItemsDto>> SearchSuppliers(string text, CancellationToken _)
     {
         IEnumerable<ControlItemsDto> baseResults;
