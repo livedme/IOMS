@@ -16,7 +16,7 @@
     <TmPageHeader Icon="🛒" Title="Sales" Subtitle="Completed sales awaiting packing, dispatch and delivery">
         <Actions>
             <button class="tm-reset" @onclick="Refresh">⟳ Refresh</button>
-            <button class="tm-add-btn" @onclick="OpenCreate">+ New Sale</button>
+            <button class="tm-add-btn" @onclick="() => OpenCreateEdit(null)">+ New Sale</button>
         </Actions>
     </TmPageHeader>
 
@@ -147,7 +147,7 @@
                                         }
                                         @if (o.Status != OrderStatus.Cancelled && o.Status != OrderStatus.Delivered)
                                         {
-                                            <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenEdit(o)">✎</button>
+                                            <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenCreateEdit(o.Id)">✎</button>
                                             <button class="tm-act tm-act-del" title="Cancel" @onclick="() => Cancel(o.Id)">✕</button>
                                         }
                                         @if (o.Status == OrderStatus.Cancelled)
@@ -283,7 +283,7 @@
 
 </TmSlideDrawer>
 
-    @code {
+@code {
     // ─── Sortable column keys (constants avoid nested quotes in markup lambdas) ───
     private static class Col
     {
@@ -333,12 +333,10 @@
         try { _branches = await BranchService.GetBranches(); } catch { }
         try
         {
-        //    await LoadLookupData();
-
             var customers = await CustomerService.GetCustomersAsync(null, 1, 500);
             _customers = customers.Items;
+
             var products = await ProductService.GetProductsAsync(new ProductPagedRequest());
-            //_drawerCustomers = customers.Items.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToList();
             _drawerProducts = products.Items.OrderBy(p => p.Name).ToList().Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
 
         }
@@ -609,7 +607,7 @@
         _drawerOpen = true;
         try
         {
-            _viewOrder = await OrderService.GetSalesOrderById(id);
+            _viewOrder = await GetOrderDetails(id);
             _drawerTitle = $"Sale #{_viewOrder?.OrderNumber}";
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
@@ -618,106 +616,70 @@
     private async Task SwitchToEdit(SalesOrderDto order)
     {
         CloseDrawer();
-        await OpenEdit(order);
+        await OpenCreateEdit(order.Id);
     }
-
-    private async Task OpenEdit(SalesOrderDto order)
+   
+    private async Task<SalesOrderDto> GetOrderDetails(Guid Id)
     {
-        await LoadFormData(order);
-        await ShowSalesOrderDialog($"Edit Sale #{order.OrderNumber}");
+        return await OrderService.GetSalesOrderById(Id);
     }
+    
 
-    private async Task LoadFormData(SalesOrderDto order)
+    // ─── Create/Update/Delete ───
+    private async Task OpenCreateEdit(Guid? orderId)
     {
-        // await LoadLookupData();
+        var dataModel = new CreateSalesOrderDtoModels();
+        string dialogTitle = "New Purchase Order";
 
-        _editModel = new CreateSalesOrderDtoModels
+        if (orderId.HasValue)
         {
-            BranchId = order.BranchId ?? Guid.Empty,
-            SalesDate = order.OrderDate,
-            Naration = order.Naration,
-            Chalan = order.Chalan,
-            Notes = order.Notes,
-            SubTotal = order.SubTotal,
-            LabourCharge = order.LabourCharge,
-            TruckCharge = order.TruckCharge,
-            TaxAmount = order.TaxAmount,
-            DiscountAmount = order.DiscountAmount,
-            DiscountType = order.DiscountType,
-            TotalAmount = order.TotalAmount,
-            PaidAmount = order.PaidAmount,
-            DueAmount = order.DueAmount,
-            CustomerDdlControl = new ControlDto
+            var order = await GetOrderDetails(orderId.Value);
+            if (order == null) { Snackbar.Add("Sales order not found", Severity.Error); return; }
+            dialogTitle = $"Edit Sale #{order.OrderNumber}";
+
+            dataModel = new CreateSalesOrderDtoModels
             {
-                SelectedItem = new ControlItemsDto
+                BranchId = order.BranchId ?? Guid.Empty,
+                SalesDate = order.OrderDate,
+                Naration = order.Naration,
+                Chalan = order.Chalan,
+                Notes = order.Notes,
+                SubTotal = order.SubTotal,
+                LabourCharge = order.LabourCharge,
+                TruckCharge = order.TruckCharge,
+                TaxAmount = order.TaxAmount,
+                DiscountAmount = order.DiscountAmount,
+                DiscountType = (int)order.DiscountType,
+                TotalAmount = order.TotalAmount,
+                PaidAmount = order.PaidAmount,
+                DueAmount = order.DueAmount,
+                CustomerDdlControl = new ControlDto
                 {
-                    Id = order.CustomerId,
-                    Name = order.Customer?.CustomerName ?? "",
-                    IsSelected = false
-                }
-            },
-            ItemsLine = order.Items.Select(i => new CreateSalesOrderItemDto(
-                i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount, i.DiscountType,
-                i.TotalDiscount, i.LineTotalPrice, null, null)).ToList()
-        };
+                    SelectedItem = new ControlItemsDto
+                    {
+                        Id = order.CustomerId,
+                        Name = order.Customer?.CustomerName ?? "",
+                        IsSelected = false
+                    }
+                },
+                ItemsLine = order.Items.Select(i => new CreateSalesOrderItemDto(
+                    i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount, (int)i.DiscountType,
+                    i.TotalDiscount, i.LineTotalPrice, null, null)).ToList()
+            };
 
-        _editingOrder = order;
-        _drawerMode = SliderMode.Edit;
-    }
+        }
 
-    private async Task OpenCreate()
-    {
-       // await LoadLookupData();
-
-        _editModel = new CreateSalesOrderDtoModels();
-        _editingOrder = null;
-        _drawerMode = SliderMode.Create;
-        await ShowSalesOrderDialog("New Sale");
-    }
-
-    private async Task LoadLookupData()
-    {
-        //var customers = await CustomerService.GetCustomersAsync("");
-        //  .Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToListAsync();
-        var products = await ProductService.GetProductsAsync(new ProductPagedRequest());
-        //.OrderBy(p => p.Name).ToListAsync();
-
-        //_drawerCustomers = customers.Items.Where(c => c.IsActive).OrderBy(c => c.CustomerName).ToList();
-        _drawerProducts = products.Items.OrderBy(p => p.Name).ToList().Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
-        // _drawerCustomers = customers.Select(c => new CustomerDto
-        //{
-        //  Id = c.Id,
-        // CustomerName = c.CustomerName,
-        //CustomerEmail = c.CustomerEmail,
-        //CustomerPhone = c.CustomerPhone,
-        //Address = c.Address,
-        //City = c.City,
-        //Zila = c.Zila,
-        //  State = c.State,
-        //Country = c.Country,
-        //PostalCode = c.PostalCode,
-        //CreditLimit = c.CreditLimit,
-        //PaymentTerms = c.PaymentTerms,
-        //IsActive = c.IsActive,
-        //IsTaxExempt = c.IsTaxExempt
-        //}).ToList();
-
-        _drawerProducts = products.Items.OrderBy(p => p.Name).ToList().Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
-    }
-
-    private async Task ShowSalesOrderDialog(string title)
-    {
         var parameters = new DialogParameters<SalesOrderDialog>
         {
             { x => x.Customers, _customers },
             { x => x.Products, _drawerProducts },
-            { x => x.dataModel, _editModel },
+            { x => x.dataModel, dataModel },
             { x => x.OnSubmit, EventCallback.Factory.Create<CreateSalesOrderDto>(this, HandleFormSubmit) },
             { x => x.OnSubmitAndPrint, EventCallback.Factory.Create<CreateSalesOrderDto>(this, HandleFormSubmitAndPrint) },
             { x => x.OnCancel, EventCallback.Factory.Create(this, CloseDialog) }
         };
 
-        var dialog = await DialogService.ShowAsync<SalesOrderDialog>(title, parameters,
+        var dialog = await DialogService.ShowAsync<SalesOrderDialog>(dialogTitle, parameters,
             new DialogOptions
             {
                 MaxWidth = MaxWidth.Large,
@@ -727,9 +689,8 @@
             });
 
         await dialog.Result;
-    }
 
-    private Task CloseDialog() => Task.CompletedTask;
+    }
 
     private async Task HandleFormSubmit(CreateSalesOrderDto dto)
     {
@@ -754,6 +715,8 @@
     {
         await HandleFormSubmit(dto);
     }
+    
+    private Task CloseDialog() => Task.CompletedTask;
 
     private async Task DeleteOrder(Guid id)
     {

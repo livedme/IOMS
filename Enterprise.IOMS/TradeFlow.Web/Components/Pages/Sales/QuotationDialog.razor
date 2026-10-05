@@ -39,7 +39,7 @@
                     <MudTh Style="width:165px;">Discount</MudTh>
                     <MudTh Class="pe-0" Style="width:150px;">Line Total</MudTh>
                     <MudTh Style="width:70px;" class="text-end">
-                        <MudIconButton Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Primary" OnClick="AddNewItem" />
+                        <MudIconButton @ref="AddButtonRef" Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Primary" OnClick="AddNewItem" />
                     </MudTh>
                 </HeaderContent>
                 <RowTemplate>
@@ -80,7 +80,7 @@
                         </MudTd>
                         <MudTd Style="width:auto;padding: 6px !important;" class="">
                             <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Class="float-start" Color="Color.Primary" OnClick="AddItem" />
-                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Class="float-end" Color="Color.Secondary" OnClick="@(() => RemoveItem(context))" />
+                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Class="float-end" Color="Color.Secondary" OnClick="@(() => RemoveEditItem(context))" />
                         </MudTd>
                     }
                     else
@@ -155,7 +155,7 @@
                 <MudCardContent>
                     <MudGrid Class="pt-0">
                         <MudItem xs="4" Class="pe-2 pt-2">
-                            <MudNumericField Value="dataModel.SubTotal" ReadOnly="true" Label="Item Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                            <MudNumericField @ref="RefSubTotal" Value="dataModel.SubTotal" ReadOnly="true" Label="Item Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         </MudItem>
                         <MudItem xs="4" Class="pe-2 pt-2">
                             <MudNumericField Value="DiscountTotal" ReadOnly="true" Label="Discount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
@@ -202,7 +202,9 @@
     private static readonly ControlItemsDto AddNewCustomerOption = new() { Id = Guid.Empty, Name = "Add New" };
     private static readonly ControlItemsDto AddNewProductOption = new() { Id = Guid.Empty, Name = "Add New" };
 
+    private MudIconButton? AddButtonRef;
     private MudNumericField<int>? RefQuantity;
+    private MudNumericField<decimal>? RefSubTotal;
     private int _editingItemIndex = -1;
 
     /// <summary>Rows that have actually been committed; the draft row (ProductId empty) is excluded.</summary>
@@ -314,6 +316,10 @@
         {
             await UpdateControlSelection(dataModel.CustomerDdlControl, cust);
         }
+
+        if(AddButtonRef is not null){
+            await AddButtonRef.FocusAsync();
+        }
     }
 
     private static Task UpdateControlSelection(ControlDto control, ControlItemsDto? selectedItem)
@@ -373,6 +379,7 @@
             .DistinctBy(c => c.Id)
             .Append(AddNewProductOption));
     }
+
 
     // ─── Product picker ───
 
@@ -459,7 +466,7 @@
             await RefQuantity.FocusAsync();
     }
 
-    private void ApplyProductToDraft(ControlItemsDto prod)
+    private async Task ApplyProductToDraft(ControlItemsDto prod)
     {
         var p = Products.FirstOrDefault(x => x.Id == prod.Id);
         if (p == default) return;
@@ -475,7 +482,7 @@
 
     // ─── Line editing ───
 
-    private void AddNewItem()
+    private async Task AddNewItem()
     {
         if (dataModel.ItemsLine.Any(x => x.ProductId == Guid.Empty)) return;
         if (_editingItemIndex >= 0) return;
@@ -485,9 +492,11 @@
         // parameterless ctor. The all-zero ProductId marks it as the unpublished draft row;
         // the fields the editors bind to live on dataModel.ProductObj.
         dataModel.ItemsLine.Insert(0, new CreateSalesQuoteItemDto(Guid.Empty, 0, 0, 0));
+
+        await FocusSelectBox();
     }
 
-    private void AddItem()
+    private async Task AddItem()
     {
         CalculateLineTotal();
 
@@ -502,8 +511,18 @@
 
         ResetDraft();
         CalculationBalance();
-    }
 
+        await FocusSelectBox();
+    }
+    private async Task FocusSelectBox()
+    {
+        await Task.Delay(100);
+        if (dataModel.ProductObj.ProductDdlControl.ControlRef is not null)
+        {
+            await dataModel.ProductObj.ProductDdlControl.ControlRef.ResetAsync();
+            await dataModel.ProductObj.ProductDdlControl.ControlRef.FocusAsync();
+        }
+    }
     // CreateSalesQuoteDto carries a percentage per line only, so a Fixed discount has to be
     // restated as the percentage of the line gross that yields the same money value.
     private static decimal ToDiscountPercent(SalesQuotationItemDto draft)
@@ -541,7 +560,7 @@
         await UpdateControlSelection(draft.ProductDdlControl, draft.ProductDdlControl.SelectedItem);
     }
 
-    private void SaveEditItem(int index)
+    private async Task SaveEditItem(int index)
     {
         CalculateLineTotal();
 
@@ -557,9 +576,12 @@
         _editingItemIndex = -1;
         ResetDraft();
         CalculationBalance();
+
+        if (RefSubTotal is not null)
+            await RefSubTotal.FocusAsync();
     }
 
-    private void RemoveItem(CreateSalesQuoteItemDto item)
+    private async Task RemoveItem(CreateSalesQuoteItemDto item)
     {
         // Records compare by value, so drop by index rather than letting Remove() take the
         // first line-equal row. Also covers the draft row, which has no entry in CommittedItems.
@@ -570,10 +592,19 @@
         CalculationBalance();
     }
 
-    private void CancelEditItem()
+    private async Task RemoveEditItem(CreateSalesQuoteItemDto item)
+    {
+        dataModel.ItemsLine.Remove(item);
+        if (RefSubTotal is not null)
+            await RefSubTotal.FocusAsync();
+    }
+    private async Task CancelEditItem()
     {
         _editingItemIndex = -1;
         ResetDraft();
+
+        if (RefSubTotal is not null)
+            await RefSubTotal.FocusAsync();
     }
 
     // ─── Submit ───

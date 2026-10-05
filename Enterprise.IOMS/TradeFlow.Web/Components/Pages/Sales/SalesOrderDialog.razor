@@ -8,12 +8,12 @@
                     <MudDatePicker @bind-Date="dataModel.SalesDate" Label="Sales Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudSelect T="Guid"
-                               Label="Brannche"
-                               Required="true"
-                               @bind-Value="dataModel.BranchId"
+                    <MudSelect T="Guid" Label="Brannche"Required="true"                               
+                               Value="dataModel.BranchId"
+                               ValueChanged="OnBranncheChanged"
                                @bind-Text="_branchtext"
-                               Clearable="true"
+                               SelectionOnEnter="true"  
+                               Clearable="true"                               
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense">
 
@@ -109,7 +109,7 @@
                         </MudTd>
                         <MudTd Style="width:auto;padding: 6px !important;" class="">
                             <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Class="float-start" Color="Color.Primary" OnClick="AddItem" />
-                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Class="float-end" Color="Color.Secondary" OnClick="@(() => dataModel.ItemsLine.Remove(context))" />
+                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Class="float-end" Color="Color.Secondary" OnClick="@(() => RemoveEditItem(context))" />
                         </MudTd>
                     }
                     else
@@ -183,23 +183,27 @@
                 </MudCardHeader>
                 <MudCardContent>
                     <MudGrid Class="pt-0">
-                        <MudItem xs="3" Class="pe-2 pt-2">
+                        @* <MudItem xs="3" Class="pe-2 pt-2">
                             <MudTextField @bind-Value="dataModel.DrAmount" Label="Dr" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                             <MudTextField @bind-Value="dataModel.CrAmount" Label="Cr" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                             <MudNumericField @bind-Value="dataModel.StackQty" Label="Stack Qty" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                        </MudItem>
+                        </MudItem> *@
                         <MudItem xs="3" Class="pe-2 pt-2">
                             <MudNumericField @bind-Value="dataModel.SubTotal" Disabled="true" Label="Item Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                            <MudNumericField @bind-Value="dataModel.LabourCharge" Label="Labour Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                            <MudNumericField @bind-Value="dataModel.TruckCharge" Label="Truck Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                            <MudNumericField @ref="RefLabourCharge" @bind-Value="dataModel.LabourCharge" Label="Labour Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />                            
                         </MudItem>
                         <MudItem xs="3" Class="pe-2 pt-2">
+                            <MudNumericField @bind-Value="dataModel.TruckCharge" Label="Truck Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                             <MudNumericField @bind-Value="dataModel.TaxAmount" Label="Tax" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        </MudItem>
+                        <MudItem xs="3" Class="pe-2 pt-2">
                             <div class="d-flex justify-content-between">
                                 <MudNumericField @bind-Value="dataModel.DiscountAmount" Label="Discount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountField pb-1 col-7" />
                                 <MudSelect @bind-Value="dataModel.DiscountType" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountTypeField pb-1 col-3">
-                                    <MudSelectItem Value="0">%</MudSelectItem>
-                                    <MudSelectItem Value="1">Fixed</MudSelectItem>
+                                    @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
+                                    {
+                                        <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
+                                    }
                                 </MudSelect>
                             </div>
                             <MudNumericField @bind-Value="dataModel.TotalAmount" Disabled="true" Label="Grand Total" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
@@ -248,9 +252,7 @@
     
     private MudTextField<string>? RefNaration;
     private MudNumericField<int> RefQuantity;
-
-    
-
+    private MudNumericField<decimal>? RefLabourCharge;
 
     private List<BranchDto> _Branches = new();
     private static readonly ControlItemsDto AddNewCustomerOption = new ControlItemsDto(){ Id = Guid.Empty, Name = "Add New" };
@@ -290,7 +292,15 @@
             dataModel.ProductObj.UnitPrice = Products.First().Price;
         }
     }
-
+    private async Task OnBranncheChanged()
+    {
+       
+        await Task.Delay(100);
+        if (dataModel.CustomerDdlControl.ControlRef is not null)
+        {
+            await dataModel.CustomerDdlControl.ControlRef.FocusAsync();
+        }
+    }
     protected async Task OnBrancheValueChanged(Guid brancheId)
     {
         var branche = _Branches.FirstOrDefault(b => b.Id == brancheId);
@@ -318,7 +328,7 @@
 
             await dataModel.CustomerDdlControl.ControlRef.ResetAsync();
 
-if (result != null && !result.Canceled && result.Data is CustomerDto dto)
+            if (result != null && !result.Canceled && result.Data is CustomerDto dto)
             {
                 // The service owns the insert + SaveChanges; the old code hand-built an entity and
                 // saved through the page's scoped DbContext, which leaked a tracked entity here.
@@ -385,12 +395,9 @@ if (result != null && !result.Canceled && result.Data is CustomerDto dto)
                 (c.CustomerName.Contains(text, StringComparison.OrdinalIgnoreCase)))
                 .Select(c => new ControlItemsDto(){ Id = c.Id, Name = c.CustomerName });
         }
-
-        
         
         var results = baseResults.OrderBy(x => x.Name).DistinctBy(c => c.Id);
-        results = baseResults.Concat(new[] { AddNewCustomerOption });
-        
+        results = baseResults.Concat(new[] { AddNewCustomerOption });        
 
        // var results = new[] { AddNewCustomerOption }.Concat(baseResults).DistinctBy(c => c.Id);
         //var results = baseResults.Append(AddNewCustomerOption).DistinctBy(c => c.Id).ToList();
@@ -445,7 +452,7 @@ if (result != null && !result.Canceled && result.Data is CustomerDto dto)
             dataModel.ProductObj.Quantity,
             dataModel.ProductObj.UnitPrice,
             dataModel.ProductObj.DiscountAmount,
-            (DiscountType)dataModel.ProductObj.DiscountType,
+            (int)dataModel.ProductObj.DiscountType,
             dataModel.ProductObj.TotalDiscount,
             dataModel.ProductObj.TotalPrice,
             null,
@@ -459,8 +466,20 @@ if (result != null && !result.Canceled && result.Data is CustomerDto dto)
     private async Task CancelEditItem()
     {
         _editingItemIndex = -1;
-    }
 
+        if (RefLabourCharge is not null)
+        {
+            await RefLabourCharge.FocusAsync();
+        }
+    }
+    private async Task RemoveEditItem(CreateSalesOrderItemDto item)
+    {
+        dataModel.ItemsLine.Remove(item);
+        if (RefLabourCharge is not null)
+        {
+            await RefLabourCharge.FocusAsync();
+        }
+    }
     private async Task OnEditProductChanged()
     {
         var prod = dataModel.ProductObj.ProductDdlControl?.SelectedItem;
@@ -483,7 +502,15 @@ if (result != null && !result.Canceled && result.Data is CustomerDto dto)
             await RefQuantity.FocusAsync();
         }
     }
-
+    private async Task FocusSelectBox()
+    {
+        await Task.Delay(100);
+        if (dataModel.ProductObj.ProductDdlControl.ControlRef is not null)
+        {
+            await dataModel.ProductObj.ProductDdlControl.ControlRef.ResetAsync();
+            await dataModel.ProductObj.ProductDdlControl.ControlRef.FocusAsync();
+        }
+    }
     private async Task AddNewItem()
     {
         var item = dataModel.ItemsLine.Where(x => x.ProductId == Guid.Empty).FirstOrDefault();
@@ -497,9 +524,11 @@ if (result != null && !result.Canceled && result.Data is CustomerDto dto)
         dataModel.ProductObj.ProductDdlControl.SelectedItem = new ControlItemsDto(){ Id = Guid.Empty, Name = "", IsSelected = false };
         dataModel.ProductObj.SelectedSerialIds = new();
 
-        dataModel.ItemsLine.Insert(0, new CreateSalesOrderItemDto(Guid.Empty, 0, 0, 0, DiscountType.Percentage, 0, 0, null));
+        dataModel.ItemsLine.Insert(0, new CreateSalesOrderItemDto(Guid.Empty, 0, 0, 0, (int)DiscountType.Percentage, 0, 0, null));
         dataModel.ProductObj.Quantity = 1;
         dataModel.ProductObj.DiscountAmount = 0;
+
+        await FocusSelectBox();
     }
 
     private async Task AddItem()
@@ -507,7 +536,7 @@ if (result != null && !result.Canceled && result.Data is CustomerDto dto)
 
         if (dataModel.ProductObj.ProductDdlControl.SelectedItem.Id == Guid.Empty || dataModel.ProductObj.Quantity <= 0) return;
 
-        dataModel.ItemsLine.Insert(dataModel.ItemsLine.Count, new CreateSalesOrderItemDto(dataModel.ProductObj.ProductDdlControl.SelectedItem.Id, dataModel.ProductObj.Quantity, dataModel.ProductObj.UnitPrice, dataModel.ProductObj.DiscountAmount, (DiscountType)dataModel.ProductObj.DiscountType, dataModel.ProductObj.TotalDiscount, dataModel.ProductObj.TotalPrice, null, _selectedSerialSet.Count > 0 ? _selectedSerialSet.ToList() : null));
+        dataModel.ItemsLine.Insert(dataModel.ItemsLine.Count, new CreateSalesOrderItemDto(dataModel.ProductObj.ProductDdlControl.SelectedItem.Id, dataModel.ProductObj.Quantity, dataModel.ProductObj.UnitPrice, dataModel.ProductObj.DiscountAmount, (int)dataModel.ProductObj.DiscountType, dataModel.ProductObj.TotalDiscount, dataModel.ProductObj.TotalPrice, null, _selectedSerialSet.Count > 0 ? _selectedSerialSet.ToList() : null));
         dataModel.ProductObj.Quantity = 1;
         dataModel.ProductObj.DiscountAmount = 0;
         dataModel.ProductObj.SelectedSerialIds = new();
@@ -518,6 +547,8 @@ if (result != null && !result.Canceled && result.Data is CustomerDto dto)
         if (Products.Count > 0) { dataModel.ProductObj.ProductDdlControl.SelectedItem.Id = Products.First().Id; dataModel.ProductObj.ProductDdlControl.SelectedItem.Name = Products.First().Name; }
 
         //dataModel.ItemsLine = dataModel.ItemsLine.OrderByDescending(x => x.ProductId).ToList();
+
+        await FocusSelectBox();
     }
 
     private async Task OnProductChanged()
@@ -693,7 +724,7 @@ if (result != null && !result.Canceled && result.Data is CustomerDto dto)
     {
         var dto = new CreateSalesOrderDto(dataModel.CustomerDdlControl.SelectedItem.Id, null, dataModel.BranchId, dataModel.Notes, null, null, null,
             OrderStatus.Sold, dataModel.SalesDate ?? DateTime.Today, dataModel.SubTotal, dataModel.LabourCharge, dataModel.TruckCharge,
-            dataModel.TaxAmount, dataModel.DiscountType, dataModel.DiscountAmount, dataModel.TotalAmount, dataModel.PaidAmount, dataModel.DueAmount, dataModel.ItemsLine);
+            dataModel.TaxAmount, (int)dataModel.DiscountType, dataModel.DiscountAmount, dataModel.TotalAmount, dataModel.PaidAmount, dataModel.DueAmount, dataModel.ItemsLine);
         await OnSubmit.InvokeAsync(dto);
         MudDialog.Close(DialogResult.Ok(dto));
     }

@@ -288,7 +288,7 @@
             TruckCharge = _order.TruckCharge,
             TaxAmount = _order.TaxAmount,
             DiscountAmount = _order.DiscountAmount,
-            DiscountType = _order.DiscountType,
+            DiscountType =  (int)_order.DiscountType,
             TotalAmount = _order.TotalAmount,
             PaidAmount = _order.PaidAmount,
             DueAmount = _order.DueAmount,
@@ -302,7 +302,7 @@
             ItemsLine = _order.Items
                 .Select(i => new CreateSalesOrderItemDto(
                     i.ProductId, i.Quantity, i.UnitPrice,
-                    i.DiscountAmount, i.DiscountType,
+                    i.DiscountAmount, (int)i.DiscountType,
                     i.TotalDiscount, i.LineTotalPrice, null))
                 .ToList()
         };

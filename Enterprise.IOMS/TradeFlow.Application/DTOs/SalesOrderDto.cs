@@ -15,10 +15,10 @@ namespace TradeFlow.Application.DTOs
 
         decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscount, decimal LineTotalPrice);
     public record CreateSalesOrderDto(Guid CustomerId, Guid? WarehouseId, Guid? BranchId, string? Notes, string? ShippingAddress, DateTime? ExpectedDeliveryDate,
-        Guid? CurrencyId, OrderStatus Status, DateTime SalesDate, decimal SubTotal, decimal LabourCharge, decimal TruckCharge, decimal TaxAmount, DiscountType DiscountType,
+        Guid? CurrencyId, OrderStatus Status, DateTime SalesDate, decimal SubTotal, decimal LabourCharge, decimal TruckCharge, decimal TaxAmount, int DiscountType,
         decimal DiscountAmount, decimal TotalAmount, decimal PaidAmount, decimal DueAmount, List<CreateSalesOrderItemDto> Items);
 
-    public record CreateSalesOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, 
+    public record CreateSalesOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, int DiscountType, decimal TotalDiscountAmount, 
         decimal TotalPrice, Guid? UoMId, List<Guid>? SerialIds = null);
 
     public class CreateSalesOrderDtoModels
@@ -43,7 +43,7 @@ namespace TradeFlow.Application.DTOs
         public decimal TruckCharge { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal DiscountAmount { get; set; }
-        public DiscountType DiscountType { get; set; }
+        public int DiscountType { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal DueAmount { get; set; }
