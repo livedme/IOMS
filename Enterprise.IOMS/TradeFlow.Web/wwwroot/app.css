@@ -2290,3 +2290,17 @@ table.tm-table {
 .product-item-list .mud-table-row .mud-table-cell {
         font-weight: normal;
     }
+
+
+.mud-button-root:focus {
+    outline-color: #a29e9d; /* Changes just the color */
+    outline-style: solid; /* Required for outline-color to appear */
+    outline-width: 2px; /* Controls thickness */
+    outline-offset: 0px; /* Pushes the ring outwards away from the element */
+}
+
+.mud-input-helper-text.mud-input-error{
+    display:none !important;
+}
+
+ 
