@@ -12,7 +12,7 @@
                     <MudSelectItem Value="@t">@t</MudSelectItem>
                 }
             </MudSelect>
-            <MudNumericField @bind-Value="_value" Label="Value" Required="true" Min="0" Class="mt-3" Variant="Variant.Outlined" Margin="Margin.Dense"
+            <MudNumericField @bind-Value="_value" Label="Value" Required="true" Min="0" Class="mt-3" Format="N2" Variant="Variant.Outlined" Margin="Margin.Dense"
                              HelperText="@(_discountType == DiscountType.Percentage ? "Percentage (0-100)" : "Fixed amount")" />
             <MudNumericField @bind-Value="_minQty" Label="Minimum Quantity" Min="0" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
             <MudDatePicker @bind-Date="_startDate" Label="Start Date" Required="true" Class="mt-3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>

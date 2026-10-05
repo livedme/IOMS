@@ -155,13 +155,13 @@
                 <MudCardContent>
                     <MudGrid Class="pt-0">
                         <MudItem xs="4" Class="pe-2 pt-2">
-                            <MudNumericField @ref="RefSubTotal" Value="dataModel.SubTotal" ReadOnly="true" Label="Item Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                            <MudNumericField @ref="RefSubTotal" Value="dataModel.SubTotal" ReadOnly="true" Label="Item Amount" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         </MudItem>
                         <MudItem xs="4" Class="pe-2 pt-2">
-                            <MudNumericField Value="DiscountTotal" ReadOnly="true" Label="Discount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                            <MudNumericField Value="DiscountTotal" ReadOnly="true" Label="Discount" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         </MudItem>
                         <MudItem xs="4" Class="pe-2 pt-2">
-                            <MudNumericField Value="dataModel.TotalAmount" ReadOnly="true" Label="Grand Total" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                            <MudNumericField Value="dataModel.TotalAmount" ReadOnly="true" Label="Grand Total" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         </MudItem>
                     </MudGrid>
                 </MudCardContent>

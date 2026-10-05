@@ -186,7 +186,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?)))
         {
             property.SetPrecision(18);
-            property.SetScale(6);
+            property.SetScale(2);
         }
 
         // Concurrency tokens

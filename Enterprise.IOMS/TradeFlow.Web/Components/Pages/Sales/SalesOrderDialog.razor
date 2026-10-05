@@ -189,16 +189,16 @@
                             <MudNumericField @bind-Value="dataModel.StackQty" Label="Stack Qty" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         </MudItem> *@
                         <MudItem xs="3" Class="pe-2 pt-2">
-                            <MudNumericField @bind-Value="dataModel.SubTotal" Disabled="true" Label="Item Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                            <MudNumericField @ref="RefLabourCharge" @bind-Value="dataModel.LabourCharge" Label="Labour Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />                            
+                            <MudNumericField @bind-Value="dataModel.SubTotal" Disabled="true" Label="Item Amount" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                            <MudNumericField @ref="RefLabourCharge" @bind-Value="dataModel.LabourCharge" Label="Labour Charges" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />                            
                         </MudItem>
                         <MudItem xs="3" Class="pe-2 pt-2">
-                            <MudNumericField @bind-Value="dataModel.TruckCharge" Label="Truck Charges" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                            <MudNumericField @bind-Value="dataModel.TaxAmount" Label="Tax" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                            <MudNumericField @bind-Value="dataModel.TruckCharge" Label="Truck Charges" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                            <MudNumericField @bind-Value="dataModel.TaxAmount" Label="Tax" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         </MudItem>
                         <MudItem xs="3" Class="pe-2 pt-2">
                             <div class="d-flex justify-content-between">
-                                <MudNumericField @bind-Value="dataModel.DiscountAmount" Label="Discount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountField pb-1 col-7" />
+                                <MudNumericField @bind-Value="dataModel.DiscountAmount" Label="Discount" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountField pb-1 col-7" />
                                 <MudSelect @bind-Value="dataModel.DiscountType" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountTypeField pb-1 col-3">
                                     @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
                                     {
@@ -206,11 +206,11 @@
                                     }
                                 </MudSelect>
                             </div>
-                            <MudNumericField @bind-Value="dataModel.TotalAmount" Disabled="true" Label="Grand Total" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                            <MudNumericField @bind-Value="dataModel.TotalAmount" Disabled="true" Label="Grand Total" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         </MudItem>
                         <MudItem xs="3" Class="pe-2 pt-2">
-                            <MudNumericField @bind-Value="dataModel.PaidAmount" Label="Paid Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
-                            <MudNumericField @bind-Value="dataModel.DueAmount" Label="Due Amount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                            <MudNumericField @bind-Value="dataModel.PaidAmount" Label="Paid Amount" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                            <MudNumericField @bind-Value="dataModel.DueAmount" Label="Due Amount" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                         </MudItem>
                     </MudGrid>
                     @{
