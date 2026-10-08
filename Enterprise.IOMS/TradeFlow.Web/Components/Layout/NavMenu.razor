@@ -3,10 +3,12 @@
 @inject NavigationManager NavigationManager
 
 <MudNavMenu Bordered="true" Color="Color.Primary" Class="pa-2 ioms-nav-menu overflow-auto pt-4 left-nav-menu">
-    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.SpaceDashboard">
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.SpaceDashboard" Title="Dashboard">
         Dashboard
     </MudNavLink>
-    <MudNavLink Href="/search" Icon="@Icons.Material.Outlined.Search">Global Search</MudNavLink>   
+    <MudNavLink Href="/search" Icon="@Icons.Material.Outlined.Search" Title="Global Search">
+        Global Search
+    </MudNavLink> 
     <MudDivider Class="mt-2 mb-1" />
     <HoverNavGroup Title="Products" Icon="@Icons.Material.Outlined.Shop">
         <MudNavLink Href="/products/list" Icon="@Icons.Material.Outlined.ShoppingBag">Products</MudNavLink>

@@ -1691,13 +1691,26 @@ table.tm-table {
     font-size: 13px;
     color: #b3b1b1;
 }
+.mud-popover-center-left {
+    border-radius: 0px;
+    left: 58px !important;
+}
+    .mud-popover.mud-popover-open .mud-nav-link .mud-nav-link-text {
+        color: #3b3939;
+    }
+
 /* ============================================================
    Consolidated from component <style> blocks
    Source: TradeFlow.Web/Components/Pages/**
    ============================================================ */
-
 /* ---------- ProductDetail.razor ---------- */
-.tm-page { background: #eef1f6; margin: -24px; padding: 14px 14px 18px 14px; min-height: 100vh; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+.tm-page {
+    background: #eef1f6;
+    margin: -24px;
+    padding: 14px 14px 18px 14px;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+}
     .tm-card { background: #fff; border: 1px solid #e8ebf1; border-radius: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.05); }
     /* breadcrumb like screenshot */
     .pd-crumb { font-size: 14px; margin: 2px 2px 10px 2px; color: #adb5bd; }
