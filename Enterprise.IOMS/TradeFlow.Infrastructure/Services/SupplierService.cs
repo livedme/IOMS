@@ -200,6 +200,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<Guid> CreateSupplierAsync(SupplierDto dto)
         {
+            var currencyId = NormalizeOptionalFk(dto.DefaultCurrencyId);
+            await ValidateSupplierCurrencyAsync(currencyId);
             var supplier = new Supplier
             {
                 SupplierName = dto.SupplierName,
@@ -215,7 +217,7 @@ namespace TradeFlow.Infrastructure.Services
                 Country = dto.Country,
                 PostalCode = dto.PostalCode,
                 PaymentTerms = dto.PaymentTerms,
-                DefaultCurrencyId = dto.DefaultCurrencyId,
+                DefaultCurrencyId = currencyId,
                 LeadTimeDays = dto.LeadTimeDays
             };
 
@@ -227,12 +229,29 @@ namespace TradeFlow.Infrastructure.Services
         public async Task UpdateSupplierAsync(Guid id, SupplierDto dto)
         {
             var supplier = await _db.Suppliers.FindAsync(id) ?? throw new KeyNotFoundException("Supplier not found");
+            var currencyId = NormalizeOptionalFk(dto.DefaultCurrencyId);
+            await ValidateSupplierCurrencyAsync(currencyId);
             supplier.SupplierName = dto.SupplierName; supplier.SupplierEmail = dto.SupplierEmail; supplier.SupplierPhone = dto.SupplierPhone;
             supplier.ContactPersonName = dto.ContactPersonName; supplier.ContactPersonEmail = dto.ContactPersonEmail; supplier.ContactPersonPhone = dto.ContactPersonPhone;
             supplier.Address = dto.Address; supplier.City = dto.City; supplier.State = dto.State; supplier.Zila = dto.Zila;
             supplier.Country = dto.Country; supplier.PostalCode = dto.PostalCode;
             supplier.PaymentTerms = dto.PaymentTerms; supplier.LeadTimeDays = dto.LeadTimeDays;
+            supplier.DefaultCurrencyId = currencyId;
             await _db.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Same guard as CustomerService: an unset currency picker arrives as
+        /// <see cref="Guid.Empty"/>, which has no matching Currencies row.
+        /// </summary>
+        private static Guid? NormalizeOptionalFk(Guid? id) =>
+            id is null || id == Guid.Empty ? null : id;
+
+        private async Task ValidateSupplierCurrencyAsync(Guid? currencyId)
+        {
+            if (currencyId.HasValue &&
+                !await _db.Currencies.AnyAsync(c => c.Id == currencyId.Value))
+                throw new KeyNotFoundException($"Currency {currencyId.Value} was not found.");
         }
 
         public async Task DeleteSupplierAsync(Guid id)

@@ -176,17 +176,19 @@ namespace TradeFlow.Infrastructure.Services
                 ContactPersonName = dto.ContactPersonName,
                 Address = dto.Address,
                 City = dto.City,
+                Zila = dto.Zila,
                 State = dto.State,
                 Country = dto.Country,
                 PostalCode = dto.PostalCode,
                 CreditLimit = dto.CreditLimit,
                 PaymentTerms = dto.PaymentTerms,
-                TaxJurisdictionId = dto.TaxJurisdictionId,
-                DefaultPriceListId = dto.DefaultPriceListId,
-                DefaultCurrencyId = dto.DefaultCurrencyId,
+                TaxJurisdictionId = NormalizeOptionalFk(dto.TaxJurisdictionId),
+                DefaultPriceListId = NormalizeOptionalFk(dto.DefaultPriceListId),
+                DefaultCurrencyId = NormalizeOptionalFk(dto.DefaultCurrencyId),
                 IsTaxExempt = dto.IsTaxExempt,
                 IsActive = dto.IsActive
             };
+            await ValidateCustomerFksAsync(customer.TaxJurisdictionId, customer.DefaultPriceListId, customer.DefaultCurrencyId);
             _db.Customers.Add(customer);
             await _db.SaveChangesAsync();
             return customer.Id;
@@ -197,12 +199,40 @@ namespace TradeFlow.Infrastructure.Services
             var customer = await _db.Customers.FindAsync(id) ?? throw new KeyNotFoundException("Customer not found");
             customer.CustomerName = dto.CustomerName; customer.CustomerEmail = dto.CustomerEmail; customer.CustomerPhone = dto.CustomerPhone;
             customer.ContactPersonName = dto.ContactPersonName; customer.ContactPersonEmail = dto.ContactPersonEmail; customer.ContactPersonPhone = dto.ContactPersonPhone;
-            customer.Address = dto.Address; customer.City = dto.City; customer.State = dto.State;
+            customer.Address = dto.Address; customer.City = dto.City; customer.Zila = dto.Zila; customer.State = dto.State;
             customer.Country = dto.Country; customer.PostalCode = dto.PostalCode;
             customer.CreditLimit = dto.CreditLimit; customer.PaymentTerms = dto.PaymentTerms;
+            customer.TaxJurisdictionId = NormalizeOptionalFk(dto.TaxJurisdictionId);
+            customer.DefaultPriceListId = NormalizeOptionalFk(dto.DefaultPriceListId);
+            customer.DefaultCurrencyId = NormalizeOptionalFk(dto.DefaultCurrencyId);
             customer.IsTaxExempt = dto.IsTaxExempt;
             customer.IsActive = dto.IsActive;
+            await ValidateCustomerFksAsync(customer.TaxJurisdictionId, customer.DefaultPriceListId, customer.DefaultCurrencyId);
             await _db.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// UI pickers leave optional FKs unset, which arrives as <see cref="Guid.Empty"/>
+        /// (or null). Persisting Guid.Empty violates the FK constraint because no
+        /// Currency/PriceList/TaxJurisdiction has that Id — convert it to null.
+        /// </summary>
+        private static Guid? NormalizeOptionalFk(Guid? id) =>
+            id is null || id == Guid.Empty ? null : id;
+
+        /// <summary>
+        /// Turns a raw SQL FK violation into a clear pre-save error naming the bad reference.
+        /// </summary>
+        private async Task ValidateCustomerFksAsync(Guid? taxJurisdictionId, Guid? priceListId, Guid? currencyId)
+        {
+            if (taxJurisdictionId.HasValue &&
+                !await _db.TaxJurisdictions.AnyAsync(t => t.Id == taxJurisdictionId.Value))
+                throw new KeyNotFoundException($"Tax jurisdiction {taxJurisdictionId.Value} was not found.");
+            if (priceListId.HasValue &&
+                !await _db.PriceLists.AnyAsync(p => p.Id == priceListId.Value))
+                throw new KeyNotFoundException($"Price list {priceListId.Value} was not found.");
+            if (currencyId.HasValue &&
+                !await _db.Currencies.AnyAsync(c => c.Id == currencyId.Value))
+                throw new KeyNotFoundException($"Currency {currencyId.Value} was not found.");
         }
 
         public async Task DeleteCustomerAsync(Guid id)

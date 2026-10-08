@@ -23,9 +23,9 @@ namespace TradeFlow.Application.DTOs
         public string? PaymentTerms { get; set; }
         public bool IsActive { get; set; }
         public bool IsTaxExempt { get; set; }
-        public Guid TaxJurisdictionId { get; set; }
-        public Guid DefaultPriceListId { get; set; }
-        public Guid DefaultCurrencyId { get; set; }
+        public Guid? TaxJurisdictionId { get; set; }
+        public Guid? DefaultPriceListId { get; set; }
+        public Guid? DefaultCurrencyId { get; set; }
 
         
     }
