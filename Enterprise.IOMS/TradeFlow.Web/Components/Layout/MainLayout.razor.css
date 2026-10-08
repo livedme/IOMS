@@ -8,6 +8,10 @@ main {
     flex: 1;
 }
 
+.mud-main-content {
+    margin-left: 56px !important;
+}
+
 .sidebar {
     background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
 }
@@ -27,26 +31,90 @@ main {
         text-decoration: none;
     }
 
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
+        .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
+            text-decoration: underline;
+        }
+
+        .top-row ::deep a:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+
+.left-nav-menu {
+    width: 56px !important;
+    background: #222e3c;
+    border-right: 1px solid #2f3d4f;
+}
+
+    .left-nav-menu .mud-nav-link {
+        padding: 8px 8px 8px 10px;
     }
 
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
+    .left-nav-menu::deep .mud-icon-size-medium {
+        font-size: 1.2rem;
     }
+    /* ::deep is required: the nav internals are rendered by the child NavMenu
+       component, so plain descendant selectors never match under CSS isolation. */
+    .left-nav-menu ::deep .mud-nav-link-expand-icon,
+    .left-nav-menu ::deep .mud-nav-link-text {
+        display: none !important;
+    }
+
+    .left-nav-menu.open {
+        width: 280px !important;
+    }
+
+        .left-nav-menu.open ::deep .mud-nav-link-expand-icon,
+        .left-nav-menu.open ::deep .mud-nav-link-text {
+            display: block !important;
+        }
+
+    /* left-nav-menu nav icons at 1.2rem (overrides the global 1rem medium rule). */
+    .left-nav-menu ::deep .mud-nav-link-icon,
+    .left-nav-menu ::deep .mud-nav-group-icon {
+        font-size: 1.2rem;
+    }
+
+    .left-nav-menu ::deep .mud-nav-link {
+        padding: 8px 8px 8px 10px;
+    }
+
+    .left-nav-menu ::deep nav > nav {
+    }
+
+    /* Menu left, content right: the rail and MudMainContent are flex siblings. */
+    .layout-body {
+        display: flex;
+        align-items: stretch;
+    }
+
 
 @media (max-width: 640.98px) {
     .top-row {
         justify-content: space-between;
     }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
+        .top-row ::deep a, .top-row ::deep .btn-link {
+            margin-left: 0;
+        }
 }
 
 @media (min-width: 641px) {
+    .left-nav-menu {
+        flex: none;
+        position: sticky;
+        top: 54px;
+        height: calc(100vh - 54px);
+        width: 56px;
+        overflow-y: auto;
+        transition: width 160ms ease-out;
+    }
+
+        .left-nav-menu.open {
+            width: 280px !important;
+        }
+
     .page {
         flex-direction: row;
     }
@@ -64,11 +132,11 @@ main {
         z-index: 1;
     }
 
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
+        .top-row.auth ::deep a:first-child {
+            flex: 1;
+            text-align: right;
+            width: 0;
+        }
 
     .top-row, article {
         padding-left: 2rem !important;

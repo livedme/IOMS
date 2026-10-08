@@ -9,9 +9,15 @@
 <MudLayout>
 
     <MudAppBar Style="border-bottom:1px solid var(--mud-palette-lines-default); backdrop-filter:blur(12px); background:rgba(255,255,255,0.85);height: 54px;">
-        <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Default" Edge="Edge.Start" Class="me-2 icon-toggle" Style="color:#e5e7eb;" OnClick="@ToggleDrawer" />
+        <MudIconButton Icon="@Icons.Material.Outlined.Menu" Color="Color.Default" Edge="Edge.Start" Class="me-2 icon-toggle" Style="color:#e5e7eb;" @onmouseenter="OpenLeftMenu" OnClick="@ToggleLeftMenu" />
         @* <MudNavLink Href="/orders/sales" Icon="@Icons.Material.Outlined.ShoppingBag">Sales</MudNavLink>
         <MudNavLink Href="/orders/purchase" Icon="@Icons.Material.Outlined.ShoppingBag">Purchase</MudNavLink> *@
+          <div class="d-flex py-2">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Class="ml-2 mr-2" Style="font-size:1.9rem;margin-top: 4px;" />
+                <MudText Typo="Typo.h5" Style="font-weight:700;letter-spacing:-0.5px;margin-top: 6px;" Class="">IOMS</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2 mt-1" Style="padding-top: 8px; font-size: 15px; color: #c9c2c2 !important;">Enterprise</MudText>
+            </div>
+
         <MudSpacer />
         <MudTooltip Text="@(_isDarkMode ? "Light Mode" : "Dark Mode")">
             <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
@@ -43,20 +49,18 @@
             </ChildContent>
         </MudMenu>
     </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" Style="background:#222e3c;border-right:1px solid #2f3d4f;">
-        <div class="d-flex py-2">
-            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Class="ml-2 mr-2" Style="font-size:1.9rem;margin-top: 4px;" />
-            <MudText Typo="Typo.h5" Style="font-weight:700;letter-spacing:-0.5px;margin-top: 6px;" Class="">IOMS</MudText>
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2 mt-1" Style="padding-top: 8px; font-size: 15px; color: #c9c2c2 !important;">Enterprise</MudText>
-        </div>
-        <NavMenu />
-    </MudDrawer>
-
-    <MudMainContent Style="min-height:100vh;">
-        <MudContainer MaxWidth="MaxWidth.False" Class="pa-6">
-            @Body
-        </MudContainer>
-    </MudMainContent>
+    <div class="layout-body">
+        <CascadingValue Value="@(!_leftOpen)" Name="LeftMenuRail">
+            <div class="left-nav-menu @(_leftOpen ? "open" : "")" style="background:#222e3c;border-right:1px solid #2f3d4f;" @onmouseleave="CloseLeftMenu">
+                <NavMenu />
+            </div>
+        </CascadingValue>
+        <MudMainContent Style="min-height:100vh;flex:1 1 auto;min-width:0;">
+            <MudContainer MaxWidth="MaxWidth.False" Class="pa-6">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </div>
 </MudLayout>
 
 
@@ -69,6 +73,8 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _leftOpen;
+    private bool _leftPinned;
     private bool _isDarkMode = false;
     private bool _menuOpen = false;
 
@@ -130,6 +136,19 @@
     private string _userDisplayName = "";
     private string _userEmail = "";
     private string _userInitial = "?";
+
+    private void OpenLeftMenu() => _leftOpen = true;
+
+    private void ToggleLeftMenu()
+    {
+        _leftPinned = !_leftPinned;
+        _leftOpen = _leftPinned;
+    }
+
+    private void CloseLeftMenu()
+    {
+        if (!_leftPinned) _leftOpen = false;
+    }
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
     private void ToggleDarkMode() => _isDarkMode = !_isDarkMode;

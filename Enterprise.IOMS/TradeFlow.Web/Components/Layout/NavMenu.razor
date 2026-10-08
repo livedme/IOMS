@@ -8,42 +8,42 @@
     </MudNavLink>
     <MudNavLink Href="/search" Icon="@Icons.Material.Outlined.Search">Global Search</MudNavLink>   
     <MudDivider Class="mt-2 mb-1" />
-    <MudNavGroup Title="Products" Icon="@Icons.Material.Outlined.Shop" Expanded="false">
+    <HoverNavGroup Title="Products" Icon="@Icons.Material.Outlined.Shop">
         <MudNavLink Href="/products/list" Icon="@Icons.Material.Outlined.ShoppingBag">Products</MudNavLink>
         <MudNavLink Href="/product/categories" Icon="@Icons.Material.Outlined.Category">Categories</MudNavLink>
         <MudNavLink Href="/product/brands" Icon="@Icons.Material.Outlined.LocalOffer">Brands</MudNavLink>
-    </MudNavGroup>
+    </HoverNavGroup>
 
-    <MudNavGroup Title="Inventory" Icon="@Icons.Material.Outlined.Inventory" Expanded="false">
+    <HoverNavGroup Title="Inventory" Icon="@Icons.Material.Outlined.Inventory">
         <MudNavLink Href="/inventory/stock-levels" Icon="@Icons.Material.Outlined.Inventory2">Stock Levels</MudNavLink>
         <MudNavLink Href="/inventory/stock-movements" Icon="@Icons.Material.Outlined.SwapHoriz">Stock Movements</MudNavLink>
         <MudNavLink Href="/inventory/transfers" Icon="@Icons.Material.Outlined.MoveDown">Stock Transfers</MudNavLink>
         <MudNavLink Href="/inventory/stocktakes" Icon="@Icons.Material.Outlined.Checklist">Stocktakes</MudNavLink>
         <MudNavLink Href="/inventory/products/kits" Icon="@Icons.Material.Outlined.Construction">Kits / BOM</MudNavLink>
-    </MudNavGroup>
-    <MudNavGroup Title="Organization" Icon="@Icons.Material.Outlined.PointOfSale" Expanded="false">
+    </HoverNavGroup>
+    <HoverNavGroup Title="Organization" Icon="@Icons.Material.Outlined.PointOfSale">
         <MudNavLink Href="/shop/branches" Icon="@Icons.Material.Outlined.Store">Branches/Stores</MudNavLink>
         <MudNavLink Href="/shop/warehouses" Icon="@Icons.Material.Outlined.Warehouse">Warehouses</MudNavLink>
-    </MudNavGroup>
+    </HoverNavGroup>
   
     <MudDivider Class="mt-2 mb-1" />
-    <MudNavGroup Title="Sales" Icon="@Icons.Material.Outlined.PointOfSale" Expanded="false">
+    <HoverNavGroup Title="Sales" Icon="@Icons.Material.Outlined.PointOfSale">
         <MudNavLink Href="/sales/list" Icon="@Icons.Material.Outlined.Receipt">Sales</MudNavLink>
         <MudNavLink Href="/sales/returns" Icon="@Icons.Material.Outlined.AssignmentReturn">Sales Returns</MudNavLink>
         <MudNavLink Href="/sales/customers" Icon="@Icons.Material.Outlined.People">Customers</MudNavLink>
         <MudNavLink Href="/sales/quotes" Icon="@Icons.Material.Outlined.RequestQuote">Quotations</MudNavLink>
        @*  <MudNavLink Href="/sales/orders" Icon="@Icons.Material.Outlined.Receipt">Orders</MudNavLink> *@
-    </MudNavGroup>
-    <MudNavGroup Title="Purchasing" Icon="@Icons.Material.Outlined.ShoppingCart" Expanded="false">
+    </HoverNavGroup>
+    <HoverNavGroup Title="Purchasing" Icon="@Icons.Material.Outlined.ShoppingCart">
         <MudNavLink Href="/purchasing/list" Icon="@Icons.Material.Outlined.ShoppingCartCheckout">Purchase</MudNavLink>
         <MudNavLink Href="/purchasing/suppliers" Icon="@Icons.Material.Outlined.LocalShipping">Suppliers</MudNavLink>
         <MudNavLink Href="/purchasing/returns" Icon="@Icons.Material.Outlined.AssignmentReturn">Purchase Returns</MudNavLink>
         @* <MudNavLink Href="/purchasing/rfq" Icon="@Icons.Material.Outlined.RateReview">RFQ Requests</MudNavLink> *@
         <MudNavLink Href="/purchasing/landed-cost" Icon="@Icons.Material.Outlined.AttachMoney">Landed Cost</MudNavLink>
-    </MudNavGroup>
+    </HoverNavGroup>
   
     <MudDivider Class="mt-2 mb-1" />
-    <MudNavGroup Title="Accounting" Icon="@Icons.Material.Outlined.AccountBalance" Expanded="false">
+    <HoverNavGroup Title="Accounting" Icon="@Icons.Material.Outlined.AccountBalance">
         <MudNavLink Href="/accounting/accounts" Icon="@Icons.Material.Outlined.AccountTree">
             Chart of Accounts
         </MudNavLink>
@@ -56,14 +56,14 @@
         <MudNavLink Href="/accounting/reconciliation" Icon="@Icons.Material.Outlined.CompareArrows">
             Bank Reconciliation
         </MudNavLink>
-    </MudNavGroup>
+    </HoverNavGroup>
 
-    <MudNavGroup Title="Approvals" Icon="@Icons.Material.Outlined.ThumbUp" Expanded="false">
+    <HoverNavGroup Title="Approvals" Icon="@Icons.Material.Outlined.ThumbUp">
         <MudNavLink Href="/approvals" Icon="@Icons.Material.Outlined.PendingActions">My Approvals</MudNavLink>
-    </MudNavGroup>
+    </HoverNavGroup>
 
     <MudDivider Class="mt-2 mb-1" />
-    <MudNavGroup Title="Reports" Icon="@Icons.Material.Outlined.Assessment" Expanded="false">
+    <HoverNavGroup Title="Reports" Icon="@Icons.Material.Outlined.Assessment">
         <MudNavLink Href="/reports/trial-balance" Icon="@Icons.Material.Outlined.Balance">Trial Balance</MudNavLink>
         <MudNavLink Href="/reports/profit-loss" Icon="@Icons.Material.Outlined.TrendingUp">Profit & Loss</MudNavLink>
         <MudNavLink Href="/reports/balance-sheet" Icon="@Icons.Material.Outlined.PieChart">Balance Sheet</MudNavLink>
@@ -76,10 +76,10 @@
         <MudNavLink Href="/reports/tax" Icon="@Icons.Material.Outlined.ReceiptLong">Tax Reports</MudNavLink>
         <MudNavLink Href="/reports/abc-analysis" Icon="@Icons.Material.Outlined.Analytics">ABC Analysis</MudNavLink>
         <MudNavLink Href="/reports/inventory-costing" Icon="@Icons.Material.Outlined.Calculate">Inventory Costing</MudNavLink>
-    </MudNavGroup>
+    </HoverNavGroup>
 
     <MudDivider Class="mt-2 mb-1" />
-    <MudNavGroup Title="Settings" Icon="@Icons.Material.Outlined.Settings" Expanded="false">
+    <HoverNavGroup Title="Settings" Icon="@Icons.Material.Outlined.Settings">
         <MudNavLink Href="/settings/tax" Icon="@Icons.Material.Outlined.Receipt">Tax Rates</MudNavLink>
         <MudNavLink Href="/settings/currencies" Icon="@Icons.Material.Outlined.CurrencyExchange">Currencies</MudNavLink>
         <MudNavLink Href="/settings/price-lists" Icon="@Icons.Material.Outlined.PriceChange">Price Lists</MudNavLink>
@@ -93,9 +93,9 @@
         <MudNavLink Href="/settings/exchange-rates" Icon="@Icons.Material.Outlined.SwapHoriz">Exchange Rates</MudNavLink>
         <MudNavLink Href="/settings/notification-templates" Icon="@Icons.Material.Outlined.MailOutline">Notification Templates</MudNavLink>
         <MudNavLink Href="/settings/scheduled-reports" Icon="@Icons.Material.Outlined.Schedule">Scheduled Reports</MudNavLink>
-    </MudNavGroup>
+    </HoverNavGroup>
 
-    <MudNavGroup Title="Admin" Icon="@Icons.Material.Outlined.AdminPanelSettings" Expanded="false" Class="">
+    <HoverNavGroup Title="Admin" Icon="@Icons.Material.Outlined.AdminPanelSettings" Class="">
         <MudNavLink Href="/admin/users" Icon="@Icons.Material.Outlined.Group">User Management</MudNavLink>
         <MudNavLink Href="/admin/roles" Icon="@Icons.Material.Outlined.AdminPanelSettings">Role Management</MudNavLink>
         <MudNavLink Href="/admin/audit-logs" Icon="@Icons.Material.Outlined.History">Audit Logs</MudNavLink>
@@ -103,10 +103,10 @@
         <MudNavLink Href="/admin/export" Icon="@Icons.Material.Outlined.Download">Bulk Export</MudNavLink>
         <MudNavLink Href="/admin/data-privacy" Icon="@Icons.Material.Outlined.Security">Data Privacy</MudNavLink>
         <MudNavLink Href="/admin/archival" Icon="@Icons.Material.Outlined.Archive">Data Archival</MudNavLink>
-    </MudNavGroup>
+    </HoverNavGroup>
 
 
-    <MudNavGroup Title="Platform Admin" Icon="@Icons.Material.Outlined.AdminPanelSettings" Expanded="false" Class="">
+    <HoverNavGroup Title="Platform Admin" Icon="@Icons.Material.Outlined.AdminPanelSettings" Class="">
         <MudNavLink Href="/admin/users" Icon="@Icons.Material.Outlined.Group">Tenants</MudNavLink>
         <MudNavLink Href="/admin/roles" Icon="@Icons.Material.Outlined.AdminPanelSettings">Subscriptions</MudNavLink>
         <MudNavLink Href="/admin/audit-logs" Icon="@Icons.Material.Outlined.History">Plans</MudNavLink>
@@ -115,7 +115,7 @@
         <MudNavLink Href="/admin/data-privacy" Icon="@Icons.Material.Outlined.Security">System Monitoring</MudNavLink>
         <MudNavLink Href="/admin/archival" Icon="@Icons.Material.Outlined.Archive">Support / Tickets</MudNavLink>
         <MudNavLink Href="/admin/archival" Icon="@Icons.Material.Outlined.Archive">Global Settings</MudNavLink>
-    </MudNavGroup>
+    </HoverNavGroup>
 
 </MudNavMenu>
 

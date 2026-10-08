@@ -1,0 +1,46 @@
+@* Nav parent that opens its sub menu on hover. In the open menu it expands inline;
+   in the collapsed icon rail it opens a floating flyout (inline expansion would be
+   squeezed into 56px and clipped by the rail's scroll container). Click still toggles. *@
+@if (Rail)
+{
+    <div class="left-nav-menu-item" @onmouseenter="EnterFlyout" @onmouseleave="CloseFlyout">
+        <MudIconButton Icon="@Icon" Title="@Title" Size="Size.Medium" Style="color:#A3A3A3;" OnClick="ToggleFlyout" />
+        <MudPopover Open="@_flyout" AnchorOrigin="Origin.CenterRight" TransformOrigin="Origin.CenterLeft" Elevation="8" Paper="true">
+            <div class="pa-2" @onclick="CloseFlyout" style="min-width:230px;">
+                <MudText Typo="Typo.subtitle2" Class="px-4 pt-2 pb-1" Style="font-weight:700;">@Title</MudText>
+                @ChildContent
+            </div>
+        </MudPopover>
+    </div>
+}
+else
+{
+    <div  class="left-nav-menu-item" @onmouseenter="Enter" @onmouseleave="Leave">
+        <MudNavGroup Title="@Title" Icon="@Icon" @bind-Expanded="_open" Class="@Class">
+            @ChildContent
+        </MudNavGroup>
+    </div>
+}
+
+@code {
+    /// <summary>True while the left menu is collapsed to its icon rail (cascaded from the layout).</summary>
+    [CascadingParameter(Name = "LeftMenuRail")] public bool Rail { get; set; }
+
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _open;
+    private bool _flyout;
+
+    private void Enter() => _open = true;
+
+    private void Leave() => _open = false;
+
+    private void EnterFlyout() => _flyout = true;
+
+    private void CloseFlyout() => _flyout = false;
+
+    private void ToggleFlyout() => _flyout = !_flyout;
+}
