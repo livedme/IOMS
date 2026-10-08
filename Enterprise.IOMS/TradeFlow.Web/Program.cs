@@ -5,6 +5,7 @@ using TradeFlow.Infrastructure.Data;
 using TradeFlow.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -87,6 +88,15 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+
+// Behind IIS / Nginx / a cloud load balancer the app sees the proxy's scheme and IP,
+// not the client's. Without this, UseHttpsRedirection 307-redirects the SignalR
+// negotiate/post requests (killing the Blazor circuit with "connection closed" on the
+// client) and the rate limiter partitions by the proxy's IP instead of the client's.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
