@@ -5,6 +5,7 @@
 @inject IInventoryService InventoryService
 @inject ISnackbar Snackbar
 @inject IWarehousesService WarehousesService
+@inject NavigationManager Navigation
 
 <PageTitle>Stock Levels - IOMS</PageTitle>
 
@@ -17,12 +18,12 @@
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="📦" Number="@TotalCountText" Label="Stock Items" Tone="blue" />
-        <TmStatTile Icon="✔" Number="@InStockCountText" Label="In Stock" Tone="green" />
+        <TmStatTile Icon="📦" Number="@TotalCountText" Label="Stock Items" Tone="blue" OnClick="@(() => FilterByStatus(null))" />
+        <TmStatTile Icon="✔" Number="@InStockCountText" Label="In Stock" Tone="green" OnClick="@(() => FilterByStatus("InStock"))" />
         <TmStatTile Icon="⚠" Number="@LowStockCountText" Label="Low Stock" Tone="yellow" OnClick="@ToggleAlerts" />
-        <TmStatTile Icon="⛔" Number="@OutOfStockCountText" Label="Out of Stock" Tone="red" />
-        <TmStatTile Icon="🔒" Number="@ReservedCountText" Label="Reserved" Tone="purple" />
-        <TmStatTile Icon="🏬" Number="@WarehouseCountText" Label="Warehouses" Tone="teal" />
+        <TmStatTile Icon="⛔" Number="@OutOfStockCountText" Label="Out of Stock" Tone="red" OnClick="@(() => FilterByStatus("OutOfStock"))" />
+        <TmStatTile Icon="🔒" Number="@ReservedCountText" Label="Reserved" Tone="purple" OnClick="@(() => FilterByStatus("Reserved"))" />
+        <TmStatTile Icon="🏬" Number="@WarehouseCountText" Label="Warehouses" Tone="teal" OnClick="@(() => Navigation.NavigateTo("/shop/warehouses"))" />
     </div>
 
     <div class="tm-card tm-filters">
@@ -287,6 +288,23 @@
         pagedRequest.Status = null;
         pagedRequest.CurrentPage = 0;
         _hasLoadedOnce = false;
+        await LoadInventory();
+    }
+
+    /// <summary>
+    /// Stat-tile tabs. Same toggle rule as the Customer/Sales grids: clicking the
+    /// active tile clears the filter. Tiles always act on the main Stock Levels
+    /// view, so an active Low Stock Alerts view is exited first.
+    /// </summary>
+    private async Task FilterByStatus(string? status)
+    {
+        if (_showLowStock)
+        {
+            _showLowStock = false;
+            _hasLoadedOnce = false;
+        }
+        pagedRequest.Status = pagedRequest.Status == status ? null : status;
+        pagedRequest.CurrentPage = 0;
         await LoadInventory();
     }
 
