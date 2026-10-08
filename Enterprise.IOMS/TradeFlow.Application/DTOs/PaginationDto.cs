@@ -183,6 +183,8 @@ namespace TradeFlow.Application.DTOs
     {
         public Guid? TenantId { get; set; }
         public StockMovementType? Type { get; set; }
+        /// <summary>Direction tab on the Stock Transfers grid. Null = both legs.</summary>
+        public bool? IsInbound { get; set; }
         public Guid? WarehouseId { get; set; }
         public DateTime? From { get; set; }
         public DateTime? To { get; set; }

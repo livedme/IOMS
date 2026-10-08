@@ -5,6 +5,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ISupplierService SupplierService
+@inject IPurchaseService PurchaseService
 
 <PageTitle>Suppliers - IOMS</PageTitle>
 
@@ -123,6 +124,7 @@
                                 </td>
                                 <td>
                                     <span class="tm-actions" style="justify-content:flex-end">
+                                        <button class="tm-act tm-act-view" title="View" @onclick="() => ViewSupplier(s.Id)">👁</button>
                                         <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenEdit(s)">✎</button>
                                         <button class="tm-act tm-act-del" title="Delete" @onclick="() => Delete(s)">🗑</button>
                                     </span>
@@ -146,6 +148,105 @@
         </div>
     </div>
 </div>
+
+@* ─── Supplier Detail Slider Drawer (same style as the Customer detail drawer) ─── *@
+<TmSlideDrawer @bind-Open="_drawerOpen" Title="@_drawerTitle">
+
+    @if (_viewSupplier == null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <div class="tm-info-card mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="text-muted small">Supplier</div>
+                    <strong>@_viewSupplier.SupplierName</strong><br />
+                    <span class="small">@_viewSupplier.SupplierPhone</span><br />
+                    <span class="small">@_viewSupplier.SupplierEmail</span>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Contact Person</div>
+                    <strong>@(_viewSupplier.ContactPersonName)</strong><br />
+                    <span class="small">@_viewSupplier.ContactPersonPhone</span><br />
+                    <span class="small">@_viewSupplier.ContactPersonEmail</span><br />
+                    <span class="small">@_viewSupplier.Address, @_viewSupplier.City @_viewSupplier.State @_viewSupplier.PostalCode</span>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Payment &amp; Terms</div>
+                    <strong>@(string.IsNullOrWhiteSpace(_viewSupplier.PaymentTerms) ? "-" : _viewSupplier.PaymentTerms)</strong><br />
+                    <span class="small">Lead time: @_viewSupplier.LeadTimeDays day(s)</span><br />
+                    <span class="small">Rating: @_viewSupplier.Rating.ToString("0.0")</span>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Status</div>
+                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_viewSupplier.IsActive)" Size="Size.Small">
+                        @(_viewSupplier.IsActive ? "Active" : "Inactive")
+                    </MudChip>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <h6 class="text-primary mb-3">PURCHASE HISTORY (@_purchaseHistory.Count)</h6>
+                @if (_historyLoading)
+                {
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                }
+                else
+                {
+                    <MudTable Items="@_purchaseHistory" Dense="true" Hover="true" Elevation="2">
+                        <HeaderContent>
+                            <MudTh>#</MudTh>
+                            <MudTh>Order #</MudTh>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Warehouse</MudTh>
+                            <MudTh Style="text-align:right">Total</MudTh>
+                            <MudTh Style="text-align:right">Paid</MudTh>
+                            <MudTh Style="text-align:right">Due</MudTh>
+                            <MudTh>Status</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@(_purchaseHistory.IndexOf(context) + 1)</MudTd>
+                            <MudTd>@context.OrderNumber</MudTd>
+                            <MudTd>@context.PurchaseDate.ToString("dd-MMM-yyyy")</MudTd>
+                            <MudTd>@context.WarehouseName</MudTd>
+                            <MudTd Style="text-align:right">@context.TotalAmount.ToString("N0")</MudTd>
+                            <MudTd Style="text-align:right">@context.PaidAmount.ToString("N0")</MudTd>
+                            <MudTd Style="text-align:right">@context.DueAmount.ToString("N0")</MudTd>
+                            <MudTd><span class="@GetStatusPill(context.Status)"><span class="tm-dot"></span>@context.Status</span></MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText Typo="Typo.body2" Style="color:#64748b;">No purchase history for this supplier.</MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+                }
+            </div>
+            <div class="col-lg-4">
+                <div class="tm-summary-card">
+                    <h6 class="text-primary mb-3">SUPPLIER SUMMARY</h6>
+                    <div class="tm-summary-item"><span>Total Orders</span><strong>@_purchaseHistory.Count</strong></div>
+                    <div class="tm-summary-item"><span>Total Purchased</span><strong>@_historyTotal.ToString("N0")</strong></div>
+                    <div class="tm-summary-item"><span>Total Paid</span><strong>@_historyPaid.ToString("N0")</strong></div>
+                    <div class="pt-3 border-top mt-2">
+                        <div class="d-flex justify-content-between">
+                            <strong>TOTAL DUE</strong>
+                            <span class="text-danger fw-bold fs-5">@_historyDue.ToString("N0")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="@(() => EditFromDrawer())">Edit</MudButton>
+            </div>
+        </div>
+    }
+
+</TmSlideDrawer>
 
 @code {
     private static class Col
@@ -173,6 +274,16 @@
     private bool _loadRunning;
     private bool _loadQueued;
     private CancellationTokenSource? _debounceCts;
+
+    // ─── Detail drawer (Customer detail drawer style) ───
+    private bool _drawerOpen;
+    private string _drawerTitle = "";
+    private SupplierDto? _viewSupplier;
+    private List<PurchaseOrderDto> _purchaseHistory = new();
+    private bool _historyLoading;
+    private decimal _historyTotal;
+    private decimal _historyPaid;
+    private decimal _historyDue;
 
     private List<string> Cities => _cities;
     private string StatusValue => pagedRequest.IsActive switch
@@ -241,7 +352,7 @@
     private string Stat(string key) =>
         pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
 
-    private void SortBy(string column)
+    private async Task SortBy(string column)
     {
         if (pagedRequest.SortColumn == column)
             pagedRequest.SortAscending = !pagedRequest.SortAscending;
@@ -251,6 +362,7 @@
             pagedRequest.SortAscending = true;
         }
         pagedRequest.CurrentPage = 0;
+        await LoadData();
     }
 
     private string SortIcon(string column)
@@ -299,6 +411,58 @@
             await LoadData();
         }
     }
+
+    private void CloseDrawer() => _drawerOpen = false;
+
+    private async Task ViewSupplier(Guid id)
+    {
+        _viewSupplier = null;
+        _purchaseHistory = new();
+        _historyTotal = _historyPaid = _historyDue = 0;
+        _drawerTitle = "Loading…";
+        _historyLoading = true;
+        _drawerOpen = true;
+
+        try
+        {
+            _viewSupplier = await SupplierService.GetSupplierByIdAsync(id);
+            _drawerTitle = _viewSupplier == null ? "Supplier" : $"Supplier — {_viewSupplier.SupplierName}";
+
+            var history = await PurchaseService.GetPurchaseOrdersAsync(new PurchaseOrderPagedRequest
+            {
+                SupplierId = id,
+                CurrentPage = 0,
+                PageSize = 100,
+                SortColumn = "PurchaseDate",
+                SortAscending = false
+            });
+            _purchaseHistory = history.Items;
+            _historyTotal = _purchaseHistory.Sum(o => o.TotalAmount);
+            _historyPaid = _purchaseHistory.Sum(o => o.PaidAmount);
+            _historyDue = _purchaseHistory.Sum(o => o.DueAmount);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _historyLoading = false; }
+    }
+
+    private async Task EditFromDrawer()
+    {
+        if (_viewSupplier == null) return;
+        CloseDrawer();
+        await OpenEdit(_viewSupplier);
+    }
+
+    private static string GetStatusPill(PurchaseOrderStatus s) => s switch
+    {
+        PurchaseOrderStatus.Draft => "tm-pill tm-pill-purple",
+        PurchaseOrderStatus.Submitted => "tm-pill tm-pill-blue",
+        PurchaseOrderStatus.Approved => "tm-pill tm-pill-green",
+        PurchaseOrderStatus.PartiallyReceived => "tm-pill tm-pill-amber",
+        PurchaseOrderStatus.Received => "tm-pill tm-pill-teal",
+        PurchaseOrderStatus.Closed => "tm-pill tm-pill-blue",
+        PurchaseOrderStatus.Cancelled => "tm-pill tm-pill-red",
+        _ => "tm-pill tm-pill-blue"
+    };
 
     // ─── Filters ───
     private void OnSearchInput(ChangeEventArgs e)

@@ -16,11 +16,11 @@
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="🔄" Number="@TotalCountText" Label="Movements" Tone="blue" />
-        <TmStatTile Icon="⬆️" Number="@InCountText" Label="Stock In" Tone="green" />
-        <TmStatTile Icon="⬇️" Number="@OutCountText" Label="Stock Out" Tone="red" />
-        <TmStatTile Icon="🔁" Number="@TransferCountText" Label="Transfers" Tone="purple" />
-        <TmStatTile Icon="⚙️" Number="@AdjustmentCountText" Label="Adjustments" Tone="yellow" />
+        <TmStatTile Icon="🔄" Number="@TotalCountText" Label="Movements" Tone="blue" OnClick="@(() => FilterByType(null))" />
+        <TmStatTile Icon="⬆️" Number="@InCountText" Label="Stock In" Tone="green" OnClick="@(() => FilterByType(StockMovementType.In))" />
+        <TmStatTile Icon="⬇️" Number="@OutCountText" Label="Stock Out" Tone="red" OnClick="@(() => FilterByType(StockMovementType.Out))" />
+        <TmStatTile Icon="🔁" Number="@TransferCountText" Label="Transfers" Tone="purple" OnClick="@(() => FilterByType(StockMovementType.Transfer))" />
+        <TmStatTile Icon="⚙️" Number="@AdjustmentCountText" Label="Adjustments" Tone="yellow" OnClick="@(() => FilterByType(StockMovementType.Adjustment))" />
         <TmStatTile Icon="📈" Number="@NetQuantityText" Label="Net Qty" Tone="teal" />
     </div>
 
@@ -224,7 +224,7 @@
     private string Stat(string key) =>
         pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
 
-    private void SortBy(string column)
+    private async Task SortBy(string column)
     {
         if (pagedRequest.SortColumn == column)
             pagedRequest.SortAscending = !pagedRequest.SortAscending;
@@ -234,6 +234,7 @@
             pagedRequest.SortAscending = true;
         }
         pagedRequest.CurrentPage = 0;
+        await Load();
     }
 
     private string SortIcon(string column)
@@ -292,6 +293,18 @@
     private async Task OnTypeChanged(ChangeEventArgs e)
     {
         pagedRequest.Type = Enum.TryParse<StockMovementType>(e.Value?.ToString(), out var t) ? t : null;
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    /// <summary>
+    /// Stat-tile tabs. Same toggle rule as the other grids: clicking the active
+    /// tile clears the filter. Shares <c>pagedRequest.Type</c> with the Type
+    /// dropdown so both stay in sync.
+    /// </summary>
+    private async Task FilterByType(StockMovementType? type)
+    {
+        pagedRequest.Type = pagedRequest.Type == type ? null : type;
         pagedRequest.CurrentPage = 0;
         await Load();
     }

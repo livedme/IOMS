@@ -73,6 +73,10 @@ namespace TradeFlow.Infrastructure.Services
 
             query = ApplyMovementFilters(query, request, search, hasSearch);
 
+            // Direction tab: applied after stats so the tiles keep showing both legs.
+            if (request.IsInbound.HasValue)
+                query = query.Where(m => request.IsInbound.Value ? m.Quantity > 0 : m.Quantity < 0);
+
             var sortAsc = request.SortAscending;
             query = (request.SortColumn ?? "MovementDate") switch
             {

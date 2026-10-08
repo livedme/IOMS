@@ -6,6 +6,7 @@
 @inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IWarehousesService WarehousesService
+@inject NavigationManager Navigation
 
 <PageTitle>Stock Transfers - IOMS</PageTitle>
 
@@ -17,12 +18,12 @@
     </TmPageHeader>
 
     <div class="tm-stats">
-        <TmStatTile Icon="🚚" Number="@TotalCountText" Label="Transfers" Tone="blue" />
+        <TmStatTile Icon="🚚" Number="@TotalCountText" Label="Transfers" Tone="blue" OnClick="@ResetFilters" />
         <TmStatTile Icon="📦" Number="@DistinctProductCountText" Label="Products Moved" Tone="purple" />
         <TmStatTile Icon="⬆️" Number="@TotalUnitsText" Label="Total Units" Tone="green" />
-        <TmStatTile Icon="🏬" Number="@WarehouseCountText" Label="Warehouses" Tone="teal" />
+        <TmStatTile Icon="🏬" Number="@WarehouseCountText" Label="Warehouses" Tone="teal" OnClick="@(() => Navigation.NavigateTo("/shop/warehouses"))" />
         <TmStatTile Icon="📅" Number="@LastTransferText" Label="Last Transfer" Tone="yellow" />
-        <TmStatTile Icon="📥" Number="@LatestInText" Label="Latest In" Tone="green" />
+        <TmStatTile Icon="📥" Number="@LatestInText" Label="Latest In" Tone="green" OnClick="@FilterInbound" />
     </div>
 
     <!-- New transfer form -->
@@ -271,7 +272,7 @@
     private string Stat(string key) =>
         pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
 
-    private void SortBy(string column)
+    private async Task SortBy(string column)
     {
         if (pagedRequest.SortColumn == column)
             pagedRequest.SortAscending = !pagedRequest.SortAscending;
@@ -281,6 +282,7 @@
             pagedRequest.SortAscending = true;
         }
         pagedRequest.CurrentPage = 0;
+        await Load();
     }
 
     private string SortIcon(string column)
@@ -375,8 +377,19 @@
     {
         pagedRequest.SearchTerm = "";
         pagedRequest.WarehouseId = null;
+        pagedRequest.IsInbound = null;
         pagedRequest.From = null;
         pagedRequest.To = null;
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    /// <summary>
+    /// "Latest In" tile: toggles the inbound-leg-only view (Qty &gt; 0).
+    /// </summary>
+    private async Task FilterInbound()
+    {
+        pagedRequest.IsInbound = pagedRequest.IsInbound == true ? null : true;
         pagedRequest.CurrentPage = 0;
         await Load();
     }

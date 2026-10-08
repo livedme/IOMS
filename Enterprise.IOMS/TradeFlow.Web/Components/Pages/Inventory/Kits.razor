@@ -204,7 +204,7 @@
     private string Stat(string key) =>
         pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
 
-    private void SortBy(string column)
+    private async Task SortBy(string column)
     {
         if (pagedRequest.SortColumn == column)
             pagedRequest.SortAscending = !pagedRequest.SortAscending;
@@ -214,6 +214,7 @@
             pagedRequest.SortAscending = true;
         }
         pagedRequest.CurrentPage = 0;
+        await Load();
     }
 
     private string SortIcon(string column)
