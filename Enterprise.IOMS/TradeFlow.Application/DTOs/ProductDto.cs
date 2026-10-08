@@ -6,23 +6,48 @@ namespace TradeFlow.Application.DTOs
 {
     // Products
     public record ProductDto(Guid Id, string Name, string SKU, string? Barcode, string? Description, decimal CostPrice, decimal SellingPrice, decimal WholeSellingPrice,
-        int ReorderStockLevel, int MinOrderQuantity, Guid CategoryId, string? CategoryName, Guid? BrandId, string? BrandName, string? Model, string? ImageUrl,
+        int ReorderStockLevel, int MinOrderQuantity, int WarrantyInMonths, Guid CategoryId, string? CategoryName, Guid? BrandId, string? BrandName, string? Model, string? ImageUrl,
         int TotalStock, bool IsKit, string OriginCountry, string OriginManufacturer);
 
 
     public record CreateProductDto(string Name, string SKU, string? Barcode, string? Description, decimal CostPrice, decimal SellingPrice, decimal WholeSellingPrice,
-        int ReorderStockLevel, int MinOrderQuantity, Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl);
+        int ReorderStockLevel, int MinOrderQuantity, int WarrantyInMonths, Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl);
 
     // Extended CreateProductDto
     public record CreateProductDetailsDto(Guid Id, string Name, string SKU, string? Barcode, string? Description, decimal CostPrice, decimal SellingPrice, 
-        decimal WholeSellingPrice, int ReorderStockLevel, int MinOrderQuantity, Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl, string? Model);
+        decimal WholeSellingPrice, int ReorderStockLevel, int MinOrderQuantity, int WarrantyInMonths, Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl, string? Model);
 
     public record UpdateProductDto(Guid Id, string Name, string SKU, string? Barcode, string? Description, decimal CostPrice, decimal SellingPrice,
-        int ReorderStockLevel, int MinOrderQuantity, Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl);
+        int ReorderStockLevel, int MinOrderQuantity, int WarrantyInMonths, Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl);
     // Extended UpdateProductDto
     public record UpdateProductDetailsDto(Guid Id, string Name, string SKU, string? Barcode, string? Description, decimal CostPrice, decimal SellingPrice,
-        int ReorderStockLevel, int MinOrderQuantity, Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl, string? Model);
-
+        int ReorderStockLevel, int MinOrderQuantity, int WarrantyInMonths, Guid CategoryId, Guid? BrandId, Guid? BaseUoMId, string? ImageUrl, string? Model);
+    public record ProductDetailViewDto(
+    Guid Id,
+    string Name,
+    string SKU,
+    string? Barcode,
+    string? Description,
+    string? ImageUrl,
+    decimal CostPrice,
+    decimal SellingPrice,
+    decimal WholeSellingPrice,
+    int ReorderStockLevel,
+    int MinOrderQuantity,
+    int WarrantyInMonths,
+    string? Model,
+    string? OriginCountry,
+    string? OriginManufacturer,
+    string? CategoryName,
+    string? ParentCategoryName,
+    string? BrandName,
+    string? PreferredSupplierName,
+    int Last30DaysSales,
+    int TotalAvailable,
+    List<ProductWarehouseStockDto> WarehouseStock,
+    List<StockMovementReportRowDto> Movements,
+    List<ProductOrderLineDto> SalesOrderLines,
+    List<ProductOrderLineDto> PurchaseOrderLines);
 
     public class ProductDetailsDto
     {
@@ -36,6 +61,7 @@ namespace TradeFlow.Application.DTOs
         public decimal WholeSellingPrice { get; set; }
         public int ReorderStockLevel { get; set; }
         public int MinOrderQuantity { get; set; }
+        public int WarrantyInMonths { get; set; }
         public ControlDto CategoryControl { get; set; } = new ControlDto();
         public Guid CategoryId { get; set; }
         public string? CategoryName { get; set; }

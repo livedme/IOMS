@@ -83,7 +83,7 @@
                     </MudTd>
                     <MudTd Style="width:auto;" class="d-flex justify-content-between px-0">
                         <MudNumericField @bind-Value="dataModel.ProductObj.DiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                        <MudSelect @bind-Value="dataModel.ProductObj.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelect @bind-Value="dataModel.ProductObj.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense" SelectionOnEnter="true">
                             @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
                             {
                                 <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
@@ -128,7 +128,7 @@
                         </MudTd>
                         <MudTd Style="width:auto;" class="d-flex justify-content-between px-0">
                             <MudNumericField @bind-Value="dataModel.ProductObj.DiscountAmount" Format="N1" Class="_newDiscount" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            <MudSelect @bind-Value="dataModel.ProductObj.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelect @bind-Value="dataModel.ProductObj.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense" SelectionOnEnter="true">
                                 @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
                                 {
                                     <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
@@ -188,7 +188,7 @@
                     <MudItem xs="4" Class="pe-2 pt-2">                        
                         <div class="d-flex justify-content-between">
                             <MudNumericField @bind-Value="dataModel.DiscountAmount" Label="Discount" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountField pb-1 col-7" />
-                            <MudSelect @bind-Value="dataModel.DiscountType" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountTypeField pb-1 col-3">
+                            <MudSelect @bind-Value="dataModel.DiscountType" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountTypeField pb-1 col-3" SelectionOnEnter="true">
                                 @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
                                 {
                                     <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>

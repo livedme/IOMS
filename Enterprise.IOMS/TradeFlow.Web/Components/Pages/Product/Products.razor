@@ -110,7 +110,7 @@
                 <thead>
                     <tr>
                         <th>Product Name ▲</th>
-                        <th>SKU</th>
+                        @* <th>SKU</th> *@
                         <th>Barcode</th>
                         <th>Category</th>
                         <th>Brand / Model</th>
@@ -119,7 +119,7 @@
                         <th>Wholesale</th>
                         <th>Stock</th>
                         <th>Reorder Level</th>
-                        <th>Branch</th>
+                        <th>Warranty</th>
                         <th>Status</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
@@ -154,7 +154,7 @@
                                 <td>
                                     <span class="tm-veh">@p.Name</span>
                                 </td>
-                                <td class="tm-num">@p.SKU</td>
+                                @* <td class="tm-num">@p.SKU</td> *@
                                 <td class="tm-num">@(string.IsNullOrWhiteSpace(p.Barcode) ? "-" : p.Barcode)</td>
                                 <td class="tm-dim">@(p.CategoryName ?? "-")</td>
                                 <td class="tm-dim">@((p.BrandName ?? "-") + (string.IsNullOrWhiteSpace(p.Model) ? "" : $" ({p.Model})"))</td>
@@ -163,7 +163,8 @@
                                 <td class="tm-money">@p.WholeSellingPrice.ToString("0.00")</td>
                                 <td class="tm-num">@p.TotalStock</td>
                                 <td class="tm-num">@p.ReorderStockLevel</td>
-                                <td class="tm-branch">@p.OriginCountry</td>
+                                <td class="tm-num">@p.WarrantyInMonths</td>
+                                @* <td class="tm-branch">@p.OriginCountry</td> *@
                                 <td><span class="@pill"><span class="tm-dot"></span>@status</span></td>
                                 <td>
                                     <span class="tm-actions" style="justify-content:flex-end">

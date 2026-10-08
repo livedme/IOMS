@@ -127,6 +127,7 @@ namespace TradeFlow.Infrastructure.Services
                     x.Product.WholeSellingPrice,
                     x.Product.ReorderStockLevel,
                     x.Product.MinOrderQuantity,
+                    x.Product.WarrantyInMonths,
                     x.Product.CategoryId,
                     x.Product.Category != null ? x.Product.Category.Name : null,
                     x.Product.BrandId,
@@ -196,7 +197,7 @@ namespace TradeFlow.Infrastructure.Services
                 .Where(p => p.Id == id)
                 .Select(p => new ProductDto(
                     p.Id, p.Name, p.SKU, p.Barcode, p.Description, p.CostPrice, p.SellingPrice,
-                    p.WholeSellingPrice, p.ReorderStockLevel, p.MinOrderQuantity, p.CategoryId,
+                    p.WholeSellingPrice, p.ReorderStockLevel, p.MinOrderQuantity, p.WarrantyInMonths, p.CategoryId,
                     p.Category != null ? p.Category.Name : null,
                     p.BrandId, p.Brand != null ? p.Brand.Name : null, p.Model, p.ImageUrl,
                     p.Inventories.Sum(i => i.Quantity), p.IsKit,
@@ -298,6 +299,7 @@ namespace TradeFlow.Infrastructure.Services
                     p.WholeSellingPrice,
                     p.ReorderStockLevel,
                     p.MinOrderQuantity,
+                    p.WarrantyInMonths,
                     p.Model,
                     p.OriginCountry,
                     p.OriginManufacturer,
@@ -391,6 +393,7 @@ namespace TradeFlow.Infrastructure.Services
                 header.WholeSellingPrice,
                 header.ReorderStockLevel,
                 header.MinOrderQuantity,
+                header.WarrantyInMonths,
                 header.Model,
                 header.OriginCountry,
                 header.OriginManufacturer,

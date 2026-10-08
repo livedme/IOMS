@@ -11,6 +11,7 @@ public class Product : BaseEntity
     public decimal WholeSellingPrice { get; set; }
     public int ReorderStockLevel { get; set; }
     public int MinOrderQuantity { get; set; }
+    public int WarrantyInMonths { get; set; }
     public Guid CategoryId { get; set; }
     public Category Category { get; set; } = null!;
     public Guid? BaseUoMId { get; set; }

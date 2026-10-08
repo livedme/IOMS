@@ -59,12 +59,11 @@
             <table class="tm-table" style="min-width:1050px">
                 <thead>
                     <tr>
-                        <th @onclick="@(() => SortBy(Col.Name))">🏷 Category Name @SortIcon(Col.Name)</th>
-                        <th @onclick="@(() => SortBy(Col.Description))">Description @SortIcon(Col.Description)</th>
-                        <th>Parent</th>
+                        <th @onclick="@(() => SortBy(Col.Name))">🏷 Category Name @SortIcon(Col.Name)</th>                        
                         <th>Level</th>
-                        <th style="text-align:right" @onclick="@(() => SortBy(Col.ProductCount))">Products @SortIcon(Col.ProductCount)</th>
+                        <th>Main Category</th>                        
                         <th @onclick="@(() => SortBy(Col.Path))">Path @SortIcon(Col.Path)</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.ProductCount))">Products @SortIcon(Col.ProductCount)</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
                 </thead>
@@ -96,11 +95,10 @@
                                         <span class="tm-veh-ico" style="background:@icoBg">🏷</span>@c.Name
                                     </span>
                                 </td>
-                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(c.Description) ? "-" : Truncate(c.Description, 60))</td>
-                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(c.ParentCategoryName) ? "-" : c.ParentCategoryName)</td>
                                 <td class="tm-num">Level @GetLevel(c)</td>
-                                <td style="text-align:right"><span class="@pill"><span class="tm-dot"></span>@(c.ProductCount ?? 0)</span></td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(c.ParentCategoryName) ? "-" : c.ParentCategoryName)</td>                                
                                 <td class="tm-branch">@(string.IsNullOrWhiteSpace(c.Path) ? "-" : c.Path)</td>
+                                    <td style="text-align:right"><span class="@pill"><span class="tm-dot"></span>@(c.ProductCount ?? 0)</span></td>                                
                                 <td>
                                     <span class="tm-actions" style="justify-content:flex-end">
                                         <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenEditDialog(c)">✎</button>

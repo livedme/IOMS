@@ -69,9 +69,16 @@ namespace TradeFlow.Infrastructure.Services
             var pageSize = Math.Clamp(request.PageSize, 1, 100);
             var search = request.SearchTerm?.Trim();
 
-            var query = read.Categories.AsNoTracking();
+            //var query = read.Categories.Include(c => c.ParentCategory).AsNoTracking();
+            //if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            //    query = query.Where(c => c.TenantId == request.TenantId.Value);
+
+            IQueryable<Category> query;
             if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
-                query = query.Where(c => c.TenantId == request.TenantId.Value);
+                query = read.Categories.Include(c => c.ParentCategory).IgnoreQueryFilters().Where(c => c.TenantId == request.TenantId.Value).AsNoTracking();
+            else
+                query = read.Categories.Include(c => c.ParentCategory).AsNoTracking();
+
 
             if (!string.IsNullOrWhiteSpace(search))
             {

@@ -9,9 +9,9 @@
                 <MudItem xs="12" sm="4" Class="p-4 py-2 pt-4">
                     <MudTextField @bind-Value="DataModel.Name" Label="Name11" Required="true" RequiredError="" ErrorText="" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
-                <MudItem xs="12" sm="4" Class="p-4 py-2 pt-4">
+               @*  <MudItem xs="12" sm="4" Class="p-4 py-2 pt-4">
                     <MudTextField @bind-Value="DataModel.SKU" Label="SKU" Required="true" RequiredError="" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </MudItem>
+                </MudItem> *@
                 <MudItem xs="12" sm="4" Class="p-4 py-2 pt-4">
                     <MudTextField @bind-Value="this.DataModel.Barcode" Label="Barcode" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
                 </MudItem>
@@ -49,6 +49,9 @@
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
                     <MudTextField @ref="RefModel" @bind-Value="DataModel.Model" Label="Model" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
                 </MudItem>
+                 <MudItem xs="12" sm="4" Class="p-4 py-2">
+                    <MudNumericField @bind-Value="DataModel.ReorderStockLevel" Label="Reorder Stock Level" Min="0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                </MudItem>
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
                     <MudNumericField @bind-Value="DataModel.CostPrice" Label="Cost Price" Format="N2" Min="0m" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
                 </MudItem>
@@ -57,21 +60,19 @@
                 </MudItem>
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
                     <MudNumericField @bind-Value="DataModel.WholeSellingPrice" Label="Whole Selling Price" Format="N2" Min="0m" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
-                </MudItem>
-                <MudItem xs="12" sm="4" Class="p-4 py-2">
-                    <MudNumericField @bind-Value="DataModel.ReorderStockLevel" Label="Reorder Stock Level" Min="0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
-                </MudItem>
+                </MudItem>               
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
                     <MudTextField @bind-Value="DataModel.OriginManufacturer" Label="Origin Manufacturer" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
                 </MudItem>
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
                     <MudTextField @bind-Value="DataModel.OriginCountry" Label="Origin Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
                 </MudItem>
-
-           
-            <MudItem xs="12" Class="py-0">
-                <RichTextField @bind-Value="DataModel.Description" Label="Description" Lines="10" Class="mt-3" />
-            </MudItem>
+                   <MudItem xs="12" sm="4" Class="p-4 py-2">
+                    <MudNumericField @bind-Value="DataModel.WarrantyInMonths" Label="Warranty (month)" Min="0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                </MudItem>           
+                <MudItem xs="12" Class="py-0">
+                    <RichTextField @bind-Value="DataModel.Description" Label="Description" Lines="10" Class="mt-3" />
+                </MudItem>
 
         </MudGrid>
         </MudForm>

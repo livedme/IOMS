@@ -145,6 +145,7 @@ namespace TradeFlow.Application.DTOs
         /// <summary>"All" / "Active" / "Inactive" — matches the Brand.Status string column.</summary>
         public string? Status { get; set; }
         public bool? HasLogo { get; set; }
+        public string? OriginCompany { get; set; }
         public string? OriginCountry { get; set; }
         /// <summary>"All" / "With Products" / "Without Products".</summary>
         public string? ProductFilter { get; set; }

@@ -89,6 +89,10 @@ else
                     <hr class="ov-divider" />
                     <div class="ov-label">Origin Country / Manufacturer</div>
                     <div class="ov-value">@(_product.OriginCountry ?? "-") / @(_product.OriginManufacturer ?? "-")</div>
+                        <hr class="ov-divider" />
+                        <div class="ov-label">Warranty</div>
+                        <div class="ov-value">@(_product.WarrantyInMonths == 0 ? "N/A" : _product.WarrantyInMonths.ToString() + " months")</div>
+
                 </div>
                 <div>
                     <div class="ov-label">Category</div>

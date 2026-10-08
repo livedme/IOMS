@@ -38,9 +38,9 @@
             </select>
         </div>
         <div class="tm-select">
-            <select value="@(pagedRequest.OriginCountry ?? "")" @onchange="OnCountryChanged">
-                <option value="">All Countries</option>
-                @foreach (var c in _countries)
+            <select value="@(pagedRequest.OriginCompany ?? "")" @onchange="OnCompanyChanged">
+                <option value="">All Companies</option>
+                @foreach (var c in _companies)
                 {
                     <option value="@c">@c</option>
                 }
@@ -69,12 +69,12 @@
                 <thead>
                     <tr>
                         <th @onclick="@(() => SortBy(Col.Name))">🔧 Brand Name @SortIcon(Col.Name)</th>
-                        <th @onclick="@(() => SortBy(Col.BrandCode))">Code @SortIcon(Col.BrandCode)</th>
+                        @* <th @onclick="@(() => SortBy(Col.BrandCode))">Code @SortIcon(Col.BrandCode)</th> *@
                         <th @onclick="@(() => SortBy(Col.Status))">Status @SortIcon(Col.Status)</th>
-                        <th @onclick="@(() => SortBy(Col.OriginCompany))">Origin Company @SortIcon(Col.OriginCompany)</th>
-                        <th @onclick="@(() => SortBy(Col.OriginCountry))">Origin Country @SortIcon(Col.OriginCountry)</th>
+                        <th @onclick="@(() => SortBy(Col.OriginCompany))">Company @SortIcon(Col.OriginCompany)</th>
+                        @* <th @onclick="@(() => SortBy(Col.OriginCountry))">Origin Country @SortIcon(Col.OriginCountry)</th>
                         <th @onclick="@(() => SortBy(Col.FoundedYear))">Founded @SortIcon(Col.FoundedYear)</th>
-                        <th @onclick="@(() => SortBy(Col.Description))">Description @SortIcon(Col.Description)</th>
+                        <th @onclick="@(() => SortBy(Col.Description))">Description @SortIcon(Col.Description)</th> *@
                         <th style="text-align:right" @onclick="@(() => SortBy(Col.ProductCount))">Products @SortIcon(Col.ProductCount)</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
@@ -104,12 +104,12 @@
                                 <td>
                                     <span class="tm-veh"><span class="tm-veh-ico" style="background:@icoBg">🔧</span>@b.Name</span>
                                 </td>
-                                <td class="tm-num">@(string.IsNullOrWhiteSpace(b.BrandCode) ? "-" : b.BrandCode)</td>
+                               @*  <td class="tm-num">@(string.IsNullOrWhiteSpace(b.BrandCode) ? "-" : b.BrandCode)</td> *@
                                 <td><span class="@pill"><span class="tm-dot"></span>@b.Status</span></td>
                                 <td class="tm-dim">@(string.IsNullOrWhiteSpace(b.OriginCompany) ? "-" : b.OriginCompany)</td>
-                                <td class="tm-branch">@(string.IsNullOrWhiteSpace(b.OriginCountry) ? "-" : b.OriginCountry)</td>
+                               @*  <td class="tm-branch">@(string.IsNullOrWhiteSpace(b.OriginCountry) ? "-" : b.OriginCountry)</td>
                                 <td class="tm-num">@(b.FoundedYear?.ToString() ?? "-")</td>
-                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(b.Description) ? "-" : Truncate(b.Description, 60))</td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(b.Description) ? "-" : Truncate(b.Description, 60))</td> *@
                                 <td style="text-align:right" class="tm-num">@(b.ProductCount ?? 0)</td>
                                 <td>
                                     <span class="tm-actions" style="justify-content:flex-end">
@@ -158,7 +158,7 @@
         SortAscending = true
     };
 
-    private List<string> _countries = new();
+    private List<string> _companies = new();
     private bool _loading = true;
     private bool _hasLoadedOnce;
     private bool _loadRunning;
@@ -172,13 +172,13 @@
         try
         {
             var all = await BrandService.GetAllBrandsAsync();
-            _countries = all
-                .Select(b => b.OriginCountry)
-                .Where(c => !string.IsNullOrWhiteSpace(c))
-                .Select(c => c!)
-                .Distinct()
-                .OrderBy(c => c)
-                .ToList();
+             _companies = all
+                 .Select(b => b.OriginCompany)
+                 .Where(c => !string.IsNullOrWhiteSpace(c))
+                 .Select(c => c!)
+                 .Distinct()
+                 .OrderBy(c => c)
+                 .ToList();
         }
         catch { }
 
@@ -302,10 +302,10 @@
         await LoadBrands();
     }
 
-    private async Task OnCountryChanged(ChangeEventArgs e)
+    private async Task OnCompanyChanged(ChangeEventArgs e)
     {
         var v = e.Value?.ToString();
-        pagedRequest.OriginCountry = string.IsNullOrEmpty(v) ? null : v;
+        pagedRequest.OriginCompany = string.IsNullOrEmpty(v) ? null : v;
         pagedRequest.CurrentPage = 0;
         await LoadBrands();
     }
@@ -343,7 +343,7 @@
     {
         pagedRequest.SearchTerm = "";
         pagedRequest.Status = null;
-        pagedRequest.OriginCountry = null;
+        pagedRequest.OriginCompany = null;
         pagedRequest.ProductFilter = null;
         pagedRequest.HasLogo = null;
         pagedRequest.CurrentPage = 0;
@@ -452,8 +452,8 @@
         try
         {
             var all = await BrandService.GetAllBrandsAsync();
-            _countries = all
-                .Select(b => b.OriginCountry)
+            _companies = all
+                .Select(b => b.OriginCompany)
                 .Where(c => !string.IsNullOrWhiteSpace(c))
                 .Select(c => c!)
                 .Distinct()

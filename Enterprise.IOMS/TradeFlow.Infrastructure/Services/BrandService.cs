@@ -154,7 +154,16 @@ namespace TradeFlow.Infrastructure.Services
                 .ToListAsync();
 
             response.Items = items
-                .Select(x => new BrandDto(x.Brand.Id, x.Brand.Name, x.Brand.BrandCode, x.Brand.Description, x.ProductCount))
+                .Select(x => new BrandDto(x.Brand.Id, x.Brand.Name, x.Brand.BrandCode, x.Brand.Description, x.ProductCount)
+                {
+                    LogoUrl = x.Brand.LogoUrl,
+                    Status = x.Brand.Status,
+                    CreatedAt = x.Brand.CreatedAt,
+                    UpdatedAt = x.Brand.UpdatedAt,
+                    OriginCompany = x.Brand.OriginCompany,
+                    OriginCountry = x.Brand.OriginCountry,
+                    FoundedYear = x.Brand.FoundedYear
+                })
                 .ToList();
             response.TotalCount = totalCount;
             response.CurrentPage = page;

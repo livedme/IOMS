@@ -613,7 +613,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             {
                 TableName = entry.Entity.GetType().Name,
                 UserId = CurrentUserId,
-                TenantId = CurrentTenantId
+                TenantId = CurrentTenantId                
             };
             auditEntries.Add(auditEntry);
 

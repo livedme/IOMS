@@ -20,6 +20,7 @@ public class ProductDtoMappingProfile : Profile
                 s.WholeSellingPrice,
                 s.ReorderStockLevel,
                 s.MinOrderQuantity,
+                s.WarrantyInMonths,
                 s.CategoryId,
                 s.Category != null ? s.Category.Name : null,
                 s.BrandId,

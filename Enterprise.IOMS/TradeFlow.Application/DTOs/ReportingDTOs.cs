@@ -123,31 +123,7 @@ public record ProductOrderLineDto(
 /// issued straight off the page context, which tracked a product plus its category tree and
 /// inventory graph just to render a read-only view.
 /// </summary>
-public record ProductDetailViewDto(
-    Guid Id,
-    string Name,
-    string SKU,
-    string? Barcode,
-    string? Description,
-    string? ImageUrl,
-    decimal CostPrice,
-    decimal SellingPrice,
-    decimal WholeSellingPrice,
-    int ReorderStockLevel,
-    int MinOrderQuantity,
-    string? Model,
-    string? OriginCountry,
-    string? OriginManufacturer,
-    string? CategoryName,
-    string? ParentCategoryName,
-    string? BrandName,
-    string? PreferredSupplierName,
-    int Last30DaysSales,
-    int TotalAvailable,
-    List<ProductWarehouseStockDto> WarehouseStock,
-    List<StockMovementReportRowDto> Movements,
-    List<ProductOrderLineDto> SalesOrderLines,
-    List<ProductOrderLineDto> PurchaseOrderLines);
+
 
 // ── Accounting ──
 public record StatementInvoiceRowDto(Guid Id, string InvoiceNumber, DateTime InvoiceDate, decimal TotalAmount);
