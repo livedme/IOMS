@@ -176,15 +176,25 @@ namespace TradeFlow.Application.DTOs
     }
 
     /// <summary>
-    /// Backs both the Stock Movements grid (Type left null) and the Stock Transfers
-    /// grid (Type pinned to <see cref="StockMovementType.Transfer"/>).
+    /// Backs the Stock Movements grid (Type left null or pinned to a single type).
     /// </summary>
     public class StockMovementPagedRequest : PagedRequest
     {
         public Guid? TenantId { get; set; }
         public StockMovementType? Type { get; set; }
-        /// <summary>Direction tab on the Stock Transfers grid. Null = both legs.</summary>
+        /// <summary>Direction filter on the Stock Movements grid. Null = both directions.</summary>
         public bool? IsInbound { get; set; }
+        public Guid? WarehouseId { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+    }
+
+    /// <summary>Backs the Stock Transfers grid, which lists transfer batches.</summary>
+    public class StockTransferPagedRequest : PagedRequest
+    {
+        public Guid? TenantId { get; set; }
+        public StockTransferStatus? Status { get; set; }
+        /// <summary>Matches transfers where this warehouse is the source or the target.</summary>
         public Guid? WarehouseId { get; set; }
         public DateTime? From { get; set; }
         public DateTime? To { get; set; }

@@ -1,0 +1,265 @@
+@inject IInventoryService InventoryService
+@inject IWarehousesService WarehousesService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@if (_open)
+{
+    <div class="so-backdrop" @onclick="Close"></div>
+
+    <div class="so-side-panel @(_animateIn ? "so-panel-open" : "")">
+
+        <!-- Header -->
+        <div class="so-header">
+            <div class="d-flex align-items-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Color="Color.Primary" />
+                <div>
+                    <div class="so-header-title">Stock Transfer</div>
+                    @if (_transfer != null)
+                    {
+                        <div class="so-header-sub">@_transfer.TransferNumber</div>
+                    }
+                </div>
+                @if (_transfer != null)
+                {
+                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_transfer.Status)" Size="Size.Small" Class="ms-1">
+                        @_transfer.Status</MudChip>
+                }
+            </div>
+            <div class="d-flex gap-1">
+                @if (_transfer != null && _transfer.Status != StockTransferStatus.Cancelled)
+                {
+                    <MudTooltip Text="Edit Transfer">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                       OnClick="OpenEdit" />
+                    </MudTooltip>
+                }
+                <MudTooltip Text="Close panel">
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Close" />
+                </MudTooltip>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="so-body">
+            @if (_loading)
+            {
+                <div class="d-flex justify-center align-center" style="height:200px;">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+            else if (_transfer != null)
+            {
+                <!-- Reference block -->
+                <div class="so-ref-block mb-3">
+                    <div class="d-flex justify-space-between">
+                        <div>
+                            <div class="so-lbl">Transfer Number</div>
+                            <div class="so-val-lg">@_transfer.TransferNumber</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="so-lbl">Transfer Date</div>
+                            <div class="so-val fw-semibold">@_transfer.TransferDate.ToString("dd MMM yyyy")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- From & To warehouses -->
+                <MudGrid Spacing="2" Class="mb-3">
+                    <MudItem xs="6">
+                        <div class="so-info-card">
+                            <div class="so-info-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Small" Style="color:#fff;" />
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="so-lbl">From Warehouse</div>
+                                <div class="so-val fw-bold text-truncate">@_transfer.SourceWarehouseName</div>
+                            </div>
+                        </div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-info-card">
+                            <div class="so-info-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Small" Style="color:#fff;" />
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="so-lbl">To Warehouse</div>
+                                <div class="so-val fw-bold text-truncate">@_transfer.TargetWarehouseName</div>
+                            </div>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Items table -->
+                <div class="so-section-lbl mb-2">Transfer Items (@_transfer.Items.Count)</div>
+                <div class="so-items-wrapper">
+                    <MudTable Items="@_transfer.Items" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                        <HeaderContent>
+                            <MudTh>Product</MudTh>
+                            <MudTh Style="text-align:right">Qty</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <div class="so-val fw-semibold" style="line-height:1.2;">@context.ProductName</div>
+                                <div class="so-sm text-muted">@context.ProductSKU</div>
+                            </MudTd>
+                            <MudTd Style="text-align:right;font-weight:600;">@context.Quantity</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </div>
+
+                <MudDivider Class="my-3" />
+
+                <!-- Totals -->
+                <div class="so-totals-box">
+                    <div class="so-total-row">
+                        <span>Total Lines</span>
+                        <span>@_transfer.TotalLines</span>
+                    </div>
+                    <div class="so-total-row so-grand-total">
+                        <span>TOTAL UNITS</span>
+                        <span>@_transfer.TotalQuantity</span>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_transfer.Notes))
+                {
+                    <MudDivider Class="my-3" />
+                    <div class="so-lbl mb-1">Notes</div>
+                    <div class="so-val">@_transfer.Notes</div>
+                }
+            }
+        </div>
+
+        <!-- Footer -->
+        @if (_transfer != null)
+        {
+            <div class="so-footer">
+                <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+                @if (_transfer.Status != StockTransferStatus.Cancelled)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Edit" OnClick="OpenEdit">Edit Transfer</MudButton>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public EventCallback OnTransferUpdated { get; set; }
+
+    private bool _open;
+    private bool _animateIn;
+    private bool _loading;
+    private StockTransferListDto? _transfer;
+
+    public async Task OpenAsync(Guid id)
+    {
+        _open = true;
+        _loading = true;
+        _animateIn = false;
+        _transfer = null;
+        StateHasChanged();
+
+        // Small delay so the panel renders before the slide-in class is added
+        await Task.Delay(20);
+        _animateIn = true;
+        StateHasChanged();
+
+        try
+        {
+            _transfer = await InventoryService.GetStockTransferByIdAsync(id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        _open = false;
+        _animateIn = false;
+        _transfer = null;
+        StateHasChanged();
+    }
+
+    private async Task OpenEdit()
+    {
+        if (_transfer == null || _transfer.Status == StockTransferStatus.Cancelled) return;
+
+        var warehouses = await WarehousesService.GetAllWarehousesAsync();
+
+        var editModel = new StockTransferDtoModel
+        {
+            TransferDate = _transfer.TransferDate,
+            SourceWarehouseIds = new() { _transfer.SourceWarehouseId },
+            TargetWarehouseId = _transfer.TargetWarehouseId,
+            Notes = _transfer.Notes,
+            ItemsLine = _transfer.Items
+                .Select(i => new StockTransferLineDto(Guid.NewGuid(), i.ProductId, i.Quantity, _transfer.SourceWarehouseId))
+                .ToList()
+        };
+        // Blank entry row on top so more lines can be added immediately.
+        editModel.ItemsLine.Insert(0, new StockTransferLineDto(Guid.NewGuid(), Guid.Empty, 0));
+
+        var parameters = new DialogParameters<StockTransferDialog>
+        {
+            { x => x.WareHouses, warehouses.OrderBy(w => w.Name).Select(w => (w.Id, w.Name)).ToList() },
+            { x => x.dataModel, editModel }
+        };
+
+        var transferId = _transfer.Id;
+        var sourceWarehouseId = _transfer.SourceWarehouseId;
+        var transferNumber = _transfer.TransferNumber;
+        var dialog = await DialogService.ShowAsync<StockTransferDialog>(
+            $"Edit Transfer {transferNumber}", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
+
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is List<StockTransferCreateDto> batches && batches.Count > 0)
+        {
+            try
+            {
+                if (batches.Count == 1 && batches[0].SourceWarehouseId == sourceWarehouseId)
+                {
+                    // Same single source: update in place, keeps the transfer number.
+                    await InventoryService.UpdateStockTransferAsync(transferId, batches[0]);
+                    Snackbar.Add($"Transfer {transferNumber} updated successfully", Severity.Success);
+
+                    // Refresh panel with updated transfer
+                    _loading = true;
+                    StateHasChanged();
+                    _transfer = await InventoryService.GetStockTransferByIdAsync(transferId);
+                    _loading = false;
+                    StateHasChanged();
+                }
+                else
+                {
+                    // Sources changed: reverse the old transfer, then post one batch per source.
+                    await InventoryService.CancelStockTransferAsync(transferId);
+                    var numbers = new List<string>();
+                    foreach (var batch in batches)
+                        numbers.Add(await InventoryService.CreateStockTransferAsync(batch));
+                    Snackbar.Add($"Transfer(s) {string.Join(", ", numbers)} completed.", Severity.Success);
+                    Close();
+                }
+
+                await OnTransferUpdated.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
+    }
+}

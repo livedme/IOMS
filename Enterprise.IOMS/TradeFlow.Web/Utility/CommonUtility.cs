@@ -87,6 +87,14 @@ namespace TradeFlow.Web.Utility
             _ => Color.Default
         };
 
+        public static Color GetStatusColor(StockTransferStatus status) => status switch
+        {
+            StockTransferStatus.Draft => Color.Default,
+            StockTransferStatus.Completed => Color.Success,
+            StockTransferStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+
         public static Color GetStatusColor(QuoteStatus status) => status switch
         {
             QuoteStatus.Draft => Color.Default,

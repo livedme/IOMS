@@ -3,7 +3,6 @@
 @attribute [Authorize]
 @implements IDisposable
 @inject IInventoryService InventoryService
-@inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IWarehousesService WarehousesService
 @inject IDialogService DialogService
@@ -15,23 +14,23 @@
     <TmPageHeader Icon="🚚" Title="Stock Transfers" Subtitle="Move stock between warehouses and review transfer history">
         <Actions>
             <button class="tm-reset" @onclick="Refresh">⟳ Refresh</button>
-            <button class="tm-add-btn" @onclick="OpenTransferDialog">+ New Transfer</button>
+            <button class="tm-add-btn" @onclick="() => OpenTransferDialog()">+ New Transfer</button>
         </Actions>
     </TmPageHeader>
 
     <div class="tm-stats">
         <TmStatTile Icon="🚚" Number="@TotalCountText" Label="Transfers" Tone="blue" OnClick="@ResetFilters" />
-        <TmStatTile Icon="📦" Number="@DistinctProductCountText" Label="Products Moved" Tone="purple" />
+        <TmStatTile Icon="📦" Number="@TotalLinesText" Label="Lines" Tone="purple" />
         <TmStatTile Icon="⬆️" Number="@TotalUnitsText" Label="Total Units" Tone="green" />
         <TmStatTile Icon="🏬" Number="@WarehouseCountText" Label="Warehouses" Tone="teal" OnClick="@(() => Navigation.NavigateTo("/shop/warehouses"))" />
         <TmStatTile Icon="📅" Number="@LastTransferText" Label="Last Transfer" Tone="yellow" />
-        <TmStatTile Icon="📥" Number="@LatestInText" Label="Latest In" Tone="green" OnClick="@FilterInbound" />
+        <TmStatTile Icon="✅" Number="@CompletedCountText" Label="Completed" Tone="green" OnClick="@FilterCompleted" />
     </div>
 
     <div class="tm-card tm-filters">
         <div class="tm-search">
             <span>🔍</span>
-            <input placeholder="Search by product or reference..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
+            <input placeholder="Search by transfer #, product, warehouse or notes..." value="@pagedRequest.SearchTerm" @oninput="OnSearchInput" />
         </div>
         <div class="tm-select">
             <select value="@(pagedRequest.WarehouseId?.ToString() ?? "")" @onchange="OnWarehouseChanged">
@@ -39,6 +38,15 @@
                 @foreach (var w in _warehouses)
                 {
                     <option value="@w.Id">@w.Name</option>
+                }
+            </select>
+        </div>
+        <div class="tm-select">
+            <select value="@(pagedRequest.Status?.ToString() ?? "")" @onchange="OnStatusChanged">
+                <option value="">All Statuses</option>
+                @foreach (var s in Enum.GetValues<StockTransferStatus>())
+                {
+                    <option value="@s">@s</option>
                 }
             </select>
         </div>
@@ -60,26 +68,29 @@
             </div>
         }
         <div class="tm-table-wrap">
-            <table class="tm-table" style="min-width:820px">
+            <table class="tm-table" style="min-width:900px">
                 <thead>
                     <tr>
-                        <th @onclick="@(() => SortBy(Col.MovementDate))">📅 Date @SortIcon(Col.MovementDate)</th>
-                        <th @onclick="@(() => SortBy(Col.ProductName))">📦 Product @SortIcon(Col.ProductName)</th>
-                        <th @onclick="@(() => SortBy(Col.WarehouseName))">Warehouse @SortIcon(Col.WarehouseName)</th>
-                        <th style="text-align:right" @onclick="@(() => SortBy(Col.Quantity))">Quantity @SortIcon(Col.Quantity)</th>
-                        <th @onclick="@(() => SortBy(Col.Reference))">Reference @SortIcon(Col.Reference)</th>
-                        <th>Direction</th>
+                        <th style="width:36px;"></th>
+                        <th @onclick="@(() => SortBy(Col.TransferNumber))"># Transfer @SortIcon(Col.TransferNumber)</th>
+                        <th @onclick="@(() => SortBy(Col.TransferDate))">📅 Date @SortIcon(Col.TransferDate)</th>
+                        <th @onclick="@(() => SortBy(Col.SourceWarehouse))">From @SortIcon(Col.SourceWarehouse)</th>
+                        <th @onclick="@(() => SortBy(Col.TargetWarehouse))">To @SortIcon(Col.TargetWarehouse)</th>
+                        <th style="text-align:right">Lines</th>
+                        <th style="text-align:right" @onclick="@(() => SortBy(Col.TotalQuantity))">Units @SortIcon(Col.TotalQuantity)</th>
+                        <th>Status</th>
+                        <th style="width:60px;" class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="6" style="text-align:center; padding:40px; color:#94a3b8;">Loading transfers...</td></tr>
+                        <tr><td colspan="9" style="text-align:center; padding:40px; color:#94a3b8;">Loading transfers...</td></tr>
                     }
                     else if (pagedResultNew.Items.Count == 0)
                     {
                         <tr>
-                            <td colspan="6" style="text-align:center; padding:40px;">
+                            <td colspan="9" style="text-align:center; padding:40px;">
                                 <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
                                 <div style="color:#64748b;">No transfers found — try a different search or filter</div>
                                 <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
@@ -90,23 +101,64 @@
                     {
                         @foreach (var t in pagedResultNew.Items)
                         {
-                            var isIn = t.Quantity >= 0;
+                            var expanded = _expanded.Contains(t.Id);
                             <tr>
-                                <td class="tm-dim">@t.MovementDate.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">📦</span>@t.ProductName</span></td>
-                                <td class="tm-branch">@t.WarehouseName</td>
-                                <td style="text-align:right">
-                                    <span style="font-weight:700; color:@(isIn ? "#15803d" : "#dc2626")">
-                                        @(isIn ? "+" : "")@t.Quantity
+                                <td>
+                                    <MudIconButton Icon="@(expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                                   Size="Size.Small" Color="Color.Default" OnClick="@(() => ToggleExpand(t.Id))" />
+                                </td>
+                                <td class="tm-num">@t.TransferNumber</td>
+                                <td class="tm-dim">@t.TransferDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#fee2e2">🏬</span>@t.SourceWarehouseName</span></td>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#dcfce7">🏬</span>@t.TargetWarehouseName</span></td>
+                                <td style="text-align:right">@t.TotalLines</td>
+                                <td style="text-align:right"><span style="font-weight:700;">@t.TotalQuantity</span></td>
+                                <td>
+                                    <span class="tm-pill @StatusPill(t.Status)">
+                                        <span class="tm-dot"></span>@t.Status
                                     </span>
                                 </td>
-                                <td class="tm-num">@(string.IsNullOrWhiteSpace(t.Reference) ? "-" : t.Reference)</td>
-                                <td>
-                                    <span class="tm-pill @(isIn ? "tm-pill-green" : "tm-pill-red")">
-                                        <span class="tm-dot"></span>@(isIn ? "Stock In" : "Stock Out")
-                                    </span>
+                                <td class="text-end">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Default"
+                                                   OnClick="@(() => _viewPanel?.OpenAsync(t.Id))" />
+                                    @if (t.Status != StockTransferStatus.Cancelled)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Info"
+                                                       OnClick="@(() => OpenTransferDialog(t))" />
+                                    }
                                 </td>
                             </tr>
+                            @if (expanded)
+                            {
+                                <tr>
+                                    <td></td>
+                                    <td colspan="8" style="background:#f8fafc; padding:8px 12px 12px 0;">
+                                        <table class="tm-table" style="min-width:0; background:#fff;">
+                                            <thead>
+                                                <tr>
+                                                    <th>📦 Product</th>
+                                                    <th>SKU</th>
+                                                    <th style="text-align:right">Qty</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var line in t.Items)
+                                                {
+                                                    <tr>
+                                                        <td>@line.ProductName</td>
+                                                        <td class="tm-dim">@line.ProductSKU</td>
+                                                        <td style="text-align:right; font-weight:700;">@line.Quantity</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                        @if (!string.IsNullOrWhiteSpace(t.Notes))
+                                        {
+                                            <div class="tm-dim" style="margin-top:6px;">📝 @t.Notes</div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
                         }
                     }
                 </tbody>
@@ -126,26 +178,29 @@
     </div>
 </div>
 
+<StockTransferViewPanel @ref="_viewPanel" OnTransferUpdated="Refresh" />
+
 @code {
     private static class Col
     {
-        public const string MovementDate = "MovementDate";
-        public const string ProductName = "ProductName";
-        public const string WarehouseName = "WarehouseName";
-        public const string Quantity = "Quantity";
-        public const string Reference = "Reference";
+        public const string TransferDate = "TransferDate";
+        public const string TransferNumber = "TransferNumber";
+        public const string SourceWarehouse = "SourceWarehouse";
+        public const string TargetWarehouse = "TargetWarehouse";
+        public const string TotalQuantity = "TotalQuantity";
     }
 
     // ─── List state ───
-    // Transfers are stock movements pinned to StockMovementType.Transfer, so this page and the
-    // Stock Movements grid share one query and one pager implementation.
-    private PagedResultNew<StockMovementDto> pagedResultNew = new();
-    private StockMovementPagedRequest pagedRequest = new()
+    // The grid lists StockTransfer batches (one row per transfer, expandable lines).
+    private PagedResultNew<StockTransferListDto> pagedResultNew = new();
+    private StockTransferPagedRequest pagedRequest = new()
     {
-        Type = StockMovementType.Transfer,
-        SortColumn = Col.MovementDate,
+        SortColumn = Col.TransferDate,
         SortAscending = false
     };
+
+    private readonly HashSet<Guid> _expanded = new();
+    private StockTransferViewPanel? _viewPanel;
 
     private List<(Guid Id, string Name)> _warehouses = new();
     private bool _loading = true;
@@ -203,7 +258,7 @@
         _loading = true;
         try
         {
-            pagedResultNew = await InventoryService.GetStockMovementsPagedAsync(pagedRequest);
+            pagedResultNew = await InventoryService.GetStockTransfersPagedAsync(pagedRequest);
             _hasLoadedOnce = true;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
@@ -212,15 +267,14 @@
 
     // ─── Stats / sorting helpers ───
     private string TotalCountText => Stat("TotalCount");
-    private string DistinctProductCountText => Stat("DistinctProductCount");
-    private string TotalUnitsText => Stat("TransferUnits");
+    private string TotalLinesText => Stat("TotalLines");
+    private string TotalUnitsText => Stat("TotalUnits");
     private string WarehouseCountText => Stat("WarehouseCount");
-    private string LatestInText =>
-        pagedResultNew.Items.FirstOrDefault(t => t.Quantity > 0)?.Quantity.ToString() ?? "0";
+    private string CompletedCountText => Stat("CompletedCount");
 
     // The newest transfer on the current page — the grid is date-sorted, so it is the first row.
     private string LastTransferText =>
-        pagedResultNew.Items.Count > 0 ? pagedResultNew.Items[0].MovementDate.ToString("dd MMM") : "-";
+        pagedResultNew.Items.Count > 0 ? pagedResultNew.Items[0].TransferDate.ToString("dd MMM") : "-";
 
     private string Stat(string key) =>
         pagedResultNew.Stats != null && pagedResultNew.Stats.TryGetValue(key, out var v) ? v.ToString() : "0";
@@ -244,25 +298,75 @@
         return pagedRequest.SortAscending ? "▲" : "▼";
     }
 
-    private async Task OpenTransferDialog()
+    private void ToggleExpand(Guid id)
     {
+        if (!_expanded.Add(id))
+            _expanded.Remove(id);
+    }
+
+    private static string StatusPill(StockTransferStatus status) => status switch
+    {
+        StockTransferStatus.Completed => "tm-pill-green",
+        StockTransferStatus.Cancelled => "tm-pill-red",
+        _ => "tm-pill-blue"
+    };
+
+    private async Task OpenTransferDialog(StockTransferListDto? existing = null)
+    {
+        StockTransferDtoModel model;
+        string title;
+        if (existing is null)
+        {
+            model = new StockTransferDtoModel();
+            title = "New Stock Transfer";
+        }
+        else
+        {
+            model = new StockTransferDtoModel
+            {
+                TransferDate = existing.TransferDate,
+                SourceWarehouseIds = new() { existing.SourceWarehouseId },
+                TargetWarehouseId = existing.TargetWarehouseId,
+                Notes = existing.Notes,
+                ItemsLine = existing.Items
+                    .Select(i => new StockTransferLineDto(Guid.NewGuid(), i.ProductId, i.Quantity, existing.SourceWarehouseId))
+                    .ToList()
+            };
+            // Blank entry row on top so more lines can be added immediately.
+            model.ItemsLine.Insert(0, new StockTransferLineDto(Guid.NewGuid(), Guid.Empty, 0));
+            title = $"Edit Transfer {existing.TransferNumber}";
+        }
+
         var parameters = new DialogParameters<StockTransferDialog>
         {
             { x => x.WareHouses, _warehouses },
-            { x => x.dataModel, new StockTransferDtoModel() }
+            { x => x.dataModel, model }
         };
 
-        var dialog = await DialogService.ShowAsync<StockTransferDialog>("New Stock Transfer", parameters,
+        var dialog = await DialogService.ShowAsync<StockTransferDialog>(title, parameters,
             new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
 
-        if (result is not null && !result.Canceled && result.Data is StockTransferCreateDto dto)
+        if (result is not null && !result.Canceled && result.Data is List<StockTransferCreateDto> batches && batches.Count > 0)
         {
             try
             {
-                foreach (var line in dto.Items)
-                    await InventoryService.TransferStock(line.ProductId, dto.SourceWarehouseId, dto.TargetWarehouseId, line.Quantity, dto.TransferDate, dto.Notes);
-                Snackbar.Add($"Stock transferred successfully ({dto.Items.Count} line(s)).", Severity.Success);
+                if (existing is not null && batches.Count == 1 && batches[0].SourceWarehouseId == existing.SourceWarehouseId)
+                {
+                    // Same single source: update in place, keeps the transfer number.
+                    var transferNumber = await InventoryService.UpdateStockTransferAsync(existing.Id, batches[0]);
+                    Snackbar.Add($"Transfer {transferNumber} saved ({batches[0].Items.Count} line(s)).", Severity.Success);
+                }
+                else
+                {
+                    // Sources changed: reverse the old transfer, then post one batch per source.
+                    if (existing is not null)
+                        await InventoryService.CancelStockTransferAsync(existing.Id);
+                    var numbers = new List<string>();
+                    foreach (var batch in batches)
+                        numbers.Add(await InventoryService.CreateStockTransferAsync(batch));
+                    Snackbar.Add($"Transfer(s) {string.Join(", ", numbers)} completed.", Severity.Success);
+                }
                 await Load();
             }
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
@@ -325,7 +429,7 @@
     {
         pagedRequest.SearchTerm = "";
         pagedRequest.WarehouseId = null;
-        pagedRequest.IsInbound = null;
+        pagedRequest.Status = null;
         pagedRequest.From = null;
         pagedRequest.To = null;
         pagedRequest.CurrentPage = 0;
@@ -333,11 +437,19 @@
     }
 
     /// <summary>
-    /// "Latest In" tile: toggles the inbound-leg-only view (Qty &gt; 0).
+    /// "Completed" tile: toggles the completed-only view.
     /// </summary>
-    private async Task FilterInbound()
+    private async Task FilterCompleted()
     {
-        pagedRequest.IsInbound = pagedRequest.IsInbound == true ? null : true;
+        pagedRequest.Status = pagedRequest.Status == StockTransferStatus.Completed ? null : StockTransferStatus.Completed;
+        pagedRequest.CurrentPage = 0;
+        await Load();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString();
+        pagedRequest.Status = Enum.TryParse<StockTransferStatus>(v, out var s) ? s : null;
         pagedRequest.CurrentPage = 0;
         await Load();
     }

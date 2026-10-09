@@ -9,6 +9,7 @@ using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
+using TradeFlow.Shared.Helpers;
 
 namespace TradeFlow.Infrastructure.Services
 {
@@ -377,55 +378,352 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task TransferStock(Guid productId, Guid sourceWarehouseId, Guid targetWarehouseId, int quantity, DateTime? movementDate = null, string? notes = null)
         {
-            var source = await _context.Inventories
-                .FirstOrDefaultAsync(i => i.ProductId == productId && i.WarehouseId == sourceWarehouseId);
+            await CreateStockTransferAsync(new StockTransferCreateDto(
+                sourceWarehouseId, targetWarehouseId, notes,
+                new List<StockTransferLineDto> { new(Guid.NewGuid(), productId, quantity) },
+                movementDate));
+        }
 
-            if (source == null || source.AvailableQuantity < quantity)
-                throw new InsufficientStockException(productId, quantity, source?.AvailableQuantity ?? 0);
-
-            source.Quantity -= quantity;
-            source.LastStockDate = DateTime.UtcNow;
-
-            var target = await _context.Inventories
-                .FirstOrDefaultAsync(i => i.ProductId == productId && i.WarehouseId == targetWarehouseId);
-
-            if (target == null)
+        /// <summary>
+        /// Posts a multi-line transfer as one <see cref="StockTransfer"/> batch: a header row,
+        /// one <see cref="StockTransferItem"/> per line referencing the source/target
+        /// <see cref="Inventory"/> records, plus the paired in/out
+        /// <see cref="StockMovement"/> legs carrying the transfer number as reference.
+        /// Everything saves in a single transaction.
+        /// </summary>
+        public async Task<string> CreateStockTransferAsync(StockTransferCreateDto dto)
+        {
+            try
             {
-                target = new Inventory { ProductId = productId, WarehouseId = targetWarehouseId, Quantity = 0 };
-                _context.Inventories.Add(target);
+                if (dto.SourceWarehouseId == dto.TargetWarehouseId)
+                    throw new InvalidOperationException("Source and target warehouses must be different.");
+
+                var lines = dto.Items.Where(i => i.Quantity > 0).ToList();
+                if (lines.Count == 0)
+                    throw new InvalidOperationException("Transfer must contain at least one item line.");
+
+                var date = dto.TransferDate ?? DateTime.UtcNow;
+                var transfer = new StockTransfer
+                {
+                    TransferNumber = NumberGenerator.GenerateOrderNumber("ST"),
+                    TransferDate = date,
+                    SourceWarehouseId = dto.SourceWarehouseId,
+                    TargetWarehouseId = dto.TargetWarehouseId,
+                    Status = StockTransferStatus.Completed,
+                    Notes = dto.Notes
+                };
+
+                foreach (var line in lines)
+                {
+                    var source = await _context.Inventories
+                        .FirstOrDefaultAsync(i => i.ProductId == line.ProductId && i.WarehouseId == dto.SourceWarehouseId);
+
+                    if (source == null || source.AvailableQuantity < line.Quantity)
+                        throw new InsufficientStockException(line.ProductId, line.Quantity, source?.AvailableQuantity ?? 0);
+
+                    source.Quantity -= line.Quantity;
+                    source.LastStockDate = DateTime.UtcNow;
+
+                    var target = await _context.Inventories
+                        .FirstOrDefaultAsync(i => i.ProductId == line.ProductId && i.WarehouseId == dto.TargetWarehouseId);
+
+                    if (target == null)
+                    {
+                        target = new Inventory { ProductId = line.ProductId, WarehouseId = dto.TargetWarehouseId, Quantity = 0 };
+                        _context.Inventories.Add(target);
+                    }
+
+                    target.Quantity += line.Quantity;
+                    target.LastStockDate = DateTime.UtcNow;
+
+                    transfer.Items.Add(new StockTransferItem
+                    {
+                        ProductId = line.ProductId,
+                        Quantity = line.Quantity,
+                        SourceInventory = source,
+                        TargetInventory = target,
+                        Notes = dto.Notes
+                    });
+
+                    _context.StockMovements.Add(new StockMovement
+                    {
+                        ProductId = line.ProductId,
+                        WarehouseId = dto.SourceWarehouseId,
+                        Type = StockMovementType.Transfer,
+                        Quantity = -line.Quantity,
+                        Reference = transfer.TransferNumber,
+                        Notes = dto.Notes,
+                        MovementDate = date,
+                        SourceWarehouseId = dto.SourceWarehouseId,
+                        DestinationWarehouseId = dto.TargetWarehouseId
+                    });
+                    _context.StockMovements.Add(new StockMovement
+                    {
+                        ProductId = line.ProductId,
+                        WarehouseId = dto.TargetWarehouseId,
+                        Type = StockMovementType.Transfer,
+                        Quantity = line.Quantity,
+                        Reference = transfer.TransferNumber,
+                        Notes = dto.Notes,
+                        MovementDate = date,
+                        SourceWarehouseId = dto.SourceWarehouseId,
+                        DestinationWarehouseId = dto.TargetWarehouseId
+                    });
+                }
+
+                _context.StockTransfers.Add(transfer);
+                await _context.SaveChangesAsync();
+                return transfer.TransferNumber;
+            }catch(Exception ex)
+            {
+                // Log the exception or handle it as needed
+                throw new Exception("An error occurred while creating the stock transfer.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Edits a posted transfer by reversing its original lines (using the stored
+        /// source/target <see cref="Inventory"/> references), deleting the old items and
+        /// movement legs, then posting the new lines under the same transfer number —
+        /// all in a single transaction.
+        /// </summary>
+        public async Task<string> UpdateStockTransferAsync(Guid id, StockTransferCreateDto dto)
+        {
+            var transfer = await _context.StockTransfers
+                .Include(t => t.Items)
+                .FirstOrDefaultAsync(t => t.Id == id)
+                ?? throw new EntityNotFoundException("StockTransfer", id);
+
+            if (transfer.Status == StockTransferStatus.Cancelled)
+                throw new InvalidOperationException($"Transfer {transfer.TransferNumber} is cancelled and cannot be edited.");
+
+            if (dto.SourceWarehouseId == dto.TargetWarehouseId)
+                throw new InvalidOperationException("Source and target warehouses must be different.");
+
+            var lines = dto.Items.Where(i => i.Quantity > 0).ToList();
+            if (lines.Count == 0)
+                throw new InvalidOperationException("Transfer must contain at least one item line.");
+
+            // 1. Reverse the previously posted lines against the ORIGINAL warehouses.
+            await ReverseTransferLinesAsync(transfer, "edit");
+
+            // 2. Remove the old lines and their movement legs.
+            var oldMovements = await _context.StockMovements
+                .Where(m => m.Reference == transfer.TransferNumber)
+                .ToListAsync();
+            _context.StockMovements.RemoveRange(oldMovements);
+            _context.StockTransferItems.RemoveRange(transfer.Items);
+
+            // 3. Update the header and post the new lines (same as create).
+            var date = dto.TransferDate ?? DateTime.UtcNow;
+            transfer.TransferDate = date;
+            transfer.SourceWarehouseId = dto.SourceWarehouseId;
+            transfer.TargetWarehouseId = dto.TargetWarehouseId;
+            transfer.Notes = dto.Notes;
+            transfer.Status = StockTransferStatus.Completed;
+
+            foreach (var line in lines)
+            {
+                var source = await _context.Inventories
+                    .FirstOrDefaultAsync(i => i.ProductId == line.ProductId && i.WarehouseId == dto.SourceWarehouseId);
+
+                if (source == null || source.AvailableQuantity < line.Quantity)
+                    throw new InsufficientStockException(line.ProductId, line.Quantity, source?.AvailableQuantity ?? 0);
+
+                source.Quantity -= line.Quantity;
+                source.LastStockDate = DateTime.UtcNow;
+
+                var target = await _context.Inventories
+                    .FirstOrDefaultAsync(i => i.ProductId == line.ProductId && i.WarehouseId == dto.TargetWarehouseId);
+
+                if (target == null)
+                {
+                    target = new Inventory { ProductId = line.ProductId, WarehouseId = dto.TargetWarehouseId, Quantity = 0 };
+                    _context.Inventories.Add(target);
+                }
+
+                target.Quantity += line.Quantity;
+                target.LastStockDate = DateTime.UtcNow;
+
+                transfer.Items.Add(new StockTransferItem
+                {
+                    ProductId = line.ProductId,
+                    Quantity = line.Quantity,
+                    SourceInventory = source,
+                    TargetInventory = target,
+                    Notes = dto.Notes
+                });
+
+                _context.StockMovements.Add(new StockMovement
+                {
+                    ProductId = line.ProductId,
+                    WarehouseId = dto.SourceWarehouseId,
+                    Type = StockMovementType.Transfer,
+                    Quantity = -line.Quantity,
+                    Reference = transfer.TransferNumber,
+                    Notes = dto.Notes,
+                    MovementDate = date,
+                    SourceWarehouseId = dto.SourceWarehouseId,
+                    DestinationWarehouseId = dto.TargetWarehouseId
+                });
+                _context.StockMovements.Add(new StockMovement
+                {
+                    ProductId = line.ProductId,
+                    WarehouseId = dto.TargetWarehouseId,
+                    Type = StockMovementType.Transfer,
+                    Quantity = line.Quantity,
+                    Reference = transfer.TransferNumber,
+                    Notes = dto.Notes,
+                    MovementDate = date,
+                    SourceWarehouseId = dto.SourceWarehouseId,
+                    DestinationWarehouseId = dto.TargetWarehouseId
+                });
             }
 
-            target.Quantity += quantity;
-            target.LastStockDate = DateTime.UtcNow;
-
-            var reference = $"Transfer: {sourceWarehouseId} → {targetWarehouseId}";
-            var date = movementDate ?? DateTime.UtcNow;
-            _context.StockMovements.Add(new StockMovement
-            {
-                ProductId = productId,
-                WarehouseId = sourceWarehouseId,
-                Type = StockMovementType.Transfer,
-                Quantity = -quantity,
-                Reference = reference,
-                Notes = notes,
-                MovementDate = date,
-                SourceWarehouseId = sourceWarehouseId,
-                DestinationWarehouseId = targetWarehouseId
-            });
-            _context.StockMovements.Add(new StockMovement
-            {
-                ProductId = productId,
-                WarehouseId = targetWarehouseId,
-                Type = StockMovementType.Transfer,
-                Quantity = quantity,
-                Reference = reference,
-                Notes = notes,
-                MovementDate = date,
-                SourceWarehouseId = sourceWarehouseId,
-                DestinationWarehouseId = targetWarehouseId
-            });
-
             await _context.SaveChangesAsync();
+            return transfer.TransferNumber;
+        }
+
+        /// <summary>
+        /// Cancels a posted transfer: reverses its lines back into the source
+        /// warehouses and marks the batch <see cref="StockTransferStatus.Cancelled"/>.
+        /// Items and movement legs are kept as an audit trail.
+        /// </summary>
+        public async Task CancelStockTransferAsync(Guid id)
+        {
+            var transfer = await _context.StockTransfers
+                .Include(t => t.Items)
+                .FirstOrDefaultAsync(t => t.Id == id)
+                ?? throw new EntityNotFoundException("StockTransfer", id);
+
+            if (transfer.Status == StockTransferStatus.Cancelled)
+                return;
+
+            await ReverseTransferLinesAsync(transfer, "cancel");
+
+            transfer.Status = StockTransferStatus.Cancelled;
+            await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Adds back to the source inventories and subtracts from the target
+        /// inventories for every posted line. Used by edit (before re-posting)
+        /// and cancel. Throws when stock was already consumed.
+        /// </summary>
+        private async Task ReverseTransferLinesAsync(StockTransfer transfer, string action)
+        {
+            foreach (var old in transfer.Items.ToList())
+            {
+                var source = old.SourceInventoryId.HasValue
+                    ? await _context.Inventories.FirstOrDefaultAsync(i => i.Id == old.SourceInventoryId.Value)
+                    : await _context.Inventories.FirstOrDefaultAsync(i => i.ProductId == old.ProductId && i.WarehouseId == transfer.SourceWarehouseId);
+
+                var target = old.TargetInventoryId.HasValue
+                    ? await _context.Inventories.FirstOrDefaultAsync(i => i.Id == old.TargetInventoryId.Value)
+                    : await _context.Inventories.FirstOrDefaultAsync(i => i.ProductId == old.ProductId && i.WarehouseId == transfer.TargetWarehouseId);
+
+                if (source == null || target == null)
+                    throw new InvalidOperationException($"Cannot {action} transfer {transfer.TransferNumber}: the original stock records no longer exist.");
+
+                if (target.AvailableQuantity < old.Quantity)
+                    throw new InvalidOperationException($"Cannot {action} transfer {transfer.TransferNumber}: {old.Quantity} unit(s) of this product have already been used at the target warehouse.");
+
+                source.Quantity += old.Quantity;
+                source.LastStockDate = DateTime.UtcNow;
+                target.Quantity -= old.Quantity;
+                target.LastStockDate = DateTime.UtcNow;
+            }
+        }
+
+        public async Task<PagedResultNew<StockTransferListDto>> GetStockTransfersPagedAsync(StockTransferPagedRequest request)
+        {
+            // Own context for the whole read: the grid can be re-entered while another query on
+            // the scoped context is still in flight, and a DbContext cannot run two commands at once.
+            await using var read = await _contextFactory.CreateDbContextAsync();
+            var response = new PagedResultNew<StockTransferListDto>();
+
+            var page = Math.Max(0, request.CurrentPage);
+            var pageSize = Math.Clamp(request.PageSize, 1, 100);
+            var search = request.SearchTerm?.Trim();
+
+            IQueryable<StockTransfer> query = read.StockTransfers
+                .AsSplitQuery()
+                .AsNoTracking()
+                .Include(t => t.SourceWarehouse)
+                .Include(t => t.TargetWarehouse)
+                .Include(t => t.Items).ThenInclude(i => i.Product);
+
+            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+                query = query.Where(t => t.TenantId == request.TenantId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(t =>
+                    EF.Functions.Like(t.TransferNumber, $"%{search}%") ||
+                    EF.Functions.Like(t.Notes, $"%{search}%") ||
+                    EF.Functions.Like(t.SourceWarehouse.Name, $"%{search}%") ||
+                    EF.Functions.Like(t.TargetWarehouse.Name, $"%{search}%") ||
+                    t.Items.Any(i => EF.Functions.Like(i.Product.Name, $"%{search}%") ||
+                                     EF.Functions.Like(i.Product.SKU, $"%{search}%")));
+
+            if (request.Status.HasValue)
+                query = query.Where(t => t.Status == request.Status.Value);
+
+            if (request.WarehouseId.HasValue && request.WarehouseId != Guid.Empty)
+            {
+                var w = request.WarehouseId.Value;
+                query = query.Where(t => t.SourceWarehouseId == w || t.TargetWarehouseId == w);
+            }
+
+            if (request.From.HasValue)
+                query = query.Where(t => t.TransferDate >= request.From.Value.Date);
+
+            if (request.To.HasValue)
+            {
+                var toExclusive = request.To.Value.Date.AddDays(1);
+                query = query.Where(t => t.TransferDate < toExclusive);
+            }
+
+            response.Stats["TotalCount"] = await query.CountAsync();
+            response.Stats["TotalLines"] = await query.SelectMany(t => t.Items).CountAsync();
+            response.Stats["TotalUnits"] = await query.SelectMany(t => t.Items).SumAsync(i => (int?)i.Quantity) ?? 0;
+            response.Stats["CompletedCount"] = await query.CountAsync(t => t.Status == StockTransferStatus.Completed);
+            response.Stats["WarehouseCount"] = await query.Select(t => t.SourceWarehouseId)
+                .Union(query.Select(t => t.TargetWarehouseId))
+                .CountAsync();
+
+            var sortAsc = request.SortAscending;
+            query = (request.SortColumn ?? "TransferDate") switch
+            {
+                "TransferNumber" => sortAsc ? query.OrderBy(t => t.TransferNumber) : query.OrderByDescending(t => t.TransferNumber),
+                "SourceWarehouse" => sortAsc ? query.OrderBy(t => t.SourceWarehouse.Name) : query.OrderByDescending(t => t.SourceWarehouse.Name),
+                "TargetWarehouse" => sortAsc ? query.OrderBy(t => t.TargetWarehouse.Name) : query.OrderByDescending(t => t.TargetWarehouse.Name),
+                "TotalQuantity" => sortAsc ? query.OrderBy(t => t.Items.Sum(i => i.Quantity)) : query.OrderByDescending(t => t.Items.Sum(i => i.Quantity)),
+                _ => sortAsc ? query.OrderBy(t => t.TransferDate) : query.OrderByDescending(t => t.TransferDate),
+            };
+
+            var totalCount = await query.CountAsync();
+            var items = await query.Skip(page * pageSize).Take(pageSize).ToListAsync();
+
+            response.Items = _mapper.Map<List<StockTransferListDto>>(items);
+            response.TotalCount = totalCount;
+            response.CurrentPage = page;
+            response.PageSize = pageSize;
+
+            return response;
+        }
+
+        public async Task<StockTransferListDto> GetStockTransferByIdAsync(Guid id)
+        {
+            var transfer = await _context.StockTransfers
+                .AsSplitQuery()
+                .AsNoTracking()
+                .Include(t => t.SourceWarehouse)
+                .Include(t => t.TargetWarehouse)
+                .Include(t => t.Items).ThenInclude(i => i.Product)
+                .FirstOrDefaultAsync(t => t.Id == id)
+                ?? throw new EntityNotFoundException("StockTransfer", id);
+
+            return _mapper.Map<StockTransferListDto>(transfer);
         }
 
         public async Task<List<LowStockAlertDto>> GetLowStockAlerts()
