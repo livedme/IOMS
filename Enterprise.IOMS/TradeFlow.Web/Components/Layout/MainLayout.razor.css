@@ -88,6 +88,9 @@ main {
         display: flex;
         align-items: stretch;
     }
+.mud-popover-center-left::deep p {
+    color: #b3b1b1;
+}
 
 
 @media (max-width: 640.98px) {

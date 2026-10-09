@@ -1693,10 +1693,14 @@ table.tm-table {
 }
 .mud-popover-center-left {
     border-radius: 0px;
-    left: 58px !important;
+    left: 56px !important;
+    background-color: #222e3c;
+}
+.mud-popover-center-left p {
+    color: #b3b1b1;
 }
     .mud-popover.mud-popover-open .mud-nav-link .mud-nav-link-text {
-        color: #3b3939;
+        color: #b3b1b1;
     }
 
 /* ============================================================
