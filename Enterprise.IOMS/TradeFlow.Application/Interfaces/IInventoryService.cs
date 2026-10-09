@@ -6,7 +6,7 @@ public interface IInventoryService
 {
     Task<int> GetStockLevel(Guid productId, Guid warehouseId);
     Task AdjustStock(Guid productId, Guid warehouseId, int quantityChange, string reason);
-    Task TransferStock(Guid productId, Guid sourceWarehouseId, Guid targetWarehouseId, int quantity);
+    Task TransferStock(Guid productId, Guid sourceWarehouseId, Guid targetWarehouseId, int quantity, DateTime? movementDate = null, string? notes = null);
     Task<List<LowStockAlertDto>> GetLowStockAlerts();
     Task<PagedResult<InventoryDto>> GetInventoryByWarehouse(Guid warehouseId, int page, int pageSize);
     Task<PagedResultNew<StockMovementDto>> GetStockMovementsPagedAsync(StockMovementPagedRequest request);
@@ -14,4 +14,5 @@ public interface IInventoryService
 
     // Extended inventory tracking
     Task<PagedResult<InventoryTrackingDto>> GetInventoryTrackingByWarehouse(Guid warehouseId, int page, int pageSize);
+    Task<PagedResult<InventoryTrackingDto>> GetInventoryTrackingByWarehouses(IEnumerable<Guid> warehouseIds, int page, int pageSize);
 }

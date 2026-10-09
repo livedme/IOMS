@@ -308,6 +308,38 @@ namespace TradeFlow.Infrastructure.Services
 
             return new PagedResult<InventoryTrackingDto>(dtos, total, page, pageSize);
         }
+        public async Task<PagedResult<InventoryTrackingDto>> GetInventoryTrackingByWarehouses(IEnumerable<Guid> warehouseIds, int page, int pageSize)
+        {
+            var query = _context.Inventories
+                .Include(i => i.Product)
+                .Include(i => i.Warehouse)
+                .Where(i => warehouseIds.Contains(i.WarehouseId));
+
+            var total = await query.CountAsync();
+            var items = await query
+                .OrderBy(i => i.Product.Name)
+                .Skip((page - 1) * pageSize).Take(pageSize)
+                .ToListAsync();
+
+            var dtos = items.Select(i => new InventoryTrackingDto(
+                i.Id,
+                i.ProductId,
+                i.Product.Name,
+                i.Product.SKU,
+                i.WarehouseId,
+                i.Warehouse.Name,
+                i.Quantity,
+                i.ReservedQuantity,
+                i.AvailableQuantity,
+                i.BinLocation,
+                i.SerialNumber,
+                i.BatchNumber,
+                i.ExpiryDate,
+                i.Condition
+            )).ToList();
+
+            return new PagedResult<InventoryTrackingDto>(dtos, total, page, pageSize);
+        }
 
         public async Task<int> GetStockLevel(Guid productId, Guid warehouseId)
         {
@@ -343,7 +375,7 @@ namespace TradeFlow.Infrastructure.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task TransferStock(Guid productId, Guid sourceWarehouseId, Guid targetWarehouseId, int quantity)
+        public async Task TransferStock(Guid productId, Guid sourceWarehouseId, Guid targetWarehouseId, int quantity, DateTime? movementDate = null, string? notes = null)
         {
             var source = await _context.Inventories
                 .FirstOrDefaultAsync(i => i.ProductId == productId && i.WarehouseId == sourceWarehouseId);
@@ -367,6 +399,7 @@ namespace TradeFlow.Infrastructure.Services
             target.LastStockDate = DateTime.UtcNow;
 
             var reference = $"Transfer: {sourceWarehouseId} → {targetWarehouseId}";
+            var date = movementDate ?? DateTime.UtcNow;
             _context.StockMovements.Add(new StockMovement
             {
                 ProductId = productId,
@@ -374,6 +407,8 @@ namespace TradeFlow.Infrastructure.Services
                 Type = StockMovementType.Transfer,
                 Quantity = -quantity,
                 Reference = reference,
+                Notes = notes,
+                MovementDate = date,
                 SourceWarehouseId = sourceWarehouseId,
                 DestinationWarehouseId = targetWarehouseId
             });
@@ -384,6 +419,8 @@ namespace TradeFlow.Infrastructure.Services
                 Type = StockMovementType.Transfer,
                 Quantity = quantity,
                 Reference = reference,
+                Notes = notes,
+                MovementDate = date,
                 SourceWarehouseId = sourceWarehouseId,
                 DestinationWarehouseId = targetWarehouseId
             });

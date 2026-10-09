@@ -190,6 +190,22 @@ namespace TradeFlow.Infrastructure.Services
                 .Select(p => new ProductOptionDto(p.Id, p.Name, p.SKU, p.SellingPrice, p.CostPrice))
                 .ToListAsync();
 
+        public async Task<ProductDto?> GetProductByWarehouseIdAsync(Guid id)
+        {
+            var product = await _db.Products
+                .AsNoTracking()
+                .Where(p => p.Id == id)
+                .Select(p => new ProductDto(
+                    p.Id, p.Name, p.SKU, p.Barcode, p.Description, p.CostPrice, p.SellingPrice,
+                    p.WholeSellingPrice, p.ReorderStockLevel, p.MinOrderQuantity, p.WarrantyInMonths, p.CategoryId,
+                    p.Category != null ? p.Category.Name : null,
+                    p.BrandId, p.Brand != null ? p.Brand.Name : null, p.Model, p.ImageUrl,
+                    p.Inventories.Sum(i => i.Quantity), p.IsKit,
+                    p.OriginCountry ?? string.Empty, p.OriginManufacturer ?? string.Empty))
+                .FirstOrDefaultAsync();
+            return product;
+        }
+
         public async Task<ProductDto?> GetProductByIdAsync(Guid id)
         {
             var product = await _db.Products

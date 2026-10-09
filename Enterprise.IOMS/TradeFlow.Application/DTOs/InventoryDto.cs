@@ -24,6 +24,32 @@ namespace TradeFlow.Application.DTOs
 
     public record StockTransferRequestDto(Guid ProductId, Guid SourceWarehouseId, Guid TargetWarehouseId, int Quantity, string? Notes);
 
+    public record StockTransferLineDto(Guid Id, Guid ProductId, int Quantity);
+
+    public record StockTransferCreateDto(Guid SourceWarehouseId, Guid TargetWarehouseId, string? Notes, List<StockTransferLineDto> Items, DateTime? TransferDate = null);
+
+    public class StockTransferDtoModel
+    {
+        public DateTime? TransferDate { get; set; } = DateTime.UtcNow;
+        public Guid SourceWarehouseId { get; set; }
+        public Guid TargetWarehouseId { get; set; }
+        public string? SourceWarehouseText { get; set; }
+        public string? TargetWarehouseText { get; set; }
+        public string? Notes { get; set; }
+
+        public StockTransferLineEntry ProductObj { get; set; } = new StockTransferLineEntry();
+
+        public List<StockTransferLineDto> ItemsLine { get; set; } = new();
+
+        public class StockTransferLineEntry
+        {
+            public Guid Id { get; set; }
+            public ControlDto ProductDdlControl { get; set; } = new ControlDto();
+            public Guid ProductId { get; set; }
+            public int Quantity { get; set; } = 1;
+        }
+    }
+
     // Dead Stock
     public record DeadStockItemDto(Guid ProductId, string ProductName, string SKU, string WarehouseName,
         int Quantity, decimal Value, DateTime? LastMovementDate, int DaysSinceLastMovement);

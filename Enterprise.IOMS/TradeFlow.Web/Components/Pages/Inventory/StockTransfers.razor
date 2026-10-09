@@ -6,6 +6,7 @@
 @inject IProductService ProductService
 @inject ISnackbar Snackbar
 @inject IWarehousesService WarehousesService
+@inject IDialogService DialogService
 @inject NavigationManager Navigation
 
 <PageTitle>Stock Transfers - IOMS</PageTitle>
@@ -13,7 +14,8 @@
 <div class="tm-page">
     <TmPageHeader Icon="🚚" Title="Stock Transfers" Subtitle="Move stock between warehouses and review transfer history">
         <Actions>
-            <button class="tm-add-btn" @onclick="Refresh">⟳ Refresh</button>
+            <button class="tm-reset" @onclick="Refresh">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="OpenTransferDialog">+ New Transfer</button>
         </Actions>
     </TmPageHeader>
 
@@ -24,42 +26,6 @@
         <TmStatTile Icon="🏬" Number="@WarehouseCountText" Label="Warehouses" Tone="teal" OnClick="@(() => Navigation.NavigateTo("/shop/warehouses"))" />
         <TmStatTile Icon="📅" Number="@LastTransferText" Label="Last Transfer" Tone="yellow" />
         <TmStatTile Icon="📥" Number="@LatestInText" Label="Latest In" Tone="green" OnClick="@FilterInbound" />
-    </div>
-
-    <!-- New transfer form -->
-    <div class="tm-card tm-filters" style="flex-wrap:wrap">
-        <div class="tm-select">
-            <select @onchange="OnProductChanged">
-                <option value="">Select Product</option>
-                @foreach (var p in _products)
-                {
-                    <option value="@p.Id" selected="@(_transferProductId == p.Id)">@p.Name (@p.SKU)</option>
-                }
-            </select>
-        </div>
-        <div class="tm-select">
-            <select @onchange="OnSourceChanged">
-                <option value="">From Warehouse</option>
-                @foreach (var w in _warehouses)
-                {
-                    <option value="@w.Id" selected="@(_sourceWarehouseId == w.Id)">@w.Name</option>
-                }
-            </select>
-        </div>
-        <div class="tm-select">
-            <select @onchange="OnTargetChanged">
-                <option value="">To Warehouse</option>
-                @foreach (var w in _warehouses)
-                {
-                    <option value="@w.Id" selected="@(_targetWarehouseId == w.Id)">@w.Name</option>
-                }
-            </select>
-        </div>
-        <div class="tm-select" style="flex:0 0 130px; min-width:130px">
-            <input type="number" min="1" style="width:100%; border:1px solid #c9ced6; border-radius:6px; padding:9px 12px; font-size:13.5px; outline:none"
-                   value="@_transferQty" @onchange="OnQtyChanged" placeholder="Qty" />
-        </div>
-        <button class="tm-add-btn" @onclick="ExecuteTransfer">Transfer Stock</button>
     </div>
 
     <div class="tm-card tm-filters">
@@ -181,10 +147,7 @@
         SortAscending = false
     };
 
-    private List<(Guid Id, string Name, string SKU)> _products = new();
     private List<(Guid Id, string Name)> _warehouses = new();
-    private Guid _transferProductId, _sourceWarehouseId, _targetWarehouseId;
-    private int _transferQty = 1;
     private bool _loading = true;
     private bool _hasLoadedOnce;
     private bool _loadRunning;
@@ -192,17 +155,7 @@
     private CancellationTokenSource? _debounceCts;
 
     protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            var products = await ProductService.GetProductsAsync(new ProductPagedRequest { PageSize = 100 });
-            _products = products.Items
-                .OrderBy(p => p.Name)
-                .Select(p => (p.Id, p.Name, p.SKU))
-                .ToList();
-        }
-        catch { }
-
+    {  
         try
         {
             var warehouses = await WarehousesService.GetAllWarehousesAsync();
@@ -291,34 +244,29 @@
         return pagedRequest.SortAscending ? "▲" : "▼";
     }
 
-    private async Task ExecuteTransfer()
+    private async Task OpenTransferDialog()
     {
-        try
+        var parameters = new DialogParameters<StockTransferDialog>
         {
-            if (_transferProductId == Guid.Empty || _sourceWarehouseId == Guid.Empty || _targetWarehouseId == Guid.Empty)
+            { x => x.WareHouses, _warehouses },
+            { x => x.dataModel, new StockTransferDtoModel() }
+        };
+
+        var dialog = await DialogService.ShowAsync<StockTransferDialog>("New Stock Transfer", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled && result.Data is StockTransferCreateDto dto)
+        {
+            try
             {
-                Snackbar.Add("Please select a product, source and target warehouse.", Severity.Warning);
-                return;
+                foreach (var line in dto.Items)
+                    await InventoryService.TransferStock(line.ProductId, dto.SourceWarehouseId, dto.TargetWarehouseId, line.Quantity, dto.TransferDate, dto.Notes);
+                Snackbar.Add($"Stock transferred successfully ({dto.Items.Count} line(s)).", Severity.Success);
+                await Load();
             }
-            if (_sourceWarehouseId == _targetWarehouseId)
-            {
-                Snackbar.Add("Source and target warehouses must be different.", Severity.Warning);
-                return;
-            }
-            await InventoryService.TransferStock(_transferProductId, _sourceWarehouseId, _targetWarehouseId, _transferQty);
-            Snackbar.Add("Stock transferred successfully.", Severity.Success);
-            await Load();
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-    }
-
-    private void OnProductChanged(ChangeEventArgs e) => _transferProductId = ParseGuid(e.Value);
-    private void OnSourceChanged(ChangeEventArgs e) => _sourceWarehouseId = ParseGuid(e.Value);
-    private void OnTargetChanged(ChangeEventArgs e) => _targetWarehouseId = ParseGuid(e.Value);
-
-    private void OnQtyChanged(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var q) && q > 0) _transferQty = q;
     }
 
     private static Guid ParseGuid(object? v) =>
