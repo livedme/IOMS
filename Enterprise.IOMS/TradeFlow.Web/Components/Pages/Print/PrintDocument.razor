@@ -7,11 +7,15 @@
 
 <HeadContent>
     <link rel="stylesheet" href="/print.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="/js/printdocument.js"></script>
 </HeadContent>
 
 <div class="doc-toolbar">
     <span class="doc-toolbar-title">@DocTitle @DocRef</span>
-    <button class="doc-btn doc-btn-primary" @onclick="PrintNow">Print / Save as PDF</button>
+    <button class="doc-btn" @onclick="PrintNow">Print</button>
+    <button class="doc-btn doc-btn-primary" @onclick="DownloadPdf">⬇ Download PDF</button>
 </div>
 
 @if (_loading)
@@ -24,7 +28,7 @@ else if (_error is not null)
 }
 else
 {
-    <div class="doc-page">
+    <div class="doc-page" id="doc-page">
         <header class="doc-head">
             <div class="doc-brand">
                 <img src="/logo.png" class="doc-logo" alt="Avancer" />
@@ -114,13 +118,13 @@ else
                         {
                             <tr>
                                 <td>
-                                    <div class="strong">@it.ProductName</div>
+                                    <div>@it.ProductName</div>
                                     <div class="sub">@it.ProductSKU</div>
                                 </td>
                                 <td class="r">@it.Quantity</td>
                                 <td class="r">@Money(it.UnitPrice)</td>
                                 <td class="r">@Money(it.TotalDiscount)</td>
-                                <td class="r strong">@Money(it.LineTotalPrice)</td>
+                                <td class="r">@Money(it.LineTotalPrice)</td>
                             </tr>
                         }
                     </tbody>
@@ -210,13 +214,13 @@ else
                         {
                             <tr>
                                 <td>
-                                    <div class="strong">@it.ProductName</div>
+                                    <div >@it.ProductName</div>
                                     <div class="sub">@it.ProductSKU</div>
                                 </td>
                                 <td class="r">@it.Quantity</td>
                                 <td class="r">@it.ReceivedQuantity</td>
                                 <td class="r">@Money(it.UnitPrice)</td>
-                                <td class="r strong">@Money(it.LineTotalPrice)</td>
+                                <td class="r">@Money(it.LineTotalPrice)</td>
                             </tr>
                         }
                     </tbody>
@@ -284,14 +288,14 @@ else
                         {
                             <tr>
                                 <td>
-                                    <div class="strong">@it.ProductName</div>
+                                    <div>@it.ProductName</div>
                                     <div class="sub">@it.ProductSKU</div>
                                 </td>
                                 <td class="r">@it.Quantity</td>
                                 <td class="r">@Money(it.UnitPrice)</td>
                                 <td class="r">@it.DiscountPercent.ToString("N0")%</td>
                                 <td class="r">@Money(it.TaxAmount)</td>
-                                <td class="r strong">@Money(it.LineTotal)</td>
+                                <td class="r">@Money(it.LineTotal)</td>
                             </tr>
                         }
                     </tbody>
@@ -355,10 +359,10 @@ else
                         @foreach (var it in _salesReturn.ItemsLine)
                         {
                             <tr>
-                                <td class="strong">@it.ProductName</td>
+                                <td>@it.ProductName</td>
                                 <td class="r">@it.Quantity</td>
                                 <td class="r">@Money(it.UnitPrice)</td>
-                                <td class="r strong">@Money(it.LineTotal)</td>
+                                <td class="r">@Money(it.LineTotal)</td>
                             </tr>
                         }
                     </tbody>
@@ -410,10 +414,10 @@ else
                         @foreach (var it in _purchaseReturn.ItemsLine)
                         {
                             <tr>
-                                <td class="strong">@it.ProductName</td>
+                                <td>@it.ProductName</td>
                                 <td class="r">@it.Quantity</td>
                                 <td class="r">@Money(it.UnitCost)</td>
-                                <td class="r strong">@Money(it.LineTotal)</td>
+                                <td class="r">@Money(it.LineTotal)</td>
                             </tr>
                         }
                     </tbody>
@@ -536,10 +540,10 @@ else
                             @foreach (var s in _product.WarehouseStock)
                             {
                                 <tr>
-                                    <td class="strong">@s.WarehouseName</td>
+                                    <td class="">@s.WarehouseName</td>
                                     <td class="r">@s.Quantity</td>
                                     <td class="r">@s.ReservedQuantity</td>
-                                    <td class="r strong">@s.AvailableQuantity</td>
+                                    <td class="r">@s.AvailableQuantity</td>
                                 </tr>
                             }
                         </tbody>
@@ -565,12 +569,12 @@ else
                             {
                                 <tr>
                                     <td>
-                                        <div class="strong">@s.OrderNumber</div>
+                                        <div class="">@s.OrderNumber</div>
                                         <div class="sub">@s.OrderDate.ToString("dd MMM yyyy")</div>
                                     </td>
                                     <td>@s.PartyName</td>
                                     <td class="r">@s.Quantity</td>
-                                    <td class="r strong">@Money(s.UnitPrice)</td>
+                                    <td class="r">@Money(s.UnitPrice)</td>
                                 </tr>
                             }
                         </tbody>
@@ -596,12 +600,12 @@ else
                             {
                                 <tr>
                                     <td>
-                                        <div class="strong">@p.OrderNumber</div>
+                                        <div class="">@p.OrderNumber</div>
                                         <div class="sub">@p.OrderDate.ToString("dd MMM yyyy")</div>
                                     </td>
                                     <td>@p.PartyName</td>
                                     <td class="r">@p.Quantity</td>
-                                    <td class="r strong">@Money(p.UnitPrice)</td>
+                                    <td class="r">@Money(p.UnitPrice)</td>
                                 </tr>
                             }
                         </tbody>
@@ -629,7 +633,7 @@ else
                                     <td>@m.MovementDate.ToString("dd MMM yyyy")</td>
                                     <td>@m.WarehouseName</td>
                                     <td>@m.MovementType</td>
-                                    <td class="r strong">@m.Quantity</td>
+                                    <td class="r">@m.Quantity</td>
                                 </tr>
                             }
                         </tbody>
@@ -659,7 +663,6 @@ else
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private bool _loading = true;
-    private bool _printed;
     private string? _error;
 
     private SalesOrderDto? _salesOrder;
@@ -764,24 +767,27 @@ else
         _loading = false;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task PrintNow() => await JS.InvokeVoidAsync("print");
+
+    private async Task DownloadPdf()
     {
-        if (!_loading && _error is null && !_printed)
+        var name = DocTitle + " " + (DocRef == "—" ? "" : DocRef);
+        name = new string(name.Where(c => char.IsLetterOrDigit(c) || c == '-' || c == '_' || c == ' ').ToArray()).Trim();
+        if (string.IsNullOrWhiteSpace(name)) name = "document";
+
+        try
         {
-            _printed = true;
-            try
+            var ok = await JS.InvokeAsync<bool>("iomsPdf.download", "doc-page", name + ".pdf");
+            if (!ok)
             {
-                await Task.Delay(350);
-                await JS.InvokeVoidAsync("print");
-            }
-            catch
-            {
-                // Browser may block programmatic print; the toolbar button remains available.
+                await JS.InvokeVoidAsync("alert", "PDF engine is still loading — please try again in a moment.");
             }
         }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Could not generate the PDF: " + ex.Message);
+        }
     }
-
-    private async Task PrintNow() => await JS.InvokeVoidAsync("print");
 
     private static string Money(decimal value) => value.ToString("C");
 }

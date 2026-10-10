@@ -14,7 +14,8 @@ public sealed class SecurityHeadersMiddleware
         "blob:",
         "data:",
         "https://fonts.googleapis.com",
-        "https://fonts.gstatic.com"
+        "https://fonts.gstatic.com",
+        "https://cdnjs.cloudflare.com"
     ];
 
     private static readonly string[] StyleSources =
