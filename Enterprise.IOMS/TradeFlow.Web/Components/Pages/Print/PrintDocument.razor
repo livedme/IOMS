@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="/print.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="/js/printdocument.js"></script>
 </HeadContent>
 
 <div class="doc-toolbar">
@@ -647,11 +646,27 @@ else
             Phone: (212) 555-0000 | Email: sales@avancer.com | www.avancer.com
         </div>
     </div>
+
+    <div class="print-chrome print-header">
+        <div class="pc-left">
+            <span class="pc-brand">AVANCER</span>
+            <span class="pc-tag">Inventory &amp; Order Management</span>
+        </div>
+        <div class="pc-right">
+            <span class="pc-title">@DocTitle</span>
+            <span class="pc-ref">@DocRef</span>
+        </div>
+    </div>
+    <div class="print-chrome print-footer">
+        <span>Avancer Inc. | 123 Business Park, New York, NY 10001, USA</span>
+        <span>Phone: (212) 555-0000 | sales@avancer.com | www.avancer.com</span>
+    </div>
 }
 
 @code {
     [Parameter] public string DocumentType { get; set; } = "";
     [Parameter] public Guid Id { get; set; }
+    [SupplyParameterFromQuery(Name = "action")] public string? Action { get; set; }
 
     [Inject] private IOrderService OrderService { get; set; } = default!;
     [Inject] private IPurchaseService PurchaseService { get; set; } = default!;
@@ -663,6 +678,7 @@ else
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private bool _loading = true;
+    private bool _autoHandled;
     private string? _error;
 
     private SalesOrderDto? _salesOrder;
@@ -767,6 +783,23 @@ else
         _loading = false;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_autoHandled || _loading || _error is not null || string.IsNullOrWhiteSpace(Action)) return;
+        _autoHandled = true;
+
+        await Task.Delay(300);
+
+        if (string.Equals(Action, "print", StringComparison.OrdinalIgnoreCase))
+        {
+            await PrintNow();
+        }
+        else if (string.Equals(Action, "pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            await DownloadPdf();
+        }
+    }
+
     private async Task PrintNow() => await JS.InvokeVoidAsync("print");
 
     private async Task DownloadPdf()
@@ -777,7 +810,7 @@ else
 
         try
         {
-            var ok = await JS.InvokeAsync<bool>("iomsPdf.download", "doc-page", name + ".pdf");
+            var ok = await JS.InvokeAsync<bool>("iomsPdf.download", "doc-page", name + ".pdf", DocTitle, DocRef == "—" ? "" : DocRef);
             if (!ok)
             {
                 await JS.InvokeVoidAsync("alert", "PDF engine is still loading — please try again in a moment.");

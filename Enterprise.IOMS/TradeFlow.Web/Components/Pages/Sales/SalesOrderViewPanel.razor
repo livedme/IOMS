@@ -2,6 +2,7 @@
 @inject ICustomerService CustomerService
 @inject IProductService ProductService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 @inject IDialogService DialogService
 
 @if (_open)
@@ -215,7 +216,10 @@
                     <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Print"
-                               Href="@($"/print/sales-order/{_order.Id}")" Target="_blank">PDF</MudButton>
+                               OnClick="PrintDoc">Print</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Download"
+                               OnClick="DownloadPdf">Download PDF</MudButton>
                     @if (_order.Status == OrderStatus.Pending)
                     {
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
@@ -234,6 +238,18 @@
     private bool _animateIn;
     private bool _loading;
     private SalesOrderDto? _order;
+
+    private async Task DownloadPdf()
+    {
+        if (_order is null) return;
+        await JS.InvokeVoidAsync("iomsPdf.openDocument", $"/print/sales-order/{_order.Id}?action=pdf");
+    }
+
+    private async Task PrintDoc()
+    {
+        if (_order is null) return;
+        await JS.InvokeVoidAsync("iomsPdf.openDocument", $"/print/sales-order/{_order.Id}?action=print");
+    }
 
     public async Task OpenAsync(Guid id)
     {

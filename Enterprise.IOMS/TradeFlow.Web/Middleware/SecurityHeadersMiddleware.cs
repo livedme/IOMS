@@ -31,7 +31,8 @@ public sealed class SecurityHeadersMiddleware
         "ws:",
         "wss:",
         "https://fonts.googleapis.com",
-        "https://fonts.gstatic.com"
+        "https://fonts.gstatic.com",
+        "https://cdnjs.cloudflare.com"
     ];
 
     private static readonly string[] ImgSources =
@@ -57,10 +58,15 @@ public sealed class SecurityHeadersMiddleware
     {
         context.Response.OnStarting(static state =>
         {
-            var headers = ((HttpContext)state).Response.Headers;
+            var httpContext = (HttpContext)state;
+            var headers = httpContext.Response.Headers;
+
+            // The print route is loaded in a same-origin hidden iframe to generate a PDF
+            // download without navigating. Everything else stays fully un-frameable.
+            var allowSelfFraming = httpContext.Request.Path.StartsWithSegments("/print");
 
             headers["X-Content-Type-Options"] = "nosniff";
-            headers["X-Frame-Options"] = "DENY";
+            headers["X-Frame-Options"] = allowSelfFraming ? "SAMEORIGIN" : "DENY";
             headers["Referrer-Policy"] = "no-referrer";
             headers["X-Permitted-Cross-Domain-Policies"] = "none";
             headers["Cross-Origin-Opener-Policy"] = "same-origin";
@@ -72,7 +78,7 @@ public sealed class SecurityHeadersMiddleware
             if (((HttpContext)state).Request.IsHttps)
                 headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
 
-            headers["Content-Security-Policy"] = BuildCsp();
+            headers["Content-Security-Policy"] = BuildCsp(allowSelfFraming);
             headers["Content-Security-Policy-Report-Only"] = BuildReportOnlyCsp();
 
             return Task.CompletedTask;
@@ -81,7 +87,7 @@ public sealed class SecurityHeadersMiddleware
         return _next(context);
     }
 
-    private static string BuildCsp() =>
+    private static string BuildCsp(bool allowSelfFraming) =>
         string.Join("; ", new[]
         {
             "default-src 'self'",
@@ -93,7 +99,7 @@ public sealed class SecurityHeadersMiddleware
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
-            "frame-ancestors 'none'",
+            allowSelfFraming ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
             "manifest-src 'self'",
             "worker-src 'self' blob:"
         });

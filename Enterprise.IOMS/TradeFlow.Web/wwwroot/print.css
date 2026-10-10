@@ -359,17 +359,37 @@
     line-height: 1.6;
 }
 
+/* ---------- Repeating print bands (screen: hidden) ---------- */
+.print-chrome {
+    display: none;
+}
+
+.print-chrome .pc-left,
+.print-chrome .pc-right {
+    display: flex;
+    flex-direction: column;
+}
+
 /* ---------- Print ---------- */
 @media print {
     @page {
         size: A4;
-        margin: 14mm;
+        margin: 0;
     }
 
     html,
     body {
         background: #ffffff !important;
         height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* repeat this padding on every page fragment so content clears the bands */
+    body {
+        padding: 24mm 14mm 20mm;
+        -webkit-box-decoration-break: clone;
+        box-decoration-break: clone;
     }
 
     .doc-toolbar {
@@ -383,6 +403,80 @@
         border: none;
         border-radius: 0;
         box-shadow: none;
+    }
+
+    /* the document's own header/footer are replaced by the repeating bands */
+    .doc-head,
+    .doc-footer {
+        display: none !important;
+    }
+
+    .print-chrome.print-header {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 20mm;
+        box-sizing: border-box;
+        padding: 6mm 14mm 0;
+        align-items: flex-start;
+        justify-content: space-between;
+        border-bottom: 1px solid #d1d5db;
+        background: #ffffff;
+        color: #1f2937;
+        font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    }
+
+    .print-chrome.print-footer {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 16mm;
+        box-sizing: border-box;
+        padding: 0 14mm;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid #d1d5db;
+        background: #ffffff;
+        color: #6b7280;
+        font-size: 10px;
+        font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    }
+
+    .pc-brand {
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: .5px;
+        color: #101a33;
+        line-height: 1.1;
+    }
+
+    .pc-tag {
+        font-size: 8px;
+        font-weight: 600;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: #7c3aed;
+    }
+
+    .pc-right {
+        text-align: right;
+    }
+
+    .pc-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #111827;
+        text-transform: uppercase;
+        letter-spacing: .6px;
+    }
+
+    .pc-ref {
+        font-size: 10px;
+        color: #4b5563;
     }
 
     .doc-items thead {

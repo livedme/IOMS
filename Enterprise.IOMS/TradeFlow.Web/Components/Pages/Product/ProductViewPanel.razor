@@ -1,5 +1,6 @@
 @inject IProductService ProductService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
 
 @if (_open)
@@ -247,7 +248,10 @@
                     <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Print"
-                               Href="@($"/print/product/{_details.Id}")" Target="_blank">PDF</MudButton>
+                               OnClick="PrintDoc">Print</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Download"
+                               OnClick="DownloadPdf">Download PDF</MudButton>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.OpenInFull"
                                OnClick="@(() => Navigation.NavigateTo($"/products/details/{_details.Id}"))">Open Full Page</MudButton>
@@ -261,6 +265,18 @@
     private bool _animateIn;
     private bool _loading;
     private ProductDetailViewDto? _details;
+
+    private async Task DownloadPdf()
+    {
+        if (_details is null) return;
+        await JS.InvokeVoidAsync("iomsPdf.openDocument", $"/print/product/{_details.Id}?action=pdf");
+    }
+
+    private async Task PrintDoc()
+    {
+        if (_details is null) return;
+        await JS.InvokeVoidAsync("iomsPdf.openDocument", $"/print/product/{_details.Id}?action=print");
+    }
 
     public async Task OpenAsync(Guid id)
     {
