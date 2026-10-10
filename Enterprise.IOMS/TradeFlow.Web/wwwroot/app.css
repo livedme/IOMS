@@ -681,6 +681,7 @@ h1:focus {
 
 .tm-table-card {
     overflow: hidden;
+    position: relative;
 }
 
 .tm-table-wrap {
