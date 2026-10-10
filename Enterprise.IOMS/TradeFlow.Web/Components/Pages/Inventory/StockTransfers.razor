@@ -71,7 +71,6 @@
             <table class="tm-table" style="min-width:900px">
                 <thead>
                     <tr>
-                        <th style="width:36px;"></th>
                         <th @onclick="@(() => SortBy(Col.TransferNumber))"># Transfer @SortIcon(Col.TransferNumber)</th>
                         <th @onclick="@(() => SortBy(Col.TransferDate))">📅 Date @SortIcon(Col.TransferDate)</th>
                         <th @onclick="@(() => SortBy(Col.SourceWarehouse))">From @SortIcon(Col.SourceWarehouse)</th>
@@ -85,12 +84,12 @@
                 <tbody>
                     @if (!_hasLoadedOnce && _loading)
                     {
-                        <tr><td colspan="9" style="text-align:center; padding:40px; color:#94a3b8;">Loading transfers...</td></tr>
+                        <tr><td colspan="8" style="text-align:center; padding:40px; color:#94a3b8;">Loading transfers...</td></tr>
                     }
                     else if (pagedResultNew.Items.Count == 0)
                     {
                         <tr>
-                            <td colspan="9" style="text-align:center; padding:40px;">
+                            <td colspan="8" style="text-align:center; padding:40px;">
                                 <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
                                 <div style="color:#64748b;">No transfers found — try a different search or filter</div>
                                 <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
@@ -101,12 +100,7 @@
                     {
                         @foreach (var t in pagedResultNew.Items)
                         {
-                            var expanded = _expanded.Contains(t.Id);
                             <tr>
-                                <td>
-                                    <MudIconButton Icon="@(expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
-                                                   Size="Size.Small" Color="Color.Default" OnClick="@(() => ToggleExpand(t.Id))" />
-                                </td>
                                 <td class="tm-num">@t.TransferNumber</td>
                                 <td class="tm-dim">@t.TransferDate.ToString("yyyy-MM-dd HH:mm")</td>
                                 <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#fee2e2">🏬</span>@t.SourceWarehouseName</span></td>
@@ -128,37 +122,6 @@
                                     }
                                 </td>
                             </tr>
-                            @if (expanded)
-                            {
-                                <tr>
-                                    <td></td>
-                                    <td colspan="8" style="background:#f8fafc; padding:8px 12px 12px 0;">
-                                        <table class="tm-table" style="min-width:0; background:#fff;">
-                                            <thead>
-                                                <tr>
-                                                    <th>📦 Product</th>
-                                                    <th>SKU</th>
-                                                    <th style="text-align:right">Qty</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach (var line in t.Items)
-                                                {
-                                                    <tr>
-                                                        <td>@line.ProductName</td>
-                                                        <td class="tm-dim">@line.ProductSKU</td>
-                                                        <td style="text-align:right; font-weight:700;">@line.Quantity</td>
-                                                    </tr>
-                                                }
-                                            </tbody>
-                                        </table>
-                                        @if (!string.IsNullOrWhiteSpace(t.Notes))
-                                        {
-                                            <div class="tm-dim" style="margin-top:6px;">📝 @t.Notes</div>
-                                        }
-                                    </td>
-                                </tr>
-                            }
                         }
                     }
                 </tbody>
@@ -199,7 +162,6 @@
         SortAscending = false
     };
 
-    private readonly HashSet<Guid> _expanded = new();
     private StockTransferViewPanel? _viewPanel;
 
     private List<(Guid Id, string Name)> _warehouses = new();
@@ -298,12 +260,6 @@
         return pagedRequest.SortAscending ? "▲" : "▼";
     }
 
-    private void ToggleExpand(Guid id)
-    {
-        if (!_expanded.Add(id))
-            _expanded.Remove(id);
-    }
-
     private static string StatusPill(StockTransferStatus status) => status switch
     {
         StockTransferStatus.Completed => "tm-pill-green",
@@ -325,7 +281,6 @@
             model = new StockTransferDtoModel
             {
                 TransferDate = existing.TransferDate,
-                SourceWarehouseIds = new() { existing.SourceWarehouseId },
                 TargetWarehouseId = existing.TargetWarehouseId,
                 Notes = existing.Notes,
                 ItemsLine = existing.Items
@@ -347,15 +302,15 @@
             new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
 
-        if (result is not null && !result.Canceled && result.Data is List<StockTransferCreateDto> batches && batches.Count > 0)
+        if (result is not null && !result.Canceled && result.Data is StockTransferDtoModel dataModel)
         {
             try
             {
-                if (existing is not null && batches.Count == 1 && batches[0].SourceWarehouseId == existing.SourceWarehouseId)
+                if (dataModel.Id != Guid.Empty)
                 {
                     // Same single source: update in place, keeps the transfer number.
-                    var transferNumber = await InventoryService.UpdateStockTransferAsync(existing.Id, batches[0]);
-                    Snackbar.Add($"Transfer {transferNumber} saved ({batches[0].Items.Count} line(s)).", Severity.Success);
+                    //var transferNumber = await InventoryService.UpdateStockTransferAsync(existing.Id, batches[0]);
+                   // Snackbar.Add($"Transfer {transferNumber} saved ({batches[0].Items.Count} line(s)).", Severity.Success);
                 }
                 else
                 {
@@ -363,8 +318,8 @@
                     if (existing is not null)
                         await InventoryService.CancelStockTransferAsync(existing.Id);
                     var numbers = new List<string>();
-                    foreach (var batch in batches)
-                        numbers.Add(await InventoryService.CreateStockTransferAsync(batch));
+                    //foreach (var batch in batches)
+                        numbers.Add(await InventoryService.CreateStockTransferAsync(dataModel));
                     Snackbar.Add($"Transfer(s) {string.Join(", ", numbers)} completed.", Severity.Success);
                 }
                 await Load();

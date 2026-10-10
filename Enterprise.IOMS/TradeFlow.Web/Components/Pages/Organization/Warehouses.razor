@@ -1,4 +1,4 @@
-@page "/shop/warehouses"
+@page "/orgs/warehouses"
 @rendermode InteractiveServer
 @attribute [Authorize]
 @implements IDisposable
@@ -91,6 +91,7 @@
                                 <td>
                                     <span class="tm-actions" style="justify-content:flex-end">
                                         <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenEdit(w)">✎</button>
+                                        <button class="tm-act tm-act-del" title="Delete" @onclick="() => DeleteWarehouse(w)">🗑</button>
                                     </span>
                                 </td>
                             </tr>
@@ -239,6 +240,22 @@
             await WarehousesService.UpdateWarehouseAsync(item.Id, dto);
             Snackbar.Add("Warehouse updated", Severity.Success);
             await LoadData();
+        }
+    }
+
+    private async Task DeleteWarehouse(WarehouseDto item)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync("Confirm Delete",
+            $"Are you sure you want to delete warehouse '{item.Name}'?", "Delete", "Cancel");
+        if (confirm == true)
+        {
+            try
+            {
+                await WarehousesService.DeleteWarehouseAsync(item.Id);
+                Snackbar.Add("Warehouse deleted", Severity.Success);
+                await LoadData();
+            }
+            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
     }
 

@@ -2,24 +2,25 @@
 
 <MudDialog>
     <DialogContent>
+        <MudForm @ref="_form">
         <MudGrid>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_name" Label="Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                <MudTextField @bind-Value="_name" Label="Name" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError=""/>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_code" Label="Code" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                <MudTextField @bind-Value="_code" Label="Code" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError=""/>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="_location" Label="Location" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                <MudTextField @bind-Value="_location" Label="Location" hrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError=""/>
             </MudItem>   
             <MudItem xs="12" sm="6">
-                <MudCheckBox @bind-Value="_isActive" Label="Active" Required="true" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
+                <MudCheckBox @bind-Value="_isActive" Label="Active" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
             </MudItem>
             <MudItem xs="12">
-                <MudTextField @bind-Value="_address" Label="Address" Lines="3" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-          
+                <MudTextField @bind-Value="_address" Label="Address" Lines="3" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError=""/>
+            </MudItem>          
         </MudGrid>
+         </MudForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
@@ -30,7 +31,7 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public BranchDto? Branch { get; set; }
-
+    private MudForm _form = default;
     private string _name = "", _code = "", _location = "", _address = "";
     private bool _isActive;
 
@@ -51,5 +52,14 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new CreateBranchDto(_name, _code, _location, _address, _isActive)));
+
+    private async Task Submit()
+    {
+        await _form.ValidateAsync();
+
+        if (!_form.IsValid)
+            return;
+
+        MudDialog.Close(DialogResult.Ok(new CreateBranchDto(_name, _code, _location, _address, _isActive)));
+    }
 }

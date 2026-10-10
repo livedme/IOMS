@@ -94,14 +94,17 @@
 
                 <MudDivider Class="mb-3" />
 
-                <!-- Items table -->
+                <!-- Items table, grouped by source warehouse -->
                 <div class="so-section-lbl mb-2">Transfer Items (@_transfer.Items.Count)</div>
                 <div class="so-items-wrapper">
-                    <MudTable Items="@_transfer.Items" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                    <MudTable Items="@_items" Dense="true" Hover="true" Elevation="0" Class="so-items-table" GroupBy="@_groupDefinition">
                         <HeaderContent>
                             <MudTh>Product</MudTh>
                             <MudTh Style="text-align:right">Qty</MudTh>
                         </HeaderContent>
+                        <GroupHeaderTemplate>
+                            <MudTh colspan="2">🏬 @context.Key (@context.Items.Count() line(s) · @context.Items.Sum(i => i.Quantity) units)</MudTh>
+                        </GroupHeaderTemplate>
                         <RowTemplate>
                             <MudTd>
                                 <div class="so-val fw-semibold" style="line-height:1.2;">@context.ProductName</div>
@@ -109,6 +112,9 @@
                             </MudTd>
                             <MudTd Style="text-align:right;font-weight:600;">@context.Quantity</MudTd>
                         </RowTemplate>
+                        <GroupFooterTemplate>
+                            <MudTd colspan="2" Style="text-align:right;font-weight:600;">Subtotal: @context.Items.Sum(i => i.Quantity) units</MudTd>
+                        </GroupFooterTemplate>
                     </MudTable>
                 </div>
 
@@ -157,6 +163,27 @@
     private bool _animateIn;
     private bool _loading;
     private StockTransferListDto? _transfer;
+    private List<StockTransferItemDto> _items = new();
+
+    private TableGroupDefinition<StockTransferItemDto> _groupDefinition = new()
+    {
+        GroupName = "Warehouse",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = true,
+        Selector = (e) => e.SourceWarehouseName
+    };
+
+    /// <summary>Flattens lines for the grouped table (missing warehouse falls back to the header source).</summary>
+    private void BuildItems()
+    {
+        var fallback = _transfer?.SourceWarehouseName ?? string.Empty;
+        _items = (_transfer?.Items ?? new List<StockTransferItemDto>())
+            .Select(i => string.IsNullOrWhiteSpace(i.SourceWarehouseName) ? i with { SourceWarehouseName = fallback } : i)
+            .OrderBy(i => i.SourceWarehouseName)
+            .ThenBy(i => i.ProductName)
+            .ToList();
+    }
 
     public async Task OpenAsync(Guid id)
     {
@@ -174,6 +201,7 @@
         try
         {
             _transfer = await InventoryService.GetStockTransferByIdAsync(id);
+            BuildItems();
         }
         catch (Exception ex)
         {
@@ -189,6 +217,7 @@
         _open = false;
         _animateIn = false;
         _transfer = null;
+        _items = new();
         StateHasChanged();
     }
 
@@ -196,70 +225,69 @@
     {
         if (_transfer == null || _transfer.Status == StockTransferStatus.Cancelled) return;
 
-        var warehouses = await WarehousesService.GetAllWarehousesAsync();
+        // var warehouses = await WarehousesService.GetAllWarehousesAsync();
 
-        var editModel = new StockTransferDtoModel
-        {
-            TransferDate = _transfer.TransferDate,
-            SourceWarehouseIds = new() { _transfer.SourceWarehouseId },
-            TargetWarehouseId = _transfer.TargetWarehouseId,
-            Notes = _transfer.Notes,
-            ItemsLine = _transfer.Items
-                .Select(i => new StockTransferLineDto(Guid.NewGuid(), i.ProductId, i.Quantity, _transfer.SourceWarehouseId))
-                .ToList()
-        };
-        // Blank entry row on top so more lines can be added immediately.
-        editModel.ItemsLine.Insert(0, new StockTransferLineDto(Guid.NewGuid(), Guid.Empty, 0));
+        // var editModel = new StockTransferDtoModel
+        // {
+        //     TransferDate = _transfer.TransferDate,
+        //     TargetWarehouseId = _transfer.TargetWarehouseId,
+        //     Notes = _transfer.Notes,
+        //     ItemsLine = _transfer.Items
+        //         .Select(i => new StockTransferLineDto(Guid.NewGuid(), i.ProductId, i.Quantity, _transfer.SourceWarehouseId))
+        //         .ToList()
+        // };
+        // // Blank entry row on top so more lines can be added immediately.
+        // editModel.ItemsLine.Insert(0, new StockTransferLineDto(Guid.NewGuid(), Guid.Empty, 0));
 
-        var parameters = new DialogParameters<StockTransferDialog>
-        {
-            { x => x.WareHouses, warehouses.OrderBy(w => w.Name).Select(w => (w.Id, w.Name)).ToList() },
-            { x => x.dataModel, editModel }
-        };
+        // var parameters = new DialogParameters<StockTransferDialog>
+        // {
+        //     { x => x.WareHouses, warehouses.OrderBy(w => w.Name).Select(w => (w.Id, w.Name)).ToList() },
+        //     { x => x.dataModel, editModel }
+        // };
 
-        var transferId = _transfer.Id;
-        var sourceWarehouseId = _transfer.SourceWarehouseId;
-        var transferNumber = _transfer.TransferNumber;
-        var dialog = await DialogService.ShowAsync<StockTransferDialog>(
-            $"Edit Transfer {transferNumber}", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
+        // var transferId = _transfer.Id;
+        // var sourceWarehouseId = _transfer.SourceWarehouseId;
+        // var transferNumber = _transfer.TransferNumber;
+        // var dialog = await DialogService.ShowAsync<StockTransferDialog>(
+        //     $"Edit Transfer {transferNumber}", parameters,
+        //     new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
 
-        var result = await dialog.Result;
+        // var result = await dialog.Result;
 
-        if (result != null && !result.Canceled && result.Data is List<StockTransferCreateDto> batches && batches.Count > 0)
-        {
-            try
-            {
-                if (batches.Count == 1 && batches[0].SourceWarehouseId == sourceWarehouseId)
-                {
-                    // Same single source: update in place, keeps the transfer number.
-                    await InventoryService.UpdateStockTransferAsync(transferId, batches[0]);
-                    Snackbar.Add($"Transfer {transferNumber} updated successfully", Severity.Success);
+        // if (result != null && !result.Canceled && result.Data is List<StockTransferCreateDto> batches && batches.Count > 0)
+        // {
+        //     try
+        //     {
+        //         if (batches.Count == 1 && batches[0].SourceWarehouseId == sourceWarehouseId)
+        //         {
+        //             // Same single source: update in place, keeps the transfer number.
+        //             await InventoryService.UpdateStockTransferAsync(transferId, batches[0]);
+        //             Snackbar.Add($"Transfer {transferNumber} updated successfully", Severity.Success);
 
-                    // Refresh panel with updated transfer
-                    _loading = true;
-                    StateHasChanged();
-                    _transfer = await InventoryService.GetStockTransferByIdAsync(transferId);
-                    _loading = false;
-                    StateHasChanged();
-                }
-                else
-                {
-                    // Sources changed: reverse the old transfer, then post one batch per source.
-                    await InventoryService.CancelStockTransferAsync(transferId);
-                    var numbers = new List<string>();
-                    foreach (var batch in batches)
-                        numbers.Add(await InventoryService.CreateStockTransferAsync(batch));
-                    Snackbar.Add($"Transfer(s) {string.Join(", ", numbers)} completed.", Severity.Success);
-                    Close();
-                }
+        //             // Refresh panel with updated transfer
+        //             _loading = true;
+        //             StateHasChanged();
+        //             _transfer = await InventoryService.GetStockTransferByIdAsync(transferId);
+        //             _loading = false;
+        //             StateHasChanged();
+        //         }
+        //         else
+        //         {
+        //             // Sources changed: reverse the old transfer, then post one batch per source.
+        //             await InventoryService.CancelStockTransferAsync(transferId);
+        //             var numbers = new List<string>();
+        //             foreach (var batch in batches)
+        //                 numbers.Add(await InventoryService.CreateStockTransferAsync(batch));
+        //             Snackbar.Add($"Transfer(s) {string.Join(", ", numbers)} completed.", Severity.Success);
+        //             Close();
+        //         }
 
-                await OnTransferUpdated.InvokeAsync();
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add(ex.Message, Severity.Error);
-            }
-        }
+        //         await OnTransferUpdated.InvokeAsync();
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         Snackbar.Add(ex.Message, Severity.Error);
+        //     }
+        // }
     }
 }

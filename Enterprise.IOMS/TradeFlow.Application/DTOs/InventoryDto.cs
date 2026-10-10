@@ -25,19 +25,18 @@ namespace TradeFlow.Application.DTOs
 
     public record StockTransferLineDto(Guid Id, Guid ProductId, int Quantity, Guid SourceWarehouseId = default);
 
-    public record StockTransferItemDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU, int Quantity);
+    public record StockTransferItemDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU, int Quantity, string SourceWarehouseName);
 
     public record StockTransferListDto(Guid Id, string TransferNumber, DateTime TransferDate,
         Guid SourceWarehouseId, string SourceWarehouseName, Guid TargetWarehouseId, string TargetWarehouseName,
         StockTransferStatus Status, string? Notes, int TotalLines, int TotalQuantity, List<StockTransferItemDto> Items);
 
-    public record StockTransferCreateDto(Guid SourceWarehouseId, Guid TargetWarehouseId, string? Notes, List<StockTransferLineDto> Items, DateTime? TransferDate = null);
+    //public record StockTransferCreateDto(Guid Id, Guid SourceWarehouseId, Guid TargetWarehouseId, string? Notes, List<StockTransferLineDto> Items, DateTime? TransferDate = null);
 
     public class StockTransferDtoModel
     {
+        public Guid Id { get; set; }
         public DateTime? TransferDate { get; set; } = DateTime.UtcNow;
-        /// <summary>Source warehouses picked in the header (multi-select). Each item line carries its own source.</summary>
-        public List<Guid> SourceWarehouseIds { get; set; } = new();
         public Guid TargetWarehouseId { get; set; }
         public string? TargetWarehouseText { get; set; }
         public string? Notes { get; set; }

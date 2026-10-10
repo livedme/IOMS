@@ -1,43 +1,27 @@
 <MudDialog Class="bg-dialog-sales">
     <DialogContent>
         <MudGrid>
-            <MudItem xs="12" sm="2">
+            <MudItem xs="12" sm="3">
                 <MudDatePicker @bind-Date="dataModel.TransferDate" Label="Transfer Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
-            <MudItem xs="12" sm="3">
-                <MudSelect T="Guid" @ref="RefSource"
-                           SelectedValues="dataModel.SourceWarehouseIds"
-                           SelectedValuesChanged="OnSourceChanged"
-                           Label="From Warehouses"
-                           Clearable="true"
-                           Required="true"
-                           MultiSelection="true"
-                           Variant="Variant.Outlined"
-                           ToStringFunc="@(id => WareHouses.FirstOrDefault(g => g.Id == id).Name ?? string.Empty)"
-                           Margin="Margin.Dense">
-                            @foreach (var s in WareHouses)
-                            {
-                                <MudSelectItem Value="@s.Id">@s.Name</MudSelectItem>
-                            }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="3">
+            <MudItem xs="12" sm="4">
                 <MudSelect T="Guid" @ref="RefTarget"
                            Value="dataModel.TargetWarehouseId"
                            ValueChanged="OnTargetChanged"
                            Label="To Warehouse"
                            Clearable="true"
                            Required="true"
-                           ToStringFunc="@(id => ToWareHouses.FirstOrDefault(g => g.Id == id).Name ?? string.Empty)"
+                           SelectionOnEnter="true"  
+                           ToStringFunc="@(id => WareHouses.FirstOrDefault(g => g.Id == id).Name ?? string.Empty)"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense">
-                    @foreach (var s in ToWareHouses)
+                    @foreach (var s in WareHouses)
                     {
                         <MudSelectItem Value="@s.Id">@s.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
-            <MudItem xs="12" sm="4">
+            <MudItem xs="12" sm="5">
                 <MudTextField @ref="RefNote" @bind-Value="dataModel.Notes" Label="Notes" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
         </MudGrid>
@@ -46,8 +30,8 @@
 
         <MudTable Items="@dataModel.ItemsLine" Dense="true" Elevation="0" Class="product-item-list" FixedHeader="true" ContainerClass="mud-table-container">
             <HeaderContent>
-                <MudTh Style="width:auto;">Product</MudTh>
                 <MudTh Style="width:190px;">From Warehouse</MudTh>
+                <MudTh Style="width:auto;">Product</MudTh>
                 <MudTh Style="width:110px;">Qty</MudTh>
                 <MudTh Style="width:70px;" Class="text-end">
                     <MudIconButton Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Primary" OnClick="AddNewItemForm" />
@@ -56,6 +40,23 @@
             <RowTemplate>
                 @if (context.ProductId == Guid.Empty)
                 {
+                    <MudTd Style="width:190px;">
+                        <MudSelect T="Guid"
+                                    @ref="RefSource"
+                                   Value="dataModel.ProductObj.SourceWarehouseId"
+                                   ValueChanged="OnEntrySourceChanged"
+                                   ToStringFunc="@(id => WareHouses.FirstOrDefault(g => g.Id == id).Name ?? string.Empty)"
+                                   SelectionOnEnter="true"  
+                                   Label="From Warehouse" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                            @foreach (var s in WareHouses)
+                            {
+                                if(dataModel.TargetWarehouseId!=s.Id)
+                                {
+                                    <MudSelectItem Value="@s.Id">@s.Name</MudSelectItem>
+                                }
+                            }
+                        </MudSelect>
+                    </MudTd>
                     <MudTd Style="width:auto;">
                         <MudAutocomplete T="ControlItemsDto"
                                          @ref="dataModel.ProductObj.ProductDdlControl.ControlRef"
@@ -66,18 +67,11 @@
                                          @bind-Value:after="OnProductChanged"
                                          SearchFunc="SearchProducts"
                                          ToStringFunc="@(c => c?.Name ?? "")"
+                                         Placeholder="@(dataModel.ProductObj.SourceWarehouseId == Guid.Empty ? "Select a warehouse first" : "Search product")"
+                                         Disabled="@(dataModel.ProductObj.SourceWarehouseId == Guid.Empty)"
                                          ResetValueOnEmptyText="true"
                                          CoerceText="true"
                                          Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                    </MudTd>
-                    <MudTd Style="width:190px;">
-                        <MudSelect T="Guid" @bind-Value="dataModel.ProductObj.SourceWarehouseId"
-                                   ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
-                            @foreach (var s in SourceOptions)
-                            {
-                                <MudSelectItem Value="@s.Id">@s.Name</MudSelectItem>
-                            }
-                        </MudSelect>
                     </MudTd>
                     <MudTd Style="width:110px;">
                         <MudNumericField @ref="RefQuantity" @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -92,6 +86,23 @@
                     var itemIndex = dataModel.ItemsLine.IndexOf(context);
                     @if (_editingItemIndex == itemIndex)
                     {
+                        <MudTd Style="width:190px;">
+                            <MudSelect T="Guid"
+                                    @ref="RefSource"
+                                       Value="dataModel.ProductObj.SourceWarehouseId"
+                                       ValueChanged="OnEntrySourceChanged"
+                                       SelectionOnEnter="true"  
+                                       ToStringFunc="@(id => WareHouses.FirstOrDefault(g => g.Id == id).Name ?? string.Empty)"
+                                       Label="From Warehouse" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                                @foreach (var s in WareHouses)
+                                {
+                                    if(dataModel.TargetWarehouseId!=s.Id)
+                                {
+                                    <MudSelectItem Value="@s.Id">@s.Name</MudSelectItem>
+                                }
+                                }
+                            </MudSelect>
+                        </MudTd>
                         <MudTd Style="width:auto;">
                             <MudAutocomplete T="ControlItemsDto"
                                              Required="true"
@@ -102,18 +113,11 @@
                                              @bind-Value:after="OnEditProductChanged"
                                              SearchFunc="SearchProducts"
                                              ToStringFunc="@(c => c?.Name ?? "")"
+                                             Placeholder="@(dataModel.ProductObj.SourceWarehouseId == Guid.Empty ? "Select a warehouse first" : "Search product")"
+                                             Disabled="@(dataModel.ProductObj.SourceWarehouseId == Guid.Empty)"
                                              ResetValueOnEmptyText="true"
                                              CoerceText="true"
                                              Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                        </MudTd>
-                        <MudTd Style="width:190px;">
-                            <MudSelect T="Guid" @bind-Value="dataModel.ProductObj.SourceWarehouseId"
-                                       ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
-                                @foreach (var s in SourceOptions)
-                                {
-                                    <MudSelectItem Value="@s.Id">@s.Name</MudSelectItem>
-                                }
-                            </MudSelect>
                         </MudTd>
                         <MudTd Style="width:110px;">
                             <MudNumericField @ref="RefQuantity" @bind-Value="dataModel.ProductObj.Quantity" Min="1" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -125,14 +129,14 @@
                     }
                     else
                     {
+                        <MudTd Style="width:190px;">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@SourceName(context.SourceWarehouseId)</MudChip>
+                        </MudTd>
                         <MudTd Style="width:auto;">
                             @(Products.FirstOrDefault(p => p.Id == context.ProductId).Name)
                             <MudChip T="string" Size="Size.Small" Color="Color.Default">
-                                @(Products.FirstOrDefault(p => p.Id == context.ProductId).SKU ?? "-")
+                                @(Products.FirstOrDefault(p => p.Id == context.ProductId).AvailableQuantity)
                             </MudChip>
-                        </MudTd>
-                        <MudTd Style="width:190px;">
-                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@SourceName(context.SourceWarehouseId)</MudChip>
                         </MudTd>
                         <MudTd Style="width:110px;">@context.Quantity</MudTd>
                         <MudTd Style="width:70px;" Class="text-end d-inline-flex justify-content-between">
@@ -165,82 +169,55 @@
     [Parameter] public List<(Guid Id, string Name)> WareHouses { get; set; } = new();        
     [Parameter] public StockTransferDtoModel dataModel { get; set; } = new();
 
-    private List<(Guid Id, string Name, string SKU, Guid WarehouseId, string WarehouseName, int availableQuantity)> Products { get; set; } = new();
+    private List<(Guid Id, string Name, string SKU, Guid WarehouseId, string WarehouseName, int AvailableQuantity)> Products { get; set; } = new();
     private int _editingItemIndex = -1;
     private static readonly ControlItemsDto AddNewOption = new() { Id = Guid.Empty, Name = "Add New", IsSelected = false };
     private MudNumericField<int>? RefQuantity;
-    private MudSelect<Guid>? RefSource;
     private MudSelect<Guid>? RefTarget;
+    private MudSelect<Guid>? RefSource;
     private MudTextField<string>? RefNote;
-    private Dictionary<Guid, List<InventoryTrackingDto>> selectedWarehouseProduct = new();
-    private List<(Guid Id, string Name)> ToWareHouses { get; set; } = new();
+    private bool _productsLoaded;
 
     protected override async Task OnInitializedAsync()
     {
-        ToWareHouses = WareHouses.ToList();
-        await EnsureProductsLoaded(dataModel.SourceWarehouseIds);
-        RefreshTargetOptions();
+        await EnsureProductsLoaded(WareHouses.Select(w => w.Id));
 
         if (dataModel.ItemsLine.Count == 0)
             dataModel.ItemsLine.Insert(0, new StockTransferLineDto(Guid.NewGuid(), Guid.Empty, 0));
-
-        if (dataModel.ProductObj.ProductId == Guid.Empty && Products.Count > 0)
-        {
-            dataModel.ProductObj.ProductId = Products.First().Id;
-            dataModel.ProductObj.SourceWarehouseId = Products.First().WarehouseId;
-            dataModel.ProductObj.Quantity = 1;
-        }
     }
 
     private string SourceName(Guid id) =>
         WareHouses.FirstOrDefault(w => w.Id == id).Name ?? "—";
 
-    private IEnumerable<(Guid Id, string Name)> SourceOptions =>
-        WareHouses.Where(w => dataModel.SourceWarehouseIds.Contains(w.Id));
-
     private int AvailableFor(Guid productId, Guid warehouseId) =>
-        Products.Where(p => p.Id == productId && p.WarehouseId == warehouseId).Sum(p => p.availableQuantity);
+        Products.Where(p => p.Id == productId && p.WarehouseId == warehouseId).Sum(p => p.AvailableQuantity);
 
     private async Task EnsureProductsLoaded(IEnumerable<Guid> warehouseIds)
     {
-        foreach (var warehouseId in warehouseIds.Distinct())
+        if (_productsLoaded) return;
+        _productsLoaded = true;
+
+        var ids = warehouseIds.Where(w => w != Guid.Empty).Distinct().ToList();
+        if (ids.Count == 0) return;
+
+        try
         {
-            if (warehouseId == Guid.Empty || selectedWarehouseProduct.ContainsKey(warehouseId))
-                continue;
-            try
-            {
-                var inventoryTracking = await InventoryService.GetInventoryTrackingByWarehouse(warehouseId, 1, 10000);
-                selectedWarehouseProduct[warehouseId] = inventoryTracking.Items;
-                Products.AddRange(inventoryTracking.Items.Select(x => (x.ProductId, x.ProductName, x.ProductSKU, x.WarehouseId, x.WarehouseName, x.AvailableQuantity)));
-            }
-            catch { }
+            var inventoryTracking = await InventoryService.GetInventoryTrackingByWarehouses(ids, 1, 100000);
+            Products = inventoryTracking.Items
+                .Select(x => (x.ProductId, x.ProductName, x.ProductSKU, x.WarehouseId, x.WarehouseName, x.AvailableQuantity))
+                .ToList();
         }
-    }
-
-    private void RefreshTargetOptions()
-    {
-        ToWareHouses = WareHouses.Where(w => !dataModel.SourceWarehouseIds.Contains(w.Id)).ToList();
-        if (dataModel.TargetWarehouseId != Guid.Empty && ToWareHouses.All(w => w.Id != dataModel.TargetWarehouseId))
+        catch (Exception ex)
         {
-            dataModel.TargetWarehouseId = Guid.Empty;
-            dataModel.TargetWarehouseText = null;
+            _productsLoaded = false;
+            Snackbar.Add($"Could not load warehouse stock: {ex.Message}", Severity.Error);
         }
-    }
-
-    private async Task OnSourceChanged(IEnumerable<Guid> values)
-    {
-        dataModel.SourceWarehouseIds = values.ToList();
-        await EnsureProductsLoaded(dataModel.SourceWarehouseIds);
-        RefreshTargetOptions();
-
-        if (RefTarget is not null)
-            await RefTarget.FocusAsync();
     }
 
     private async Task OnTargetChanged(Guid value)
     {
         dataModel.TargetWarehouseId = value;
-        dataModel.TargetWarehouseText = ToWareHouses.FirstOrDefault(w => w.Id == value).Name;
+        dataModel.TargetWarehouseText = WareHouses.FirstOrDefault(w => w.Id == value).Name;
         if (RefNote is not null)
             await RefNote.FocusAsync();
     }
@@ -258,22 +235,34 @@
 
     private Task<IEnumerable<ControlItemsDto>> SearchProducts(string text, CancellationToken _)
     {
-        IEnumerable<ControlItemsDto> baseResults;
+        // Only products stocked in the line's warehouse, with available quantity.
+        var sourceId = dataModel.ProductObj.SourceWarehouseId;
+        if (sourceId == Guid.Empty)
+            return Task.FromResult(Enumerable.Empty<ControlItemsDto>());
 
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            baseResults = Products.Where(c => c.Id != Guid.Empty).Select(c => new ControlItemsDto() { Id = c.Id, Name = $"{c.Name} - {c.WarehouseName}({c.availableQuantity})", Text1 = c.WarehouseId.ToString(), IsSelected = false });
-        }
-        else
-        {
-            baseResults = Products.Where(c =>
-                c.Id != Guid.Empty &&
-                (c.Name.Contains(text, StringComparison.OrdinalIgnoreCase) || c.SKU.Contains(text, StringComparison.OrdinalIgnoreCase)))
-                .Select(c => new ControlItemsDto() { Id = c.Id, Name = $"{c.Name} - {c.WarehouseName}({c.availableQuantity})", Text1 = c.WarehouseId.ToString(), IsSelected = false });
-        }
+        var query = Products.Where(c => c.Id != Guid.Empty
+            && c.WarehouseId == sourceId
+            && c.AvailableQuantity > 0);
+        if (!string.IsNullOrWhiteSpace(text))
+            query = query.Where(c => (c.Name ?? "").Contains(text, StringComparison.OrdinalIgnoreCase)
+                || (c.SKU ?? "").Contains(text, StringComparison.OrdinalIgnoreCase));
 
-        var results = baseResults;
-        return Task.FromResult(results);
+        IEnumerable<ControlItemsDto> baseResults = query
+            .OrderByDescending(c => c.AvailableQuantity)
+            .Select(c => new ControlItemsDto() { Id = c.Id, Name = $"{c.Name} ({c.SKU}) - {c.AvailableQuantity} avail", IsSelected = false });
+
+        return Task.FromResult(baseResults);
+    }
+
+    /// <summary>Warehouse picked first in the line: the product list changes, so any picked product is cleared.</summary>
+    private void OnEntrySourceChanged(Guid value)
+    {
+        dataModel.ProductObj.SourceWarehouseId = value;
+        dataModel.ProductObj.ProductId = Guid.Empty;
+        dataModel.ProductObj.Quantity = 1;
+        dataModel.ProductObj.ProductDdlControl.SelectedItem = null;
+        dataModel.ProductObj.ProductDdlControl.SelectedText = null;
+        dataModel.ProductObj.ProductDdlControl.SelectedIndex++;
     }
 
     private async Task OnProductChanged()
@@ -281,17 +270,9 @@
         var prod = dataModel.ProductObj.ProductDdlControl.SelectedItem;
         if (prod == null || prod.Id == Guid.Empty) return;
 
-        var productId = (Guid)prod.Id;
-        var warehouseId = prod.Text1 is string ws && Guid.TryParse(ws, out var wg) ? wg : Guid.Empty;
-        var p = Products.FirstOrDefault(p => p.Id == productId && (warehouseId == Guid.Empty || p.WarehouseId == warehouseId));
-        if (p == default)
-            p = Products.FirstOrDefault(p => p.Id == productId);
-        if (p != default)
-        {
-            dataModel.ProductObj.ProductId = p.Id;
-            dataModel.ProductObj.SourceWarehouseId = p.WarehouseId;
-            dataModel.ProductObj.Quantity = dataModel.ProductObj.Quantity <= 0 ? 1 : dataModel.ProductObj.Quantity;
-        }
+        dataModel.ProductObj.ProductId = (Guid)prod.Id;
+        if (dataModel.ProductObj.Quantity <= 0)
+            dataModel.ProductObj.Quantity = 1;
 
         await UpdateControlSelection(dataModel.ProductObj.ProductDdlControl, prod);
 
@@ -304,16 +285,9 @@
         var prod = dataModel.ProductObj.ProductDdlControl.SelectedItem;
         if (prod == null || prod.Id == Guid.Empty) return;
 
-        var productId = (Guid)prod.Id;
-        var warehouseId = prod.Text1 is string ws && Guid.TryParse(ws, out var wg) ? wg : Guid.Empty;
-        var p = Products.FirstOrDefault(p => p.Id == productId && (warehouseId == Guid.Empty || p.WarehouseId == warehouseId));
-        if (p == default)
-            p = Products.FirstOrDefault(p => p.Id == productId);
-        if (p != default)
-        {
-            dataModel.ProductObj.ProductId = p.Id;
-            dataModel.ProductObj.SourceWarehouseId = p.WarehouseId;
-        }
+        dataModel.ProductObj.ProductId = (Guid)prod.Id;
+        if (dataModel.ProductObj.Quantity <= 0)
+            dataModel.ProductObj.Quantity = 1;
 
         await UpdateControlSelection(dataModel.ProductObj.ProductDdlControl, prod);
 
@@ -326,13 +300,11 @@
         if (dataModel.ItemsLine.Any(x => x.ProductId == Guid.Empty)) return;
 
         _editingItemIndex = index;
-        var product = Products.FirstOrDefault(p => p.Id == item.ProductId && p.WarehouseId == item.SourceWarehouseId);
-        if (product == default)
-            product = Products.FirstOrDefault(p => p.Id == item.ProductId);
+        var product = Products.FirstOrDefault(p => p.Id == item.ProductId);
         dataModel.ProductObj.ProductId = item.ProductId;
         dataModel.ProductObj.SourceWarehouseId = item.SourceWarehouseId;
         dataModel.ProductObj.ProductDdlControl.SelectedItem = product != default
-            ? new ControlItemsDto() { Id = product.Id, Name = $"{product.Name} - {product.WarehouseName}({product.availableQuantity})", Text1 = product.WarehouseId.ToString(), IsSelected = false }
+            ? new ControlItemsDto() { Id = product.Id, Name = $"{product.Name} ({product.SKU})", IsSelected = false }
             : new ControlItemsDto() { Id = Guid.Empty, Name = "", IsSelected = false };
         dataModel.ProductObj.Quantity = item.Quantity;
     }
@@ -364,12 +336,13 @@
 
         if (_editingItemIndex < 0)
         {
-            dataModel.ProductObj.ProductId = Products.Count > 0 ? Products.First().Id : Guid.Empty;
-            dataModel.ProductObj.SourceWarehouseId = dataModel.SourceWarehouseIds.FirstOrDefault();
+            dataModel.ProductObj.ProductId = Guid.Empty;
+            dataModel.ProductObj.SourceWarehouseId = Guid.Empty;
             dataModel.ProductObj.Quantity = 1;
             dataModel.ProductObj.ProductDdlControl = new ControlDto();
             dataModel.ItemsLine.Insert(0, new StockTransferLineDto(Guid.NewGuid(), Guid.Empty, 0));
         }
+
         await FocusSelectBox();
     }
 
@@ -399,18 +372,15 @@
         if (dataModel.ProductObj.ProductId == Guid.Empty || dataModel.ProductObj.Quantity <= 0) return;
         if (!ValidateLineSource(dataModel.ProductObj.SourceWarehouseId, dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity)) return;
 
-        var placeholder = dataModel.ItemsLine.FirstOrDefault(i => i.ProductId == Guid.Empty);
-        if (placeholder is not null)
-            dataModel.ItemsLine.Remove(placeholder);
+        // var placeholder = dataModel.ItemsLine.FirstOrDefault(i => i.ProductId == Guid.Empty);
+        // if (placeholder is not null)
+        //     dataModel.ItemsLine.Remove(placeholder);
 
-        dataModel.ItemsLine.Add(new StockTransferLineDto(Guid.NewGuid(), dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity, dataModel.ProductObj.SourceWarehouseId));
+        dataModel.ItemsLine.Insert(dataModel.ItemsLine.Count,new StockTransferLineDto(Guid.NewGuid(), dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity, dataModel.ProductObj.SourceWarehouseId));
 
+        dataModel.ProductObj.ProductId = Guid.Empty;
+        dataModel.ProductObj.SourceWarehouseId = Guid.Empty;
         dataModel.ProductObj.Quantity = 1;
-        if (Products.Count > 0)
-        {
-            dataModel.ProductObj.ProductId = Products.First().Id;
-            dataModel.ProductObj.SourceWarehouseId = Products.First().WarehouseId;
-        }
 
         await FocusSelectBox();
     }
@@ -418,10 +388,10 @@
     private async Task FocusSelectBox()
     {
         await Task.Delay(100);
-        if (dataModel.ProductObj.ProductDdlControl.ControlRef is not null)
+        if (RefSource is not null)
         {
-            await dataModel.ProductObj.ProductDdlControl.ControlRef.ResetAsync();
-            await dataModel.ProductObj.ProductDdlControl.ControlRef.FocusAsync();
+            await RefSource.ResetAsync();
+            await RefSource.FocusAsync();
         }
     }
 
@@ -451,17 +421,8 @@
             return;
         }
 
-        // One batch per source warehouse, all into the single destination.
-        var batches = lines
-            .GroupBy(i => i.SourceWarehouseId)
-            .Select(g => new StockTransferCreateDto(
-                g.Key,
-                dataModel.TargetWarehouseId,
-                dataModel.Notes,
-                g.Select(i => new StockTransferLineDto(i.Id, i.ProductId, i.Quantity, i.SourceWarehouseId)).ToList(),
-                dataModel.TransferDate))
-            .ToList();
+        // One batch per source warehouse, all into the single destination.        
 
-        MudDialog.Close(DialogResult.Ok(batches));
+        MudDialog.Close(DialogResult.Ok(dataModel));
     }
 }

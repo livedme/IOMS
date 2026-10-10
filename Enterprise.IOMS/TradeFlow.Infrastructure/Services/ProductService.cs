@@ -129,7 +129,7 @@ namespace TradeFlow.Infrastructure.Services
                     x.Product.MinOrderQuantity,
                     x.Product.WarrantyInMonths,
                     x.Product.CategoryId,
-                    x.Product.Category != null ? x.Product.Category.Name : null,
+                    x.Product.Category != null ? x.Product.Category.Path:null,
                     x.Product.BrandId,
                     x.Product.Brand != null ? x.Product.Brand.Name : null,
                     x.Product.Model,
@@ -235,24 +235,22 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<Guid> CreateProductAsync(ProductDetailsDto dto)
         {
+         //   var barcodeValue = $"IOMS{dto.Id:D10}";
+
             var product = new Product
             {
                 Name = dto.Name,
                 SKU = dto.SKU,
                 Barcode = dto.Barcode,
-
                 CategoryId = dto.CategoryId,
                 BrandId = dto.BrandId,
                 Model = dto.Model,
-
                 CostPrice = dto.CostPrice,
                 SellingPrice = dto.SellingPrice,
                 WholeSellingPrice = dto.WholeSellingPrice,
-
                 ReorderStockLevel = dto.ReorderStockLevel,
                 OriginManufacturer = dto.OriginManufacturer,
                 OriginCountry = dto.OriginCountry,
-
                 MinOrderQuantity = dto.MinOrderQuantity,
                 BaseUoMId = dto.BaseUoMId,
                 ImageUrl = dto.ImageUrl,
@@ -433,19 +431,15 @@ namespace TradeFlow.Infrastructure.Services
             product.Name = dto.Name;
             product.SKU = dto.SKU;
             product.Barcode = dto.Barcode;
-
             product.CategoryId = dto.CategoryId;
             product.BrandId = dto.BrandId;
             product.Model = dto.Model;
-
             product.CostPrice = dto.CostPrice;
             product.SellingPrice = dto.SellingPrice;
             product.WholeSellingPrice = dto.WholeSellingPrice;
-
             product.ReorderStockLevel = dto.ReorderStockLevel;
             product.OriginManufacturer = dto.OriginManufacturer;
             product.OriginCountry = dto.OriginCountry;
-
             product.MinOrderQuantity = dto.MinOrderQuantity;
             product.BaseUoMId = dto.BaseUoMId;
             product.ImageUrl = dto.ImageUrl;

@@ -7,6 +7,7 @@
 @inject NavigationManager Navigation
 @inject IBrandService BrandService
 @inject ICategoryService CategoryService
+@using TradeFlow.Shared.Helpers;
 
 <PageTitle>Products - IOMS</PageTitle>
 
@@ -362,7 +363,11 @@
     {
         var categories = await CategoryService.GetAllCategoriesAsync();
         var brands = await BrandService.GetAllBrandsAsync();
-        var detailsDto = new ProductDetailsDto();
+        var detailsDto = new ProductDetailsDto()
+            {
+                Barcode = NumberGenerator.GenerateCode("PRD"),
+                SKU=NumberGenerator.GenerateCode("SKU"),
+            };
         if (product != null)
         {
             var fullProduct = await ProductService.GetProductDetailsByIdAsync(product.Id);

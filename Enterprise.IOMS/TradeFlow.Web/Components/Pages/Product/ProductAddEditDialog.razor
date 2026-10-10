@@ -25,7 +25,7 @@
                                      @bind-Text="DataModel.CategoryControl.SelectedText"
                                      @bind-Value:after="OnCategoryChanged"
                                      SearchFunc="SearchCategories"
-                                     ToStringFunc="@(c => c?.Name ?? c?.Text1 ?? "")"
+                                     ToStringFunc="@(c => c?.Text1 ?? c?.Name ?? "")"
                                      ResetValueOnEmptyText="true"
                                      CoerceText="true"
                                      Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
@@ -47,7 +47,7 @@
 
                 </MudItem>
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
-                    <MudTextField @ref="RefModel" @bind-Value="DataModel.Model" Label="Model" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                    <MudTextField @ref="RefModel" @bind-Value="DataModel.Model" Label="Model" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
                  <MudItem xs="12" sm="4" Class="p-4 py-2">
                     <MudNumericField @bind-Value="DataModel.ReorderStockLevel" Label="Reorder Stock Level" Min="0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
@@ -62,13 +62,13 @@
                     <MudNumericField @bind-Value="DataModel.WholeSellingPrice" Label="Whole Selling Price" Format="N2" Min="0m" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
                 </MudItem>               
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
-                    <MudTextField @bind-Value="DataModel.OriginManufacturer" Label="Origin Manufacturer" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                    <MudTextField @bind-Value="DataModel.OriginManufacturer" Label="Manufacturer By" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="12" sm="4" Class="p-4 py-2">
-                    <MudTextField @bind-Value="DataModel.OriginCountry" Label="Origin Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                    <MudTextField @bind-Value="DataModel.OriginCountry" Label="Manufacturer Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
                    <MudItem xs="12" sm="4" Class="p-4 py-2">
-                    <MudNumericField @bind-Value="DataModel.WarrantyInMonths" Label="Warranty (month)" Min="0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="" />
+                    <MudNumericField @bind-Value="DataModel.WarrantyInMonths" Label="Warranty (month)" Min="0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>           
                 <MudItem xs="12" Class="py-0">
                     <RichTextField @bind-Value="DataModel.Description" Label="Description" Lines="10" Class="mt-3" />
