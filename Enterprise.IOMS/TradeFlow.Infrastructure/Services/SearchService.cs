@@ -48,7 +48,10 @@ public class SearchService : ISearchService
         // rejects two concurrent operations on the same instance.
         var products = await _context.Products
             .AsNoTracking()
-            .Where(p => p.Name.Contains(term) || p.SKU.Contains(term))
+            .Where(p => p.Name.Contains(term) || p.SKU.Contains(term)
+                || (p.Barcode != null && p.Barcode.Contains(term))
+                || (p.Model != null && p.Model.Contains(term))
+                || (p.Brand != null && p.Brand.Name.Contains(term)))
             .OrderBy(p => p.Name)
             .Take(perType)
             .Select(x => new ProductDto(
@@ -72,7 +75,24 @@ public class SearchService : ISearchService
                     0,
                     x.IsKit,
                     x.OriginCountry ?? string.Empty,
-                    x.OriginManufacturer ?? string.Empty)).ToListAsync();
+                    x.OriginManufacturer ?? string.Empty,
+                    x.Inventories
+                        .OrderByDescending(i => i.Quantity)
+                        .Select(i => new ProductWarehouseStockDto(
+                            i.WarehouseId,
+                            i.Warehouse != null ? i.Warehouse.Name : "—",
+                            i.Quantity,
+                            i.ReservedQuantity,
+                            i.Quantity - i.ReservedQuantity))
+                        .ToList(),
+                    x.Category != null && x.Category.ParentCategory != null
+                        ? x.Category.ParentCategory.Name : null,
+                    x.Category != null ? x.Category.Name : null,
+                    x.Inventories.Sum(i => i.Quantity - i.ReservedQuantity),
+                    x.SalesOrderItems
+                        .OrderByDescending(soi => soi.SalesOrder.OrderDate)
+                        .Select(soi => (decimal?)soi.UnitPrice)
+                        .FirstOrDefault())).ToListAsync();
 
         response.ProductItems.AddRange(products);
 

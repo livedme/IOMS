@@ -1,0 +1,191 @@
+@inject IQuotationService QuotationService
+@inject ISnackbar Snackbar
+
+@if (_open)
+{
+    <div class="so-backdrop" @onclick="Close"></div>
+
+    <div class="so-side-panel @(_animateIn ? "so-panel-open" : "")">
+
+        <!-- Header -->
+        <div class="so-header">
+            <div class="d-flex align-items-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.RequestQuote" Color="Color.Primary" />
+                <div>
+                    <div class="so-header-title">Sales Quotation</div>
+                    @if (_quote != null)
+                    {
+                        <div class="so-header-sub">@_quote.QuoteNumber</div>
+                    }
+                </div>
+                @if (_quote != null)
+                {
+                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_quote.Status)" Size="Size.Small" Class="ms-1">
+                        @_quote.Status</MudChip>
+                }
+            </div>
+            <div class="d-flex gap-1">
+                <MudTooltip Text="Close panel">
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Close" />
+                </MudTooltip>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="so-body">
+            @if (_loading)
+            {
+                <div class="d-flex justify-center align-center" style="height:200px;">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+            else if (_quote != null)
+            {
+                <!-- Reference block -->
+                <div class="so-ref-block mb-3">
+                    <div class="d-flex justify-space-between">
+                        <div>
+                            <div class="so-lbl">Quote Number</div>
+                            <div class="so-val-lg">@_quote.QuoteNumber</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="so-lbl">Quote Date</div>
+                            <div class="so-val fw-semibold">@_quote.QuoteDate.ToString("dd MMM yyyy")</div>
+                            <div class="so-sm">Valid until
+                                <span class="@(_quote.ValidUntil < DateTime.Today ? "text-danger fw-semibold" : "")">
+                                    @_quote.ValidUntil.ToString("dd MMM yyyy")@(_quote.ValidUntil < DateTime.Today ? " (expired)" : "")
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Customer -->
+                <MudGrid Spacing="2" Class="mb-3">
+                    <MudItem xs="12">
+                        <div class="so-info-card">
+                            <div class="so-info-icon">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Style="color:#fff;" />
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="so-lbl">Customer</div>
+                                <div class="so-val fw-bold text-truncate">@(_quote.CustomerName ?? "—")</div>
+                            </div>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+
+                @if (!string.IsNullOrWhiteSpace(_quote.Notes))
+                {
+                    <div class="so-lbl mb-1">Notes</div>
+                    <div class="so-val mb-3">@_quote.Notes</div>
+                    <MudDivider Class="mb-3" />
+                }
+
+                <!-- Items table -->
+                <div class="so-section-lbl mb-2">Quote Items (@_quote.Items.Count)</div>
+                <div class="so-items-wrapper mb-3">
+                    <MudTable Items="@_quote.Items" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                        <HeaderContent>
+                            <MudTh>Product</MudTh>
+                            <MudTh Style="text-align:right">Qty</MudTh>
+                            <MudTh Style="text-align:right">Price</MudTh>
+                            <MudTh Style="text-align:right">Disc %</MudTh>
+                            <MudTh Style="text-align:right">Tax</MudTh>
+                            <MudTh Style="text-align:right">Total</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <div class="so-val fw-semibold" style="line-height:1.2;">@context.ProductName</div>
+                                <div class="so-sm text-muted">@context.ProductSKU</div>
+                            </MudTd>
+                            <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                            <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
+                            <MudTd Style="text-align:right">@context.DiscountPercent.ToString("N0")%</MudTd>
+                            <MudTd Style="text-align:right">@context.TaxAmount.ToString("C")</MudTd>
+                            <MudTd Style="text-align:right;font-weight:600;">@context.LineTotal.ToString("C")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </div>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Totals -->
+                <div class="so-totals-box">
+                    <div class="so-total-row">
+                        <span>Subtotal</span>
+                        <span>@_quote.SubTotal.ToString("C")</span>
+                    </div>
+                    @if (_quote.DiscountAmount > 0)
+                    {
+                        <div class="so-total-row">
+                            <span>Discount</span>
+                            <span class="text-error">-@_quote.DiscountAmount.ToString("C")</span>
+                        </div>
+                    }
+                    @if (_quote.TaxAmount > 0)
+                    {
+                        <div class="so-total-row">
+                            <span>Tax</span>
+                            <span>@_quote.TaxAmount.ToString("C")</span>
+                        </div>
+                    }
+                    <div class="so-total-row so-grand-total">
+                        <span>TOTAL</span>
+                        <span>@_quote.TotalAmount.ToString("C")</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        @if (_quote != null)
+        {
+            <div class="so-footer">
+                <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _open;
+    private bool _animateIn;
+    private bool _loading;
+    private SalesQuoteDto? _quote;
+
+    public async Task OpenAsync(Guid id)
+    {
+        _open = true;
+        _loading = true;
+        _animateIn = false;
+        _quote = null;
+        StateHasChanged();
+
+        await Task.Delay(20);
+        _animateIn = true;
+        StateHasChanged();
+
+        try
+        {
+            _quote = await QuotationService.GetSalesQuoteById(id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        _open = false;
+        _animateIn = false;
+        _quote = null;
+        StateHasChanged();
+    }
+}

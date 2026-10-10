@@ -1,0 +1,156 @@
+@inject IPurchaseReturnService PurchaseReturnService
+@inject ISnackbar Snackbar
+
+@if (_open)
+{
+    <div class="so-backdrop" @onclick="Close"></div>
+
+    <div class="so-side-panel @(_animateIn ? "so-panel-open" : "")">
+
+        <!-- Header -->
+        <div class="so-header">
+            <div class="d-flex align-items-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.AssignmentReturn" Color="Color.Primary" />
+                <div>
+                    <div class="so-header-title">Purchase Return</div>
+                    @if (_return != null)
+                    {
+                        <div class="so-header-sub">@_return.ReturnNumber</div>
+                    }
+                </div>
+                @if (_return != null)
+                {
+                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_return.Status)" Size="Size.Small" Class="ms-1">
+                        @_return.Status</MudChip>
+                }
+            </div>
+            <div class="d-flex gap-1">
+                <MudTooltip Text="Close panel">
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Close" />
+                </MudTooltip>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="so-body">
+            @if (_loading)
+            {
+                <div class="d-flex justify-center align-center" style="height:200px;">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+            else if (_return != null)
+            {
+                <!-- Reference block -->
+                <div class="so-ref-block mb-3">
+                    <div class="d-flex justify-space-between">
+                        <div>
+                            <div class="so-lbl">Return Number</div>
+                            <div class="so-val-lg">@_return.ReturnNumber</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="so-lbl">Source Order</div>
+                            <div class="so-val fw-semibold">@(string.IsNullOrWhiteSpace(_return.PurchaseOrderNumber) ? "—" : _return.PurchaseOrderNumber)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <MudDivider Class="mb-3" />
+
+                @if (!string.IsNullOrWhiteSpace(_return.Reason))
+                {
+                    <div class="so-lbl mb-1">Reason</div>
+                    <div class="so-val mb-3">@_return.Reason</div>
+                    <MudDivider Class="mb-3" />
+                }
+
+                <!-- Items table -->
+                <div class="so-section-lbl mb-2">Returned Items (@_return.ItemsLine.Count)</div>
+                <div class="so-items-wrapper mb-3">
+                    <MudTable Items="@_return.ItemsLine" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                        <HeaderContent>
+                            <MudTh>Product</MudTh>
+                            <MudTh Style="text-align:right">Qty</MudTh>
+                            <MudTh Style="text-align:right">Unit Cost</MudTh>
+                            <MudTh Style="text-align:right">Total</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <div class="so-val fw-semibold" style="line-height:1.2;">@context.ProductName</div>
+                            </MudTd>
+                            <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                            <MudTd Style="text-align:right">@context.UnitCost.ToString("C")</MudTd>
+                            <MudTd Style="text-align:right;font-weight:600;">@context.LineTotal.ToString("C")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </div>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Totals -->
+                <div class="so-totals-box">
+                    <div class="so-total-row">
+                        <span>Items</span>
+                        <span>@_return.ItemsLine.Count</span>
+                    </div>
+                    <div class="so-total-row">
+                        <span>Total Units</span>
+                        <span>@_return.ItemsLine.Sum(x => x.Quantity)</span>
+                    </div>
+                    <div class="so-total-row so-grand-total">
+                        <span>TOTAL</span>
+                        <span>@_return.TotalAmount.ToString("C")</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        @if (_return != null)
+        {
+            <div class="so-footer">
+                <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _open;
+    private bool _animateIn;
+    private bool _loading;
+    private PurchaseReturnDto? _return;
+
+    public async Task OpenAsync(Guid id)
+    {
+        _open = true;
+        _loading = true;
+        _animateIn = false;
+        _return = null;
+        StateHasChanged();
+
+        await Task.Delay(20);
+        _animateIn = true;
+        StateHasChanged();
+
+        try
+        {
+            _return = await PurchaseReturnService.GetPurchaseReturnById(id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        _open = false;
+        _animateIn = false;
+        _return = null;
+        StateHasChanged();
+    }
+}

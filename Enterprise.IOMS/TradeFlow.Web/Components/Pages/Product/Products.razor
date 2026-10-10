@@ -114,11 +114,15 @@
                         @* <th>SKU</th> *@
                         <th>Barcode</th>
                         <th>Category</th>
+                        <th>Subcategory</th>
                         <th>Brand / Model</th>
                         <th>Cost Price</th>
                         <th>Selling Price</th>
                         <th>Wholesale</th>
+                        <th>Last Sales Rate</th>
                         <th>Stock</th>
+                        <th>Available</th>
+                        <th>Warehouses</th>
                         <th>Reorder Level</th>
                         <th>Warranty</th>
                         <th>Status</th>
@@ -129,12 +133,12 @@
                      @if (!_hasLoadedOnce && _loading && !pagedResultNew.Items.Any())
                     {
                         @* Initial skeleton — keeps table chrome visible on first load *@
-                        <tr><td colspan="13" style="text-align:center; padding:40px; color:#94a3b8;">Loading trucks...</td></tr>
+                        <tr><td colspan="16" style="text-align:center; padding:40px; color:#94a3b8;">Loading trucks...</td></tr>
                     }
                     else if (!pagedResultNew.Items.Any())
                     {
                         <tr>
-                            <td colspan="13" style="text-align:center; padding:40px;">
+                            <td colspan="16" style="text-align:center; padding:40px;">
                                 <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
                                 <div style="color:#64748b;">No trucks found — try a different search or filter</div>
                                  @if (!string.IsNullOrWhiteSpace(pagedRequest.SearchTerm))
@@ -157,19 +161,36 @@
                                 </td>
                                 @* <td class="tm-num">@p.SKU</td> *@
                                 <td class="tm-num">@(string.IsNullOrWhiteSpace(p.Barcode) ? "-" : p.Barcode)</td>
-                                <td class="tm-dim">@(p.CategoryName ?? "-")</td>
+                                <td class="tm-dim">@(p.ParentCategoryName ?? p.SubCategoryName ?? p.CategoryName ?? "-")</td>
+                                <td class="tm-dim">@(p.ParentCategoryName != null ? (p.SubCategoryName ?? "-") : "-")</td>
                                 <td class="tm-dim">@((p.BrandName ?? "-") + (string.IsNullOrWhiteSpace(p.Model) ? "" : $" ({p.Model})"))</td>
                                 <td class="tm-money">@p.CostPrice.ToString("0.00")</td>
                                 <td class="tm-money">@p.SellingPrice.ToString("0.00")</td>
                                 <td class="tm-money">@p.WholeSellingPrice.ToString("0.00")</td>
+                                <td class="tm-money">@(p.LastSalesRate.HasValue ? p.LastSalesRate.Value.ToString("0.00") : "-")</td>
                                 <td class="tm-num">@p.TotalStock</td>
+                                <td class="tm-num">@p.AvailableQuantity</td>
+                                <td>
+                                    @if (p.WarehouseStocks == null || p.WarehouseStocks.Count == 0)
+                                    {
+                                        <span class="tm-dim">-</span>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var w in p.WarehouseStocks)
+                                        {
+                                            <span class="tm-pill tm-pill-blue" title="@w.WarehouseName (avail. @w.AvailableQuantity)"><span class="tm-dot"></span>@w.WarehouseName: @w.Quantity</span>
+                                        }
+                                    }
+                                </td>
                                 <td class="tm-num">@p.ReorderStockLevel</td>
                                 <td class="tm-num">@p.WarrantyInMonths</td>
                                 @* <td class="tm-branch">@p.OriginCountry</td> *@
                                 <td><span class="@pill"><span class="tm-dot"></span>@status</span></td>
                                 <td>
                                     <span class="tm-actions" style="justify-content:flex-end">
-                                        <button class="tm-act tm-act-view" title="View" @onclick="() => NavigateToDetail(p.Id)">👁</button>
+                                         <button class="tm-act tm-act-view" title="View" @onclick="() => NavigateToDetail(p.Id)">👁</button>
+                                        @* <button class="tm-act tm-act-view" title="View" @onclick="() => OpenDetails(p.Id)">👁</button> *@
                                         <button class="tm-act tm-act-edit" title="Edit" @onclick="() => OpenAddEditDialog(p)">✎</button>
                                         <button class="tm-act tm-act-del" title="Delete" @onclick="() => DeleteProduct(p.Id)">🗑</button>
                                     </span>
@@ -193,6 +214,8 @@
         </div>
     </div>
 </div>
+
+<ProductViewPanel @ref="_viewPanel" />
 
 @code {
 
@@ -227,6 +250,14 @@
     }
 
     private void NavigateToDetail(Guid id) => Navigation.NavigateTo($"/products/details/{id}");
+
+    private ProductViewPanel? _viewPanel;
+
+    private async Task OpenDetails(Guid id)
+    {
+        if (_viewPanel != null)
+            await _viewPanel.OpenAsync(id);
+    }
 
     private string GetStockStatus(ProductDto p)
     {

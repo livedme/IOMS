@@ -1,0 +1,295 @@
+@inject ICustomerService CustomerService
+@inject IOrderService OrderService
+@inject IAccountingService AccountingService
+@inject ISnackbar Snackbar
+
+@if (_open)
+{
+    <div class="so-backdrop" @onclick="Close"></div>
+
+    <div class="so-side-panel @(_animateIn ? "so-panel-open" : "")">
+
+        <!-- Header -->
+        <div class="so-header">
+            <div class="d-flex align-items-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Primary" />
+                <div>
+                    <div class="so-header-title">Customer</div>
+                    @if (_customer != null)
+                    {
+                        <div class="so-header-sub">@_customer.CustomerName</div>
+                    }
+                </div>
+                @if (_customer != null)
+                {
+                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_customer.IsActive)" Size="Size.Small" Class="ms-1">
+                        @(_customer.IsActive ? "Active" : "Inactive")</MudChip>
+                }
+            </div>
+            <div class="d-flex gap-1">
+                <MudTooltip Text="Close panel">
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Close" />
+                </MudTooltip>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="so-body">
+            @if (_loading)
+            {
+                <div class="d-flex justify-center align-center" style="height:200px;">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+            else if (_customer != null)
+            {
+                <!-- Reference block -->
+                <div class="so-ref-block mb-3">
+                    <div class="d-flex justify-space-between">
+                        <div>
+                            <div class="so-lbl">Customer</div>
+                            <div class="so-val-lg">@_customer.CustomerName</div>
+                            @if (!string.IsNullOrWhiteSpace(_customer.CustomerPhone))
+                            {
+                                <div class="so-sm">@_customer.CustomerPhone</div>
+                            }
+                        </div>
+                        <div class="text-end">
+                            <div class="so-lbl">Credit Limit</div>
+                            <div class="so-val fw-semibold">@_customer.CreditLimit.ToString("C")</div>
+                            <div class="so-lbl mt-1">Outstanding</div>
+                            <div class="so-val fw-semibold @(_outstanding > 0 ? "text-error" : "text-success")">@_outstanding.ToString("C")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Contact -->
+                <div class="so-section-lbl mb-2">Contact</div>
+                <MudGrid Spacing="2" Class="mb-3">
+                    <MudItem xs="6">
+                        <div class="so-lbl">Email</div>
+                        <div class="so-val">@(_customer.CustomerEmail ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Phone</div>
+                        <div class="so-val">@(_customer.CustomerPhone ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Contact Person</div>
+                        <div class="so-val">@(_customer.ContactPersonName ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Contact Person Phone</div>
+                        <div class="so-val">@(_customer.ContactPersonPhone ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Contact Person Email</div>
+                        <div class="so-val">@(_customer.ContactPersonEmail ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Payment Terms</div>
+                        <div class="so-val">@(_customer.PaymentTerms ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Address</div>
+                        <div class="so-val">@(_customer.Address ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">City</div>
+                        <div class="so-val">@(_customer.City ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Zila</div>
+                        <div class="so-val">@(_customer.Zila ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">State</div>
+                        <div class="so-val">@(_customer.State ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Country</div>
+                        <div class="so-val">@(_customer.Country ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Postal Code</div>
+                        <div class="so-val">@(_customer.PostalCode ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Tax Exempt</div>
+                        <div class="so-val">@(_customer.IsTaxExempt ? "Yes" : "No")</div>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Recent sales -->
+                <div class="so-section-lbl mb-2">Recent Sales (@_recentOrders.Count)</div>
+                @if (_recentOrders.Count == 0)
+                {
+                    <div class="so-sm mb-3">No sales recorded.</div>
+                }
+                else
+                {
+                    <div class="so-items-wrapper mb-3">
+                        <MudTable Items="@_recentOrders" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                            <HeaderContent>
+                                <MudTh>Order #</MudTh>
+                                <MudTh>Date</MudTh>
+                                <MudTh>Status</MudTh>
+                                <MudTh Style="text-align:right">Total</MudTh>
+                                <MudTh Style="text-align:right">Paid</MudTh>
+                                <MudTh Style="text-align:right">Due</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd><strong>@context.OrderNumber</strong></MudTd>
+                                <MudTd>@context.OrderDate.ToString("dd MMM yyyy")</MudTd>
+                                <MudTd><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
+                                <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
+                                <MudTd Style="text-align:right">@context.PaidAmount.ToString("C")</MudTd>
+                                <MudTd Style="text-align:right;font-weight:600;">@context.DueAmount.ToString("C")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </div>
+                    <div class="so-totals-box mb-3">
+                        <div class="so-total-row"><span>Total Sales (recent @_recentOrders.Count)</span><span>@_historyTotal.ToString("C")</span></div>
+                        <div class="so-total-row"><span>Paid</span><span class="text-success">@_historyPaid.ToString("C")</span></div>
+                        <div class="so-total-row so-due-row"><span>Outstanding</span><span>@_historyDue.ToString("C")</span></div>
+                    </div>
+                }
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Invoices -->
+                <div class="so-section-lbl mb-2">Recent Invoices (@_invoices.Count)</div>
+                @if (_invoices.Count == 0)
+                {
+                    <div class="so-sm mb-3">No invoices.</div>
+                }
+                else
+                {
+                    <div class="so-items-wrapper mb-3">
+                        <MudTable Items="@_invoices" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                            <HeaderContent>
+                                <MudTh>Invoice #</MudTh>
+                                <MudTh>Date</MudTh>
+                                <MudTh Style="text-align:right">Total</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd><strong>@context.InvoiceNumber</strong></MudTd>
+                                <MudTd>@context.InvoiceDate.ToString("dd MMM yyyy")</MudTd>
+                                <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </div>
+                }
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Payments -->
+                <div class="so-section-lbl mb-2">Recent Payments (@_payments.Count)</div>
+                @if (_payments.Count == 0)
+                {
+                    <div class="so-sm mb-3">No payments recorded.</div>
+                }
+                else
+                {
+                    <div class="so-items-wrapper mb-3">
+                        <MudTable Items="@_payments" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                            <HeaderContent>
+                                <MudTh>Payment #</MudTh>
+                                <MudTh>Date</MudTh>
+                                <MudTh Style="text-align:right">Amount</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd><strong>@context.PaymentNumber</strong></MudTd>
+                                <MudTd>@context.PaymentDate.ToString("dd MMM yyyy")</MudTd>
+                                <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- Footer -->
+        @if (_customer != null)
+        {
+            <div class="so-footer">
+                <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _open;
+    private bool _animateIn;
+    private bool _loading;
+    private CustomerDto? _customer;
+    private List<SalesOrderDto> _recentOrders = new();
+    private List<StatementInvoiceRowDto> _invoices = new();
+    private List<StatementPaymentRowDto> _payments = new();
+    private decimal _historyTotal;
+    private decimal _historyPaid;
+    private decimal _historyDue;
+    private decimal _outstanding;
+
+    public async Task OpenAsync(Guid id)
+    {
+        _open = true;
+        _loading = true;
+        _animateIn = false;
+        _customer = null;
+        _recentOrders = new();
+        _invoices = new();
+        _payments = new();
+        _historyTotal = _historyPaid = _historyDue = _outstanding = 0;
+        StateHasChanged();
+
+        await Task.Delay(20);
+        _animateIn = true;
+        StateHasChanged();
+
+        try
+        {
+            _customer = await CustomerService.GetCustomerByIdAsync(id);
+            if (_customer != null)
+            {
+                var history = await OrderService.GetSalesOrdersAsync(new SalesPagedRequest
+                {
+                    CustomerId = id,
+                    CurrentPage = 0,
+                    PageSize = 100,
+                    SortColumn = "OrderDate",
+                    SortAscending = false
+                });
+                _recentOrders = history.Items;
+                _historyTotal = _recentOrders.Sum(o => o.TotalAmount);
+                _historyPaid = _recentOrders.Sum(o => o.PaidAmount);
+                _historyDue = _recentOrders.Sum(o => o.DueAmount);
+                _outstanding = _historyDue;
+
+                var statement = await AccountingService.GetCustomerStatement(id, new DateTime(2000, 1, 1), DateTime.UtcNow.AddDays(1));
+                _invoices = statement.Invoices.OrderByDescending(i => i.InvoiceDate).Take(10).ToList();
+                _payments = statement.Payments.OrderByDescending(p => p.PaymentDate).Take(10).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        _open = false;
+        _animateIn = false;
+        _customer = null;
+        StateHasChanged();
+    }
+}

@@ -2,168 +2,270 @@
 
 @rendermode InteractiveServer
 @attribute [Authorize]
+@using TradeFlow.Web.Components.Pages.Product
+@using TradeFlow.Web.Components.Pages.Sales
+@using TradeFlow.Web.Components.Pages.Purchasing
 @inject ISearchService SearchService
 @inject ISnackbar Snackbar
-@inject NavigationManager Navigation
 
 <PageTitle>Global Search - IOMS</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-4">Global Search</MudText>
 
-<MudGrid Class="mb-4">
-    <MudItem xs="12" md="8">
-        <MudTextField @bind-Value="_query" Label="Search..." Placeholder="Search products, orders, customers, invoices..."
-                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search"
-                      OnAdornmentClick="Search" OnKeyDown="OnKeyDown" Immediate="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-    </MudItem>
-    <MudItem xs="12" md="4">
-        <MudSelect Value="_entityFilter" ValueChanged="@((string v) => OnEntityFilterChanged(v))" Label="Filter by Entity" Variant="Variant.Outlined" Margin="Margin.Dense">
-            <MudSelectItem Value="@("")">All</MudSelectItem>
-            <MudSelectItem Value="@("Product")">Products</MudSelectItem>
-            <MudSelectItem Value="@("Customer")">Customers</MudSelectItem>
-            <MudSelectItem Value="@("Supplier")">Suppliers</MudSelectItem>
-            <MudSelectItem Value="@("Sales Order")">Sales Orders</MudSelectItem>
-            <MudSelectItem Value="@("Purchase Order")">Purchase Orders</MudSelectItem>
-        </MudSelect>
-    </MudItem>
-</MudGrid>
+<MudTextField @bind-Value="_query" Label="Search..." Placeholder="Search products, orders, customers, suppliers..." Class="mb-4"
+              Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search"
+              OnAdornmentClick="Search" OnKeyUp="OnSearchKeyUp" Immediate="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
 
 @if (_hasSearched)
 {
-   @*  <MudText Typo="Typo.subtitle1" Class="mb-3">@FilteredResults.Count result(s) for "@_query"</MudText>
+    <MudText Typo="Typo.subtitle1" Class="mb-3">@TotalResults result(s) for "@_query"</MudText>
 
     @if (_loading)
     {
         <MudProgressCircular Indeterminate="true" />
     }
-    else if (FilteredResults.Count == 0)
+    else if (TotalResults == 0)
     {
         <MudPaper Elevation="2" Class="pa-4">
-            <MudText Typo="Typo.body2" Style="color:#64748b;">No results found — try a different search or filter.</MudText>
+            <MudText Typo="Typo.body2" Style="color:#64748b;">No results found — try a different search.</MudText>
         </MudPaper>
     }
     else
-    { *@
-       @*  @foreach (var group in GroupedResults)
-        { *@
-            <MudPaper Elevation="2" Class="pa-4 mb-4">
-                @* <div class="d-flex align-items-center justify-content-between mb-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetTypeColor(group.Type)">@group.Type</MudChip>
-                        <MudText Typo="Typo.subtitle2">@group.Items.Count item(s)</MudText>
-                    </div>
-                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                               EndIcon="@Icons.Material.Filled.ArrowForward"
-                               OnClick="@(() => OpenAll(group.Type))">View all</MudButton>
-                </div> *@
-                <MudTable Items="@_results.ProductItems.Take(PreviewSize)" Dense="true" Hover="true" Elevation="0">
-                    <HeaderContent>
-                        <MudTh>Name/Number</MudTh>
-                        <MudTh>Description</MudTh>
-                        <MudTh></MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        @* <MudTd><strong>@context.Title</strong></MudTd>
-                        <MudTd>@context.SubTitle</MudTd>
-                        <MudTd Style="text-align:right">
-                            @if (!string.IsNullOrEmpty(context.Url))
-                            {
-                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => Navigation.NavigateTo(context.Url)">View</MudButton>
-                            }
-                        </MudTd> *@
-                    </RowTemplate>
-                </MudTable>
-            </MudPaper>
-       @*  } *@
-  @*   } *@
+    {
+        <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="0">
+            <MudTabPanel Text="@($"Products ({_results.ProductItems.Count})")">
+                @if (_results.ProductItems.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Style="color:#64748b;">No matching products.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="@_results.ProductItems" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Name</MudTh>
+                            <MudTh>SKU</MudTh>
+                            <MudTh>Category</MudTh>
+                            <MudTh>Subcategory</MudTh>
+                            <MudTh>Brand</MudTh>
+                            <MudTh>Cost</MudTh>
+                            <MudTh>Selling</MudTh>
+                            <MudTh>Last Rate</MudTh>
+                            <MudTh>Stock</MudTh>
+                            <MudTh>Avail</MudTh>
+                            <MudTh>Warehouses</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Name"><strong>@context.Name</strong><br /><small style="color:#64748b;">@context.Barcode</small></MudTd>
+                            <MudTd DataLabel="SKU">@context.SKU</MudTd>
+                            <MudTd DataLabel="Category">@(context.ParentCategoryName ?? context.SubCategoryName ?? context.CategoryName ?? "—")</MudTd>
+                            <MudTd DataLabel="Subcategory">@(context.ParentCategoryName != null ? (context.SubCategoryName ?? "—") : "—")</MudTd>
+                            <MudTd DataLabel="Brand">@(context.BrandName ?? "—")</MudTd>
+                            <MudTd DataLabel="Cost">@context.CostPrice.ToString("C")</MudTd>
+                            <MudTd DataLabel="Selling">@context.SellingPrice.ToString("C")</MudTd>
+                            <MudTd DataLabel="Last Rate">@(context.LastSalesRate.HasValue ? context.LastSalesRate.Value.ToString("C") : "—")</MudTd>
+                            <MudTd DataLabel="Stock">@context.TotalStock</MudTd>
+                            <MudTd DataLabel="Avail">@context.AvailableQuantity</MudTd>
+                            <MudTd DataLabel="Warehouses">
+                                @if (context.WarehouseStocks == null || context.WarehouseStocks.Count == 0)
+                                {
+                                    <span>—</span>
+                                }
+                                else
+                                {
+                                    @foreach (var w in context.WarehouseStocks)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@w.WarehouseName: @w.Quantity</MudChip>
+                                    }
+                                }
+                            </MudTd>
+                            <MudTd Style="text-align:right">
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => OpenProduct(context.Id))">View</MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudTabPanel>
+
+            <MudTabPanel Text="@($"Customers ({_results.CustomersItems.Count})")">
+                @if (_results.CustomersItems.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Style="color:#64748b;">No matching customers.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="@_results.CustomersItems" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Name</MudTh>
+                            <MudTh>Email</MudTh>
+                            <MudTh>Phone</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Name"><strong>@context.CustomerName</strong></MudTd>
+                            <MudTd DataLabel="Email">@context.CustomerEmail</MudTd>
+                            <MudTd DataLabel="Phone">@context.CustomerPhone</MudTd>
+                            <MudTd Style="text-align:right">
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => OpenCustomer(context.Id))">View</MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudTabPanel>
+
+            <MudTabPanel Text="@($"Suppliers ({_results.SuppliersItems.Count})")">
+                @if (_results.SuppliersItems.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Style="color:#64748b;">No matching suppliers.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="@_results.SuppliersItems" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Name</MudTh>
+                            <MudTh>Email</MudTh>
+                            <MudTh>Phone</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Name"><strong>@context.SupplierName</strong></MudTd>
+                            <MudTd DataLabel="Email">@context.SupplierEmail</MudTd>
+                            <MudTd DataLabel="Phone">@context.SupplierPhone</MudTd>
+                            <MudTd Style="text-align:right">
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => OpenSupplier(context.Id))">View</MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudTabPanel>
+
+            <MudTabPanel Text="@($"Sales Orders ({_results.SalesOrdersItems.Count})")">
+                @if (_results.SalesOrdersItems.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Style="color:#64748b;">No matching sales orders.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="@_results.SalesOrdersItems" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Order #</MudTh>
+                            <MudTh>Customer</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh>Total</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Order #"><strong>@context.OrderNumber</strong></MudTd>
+                            <MudTd DataLabel="Customer">@(context.Customer?.CustomerName ?? "—")</MudTd>
+                            <MudTd DataLabel="Status"><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
+                            <MudTd DataLabel="Total">@context.TotalAmount.ToString("C")</MudTd>
+                            <MudTd Style="text-align:right">
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => OpenSalesOrder(context.Id))">View</MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudTabPanel>
+
+            <MudTabPanel Text="@($"Purchase Orders ({_results.PurchaseOrdersItems.Count})")">
+                @if (_results.PurchaseOrdersItems.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Style="color:#64748b;">No matching purchase orders.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="@_results.PurchaseOrdersItems" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Order #</MudTh>
+                            <MudTh>Supplier</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh>Total</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Order #"><strong>@context.OrderNumber</strong></MudTd>
+                            <MudTd DataLabel="Supplier">@context.SupplierName</MudTd>
+                            <MudTd DataLabel="Status"><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
+                            <MudTd DataLabel="Total">@context.TotalAmount.ToString("C")</MudTd>
+                            <MudTd Style="text-align:right">
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => OpenPurchaseOrder(context.Id))">View</MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudTabPanel>
+        </MudTabs>
+    }
 }
 
-@* ─── All-items right slider ─── *@
-<TmSlideDrawer @bind-Open="_drawerOpen" Title="@_drawerTitle" Width="900px">
-    @if (_drawerItems.Count == 0)
-    {
-        <MudText Typo="Typo.body2" Style="color:#64748b;">No items.</MudText>
-    }
-    else
-    {
-        <MudTable Items="@_drawerItems" Dense="true" Hover="true" Elevation="0">
-            <HeaderContent>
-                <MudTh>Type</MudTh>
-                <MudTh>Name/Number</MudTh>
-                <MudTh>Description</MudTh>
-                <MudTh></MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                @* <MudTd><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetTypeColor(context.EntityType)">@context.EntityType</MudChip></MudTd>
-                <MudTd><strong>@context.Title</strong></MudTd>
-                <MudTd>@context.SubTitle</MudTd>
-                <MudTd Style="text-align:right">
-                    @if (!string.IsNullOrEmpty(context.Url))
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => Navigation.NavigateTo(context.Url)">View</MudButton>
-                    }
-                </MudTd> *@
-            </RowTemplate>
-        </MudTable>
-    }
-</TmSlideDrawer>
+<ProductViewPanel @ref="_productViewPanel" />
+<CustomerViewPanel @ref="_customerViewPanel" />
+<SupplierViewPanel @ref="_supplierViewPanel" />
+<SalesOrderViewPanel @ref="_salesOrderViewPanel" />
+<PurchaseOrderViewPanel @ref="_purchaseOrderViewPanel" />
 
 @code {
-    private const int PreviewSize = 5;
-
-    private static readonly string[] GroupOrder =
-        ["Product", "Customer", "Supplier", "Sales Order", "Purchase Order"];
-
-    private record ResultGroup(string Type, List<GlobalSearchResultDto> Items);
+    private const int MaxResults = 500;
 
     private string _query = "";
-    private string _entityFilter = "";
     private GlobalSearchResultDto _results = new();
     private bool _loading;
     private bool _hasSearched;
+    private int _activeTab;
 
-    // ─── All-items slider state ───
-    private bool _drawerOpen;
-    private string _drawerTitle = "";
-    private GlobalSearchResultDto _drawerItems = new();
+    private ProductViewPanel? _productViewPanel;
+    private CustomerViewPanel? _customerViewPanel;
+    private SupplierViewPanel? _supplierViewPanel;
+    private SalesOrderViewPanel? _salesOrderViewPanel;
+    private PurchaseOrderViewPanel? _purchaseOrderViewPanel;
 
-    // private List<GlobalSearchResultDto> FilteredResults =>
-    //     string.IsNullOrWhiteSpace(_entityFilter)
-    //         ? _results
-    //         : _results.Where(r => r.EntityType == _entityFilter).ToList();
-
-    // private List<ResultGroup> GroupedResults =>
-    //     FilteredResults
-    //         .GroupBy(r => r.EntityType)
-    //         .OrderBy(g => Array.IndexOf(GroupOrder, g.Key) is var i && i >= 0 ? i : int.MaxValue)
-    //         .Select(g => new ResultGroup(g.Key, g.ToList()))
-    //         .ToList();
-
-    private void OpenAll(string entityType)
+    private async Task OpenProduct(Guid id)
     {
-       // _drawerItems = FilteredResults.Where(r => r.EntityType == entityType).ToList();
-      //  _drawerTitle = $"{entityType} ({_drawerItems.Count})";
-       // _drawerOpen = true;
+        if (_productViewPanel != null)
+            await _productViewPanel.OpenAsync(id);
     }
 
-    /// <summary>
-    /// Each entity in "Filter by Entity" gets its own right-slider view: picking one
-    /// opens the slider with every match of that entity. "All" closes the slider
-    /// and shows the grouped page instead.
-    /// </summary>
-    private void OnEntityFilterChanged(string value)
+    private async Task OpenCustomer(Guid id)
     {
-        // _entityFilter = value ?? "";
-        // if (string.IsNullOrWhiteSpace(_entityFilter) || !_hasSearched)
-        // {
-        //     _drawerOpen = false;
-        //     return;
-        // }
-        // if (FilteredResults.Count > 0)
-        //     OpenAll(_entityFilter);
+        if (_customerViewPanel != null)
+            await _customerViewPanel.OpenAsync(id);
     }
 
-    private async Task OnKeyDown(KeyboardEventArgs e)
+    private async Task OpenSupplier(Guid id)
+    {
+        if (_supplierViewPanel != null)
+            await _supplierViewPanel.OpenAsync(id);
+    }
+
+    private async Task OpenSalesOrder(Guid id)
+    {
+        if (_salesOrderViewPanel != null)
+            await _salesOrderViewPanel.OpenAsync(id);
+    }
+
+    private async Task OpenPurchaseOrder(Guid id)
+    {
+        if (_purchaseOrderViewPanel != null)
+            await _purchaseOrderViewPanel.OpenAsync(id);
+    }
+
+    private int TotalResults =>
+        _results.ProductItems.Count +
+        _results.CustomersItems.Count +
+        _results.SuppliersItems.Count +
+        _results.SalesOrdersItems.Count +
+        _results.PurchaseOrdersItems.Count;
+
+    private int FirstTabWithResults()
+    {
+        if (_results.ProductItems.Count > 0) return 0;
+        if (_results.CustomersItems.Count > 0) return 1;
+        if (_results.SuppliersItems.Count > 0) return 2;
+        if (_results.SalesOrdersItems.Count > 0) return 3;
+        return 4;
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") await Search();
     }
@@ -173,15 +275,12 @@
         if (string.IsNullOrWhiteSpace(_query)) return;
         _loading = true;
         _hasSearched = true;
-        _drawerOpen = false;
         try
         {
-            _results = await SearchService.Search(_query);
-            // A pinned entity filter means the entity slider view: open it on its matches.
-            if (!string.IsNullOrWhiteSpace(_entityFilter) && FilteredResults.Count > 0)
-                OpenAll(_entityFilter);
+            _results = await SearchService.Search(_query, MaxResults);
+            _activeTab = FirstTabWithResults();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        _loading = false;
+        finally { _loading = false; }
     }
 }

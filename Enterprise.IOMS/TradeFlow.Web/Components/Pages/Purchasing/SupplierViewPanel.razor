@@ -1,0 +1,230 @@
+@inject ISupplierService SupplierService
+@inject IPurchaseService PurchaseService
+@inject ISnackbar Snackbar
+
+@if (_open)
+{
+    <div class="so-backdrop" @onclick="Close"></div>
+
+    <div class="so-side-panel @(_animateIn ? "so-panel-open" : "")">
+
+        <!-- Header -->
+        <div class="so-header">
+            <div class="d-flex align-items-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Store" Color="Color.Primary" />
+                <div>
+                    <div class="so-header-title">Supplier</div>
+                    @if (_supplier != null)
+                    {
+                        <div class="so-header-sub">@_supplier.SupplierName</div>
+                    }
+                </div>
+                @if (_supplier != null)
+                {
+                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_supplier.IsActive)" Size="Size.Small" Class="ms-1">
+                        @(_supplier.IsActive ? "Active" : "Inactive")</MudChip>
+                }
+            </div>
+            <div class="d-flex gap-1">
+                <MudTooltip Text="Close panel">
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Close" />
+                </MudTooltip>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="so-body">
+            @if (_loading)
+            {
+                <div class="d-flex justify-center align-center" style="height:200px;">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+            else if (_supplier != null)
+            {
+                <!-- Reference block -->
+                <div class="so-ref-block mb-3">
+                    <div class="d-flex justify-space-between">
+                        <div>
+                            <div class="so-lbl">Supplier</div>
+                            <div class="so-val-lg">@_supplier.SupplierName</div>
+                            @if (!string.IsNullOrWhiteSpace(_supplier.SupplierPhone))
+                            {
+                                <div class="so-sm">@_supplier.SupplierPhone</div>
+                            }
+                        </div>
+                        <div class="text-end">
+                            <div class="so-lbl">Rating</div>
+                            <div class="so-val fw-semibold">@_supplier.Rating.ToString("0.#") / 5</div>
+                        </div>
+                    </div>
+                </div>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Contact -->
+                <div class="so-section-lbl mb-2">Contact</div>
+                <MudGrid Spacing="2" Class="mb-3">
+                    <MudItem xs="6">
+                        <div class="so-lbl">Email</div>
+                        <div class="so-val">@(_supplier.SupplierEmail ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Phone</div>
+                        <div class="so-val">@(_supplier.SupplierPhone ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Contact Person</div>
+                        <div class="so-val">@(_supplier.ContactPersonName ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Contact Person Phone</div>
+                        <div class="so-val">@(_supplier.ContactPersonPhone ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Contact Person Email</div>
+                        <div class="so-val">@(_supplier.ContactPersonEmail ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Payment Terms</div>
+                        <div class="so-val">@(_supplier.PaymentTerms ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Lead Time (days)</div>
+                        <div class="so-val">@_supplier.LeadTimeDays</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Address</div>
+                        <div class="so-val">@(_supplier.Address ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">City</div>
+                        <div class="so-val">@(_supplier.City ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Zila</div>
+                        <div class="so-val">@(_supplier.Zila ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">State</div>
+                        <div class="so-val">@(_supplier.State ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Country</div>
+                        <div class="so-val">@(_supplier.Country ?? "—")</div>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <div class="so-lbl">Postal Code</div>
+                        <div class="so-val">@(_supplier.PostalCode ?? "—")</div>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Recent purchases -->
+                <div class="so-section-lbl mb-2">Recent Purchase Orders (@_recentOrders.Count)</div>
+                @if (_recentOrders.Count == 0)
+                {
+                    <div class="so-sm mb-3">No purchases recorded.</div>
+                }
+                else
+                {
+                    <div class="so-items-wrapper mb-3">
+                        <MudTable Items="@_recentOrders" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                            <HeaderContent>
+                                <MudTh>Order #</MudTh>
+                                <MudTh>Date</MudTh>
+                                <MudTh>Status</MudTh>
+                                <MudTh Style="text-align:right">Total</MudTh>
+                                <MudTh Style="text-align:right">Paid</MudTh>
+                                <MudTh Style="text-align:right">Due</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd><strong>@context.OrderNumber</strong></MudTd>
+                                <MudTd>@context.PurchaseDate.ToString("dd MMM yyyy")</MudTd>
+                                <MudTd><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
+                                <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
+                                <MudTd Style="text-align:right">@context.PaidAmount.ToString("C")</MudTd>
+                                <MudTd Style="text-align:right;font-weight:600;">@context.DueAmount.ToString("C")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </div>
+                    <div class="so-totals-box mb-3">
+                        <div class="so-total-row"><span>Total Purchases (recent @_recentOrders.Count)</span><span>@_historyTotal.ToString("C")</span></div>
+                        <div class="so-total-row"><span>Paid</span><span class="text-success">@_historyPaid.ToString("C")</span></div>
+                        <div class="so-total-row so-due-row"><span>Outstanding</span><span>@_historyDue.ToString("C")</span></div>
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- Footer -->
+        @if (_supplier != null)
+        {
+            <div class="so-footer">
+                <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _open;
+    private bool _animateIn;
+    private bool _loading;
+    private SupplierDto? _supplier;
+    private List<PurchaseOrderDto> _recentOrders = new();
+    private decimal _historyTotal;
+    private decimal _historyPaid;
+    private decimal _historyDue;
+
+    public async Task OpenAsync(Guid id)
+    {
+        _open = true;
+        _loading = true;
+        _animateIn = false;
+        _supplier = null;
+        _recentOrders = new();
+        _historyTotal = _historyPaid = _historyDue = 0;
+        StateHasChanged();
+
+        await Task.Delay(20);
+        _animateIn = true;
+        StateHasChanged();
+
+        try
+        {
+            _supplier = await SupplierService.GetSupplierByIdAsync(id);
+            if (_supplier != null)
+            {
+                var history = await PurchaseService.GetPurchaseOrdersAsync(new PurchaseOrderPagedRequest
+                {
+                    SupplierId = id,
+                    CurrentPage = 0,
+                    PageSize = 100,
+                    SortColumn = "PurchaseDate",
+                    SortAscending = false
+                });
+                _recentOrders = history.Items;
+                _historyTotal = _recentOrders.Sum(o => o.TotalAmount);
+                _historyPaid = _recentOrders.Sum(o => o.PaidAmount);
+                _historyDue = _recentOrders.Sum(o => o.DueAmount);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        _open = false;
+        _animateIn = false;
+        _supplier = null;
+        StateHasChanged();
+    }
+}

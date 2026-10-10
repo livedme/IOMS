@@ -137,7 +137,24 @@ namespace TradeFlow.Infrastructure.Services
                     x.TotalStock,
                     x.Product.IsKit,
                     x.Product.OriginCountry ?? string.Empty,
-                    x.Product.OriginManufacturer ?? string.Empty))
+                    x.Product.OriginManufacturer ?? string.Empty,
+                    x.Product.Inventories
+                        .OrderByDescending(i => i.Quantity)
+                        .Select(i => new ProductWarehouseStockDto(
+                            i.WarehouseId,
+                            i.Warehouse != null ? i.Warehouse.Name : "—",
+                            i.Quantity,
+                            i.ReservedQuantity,
+                            i.Quantity - i.ReservedQuantity))
+                        .ToList(),
+                    x.Product.Category != null && x.Product.Category.ParentCategory != null
+                        ? x.Product.Category.ParentCategory.Name : null,
+                    x.Product.Category != null ? x.Product.Category.Name : null,
+                    x.Product.Inventories.Sum(i => i.Quantity - i.ReservedQuantity),
+                    x.Product.SalesOrderItems
+                        .OrderByDescending(soi => soi.SalesOrder.OrderDate)
+                        .Select(soi => (decimal?)soi.UnitPrice)
+                        .FirstOrDefault()))
                 .ToListAsync();
 
             return new PagedResultNew<ProductDto>

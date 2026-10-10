@@ -147,114 +147,7 @@
     </div>
 </div>
 
-<TmSlideDrawer @bind-Open="_drawerOpen" Title="@_drawerTitle">
-    @if (_viewQuote == null)
-    {
-        <MudProgressCircular Indeterminate="true" />
-    }
-    else
-    {
-        var isExpired = _viewQuote.ValidUntil < DateTime.Today;
-        <div class="tm-info-card mb-4">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <div class="text-muted small">Customer</div>
-                    <strong>@(string.IsNullOrWhiteSpace(_viewQuote.CustomerName) ? "-" : _viewQuote.CustomerName)</strong>
-                </div>
-                <div class="col-md-3">
-                    <div class="text-muted small">Quote Date</div>
-                    <strong>@_viewQuote.QuoteDate.ToString("dd-MMM-yyyy")</strong>
-                </div>
-                <div class="col-md-3">
-                    <div class="text-muted small">Valid Until</div>
-                    <strong class="@(isExpired ? "text-danger" : "")">@_viewQuote.ValidUntil.ToString("dd-MMM-yyyy")@(isExpired ? " (expired)" : "")</strong>
-                </div>
-                <div class="col-md-3">
-                    <div class="text-muted small">Status</div>
-                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_viewQuote.Status)" Size="Size.Small">
-                        @_viewQuote.Status
-                    </MudChip>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3">
-            <div class="col-lg-8">
-                <table class="tm-slide-items">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Product</th>
-                            <th>SKU</th>
-                            <th style="text-align:right">Qty</th>
-                            <th style="text-align:right">Unit Price</th>
-                            <th style="text-align:right">Disc %</th>
-                            <th style="text-align:right">Tax</th>
-                            <th style="text-align:right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (_viewQuote.Items == null || _viewQuote.Items.Count == 0)
-                        {
-                            <tr><td colspan="8"><div class="tm-loading">No items on this quotation</div></td></tr>
-                        }
-                        else
-                        {
-                            @for (var i = 0; i < _viewQuote.Items.Count; i++)
-                            {
-                                var it = _viewQuote.Items[i];
-                                <tr>
-                                    <td>@(i + 1)</td>
-                                    <td>@it.ProductName</td>
-                                    <td>@it.ProductSKU</td>
-                                    <td style="text-align:right">@it.Quantity</td>
-                                    <td style="text-align:right">@it.UnitPrice.ToString("C")</td>
-                                    <td style="text-align:right">@it.DiscountPercent.ToString("N0")%</td>
-                                    <td style="text-align:right">@it.TaxAmount.ToString("C")</td>
-                                    <td style="text-align:right">@it.LineTotal.ToString("C")</td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <div class="col-lg-4">
-                <div class="tm-summary-card">
-                    <h6 class="text-primary mb-3">QUOTE SUMMARY</h6>
-                    <div class="tm-summary-item"><span>Subtotal</span><strong>@_viewQuote.SubTotal.ToString("C")</strong></div>
-                    <div class="tm-summary-item"><span>Discount</span><strong>@_viewQuote.DiscountAmount.ToString("C")</strong></div>
-                    <div class="tm-summary-item"><span>Tax</span><strong>@_viewQuote.TaxAmount.ToString("C")</strong></div>
-                    <div class="pt-3 border-top mt-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>TOTAL</strong>
-                            <span class="text-primary fw-bold fs-5">@_viewQuote.TotalAmount.ToString("C")</span>
-                        </div>
-                    </div>
-                </div>
-
-                @if (!string.IsNullOrWhiteSpace(_viewQuote.Notes))
-                {
-                    <MudField Label="Notes" Class="mt-3">@_viewQuote.Notes</MudField>
-                }
-            </div>
-        </div>
-
-        <div class="d-flex gap-2 mt-4">
-            @if (_viewQuote.Status == QuoteStatus.Draft || _viewQuote.Status == QuoteStatus.Sent)
-            {
-                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle"
-                           OnClick="@(() => AcceptAndRefresh(_viewQuote.Id))">Accept</MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel"
-                           OnClick="@(() => RejectAndRefresh(_viewQuote.Id))">Reject</MudButton>
-            }
-            @if (_viewQuote.Status == QuoteStatus.Accepted)
-            {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ShoppingCart"
-                           OnClick="@(() => ConvertAndRefresh(_viewQuote.Id))">Convert to Order</MudButton>
-            }
-        </div>
-    }
-</TmSlideDrawer>
+<QuotationViewPanel @ref="_quotationViewPanel" />
 
 @code {
     private static class Col
@@ -286,10 +179,7 @@
     private bool _loadQueued;
     private CancellationTokenSource? _debounceCts;
 
-    // ─── Drawer state ───
-    private bool _drawerOpen;
-    private string _drawerTitle = "";
-    private SalesQuoteDto? _viewQuote;
+    private QuotationViewPanel? _quotationViewPanel;
 
     protected override async Task OnInitializedAsync()
     {
@@ -499,18 +389,9 @@
 
     private async Task ViewQuote(Guid id)
     {
-        _viewQuote = null;
-        _drawerTitle = "Loading…";
-        _drawerOpen = true;
-        try
-        {
-            _viewQuote = await QuotationService.GetSalesQuoteById(id);
-            _drawerTitle = $"Quote #{_viewQuote?.QuoteNumber}";
-        }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        if (_quotationViewPanel != null)
+            await _quotationViewPanel.OpenAsync(id);
     }
-
-    private void CloseDrawer() => _drawerOpen = false;
 
     private async Task OpenCreateDialog() => await ShowSalesQuotationDialog("New Quotation");
 
@@ -592,39 +473,6 @@
             await Load();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-    }
-
-    private async Task AcceptAndRefresh(Guid id)
-    {
-        await AcceptQuote(id);
-        await ReloadView(id);
-    }
-
-    private async Task RejectAndRefresh(Guid id)
-    {
-        await RejectQuote(id);
-        await ReloadView(id);
-    }
-
-    private async Task ConvertAndRefresh(Guid id)
-    {
-        await ConvertToOrder(id);
-        await ReloadView(id);
-    }
-
-    private async Task ReloadView(Guid id)
-    {
-        if (!_drawerOpen) return;
-        try
-        {
-            var refreshed = await QuotationService.GetSalesQuoteById(id);
-            if (refreshed != null) _viewQuote = refreshed;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to refresh quotation {QuoteId} in the drawer", id);
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
     }
 
     private static string GetStatusPill(QuoteStatus status) => status switch

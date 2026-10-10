@@ -2157,7 +2157,8 @@ table.tm-table {
             position: fixed;
             top: 0;
             right: -720px;
-            width: 680px;
+            /*width: 680px;*/
+            width:50%;
             max-width: 96vw;
             height: 100vh;
             background: var(--mud-palette-surface, #fff);

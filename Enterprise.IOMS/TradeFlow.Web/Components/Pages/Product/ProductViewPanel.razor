@@ -1,0 +1,295 @@
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+@if (_open)
+{
+    <div class="so-backdrop" @onclick="Close"></div>
+
+    <div class="so-side-panel @(_animateIn ? "so-panel-open" : "")">
+
+        <!-- Header -->
+        <div class="so-header">
+            <div class="d-flex align-items-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" />
+                <div>
+                    <div class="so-header-title">Product Details</div>
+                    @if (_details != null)
+                    {
+                        <div class="so-header-sub">@_details.Name</div>
+                    }
+                </div>
+                @if (_details != null)
+                {
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small" Class="ms-1">
+                        @_details.SKU</MudChip>
+                }
+                </div>
+                <div class="d-flex gap-1">
+                    <MudTooltip Text="Close panel">
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Close" />
+                    </MudTooltip>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="so-body">
+                @if (_loading)
+                {
+                    <div class="d-flex justify-center align-center" style="height:200px;">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                    </div>
+                }
+                else if (_details != null)
+                {
+                    <!-- Identity block -->
+                    <div class="so-ref-block mb-3">
+                        <div class="d-flex justify-space-between">
+                            <div>
+                                <div class="so-lbl">Product</div>
+                                <div class="so-val-lg">@_details.Name</div>
+                                @if (!string.IsNullOrWhiteSpace(_details.Model))
+                                {
+                                    <div class="so-sm">Model: @_details.Model</div>
+                                }
+                            </div>
+                            <div class="text-end">
+                                <div class="so-lbl">Selling Price</div>
+                                <div class="so-val fw-semibold">@_details.SellingPrice.ToString("C")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <MudDivider Class="mb-3" />
+
+                    <!-- Category / Brand / Pricing -->
+                    <div class="so-section-lbl mb-2">General</div>
+                    <MudGrid Spacing="2" Class="mb-3">
+                        <MudItem xs="6">
+                            <div class="so-lbl">Category</div>
+                            <div class="so-val">@(_details.ParentCategoryName ?? _details.CategoryName ?? "—")</div>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <div class="so-lbl">Subcategory</div>
+                            <div class="so-val">@(_details.ParentCategoryName != null ? _details.CategoryName : "—")</div>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <div class="so-lbl">Brand</div>
+                            <div class="so-val">@(_details.BrandName ?? "—")</div>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <div class="so-lbl">Barcode</div>
+                            <div class="so-val">@(_details.Barcode ?? "—")</div>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <div class="so-lbl">Cost (Purchase)</div>
+                            <div class="so-val">@_details.CostPrice.ToString("C")</div>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <div class="so-lbl">Wholesale</div>
+                            <div class="so-val">@_details.WholeSellingPrice.ToString("C")</div>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <div class="so-lbl">Reorder Level</div>
+                            <div class="so-val">@_details.ReorderStockLevel</div>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <div class="so-lbl">Warranty</div>
+                            <div class="so-val">@(_details.WarrantyInMonths?.ToString() ?? "—")</div>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <div class="so-lbl">Min Order Qty</div>
+                            <div class="so-val">@(_details.MinOrderQuantity?.ToString() ?? "—")</div>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <div class="so-lbl">Sold (30d)</div>
+                            <div class="so-val">@_details.Last30DaysSales</div>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <div class="so-lbl">Origin</div>
+                            <div class="so-val">@(_details.OriginCountry ?? "—")</div>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <div class="so-lbl">Preferred Supplier</div>
+                            <div class="so-val">@(_details.PreferredSupplierName ?? "—")</div>
+                        </MudItem>
+                    </MudGrid>
+                    @if (!string.IsNullOrWhiteSpace(_details.Description))
+                    {
+                        <div class="so-lbl mb-1">Description</div>
+                        <div class="so-val mb-3">@_details.Description</div>
+                    }
+
+                    <MudDivider Class="mb-3" />
+
+                    <!-- Warehouse stock -->
+                    <div class="so-section-lbl mb-2">Warehouse Stock (@_details.WarehouseStock.Count) — Available @_details.TotalAvailable</div>
+                    @if (_details.WarehouseStock.Count == 0)
+                    {
+                        <div class="so-sm mb-3">No stock in any warehouse.</div>
+                    }
+                    else
+                    {
+                        <div class="so-items-wrapper mb-3">
+                            <MudTable Items="@_details.WarehouseStock" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                                <HeaderContent>
+                                    <MudTh>Warehouse</MudTh>
+                                    <MudTh Style="text-align:right">Qty</MudTh>
+                                    <MudTh Style="text-align:right">Reserved</MudTh>
+                                    <MudTh Style="text-align:right">Available</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd><strong>@context.WarehouseName</strong></MudTd>
+                                    <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                                    <MudTd Style="text-align:right">@context.ReservedQuantity</MudTd>
+                                    <MudTd Style="text-align:right;font-weight:600;">@context.AvailableQuantity</MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </div>
+                    }
+
+                    <MudDivider Class="mb-3" />
+
+                    <!-- Recent sales -->
+                    <div class="so-section-lbl mb-2">Recent Sales (@_details.SalesOrderLines.Count)</div>
+                    @if (_details.SalesOrderLines.Count == 0)
+                    {
+                        <div class="so-sm mb-3">Never sold.</div>
+                    }
+                    else
+                    {
+                        <div class="so-items-wrapper mb-3">
+                            <MudTable Items="@_details.SalesOrderLines.Take(10)" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                                <HeaderContent>
+                                    <MudTh>Order #</MudTh>
+                                    <MudTh>Customer</MudTh>
+                                    <MudTh Style="text-align:right">Qty</MudTh>
+                                    <MudTh Style="text-align:right">Rate</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd>
+                                        <div class="so-val fw-semibold" style="line-height:1.2;">@context.OrderNumber</div>
+                                        <div class="so-sm text-muted">@context.OrderDate.ToString("dd MMM yyyy")</div>
+                                    </MudTd>
+                                    <MudTd>@context.PartyName</MudTd>
+                                    <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                                    <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </div>
+                    }
+
+                    <MudDivider Class="mb-3" />
+
+                    <!-- Recent purchases -->
+                    <div class="so-section-lbl mb-2">Recent Purchases (@_details.PurchaseOrderLines.Count)</div>
+                    @if (_details.PurchaseOrderLines.Count == 0)
+                    {
+                        <div class="so-sm mb-3">Never purchased.</div>
+                    }
+                    else
+                    {
+                        <div class="so-items-wrapper mb-3">
+                            <MudTable Items="@_details.PurchaseOrderLines.Take(10)" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                                <HeaderContent>
+                                    <MudTh>Order #</MudTh>
+                                    <MudTh>Supplier</MudTh>
+                                    <MudTh Style="text-align:right">Qty</MudTh>
+                                    <MudTh Style="text-align:right">Rate</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd>
+                                        <div class="so-val fw-semibold" style="line-height:1.2;">@context.OrderNumber</div>
+                                        <div class="so-sm text-muted">@context.OrderDate.ToString("dd MMM yyyy")</div>
+                                    </MudTd>
+                                    <MudTd>@context.PartyName</MudTd>
+                                    <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                                    <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </div>
+                    }
+
+                    <MudDivider Class="mb-3" />
+
+                    <!-- Movements -->
+                    <div class="so-section-lbl mb-2">Recent Movements (@_details.Movements.Count)</div>
+                    @if (_details.Movements.Count == 0)
+                    {
+                        <div class="so-sm mb-3">No stock movements.</div>
+                    }
+                    else
+                    {
+                        <div class="so-items-wrapper mb-3">
+                            <MudTable Items="@_details.Movements.Take(10)" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                                <HeaderContent>
+                                    <MudTh>Date</MudTh>
+                                    <MudTh>Warehouse</MudTh>
+                                    <MudTh>Type</MudTh>
+                                    <MudTh Style="text-align:right">Qty</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd>@context.MovementDate.ToString("dd MMM yyyy")</MudTd>
+                                    <MudTd>@context.WarehouseName</MudTd>
+                                    <MudTd>@context.MovementType</MudTd>
+                                    <MudTd Style="text-align:right">@context.Quantity</MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Footer -->
+            @if (_details != null)
+            {
+                <div class="so-footer">
+                    <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.OpenInFull"
+                               OnClick="@(() => Navigation.NavigateTo($"/products/details/{_details.Id}"))">Open Full Page</MudButton>
+                </div>
+            }
+        </div>
+    }
+
+@code {
+    private bool _open;
+    private bool _animateIn;
+    private bool _loading;
+    private ProductDetailViewDto? _details;
+
+    public async Task OpenAsync(Guid id)
+    {
+        _open = true;
+        _loading = true;
+        _animateIn = false;
+        _details = null;
+        StateHasChanged();
+
+        // Small delay so the panel renders before the slide-in class is added
+        await Task.Delay(20);
+        _animateIn = true;
+        StateHasChanged();
+
+        try
+        {
+            _details = await ProductService.GetProductDetailViewAsync(id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        _open = false;
+        _animateIn = false;
+        _details = null;
+        StateHasChanged();
+    }
+}

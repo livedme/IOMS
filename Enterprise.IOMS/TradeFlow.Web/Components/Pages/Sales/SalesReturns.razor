@@ -129,95 +129,7 @@
     </div>
 </div>
 
-<TmSlideDrawer @bind-Open="_drawerOpen" Title="@_drawerTitle" Width="1000px">
-    @if (_viewReturn == null)
-    {
-        <MudProgressCircular Indeterminate="true" />
-    }
-    else
-    {
-        <div class="tm-info-card mb-4">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="text-muted small">Sales Order</div>
-                    <strong>@(string.IsNullOrWhiteSpace(_viewReturn.SalesOrderNumber) ? "-" : _viewReturn.SalesOrderNumber)</strong>
-                </div>
-                <div class="col-md-4">
-                    <div class="text-muted small">Status</div>
-                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_viewReturn.Status)" Size="Size.Small">
-                        @_viewReturn.Status
-                    </MudChip>
-                </div>
-                <div class="col-md-4">
-                    <div class="text-muted small">Reason</div>
-                    <strong>@(string.IsNullOrWhiteSpace(_viewReturn.Reason) ? "-" : _viewReturn.Reason)</strong>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3">
-            <div class="col-lg-8">
-                <table class="tm-slide-items">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Product</th>
-                            <th style="text-align:right">Qty</th>
-                            <th style="text-align:right">Unit Price</th>
-                            <th style="text-align:right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (_viewReturn.ItemsLine == null || _viewReturn.ItemsLine.Count == 0)
-                        {
-                            <tr><td colspan="5"><div class="tm-loading">No items on this return</div></td></tr>
-                        }
-                        else
-                        {
-                            @for (var i = 0; i < _viewReturn.ItemsLine.Count; i++)
-                            {
-                                var it = _viewReturn.ItemsLine[i];
-                                <tr>
-                                    <td>@(i + 1)</td>
-                                    <td>@it.ProductName</td>
-                                    <td style="text-align:right">@it.Quantity</td>
-                                    <td style="text-align:right">@it.UnitPrice.ToString("C")</td>
-                                    <td style="text-align:right">@it.LineTotal.ToString("C")</td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <div class="col-lg-4">
-                <div class="tm-summary-card">
-                    <h6 class="text-primary mb-3">RETURN SUMMARY</h6>
-                    <div class="tm-summary-item"><span>Items</span><strong>@(_viewReturn.ItemsLine?.Count ?? 0)</strong></div>
-                    <div class="tm-summary-item"><span>Total Units</span><strong>@((_viewReturn.ItemsLine?.Sum(x => x.Quantity)) ?? 0)</strong></div>
-                    <div class="pt-3 border-top mt-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>TOTAL</strong>
-                            <span class="text-primary fw-bold fs-5">@_viewReturn.TotalAmount.ToString("C")</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="d-flex gap-2 mt-4">
-            @if (_viewReturn.Status == SalesReturnStatus.Draft)
-            {
-                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle"
-                           OnClick="@(() => ApproveAndRefresh(_viewReturn.Id))">Approve</MudButton>
-            }
-            @if (_viewReturn.Status == SalesReturnStatus.Approved)
-            {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Done"
-                           OnClick="@(() => CompleteAndRefresh(_viewReturn.Id))">Complete</MudButton>
-            }
-        </div>
-    }
-</TmSlideDrawer>
+<SalesReturnViewPanel @ref="_salesReturnViewPanel" />
 
 @code {
     private static class Col
@@ -245,10 +157,7 @@
     private bool _loadQueued;
     private CancellationTokenSource? _debounceCts;
 
-    // ─── Drawer state ───
-    private bool _drawerOpen;
-    private string _drawerTitle = "";
-    private SalesReturnDto? _viewReturn;
+    private SalesReturnViewPanel? _salesReturnViewPanel;
 
     protected override async Task OnInitializedAsync() => await Load();
 
@@ -466,36 +375,8 @@
 
     private async Task ViewReturn(Guid id)
     {
-        _viewReturn = null;
-        _drawerTitle = "Loading…";
-        _drawerOpen = true;
-        try
-        {
-            _viewReturn = await SalesReturnService.GetSalesReturnById(id);
-            _drawerTitle = $"Return #{_viewReturn?.ReturnNumber}";
-        }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-    }
-
-    private void CloseDrawer() => _drawerOpen = false;
-
-    private async Task ApproveAndRefresh(Guid id)
-    {
-        await Approve(id);
-        await ReloadView(id);
-    }
-
-    private async Task CompleteAndRefresh(Guid id)
-    {
-        await Complete(id);
-        await ReloadView(id);
-    }
-
-    private async Task ReloadView(Guid id)
-    {
-        if (!_drawerOpen) return;
-        var refreshed = await SalesReturnService.GetSalesReturnById(id);
-        if (refreshed != null) _viewReturn = refreshed;
+        if (_salesReturnViewPanel != null)
+            await _salesReturnViewPanel.OpenAsync(id);
     }
 
     private static string GetStatusPill(SalesReturnStatus s) => s switch

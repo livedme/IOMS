@@ -5,7 +5,6 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ICustomerService CustomerService
-@inject IOrderService OrderService
 
 <PageTitle>Customers - IOMS</PageTitle>
 
@@ -137,107 +136,7 @@
     </div>
 </div>
 
-@* ─── Customer Detail Slider Drawer (same style as the Sales order drawer) ─── *@
-<TmSlideDrawer @bind-Open="_drawerOpen" Title="@_drawerTitle">
-
-    @if (_viewCustomer == null)
-    {
-        <MudProgressCircular Indeterminate="true" />
-    }
-    else
-    {
-        <div class="tm-info-card mb-4">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <div class="text-muted small">Customer</div>
-                    <strong>@_viewCustomer.CustomerName</strong><br />
-                    <span class="small">@_viewCustomer.CustomerPhone</span><br />
-                    <span class="small">@_viewCustomer.CustomerEmail</span>
-                </div>
-                <div class="col-md-3">
-                    <div class="text-muted small">Contact Person</div>
-                    <strong>@(_viewCustomer.ContactPersonName)</strong><br />
-                    <span class="small">@_viewCustomer.ContactPersonPhone</span><br />
-                    <span class="small">@_viewCustomer.ContactPersonEmail</span><br />
-                    <span class="small">@_viewCustomer.Address, @_viewCustomer.City @_viewCustomer.State @_viewCustomer.PostalCode</span>
-                </div>
-                <div class="col-md-3">
-                    <div class="text-muted small">Credit &amp; Terms</div>
-                    <strong>@_viewCustomer.CreditLimit.ToString("N0")</strong><br />
-                    <span class="small">@(string.IsNullOrWhiteSpace(_viewCustomer.PaymentTerms) ? "-" : _viewCustomer.PaymentTerms)</span>
-                </div>
-                <div class="col-md-3">
-                    <div class="text-muted small">Status</div>
-                    <MudChip T="string" Color="@CommonUtility.GetStatusColor(_viewCustomer.IsActive)" Size="Size.Small">
-                        @(_viewCustomer.IsActive ? "Active" : "Inactive")
-                    </MudChip>
-                    @if (_viewCustomer.IsTaxExempt)
-                    {
-                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Class="ms-1">Tax Exempt</MudChip>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3">
-            <div class="col-lg-8">
-                <h6 class="text-primary mb-3">PURCHASE HISTORY (@_purchaseHistory.Count)</h6>
-                @if (_historyLoading)
-                {
-                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
-                }
-                else
-                {
-                    <MudTable Items="@_purchaseHistory" Dense="true" Hover="true" Elevation="2">
-                        <HeaderContent>
-                            <MudTh>#</MudTh>
-                            <MudTh>Order #</MudTh>
-                            <MudTh>Date</MudTh>
-                            <MudTh Style="text-align:right">Items</MudTh>
-                            <MudTh Style="text-align:right">Total</MudTh>
-                            <MudTh Style="text-align:right">Paid</MudTh>
-                            <MudTh Style="text-align:right">Due</MudTh>
-                            <MudTh>Status</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd>@(_purchaseHistory.IndexOf(context) + 1)</MudTd>
-                            <MudTd>@context.OrderNumber</MudTd>
-                            <MudTd>@context.OrderDate.ToString("dd-MMM-yyyy")</MudTd>
-                            <MudTd Style="text-align:right">@context.ItemCount</MudTd>
-                            <MudTd Style="text-align:right">@context.TotalAmount.ToString("N0")</MudTd>
-                            <MudTd Style="text-align:right">@context.PaidAmount.ToString("N0")</MudTd>
-                            <MudTd Style="text-align:right">@context.DueAmount.ToString("N0")</MudTd>
-                            <MudTd><span class="@GetStatusPill(context.Status)"><span class="tm-dot"></span>@context.Status</span></MudTd>
-                        </RowTemplate>
-                        <NoRecordsContent>
-                            <MudText Typo="Typo.body2" Style="color:#64748b;">No purchase history for this customer.</MudText>
-                        </NoRecordsContent>
-                    </MudTable>
-                }
-            </div>
-            <div class="col-lg-4">
-                <div class="tm-summary-card">
-                    <h6 class="text-primary mb-3">CUSTOMER SUMMARY</h6>
-                    <div class="tm-summary-item"><span>Total Orders</span><strong>@_purchaseHistory.Count</strong></div>
-                    <div class="tm-summary-item"><span>Total Purchased</span><strong>@_historyTotal.ToString("N0")</strong></div>
-                    <div class="tm-summary-item"><span>Total Paid</span><strong>@_historyPaid.ToString("N0")</strong></div>
-                    <div class="pt-3 border-top mt-2">
-                        <div class="d-flex justify-content-between">
-                            <strong>TOTAL DUE</strong>
-                            <span class="text-danger fw-bold fs-5">@_historyDue.ToString("N0")</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="d-flex gap-2 mt-4">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
-                           OnClick="@(() => EditFromDrawer())">Edit</MudButton>
-            </div>
-        </div>
-    }
-
-</TmSlideDrawer>
+<CustomerViewPanel @ref="_customerViewPanel" />
 
 @code {
     private static class Col
@@ -267,15 +166,7 @@
     private bool _loadQueued;
     private CancellationTokenSource? _debounceCts;
 
-    // ─── Detail drawer (Sales drawer style) ───
-    private bool _drawerOpen;
-    private string _drawerTitle = "";
-    private CustomerDto? _viewCustomer;
-    private List<SalesOrderDto> _purchaseHistory = new();
-    private bool _historyLoading;
-    private decimal _historyTotal;
-    private decimal _historyPaid;
-    private decimal _historyDue;
+    private CustomerViewPanel? _customerViewPanel;
 
     private List<string> Cities => _cities;
     private string StatusValue => pagedRequest.IsActive switch
@@ -517,55 +408,11 @@
         }
     }
 
-    private void CloseDrawer() => _drawerOpen = false;
-
     private async Task ViewCustomer(Guid id)
     {
-        _viewCustomer = null;
-        _purchaseHistory = new();
-        _historyTotal = _historyPaid = _historyDue = 0;
-        _drawerTitle = "Loading…";
-        _historyLoading = true;
-        _drawerOpen = true;
-
-        try
-        {
-            _viewCustomer = await CustomerService.GetCustomerByIdAsync(id);
-            _drawerTitle = _viewCustomer == null ? "Customer" : $"Customer — {_viewCustomer.CustomerName}";
-
-            var history = await OrderService.GetSalesOrdersAsync(new SalesPagedRequest
-            {
-                CustomerId = id,
-                CurrentPage = 0,
-                PageSize = 100,
-                SortColumn = "OrderDate",
-                SortAscending = false
-            });
-            _purchaseHistory = history.Items;
-            _historyTotal = _purchaseHistory.Sum(o => o.TotalAmount);
-            _historyPaid = _purchaseHistory.Sum(o => o.PaidAmount);
-            _historyDue = _purchaseHistory.Sum(o => o.DueAmount);
-        }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        finally { _historyLoading = false; }
+        if (_customerViewPanel != null)
+            await _customerViewPanel.OpenAsync(id);
     }
-
-    private async Task EditFromDrawer()
-    {
-        if (_viewCustomer == null) return;
-        CloseDrawer();
-        await OpenEdit(_viewCustomer);
-    }
-
-    private static string GetStatusPill(OrderStatus s) => s switch
-    {
-        OrderStatus.Pending => "tm-pill tm-pill-amber",
-        OrderStatus.Approved => "tm-pill tm-pill-blue",
-        OrderStatus.Shipped => "tm-pill tm-pill-purple",
-        OrderStatus.Delivered => "tm-pill tm-pill-green",
-        OrderStatus.Cancelled => "tm-pill tm-pill-red",
-        _ => "tm-pill tm-pill-blue"
-    };
 
     public void Dispose()
     {
