@@ -245,6 +245,9 @@
             {
                 <div class="so-footer">
                     <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Print"
+                               Href="@($"/print/product/{_details.Id}")" Target="_blank">PDF</MudButton>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.OpenInFull"
                                OnClick="@(() => Navigation.NavigateTo($"/products/details/{_details.Id}"))">Open Full Page</MudButton>

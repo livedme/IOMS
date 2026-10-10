@@ -213,6 +213,9 @@
             {
                 <div class="so-footer">
                     <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Print"
+                               Href="@($"/print/sales-order/{_order.Id}")" Target="_blank">PDF</MudButton>
                     @if (_order.Status == OrderStatus.Pending)
                     {
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"

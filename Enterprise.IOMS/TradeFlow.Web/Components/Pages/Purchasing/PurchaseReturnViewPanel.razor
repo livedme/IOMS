@@ -110,6 +110,9 @@
         {
             <div class="so-footer">
                 <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Print"
+                           Href="@($"/print/purchase-return/{_return.Id}")" Target="_blank">PDF</MudButton>
             </div>
         }
     </div>

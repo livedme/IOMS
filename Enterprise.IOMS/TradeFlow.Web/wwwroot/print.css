@@ -1,0 +1,401 @@
+/* ============================================================
+   Print / PDF document styles (matches the so-* slide panels)
+   Used by Components/Pages/Print/PrintDocument.razor
+   ============================================================ */
+
+.doc-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 18px;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, .06);
+}
+
+.doc-toolbar-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-right: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.doc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #111827;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.doc-btn:hover {
+    background: #f3f4f6;
+}
+
+.doc-btn-primary {
+    background: #4361ee;
+    border-color: #4361ee;
+    color: #ffffff;
+}
+
+.doc-btn-primary:hover {
+    background: #3451d1;
+}
+
+.doc-page {
+    max-width: 900px;
+    margin: 24px auto 48px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(16, 24, 40, .10);
+    padding: 30px 34px 26px;
+    color: #1f2937;
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+.doc-empty {
+    padding: 60px 0;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* ---------- Header ---------- */
+.doc-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #111827;
+    margin-bottom: 20px;
+}
+
+.doc-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.doc-logo {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.doc-brand-name {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: .5px;
+    color: #101a33;
+    line-height: 1.1;
+}
+
+.doc-brand-tag {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 1.4px;
+    color: #7c3aed;
+    text-transform: uppercase;
+}
+
+.doc-title-block {
+    text-align: center;
+    flex: 1;
+}
+
+.doc-title {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #111827;
+    text-transform: uppercase;
+}
+
+.doc-ref {
+    font-size: 13px;
+    color: #4b5563;
+    margin-top: 2px;
+}
+
+.doc-status {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: #4361ee;
+    background: #eef2ff;
+    border-radius: 999px;
+    padding: 3px 10px;
+}
+
+.doc-issued {
+    text-align: right;
+    min-width: 110px;
+}
+
+/* ---------- Generic text ---------- */
+.doc-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 2px;
+}
+
+.doc-val {
+    font-size: 12.8px;
+    color: #374151;
+}
+
+.doc-val-lg {
+    font-size: 16px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.doc-sm {
+    font-size: 11.5px;
+    color: #6b7280;
+}
+
+/* ---------- Sections ---------- */
+.doc-sec {
+    margin-bottom: 18px;
+}
+
+.doc-sec-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+/* ---------- Reference block ---------- */
+.doc-ref-block {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    background: #f5f7fa;
+    border: 1px solid #eef0f4;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+}
+
+.doc-ref-block .doc-r {
+    text-align: right;
+}
+
+/* ---------- Info row / cards ---------- */
+.doc-info-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.doc-info-card {
+    flex: 1 1 220px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f8fafc;
+    border: 1px solid #eef0f4;
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+
+.doc-info-icon {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #4361ee;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+/* ---------- Field grid ---------- */
+.doc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px 24px;
+}
+
+.doc-grid.two {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.doc-grid.four {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* ---------- Items table ---------- */
+.doc-items {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #eef0f4;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.doc-items th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #6b7280;
+    background: #f5f7fa;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 9px 10px;
+    white-space: nowrap;
+}
+
+.doc-items td {
+    font-size: 12.5px;
+    color: #374151;
+    border-bottom: 1px solid #f1f3f6;
+    padding: 9px 10px;
+    vertical-align: top;
+}
+
+.doc-items tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.doc-items .r {
+    text-align: right;
+}
+
+.doc-items .strong {
+    font-weight: 700;
+    color: #111827;
+}
+
+.doc-items .sub {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 2px;
+}
+
+/* ---------- Totals ---------- */
+.doc-totals {
+    width: 320px;
+    margin-left: auto;
+    margin-top: 16px;
+    background: #f5f7fa;
+    border: 1px solid #eef0f4;
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+
+.doc-total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 12.5px;
+    color: #374151;
+}
+
+.doc-grand {
+    border-top: 2px solid #111827;
+    border-bottom: 2px solid #111827;
+    margin: 4px 0;
+    font-weight: 800;
+    font-size: 14px;
+    color: #111827;
+}
+
+.doc-paid {
+    color: #15803d;
+}
+
+.doc-due {
+    color: #dc2626;
+}
+
+/* ---------- Notes ---------- */
+.doc-notes {
+    background: #fffbeb;
+    border: 1px solid #fdeec2;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: #4b5563;
+    margin-top: 16px;
+}
+
+/* ---------- Footer ---------- */
+.doc-footer {
+    margin-top: 26px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 10px;
+    text-align: center;
+    font-size: 11px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+/* ---------- Print ---------- */
+@media print {
+    @page {
+        size: A4;
+        margin: 14mm;
+    }
+
+    html,
+    body {
+        background: #ffffff !important;
+        height: auto !important;
+    }
+
+    .doc-toolbar {
+        display: none !important;
+    }
+
+    .doc-page {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .doc-items thead {
+        display: table-header-group;
+    }
+
+    .doc-items tr,
+    .doc-info-card,
+    .doc-totals {
+        page-break-inside: avoid;
+    }
+
+    .doc-sec {
+        page-break-inside: auto;
+    }
+}
