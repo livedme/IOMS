@@ -29,7 +29,7 @@
             await UoMService.CreateUnitOfMeasure(_name, _abbreviation, _isBaseUnit);
             MudDialog.Close(DialogResult.Ok(true));
         }
-        catch (Exception ex) { MudDialog.Close(DialogResult.Cancel()); }
+        catch (Exception) { MudDialog.Close(DialogResult.Cancel()); }
         finally { _saving = false; }
     }
 

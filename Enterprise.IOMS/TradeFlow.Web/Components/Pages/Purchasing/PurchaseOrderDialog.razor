@@ -244,20 +244,7 @@
 
     //private PurchaseOrderDtoModels dataModel = new PurchaseOrderDtoModels();    
 
-    private MudAutocomplete<ControlItemsDto> SupplierDropDownControl = default!;    
     private static readonly ControlItemsDto AddNewSupplierOption = new(){Id = Guid.Empty, Name = "Add New", IsSelected = false};
-
-    //Product List
-    private MudAutocomplete<ControlItemsDto> ProductDropDownControl = default!;
-    private string? _productText;
-    private ControlItemsDto? _lastProductSelection;
-    // private static readonly ControlItemsDto AddNewOption = new(Guid.Empty, "Add New", false);
-
-    // Edit item fields
-
-    private MudAutocomplete<ControlItemsDto>? _editProductDropDownControl;
-    private string? _editProductText;
-    private ControlItemsDto? _editLastProductSelection;
 
 
     // New item form fields
@@ -272,7 +259,6 @@
     // Barcode scanner state
     private string _scanInput = string.Empty;
     private List<PurchaseSerialEntryDto> _scannedSerials = new();
-    private bool _showSerialDetails = false;
     private DateTime? _warrantyStart;
     private DateTime? _warrantyEnd;
     private string? _binLocation;
@@ -642,7 +628,6 @@
         {
             _scanInput = string.Empty;
             _scannedSerials = new();
-            _showSerialDetails = false;
             _warrantyStart = null;
             _warrantyEnd = null;
             _binLocation = null;

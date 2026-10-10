@@ -494,12 +494,16 @@
     {
         var dataModel = new CreateSalesOrderDtoModels();
         string dialogTitle = "New Purchase Order";
+        _drawerMode = SliderMode.View;
+        _editingOrder = null;
 
         if (orderId.HasValue)
         {
             var order = await GetOrderDetails(orderId.Value);
             if (order == null) { Snackbar.Add("Sales order not found", Severity.Error); return; }
             dialogTitle = $"Edit Sale #{order.OrderNumber}";
+            _editingOrder = order;
+            _drawerMode = SliderMode.Edit;
 
             dataModel = new CreateSalesOrderDtoModels
             {
