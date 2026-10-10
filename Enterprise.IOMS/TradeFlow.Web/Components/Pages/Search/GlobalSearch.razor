@@ -30,7 +30,7 @@
 
 @if (_hasSearched)
 {
-    <MudText Typo="Typo.subtitle1" Class="mb-3">@FilteredResults.Count result(s) for "@_query"</MudText>
+   @*  <MudText Typo="Typo.subtitle1" Class="mb-3">@FilteredResults.Count result(s) for "@_query"</MudText>
 
     @if (_loading)
     {
@@ -43,11 +43,11 @@
         </MudPaper>
     }
     else
-    {
-        @foreach (var group in GroupedResults)
-        {
+    { *@
+       @*  @foreach (var group in GroupedResults)
+        { *@
             <MudPaper Elevation="2" Class="pa-4 mb-4">
-                <div class="d-flex align-items-center justify-content-between mb-2">
+                @* <div class="d-flex align-items-center justify-content-between mb-2">
                     <div class="d-flex align-items-center gap-2">
                         <MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetTypeColor(group.Type)">@group.Type</MudChip>
                         <MudText Typo="Typo.subtitle2">@group.Items.Count item(s)</MudText>
@@ -55,27 +55,27 @@
                     <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
                                EndIcon="@Icons.Material.Filled.ArrowForward"
                                OnClick="@(() => OpenAll(group.Type))">View all</MudButton>
-                </div>
-                <MudTable Items="@group.Items.Take(PreviewSize)" Dense="true" Hover="true" Elevation="0">
+                </div> *@
+                <MudTable Items="@_results.ProductItems.Take(PreviewSize)" Dense="true" Hover="true" Elevation="0">
                     <HeaderContent>
                         <MudTh>Name/Number</MudTh>
                         <MudTh>Description</MudTh>
                         <MudTh></MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd><strong>@context.Title</strong></MudTd>
+                        @* <MudTd><strong>@context.Title</strong></MudTd>
                         <MudTd>@context.SubTitle</MudTd>
                         <MudTd Style="text-align:right">
                             @if (!string.IsNullOrEmpty(context.Url))
                             {
                                 <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => Navigation.NavigateTo(context.Url)">View</MudButton>
                             }
-                        </MudTd>
+                        </MudTd> *@
                     </RowTemplate>
                 </MudTable>
             </MudPaper>
-        }
-    }
+       @*  } *@
+  @*   } *@
 }
 
 @* ─── All-items right slider ─── *@
@@ -94,7 +94,7 @@
                 <MudTh></MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetTypeColor(context.EntityType)">@context.EntityType</MudChip></MudTd>
+                @* <MudTd><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetTypeColor(context.EntityType)">@context.EntityType</MudChip></MudTd>
                 <MudTd><strong>@context.Title</strong></MudTd>
                 <MudTd>@context.SubTitle</MudTd>
                 <MudTd Style="text-align:right">
@@ -102,7 +102,7 @@
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="() => Navigation.NavigateTo(context.Url)">View</MudButton>
                     }
-                </MudTd>
+                </MudTd> *@
             </RowTemplate>
         </MudTable>
     }
@@ -118,32 +118,32 @@
 
     private string _query = "";
     private string _entityFilter = "";
-    private List<GlobalSearchResultDto> _results = new();
+    private GlobalSearchResultDto _results = new();
     private bool _loading;
     private bool _hasSearched;
 
     // ─── All-items slider state ───
     private bool _drawerOpen;
     private string _drawerTitle = "";
-    private List<GlobalSearchResultDto> _drawerItems = new();
+    private GlobalSearchResultDto _drawerItems = new();
 
-    private List<GlobalSearchResultDto> FilteredResults =>
-        string.IsNullOrWhiteSpace(_entityFilter)
-            ? _results
-            : _results.Where(r => r.EntityType == _entityFilter).ToList();
+    // private List<GlobalSearchResultDto> FilteredResults =>
+    //     string.IsNullOrWhiteSpace(_entityFilter)
+    //         ? _results
+    //         : _results.Where(r => r.EntityType == _entityFilter).ToList();
 
-    private List<ResultGroup> GroupedResults =>
-        FilteredResults
-            .GroupBy(r => r.EntityType)
-            .OrderBy(g => Array.IndexOf(GroupOrder, g.Key) is var i && i >= 0 ? i : int.MaxValue)
-            .Select(g => new ResultGroup(g.Key, g.ToList()))
-            .ToList();
+    // private List<ResultGroup> GroupedResults =>
+    //     FilteredResults
+    //         .GroupBy(r => r.EntityType)
+    //         .OrderBy(g => Array.IndexOf(GroupOrder, g.Key) is var i && i >= 0 ? i : int.MaxValue)
+    //         .Select(g => new ResultGroup(g.Key, g.ToList()))
+    //         .ToList();
 
     private void OpenAll(string entityType)
     {
-        _drawerItems = FilteredResults.Where(r => r.EntityType == entityType).ToList();
-        _drawerTitle = $"{entityType} ({_drawerItems.Count})";
-        _drawerOpen = true;
+       // _drawerItems = FilteredResults.Where(r => r.EntityType == entityType).ToList();
+      //  _drawerTitle = $"{entityType} ({_drawerItems.Count})";
+       // _drawerOpen = true;
     }
 
     /// <summary>
@@ -153,14 +153,14 @@
     /// </summary>
     private void OnEntityFilterChanged(string value)
     {
-        _entityFilter = value ?? "";
-        if (string.IsNullOrWhiteSpace(_entityFilter) || !_hasSearched)
-        {
-            _drawerOpen = false;
-            return;
-        }
-        if (FilteredResults.Count > 0)
-            OpenAll(_entityFilter);
+        // _entityFilter = value ?? "";
+        // if (string.IsNullOrWhiteSpace(_entityFilter) || !_hasSearched)
+        // {
+        //     _drawerOpen = false;
+        //     return;
+        // }
+        // if (FilteredResults.Count > 0)
+        //     OpenAll(_entityFilter);
     }
 
     private async Task OnKeyDown(KeyboardEventArgs e)
