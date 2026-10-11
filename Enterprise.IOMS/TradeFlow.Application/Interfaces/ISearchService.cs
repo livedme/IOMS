@@ -4,5 +4,5 @@ namespace TradeFlow.Application.Interfaces;
 
 public interface ISearchService
 {
-    Task<GlobalSearchResultDto> Search(string query, int maxResults = 20);
+    Task<GlobalSearchResultDto> Search(string query, IReadOnlyCollection<SearchEntity> entities, int maxResults = 20);
 }

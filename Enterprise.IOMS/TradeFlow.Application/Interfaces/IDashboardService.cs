@@ -7,7 +7,7 @@ public interface IDashboardService
     Task<DashboardKpiDto> GetDashboardKPIs();
     Task<List<MonthlySalesDto>> GetMonthlySalesData(int months);
     Task<List<MonthlyPurchaseDto>> GetMonthlyPurchaseData(int months);
-    Task<List<TopProductDto>> GetTopProducts(int count);
+    Task<List<TopProductDto>> GetTopProducts(int count, int days);
     Task<List<LowStockAlertDto>> GetLowStockAlerts(int count);
     Task<List<OrderStatusBreakdownDto>> GetSalesOrderStatusBreakdown();
     Task<List<OrderStatusBreakdownDto>> GetPurchaseOrderStatusBreakdown();
@@ -27,12 +27,12 @@ public interface IDashboardService
     Task<InventoryStatusDto> GetInventoryStatus();
     Task<List<DailySalesByStoreDto>> GetDailySalesByStore();
     Task<List<BestStoreDto>> GetBestPerformingStores();
-    Task<List<RecentTransactionDto>> GetRecentTransactions(int count);
+    Task<List<RecentTransactionDto>> GetRecentTransactions(int count, int days);
     Task<List<SystemAlertDto>> GetSystemAlerts(int count);
-    Task<List<RecentOrderExtendedDto>> GetRecentOrdersExtended(int count);
+    Task<List<RecentOrderExtendedDto>> GetRecentOrdersExtended(int count, int days);
     Task<List<PurchaseOverviewPointDto>> GetPurchaseOverview(int days);
     Task<InventoryOverviewDto> GetInventoryOverview();
-    Task<List<StoreOverviewDto>> GetStoreOverview();
+    Task<List<StoreOverviewDto>> GetStoreOverview(int days);
     Task<List<StockLevelDto>> GetStockLevels(int count);
-    Task<List<RecentActivityDto>> GetRecentActivities(int count);
+    Task<List<RecentActivityDto>> GetRecentActivities(int count, int days);
 }

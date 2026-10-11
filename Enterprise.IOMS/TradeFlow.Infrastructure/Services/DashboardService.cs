@@ -56,6 +56,14 @@ public class DashboardService : IDashboardService
         _logger = logger;
     }
 
+    /// <summary>
+    /// First calendar day (inclusive) of a trailing <paramref name="days"/>-day window ending today.
+    /// Shared by every range-scoped read so all the tiles land on the same period the filter strip
+    /// is showing. Callers clamp the day count before building their cache key.
+    /// </summary>
+    private static DateTime WindowStart(int days) =>
+        DateTime.UtcNow.Date.AddDays(-(days - 1));
+
     public Task<DashboardKpiDto> GetDashboardKPIs() =>
         _cache.GetOrCreateAsync(
             $"{CachePrefix}kpis",
@@ -161,14 +169,19 @@ public class DashboardService : IDashboardService
         return data.Select(d => new MonthlyPurchaseDto($"{d.Year}-{d.Month:D2}", d.Amount, d.Count)).ToList();
     }
 
-    public Task<List<TopProductDto>> GetTopProducts(int count) =>
-        _cache.GetOrCreateAsync(
-            $"{CachePrefix}top-products:{count}",
+    public Task<List<TopProductDto>> GetTopProducts(int count, int days)
+    {
+        days = Math.Clamp(days, 1, MaxOverviewDays);
+        return _cache.GetOrCreateAsync(
+            $"{CachePrefix}top-products:{count}:{days}",
             SnapshotLifetime,
             async ct =>
             {
+                // Ranked over the selected window rather than all time, so the leaderboard matches
+                // the period the filter strip is showing.
+                var from = WindowStart(days);
                 var data = await _context.SalesOrderItems
-                    .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled)
+                    .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled && i.SalesOrder.OrderDate >= from)
                     .GroupBy(i => new { i.ProductId, i.Product.Name })
                     .Select(g => new { g.Key.Name, Revenue = g.Sum(i => i.Quantity * i.UnitPrice), Units = g.Sum(i => i.Quantity) })
                     .OrderByDescending(x => x.Revenue)
@@ -177,6 +190,7 @@ public class DashboardService : IDashboardService
 
                 return data.Select(d => new TopProductDto(d.Name, d.Revenue, d.Units)).ToList();
             });
+    }
 
     public async Task<List<LowStockAlertDto>> GetLowStockAlerts(int count)
     {
@@ -622,16 +636,24 @@ public class DashboardService : IDashboardService
         return rows.ToDictionary(x => x.Store, x => x.Sales);
     }
 
-    public Task<List<RecentTransactionDto>> GetRecentTransactions(int count) =>
-        _cache.GetOrCreateAsync(
-            $"{CachePrefix}recent-transactions:{count}",
-            SnapshotLifetime,
-            ct => BuildRecentTransactionsAsync(count, ct));
-
-    private async Task<List<RecentTransactionDto>> BuildRecentTransactionsAsync(int count, CancellationToken ct)
+    public Task<List<RecentTransactionDto>> GetRecentTransactions(int count, int days)
     {
+        days = Math.Clamp(days, 1, MaxOverviewDays);
+        return _cache.GetOrCreateAsync(
+            $"{CachePrefix}recent-transactions:{count}:{days}",
+            SnapshotLifetime,
+            ct => BuildRecentTransactionsAsync(count, days, ct));
+    }
+
+    private async Task<List<RecentTransactionDto>> BuildRecentTransactionsAsync(int count, int days, CancellationToken ct)
+    {
+        // Only transactions inside the selected window are candidates, so the feed does not surface
+        // an order from three months ago while the strip is set to the last week.
+        var from = WindowStart(days);
+
         var salesRows = await _context.SalesOrders
             .AsNoTracking()
+            .Where(o => o.OrderDate >= from)
             .OrderByDescending(o => o.OrderDate)
             .Take(count)
             .Select(o => new { o.OrderNumber, o.OrderDate, o.TotalAmount, StatusText = o.Status.ToString() })
@@ -639,6 +661,7 @@ public class DashboardService : IDashboardService
 
         var purchaseRows = await _context.PurchaseOrders
             .AsNoTracking()
+            .Where(p => p.PurchaseDate >= from)
             .OrderByDescending(p => p.PurchaseDate)
             .Take(count)
             .Select(p => new { p.OrderNumber, OrderDate = p.PurchaseDate, p.TotalAmount, StatusText = "Received" })
@@ -713,14 +736,18 @@ public class DashboardService : IDashboardService
                 return alerts.Take(count).ToList();
             });
 
-    public Task<List<RecentOrderExtendedDto>> GetRecentOrdersExtended(int count) =>
-        _cache.GetOrCreateAsync(
-            $"{CachePrefix}recent-orders:{count}",
+    public Task<List<RecentOrderExtendedDto>> GetRecentOrdersExtended(int count, int days)
+    {
+        days = Math.Clamp(days, 1, MaxOverviewDays);
+        return _cache.GetOrCreateAsync(
+            $"{CachePrefix}recent-orders:{count}:{days}",
             SnapshotLifetime,
             async ct =>
             {
+                var from = WindowStart(days);
                 var data = await _context.SalesOrders
                     .AsNoTracking()
+                    .Where(o => o.OrderDate >= from)
                     .OrderByDescending(o => o.OrderDate)
                     .Take(count)
                     .Select(o => new
@@ -739,6 +766,7 @@ public class DashboardService : IDashboardService
                     .Select(d => new RecentOrderExtendedDto(d.Id, d.OrderNumber, d.Customer, d.Store, d.OrderDate, d.Status, d.TotalAmount))
                     .ToList();
             });
+    }
 
     private static string GetTimeAgo(DateTime date)
     {
@@ -871,21 +899,26 @@ public class DashboardService : IDashboardService
 
     // ── Store Overview ────────────────────────────────────────────────
 
-    public Task<List<StoreOverviewDto>> GetStoreOverview() =>
-        _cache.GetOrCreateAsync(
-            $"{CachePrefix}store-overview",
+    public Task<List<StoreOverviewDto>> GetStoreOverview(int days)
+    {
+        days = Math.Clamp(days, 1, MaxOverviewDays);
+        return _cache.GetOrCreateAsync(
+            $"{CachePrefix}store-overview:{days}",
             SnapshotLifetime,
-            ct => BuildStoreOverviewAsync(ct));
+            ct => BuildStoreOverviewAsync(days, ct));
+    }
 
-    private async Task<List<StoreOverviewDto>> BuildStoreOverviewAsync(CancellationToken ct)
+    private async Task<List<StoreOverviewDto>> BuildStoreOverviewAsync(int days, CancellationToken ct)
     {
         // Grouped over sales order *lines* rather than order headers so that revenue and cost are
         // measured on the same rows. Summing the header TotalAmount would not allow the cost side of
         // the margin to be derived at all, and joining through Branch keeps unattributed orders in
-        // the result as "Unassigned" instead of silently dropping them.
+        // the result as "Unassigned" instead of silently dropping them. The window restricts the rows
+        // to the selected period so per-store performance tracks the range filter.
+        var from = WindowStart(days);
         var rows = await _context.SalesOrderItems
             .AsNoTracking()
-            .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled)
+            .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled && i.SalesOrder.OrderDate >= from)
             .GroupBy(i => i.SalesOrder.Branch != null ? i.SalesOrder.Branch.Name : "Unassigned")
             .Select(g => new
             {
@@ -952,15 +985,21 @@ public class DashboardService : IDashboardService
 
     // ── Recent Activities ─────────────────────────────────────────────
 
-    public Task<List<RecentActivityDto>> GetRecentActivities(int count) =>
-        _cache.GetOrCreateAsync(
-            $"{CachePrefix}recent-activities:{count}",
-            SnapshotLifetime,
-            ct => BuildRecentActivitiesAsync(count, ct));
-
-    private async Task<List<RecentActivityDto>> BuildRecentActivitiesAsync(int count, CancellationToken ct)
+    public Task<List<RecentActivityDto>> GetRecentActivities(int count, int days)
     {
         count = Math.Clamp(count, 1, 50);
+        days = Math.Clamp(days, 1, MaxOverviewDays);
+        return _cache.GetOrCreateAsync(
+            $"{CachePrefix}recent-activities:{count}:{days}",
+            SnapshotLifetime,
+            ct => BuildRecentActivitiesAsync(count, days, ct));
+    }
+
+    private async Task<List<RecentActivityDto>> BuildRecentActivitiesAsync(int count, int days, CancellationToken ct)
+    {
+        // Audit entries older than the selected window are not candidates, so the feed always
+        // describes the period the rest of the dashboard is showing.
+        var from = WindowStart(days);
 
         // AuditLog is deliberately NOT derived from BaseEntity, so the DbContext's tenant query
         // filter does not apply to it and no implicit TenantId predicate reaches the query. The
@@ -971,7 +1010,7 @@ public class DashboardService : IDashboardService
 
         var rows = await _context.AuditLogs
             .AsNoTracking()
-            .Where(a => a.TenantId == tenantId)
+            .Where(a => a.TenantId == tenantId && a.Timestamp >= from)
             .OrderByDescending(a => a.Timestamp)
             .Take(count)
             .Select(a => new { a.TableName, a.Action, a.UserId, a.Timestamp, a.RecordId })

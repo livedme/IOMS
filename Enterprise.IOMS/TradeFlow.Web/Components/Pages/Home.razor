@@ -34,7 +34,7 @@
         }
         else
         {
-            <DashboardKpiRow Kpis="@_kpis" Days="@_overviewDays" />
+            <DashboardKpiRow Kpis="@_kpis" Days="@_range.Days" />
         }
 
         @* ── Sales and purchasing over time ────────────────────────────── *@
@@ -94,17 +94,11 @@
     private string _storeFilter = AllStores;
 
     /// <summary>
-    /// Resolved window behind the filter strip's range selector. It drives both overview cards, and
-    /// is re-resolved on every change so each card's period label and span caption describe the
+    /// Resolved window behind the filter strip's range selector. It drives every range-scoped tile,
+    /// and is re-resolved on every change so each card's period label and span caption describe the
     /// exact period in force.
     /// </summary>
     private DashboardRange _range = DashboardRanges.Resolve(DashboardRanges.DefaultLabel, DateTime.UtcNow);
-
-    /// <summary>Day count behind the sales overview strip; kept in sync with the range dropdown.</summary>
-    private int _overviewDays = 7;
-
-    /// <summary>Day count behind the purchase overview strip.</summary>
-    private int _purchaseDays = 7;
 
     private List<string> _stores = new();
 
@@ -130,32 +124,10 @@
     {
         var started = Stopwatch.GetTimestamp();
 
-        // Put every tile back into its loading state so the spinners and skeletons reappear on
-        // refresh, not only on the first paint.
-        _kpisLoading = _salesLoading = _purchaseLoading = _inventoryLoading = true;
-        _storeOverviewLoading = _topProductsLoading = _stockLevelsLoading = _txLoading = true;
-        _alertsLoading = _recentOrdersLoading = _recentActivitiesLoading = true;
-
-        // The dashboard reads are issued one after another rather than through Task.WhenAll.
-        // IDashboardService is scoped, so every call shares a single ApplicationDbContext, and EF
-        // Core throws "A second operation was started on this context instance" if two of these
-        // overlap. Genuine fan-out would need a separate DbContext per read (IDbContextFactory).
-        // Each read clears its own tile's loading flag and re-renders, so the page fills in one
-        // card at a time instead of staying on skeletons until the slowest read completes.
-        _kpis = await LoadTile(() => DashboardService.GetKpis(_overviewDays), DashboardKpiSetDto.Empty, "GetKpis", () => _kpisLoading = false);
-        _salesOverview = await LoadTile(() => DashboardService.GetSalesOverview(_overviewDays), new List<SalesOverviewPointDto>(), "GetSalesOverview", () => _salesLoading = false);
-        _purchaseOverview = await LoadTile(() => DashboardService.GetPurchaseOverview(_purchaseDays), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview", () => _purchaseLoading = false);
-        _inventoryOverview = await LoadTile(() => DashboardService.GetInventoryOverview(), EmptyInventoryOverview, "GetInventoryOverview", () => _inventoryLoading = false);
-        _storeOverview = await LoadTile(() => DashboardService.GetStoreOverview(), new List<StoreOverviewDto>(), "GetStoreOverview", () => _storeOverviewLoading = false);
-        _topProducts = await LoadTile(() => DashboardService.GetTopProducts(5), new List<TopProductDto>(), "GetTopProducts", () => _topProductsLoading = false);
-        _stockLevels = await LoadTile(() => DashboardService.GetStockLevels(8), new List<StockLevelDto>(), "GetStockLevels", () => _stockLevelsLoading = false);
-        _recentTx = await LoadTile(() => DashboardService.GetRecentTransactions(5), new List<RecentTransactionDto>(), "GetRecentTransactions", () => _txLoading = false);
-        _alerts = await LoadTile(() => DashboardService.GetSystemAlerts(5), new List<SystemAlertDto>(), "GetSystemAlerts", () => _alertsLoading = false);
-        _recentOrdersExt = await LoadTile(() => DashboardService.GetRecentOrdersExtended(5), new List<RecentOrderExtendedDto>(), "GetRecentOrdersExtended", () => _recentOrdersLoading = false);
-        _recentActivities = await LoadTile(() => DashboardService.GetRecentActivities(8), new List<RecentActivityDto>(), "GetRecentActivities", () => _recentActivitiesLoading = false);
-
-        // Branch names drive the store selector. If this fails the selector simply stays on
-        // "All Stores" and every store-scoped card shows the full set, which is the safe default.
+        // Branch names drive the store selector. Reloaded on every refresh so a store added or
+        // renamed while the dashboard is open appears without a full page reload. If this fails the
+        // selector simply stays on "All Stores" and every store-scoped card shows the full set,
+        // which is the safe default.
         var branches = await SafeAsync(() => BranchService.GetBranches(), new List<BranchDto>(), "GetBranches");
         _stores = branches
             .Where(b => !string.IsNullOrWhiteSpace(b.Name))
@@ -171,7 +143,45 @@
             _storeFilter = AllStores;
         }
 
+        await LoadTiles();
+
         Logger.LogInformation("Dashboard loaded in {ElapsedMs:F0} ms", Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+    }
+
+    /// <summary>
+    /// Refreshes every tile against the currently selected range. Also invoked by the range selector,
+    /// which is why every range-scoped read takes the day count: changing the filter has to move the
+    /// whole dashboard, not just the charts above the fold.
+    /// </summary>
+    private async Task LoadTiles()
+    {
+        // Put every tile back into its loading state so the spinners and skeletons reappear, not
+        // only on the first paint.
+        _kpisLoading = _salesLoading = _purchaseLoading = _inventoryLoading = true;
+        _storeOverviewLoading = _topProductsLoading = _stockLevelsLoading = _txLoading = true;
+        _alertsLoading = _recentOrdersLoading = _recentActivitiesLoading = true;
+
+        // The dashboard reads are issued one after another rather than through Task.WhenAll.
+        // IDashboardService is scoped, so every call shares a single ApplicationDbContext, and EF
+        // Core throws "A second operation was started on this context instance" if two of these
+        // overlap. Genuine fan-out would need a separate DbContext per read (IDbContextFactory).
+        // Each read clears its own tile's loading flag and re-renders, so the page fills in one
+        // card at a time instead of staying on skeletons until the slowest read completes.
+        var days = _range.Days;
+
+        // Inventory Overview, Stock Levels and System Alerts are point-in-time snapshots with no
+        // date dimension, so they are reloaded but not filtered by the window.
+        _kpis = await LoadTile(() => DashboardService.GetKpis(days), DashboardKpiSetDto.Empty, "GetKpis", () => _kpisLoading = false);
+        _salesOverview = await LoadTile(() => DashboardService.GetSalesOverview(days), new List<SalesOverviewPointDto>(), "GetSalesOverview", () => _salesLoading = false);
+        _purchaseOverview = await LoadTile(() => DashboardService.GetPurchaseOverview(days), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview", () => _purchaseLoading = false);
+        _inventoryOverview = await LoadTile(() => DashboardService.GetInventoryOverview(), EmptyInventoryOverview, "GetInventoryOverview", () => _inventoryLoading = false);
+        _storeOverview = await LoadTile(() => DashboardService.GetStoreOverview(days), new List<StoreOverviewDto>(), "GetStoreOverview", () => _storeOverviewLoading = false);
+        _topProducts = await LoadTile(() => DashboardService.GetTopProducts(5, days), new List<TopProductDto>(), "GetTopProducts", () => _topProductsLoading = false);
+        _stockLevels = await LoadTile(() => DashboardService.GetStockLevels(8), new List<StockLevelDto>(), "GetStockLevels", () => _stockLevelsLoading = false);
+        _recentTx = await LoadTile(() => DashboardService.GetRecentTransactions(5, days), new List<RecentTransactionDto>(), "GetRecentTransactions", () => _txLoading = false);
+        _alerts = await LoadTile(() => DashboardService.GetSystemAlerts(5), new List<SystemAlertDto>(), "GetSystemAlerts", () => _alertsLoading = false);
+        _recentOrdersExt = await LoadTile(() => DashboardService.GetRecentOrdersExtended(5, days), new List<RecentOrderExtendedDto>(), "GetRecentOrdersExtended", () => _recentOrdersLoading = false);
+        _recentActivities = await LoadTile(() => DashboardService.GetRecentActivities(8, days), new List<RecentActivityDto>(), "GetRecentActivities", () => _recentActivitiesLoading = false);
     }
 
     /// <summary>
@@ -210,19 +220,10 @@
         _dateRange = v;
         _range = DashboardRanges.Resolve(v, DateTime.UtcNow);
 
-        var days = _range.Days;
-        if (days == _overviewDays && days == _purchaseDays) return;
-
-        _overviewDays = days;
-        _purchaseDays = days;
-
-        // The KPI row covers the same window as the charts, so it is reloaded with them rather than
-        // left describing the range that was in force before the change. Each tile is flashed back
-        // into its loading state and published as soon as its read returns.
-        _kpisLoading = _salesLoading = _purchaseLoading = true;
-        _kpis = await LoadTile(() => DashboardService.GetKpis(days), DashboardKpiSetDto.Empty, "GetKpis", () => _kpisLoading = false);
-        _salesOverview = await LoadTile(() => DashboardService.GetSalesOverview(days), new List<SalesOverviewPointDto>(), "GetSalesOverview", () => _salesLoading = false);
-        _purchaseOverview = await LoadTile(() => DashboardService.GetPurchaseOverview(days), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview", () => _purchaseLoading = false);
+        // Every range-scoped tile is reloaded for the new window. All the tiles read here share one
+        // scoped DbContext, so the loads stay sequential (see LoadTiles); the one-by-one flushing
+        // shows the range taking effect immediately rather than after the slowest read.
+        await LoadTiles();
     }
 
     /// <summary>

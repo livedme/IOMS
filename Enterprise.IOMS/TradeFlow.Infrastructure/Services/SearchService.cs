@@ -29,123 +29,182 @@ public class SearchService : ISearchService
         _mapper = mapper;
     }
 
-    public async Task<GlobalSearchResultDto> Search(string query, int maxResults = 20)
+    public async Task<GlobalSearchResultDto> Search(string query, IReadOnlyCollection<SearchEntity> entities, int maxResults = 20)
     {
         var response = new GlobalSearchResultDto();
-        response.ProductItems.AddRange(new List<ProductDto>());
-
-       // if (string.IsNullOrWhiteSpace(query))
-        //    return new List<Application.DTOs.GlobalSearchResultDto>();
 
         var started = Stopwatch.GetTimestamp();
-        var perType = Math.Max(maxResults / 5, 3);
+
+        // Each selected kind shares the budget so a single-type search gets the full per-type depth,
+        // and the five-way search behaves as before.
+        //var selected = entities.Where(e => e != default).ToList();
+        //if (selected.Count == 0) return response;
+        var perType = maxResults;// Math.Max(maxResults / Math.Min(entities.Count, 5), 3);
 
         // Plain Contains compiles to LIKE and stays sargable; the previous ToLower().Contains
         // wrapped the column in a function and could not use an index.
         var term = query.Trim();
 
-        // The five searches are independent but are issued sequentially: EF Core's DbContext
+        // The searches are independent but are issued sequentially: EF Core's DbContext
         // rejects two concurrent operations on the same instance.
-        var products = await _context.Products
-            .AsNoTracking()
-            .Where(p => p.Name.Contains(term) || p.SKU.Contains(term)
-                || (p.Barcode != null && p.Barcode.Contains(term))
-                || (p.Model != null && p.Model.Contains(term))
-                || (p.Brand != null && p.Brand.Name.Contains(term)))
-            .OrderBy(p => p.Name)
-            .Take(perType)
-            .Select(x => new ProductDto(
-                    x.Id,
-                    x.Name,
-                    x.SKU,
-                    x.Barcode,
-                    x.Description,
-                    x.CostPrice,
-                    x.SellingPrice,
-                    x.WholeSellingPrice,
-                    x.ReorderStockLevel,
-                    x.MinOrderQuantity,
-                    x.WarrantyInMonths,
-                    x.CategoryId,
-                    x.Category != null ? x.Category.Path : null,
-                    x.BrandId,
-                    x.Brand != null ? x.Brand.Name : null,
-                    x.Model,
-                    x.ImageUrl,
-                    0,
-                    x.IsKit,
-                    x.OriginCountry ?? string.Empty,
-                    x.OriginManufacturer ?? string.Empty,
-                    x.Inventories
-                        .OrderByDescending(i => i.Quantity)
-                        .Select(i => new ProductWarehouseStockDto(
-                            i.WarehouseId,
-                            i.Warehouse != null ? i.Warehouse.Name : "—",
-                            i.Quantity,
-                            i.ReservedQuantity,
-                            i.Quantity - i.ReservedQuantity))
-                        .ToList(),
-                    x.Category != null && x.Category.ParentCategory != null
-                        ? x.Category.ParentCategory.Name : null,
-                    x.Category != null ? x.Category.Name : null,
-                    x.Inventories.Sum(i => i.Quantity - i.ReservedQuantity),
-                    x.SalesOrderItems
-                        .OrderByDescending(soi => soi.SalesOrder.OrderDate)
-                        .Select(soi => (decimal?)soi.UnitPrice)
-                        .FirstOrDefault())).ToListAsync();
+        if (entities.Contains(SearchEntity.Products) || entities.Count==0)
+        {
+            var products = await _context.Products
+                .AsNoTracking()
+                .Where(p => p.Name.Contains(term) || p.SKU.Contains(term)
+                    || (p.Barcode != null && p.Barcode.Contains(term))
+                    || (p.Model != null && p.Model.Contains(term))
+                    || (p.Description != null && p.Description.Contains(term))
+                    //|| (p.Category != null && p.Category.Name.Contains(term))
+                    || (p.Brand != null && p.Brand.Name.Contains(term)))
+                .OrderBy(p => p.Name)
+                .Take(perType)
+                .Select(x => new ProductDto(
+                        x.Id,
+                        x.Name,
+                        x.SKU,
+                        x.Barcode,
+                        x.Description,
+                        x.CostPrice,
+                        x.SellingPrice,
+                        x.WholeSellingPrice,
+                        x.ReorderStockLevel,
+                        x.MinOrderQuantity,
+                        x.WarrantyInMonths,
+                        x.CategoryId,
+                        x.Category != null ? x.Category.Path : null,
+                        x.BrandId,
+                        x.Brand != null ? x.Brand.Name : null,
+                        x.Model,
+                        x.ImageUrl,
+                        0,
+                        x.IsKit,
+                        x.OriginCountry ?? string.Empty,
+                        x.OriginManufacturer ?? string.Empty,
+                        x.Inventories
+                            .OrderByDescending(i => i.Quantity)
+                            .Select(i => new ProductWarehouseStockDto(
+                                i.WarehouseId,
+                                i.Warehouse != null ? i.Warehouse.Name : "—",
+                                i.Quantity,
+                                i.ReservedQuantity,
+                                i.Quantity - i.ReservedQuantity))
+                            .ToList(),
+                        x.Category != null && x.Category.ParentCategory != null
+                            ? x.Category.ParentCategory.Name : null,
+                        x.Category != null ? x.Category.Name : null,
+                        x.Inventories.Sum(i => i.Quantity - i.ReservedQuantity),
+                        x.SalesOrderItems
+                            .OrderByDescending(soi => soi.SalesOrder.OrderDate)
+                            .Select(soi => (decimal?)soi.UnitPrice)
+                            .FirstOrDefault())).ToListAsync();
 
-        response.ProductItems.AddRange(products);
+            response.ProductItems.AddRange(products);
+        }
+        if (entities.Contains(SearchEntity.Category) || entities.Count == 0)
+        {
+            var products = await _context.Products
+                .AsNoTracking()
+                .Where(p=>p.Category != null && p.Category.Name.Contains(term))
+                .OrderBy(p => p.Name)
+                .Take(perType)
+                .Select(x => new ProductDto(
+                        x.Id,
+                        x.Name,
+                        x.SKU,
+                        x.Barcode,
+                        x.Description,
+                        x.CostPrice,
+                        x.SellingPrice,
+                        x.WholeSellingPrice,
+                        x.ReorderStockLevel,
+                        x.MinOrderQuantity,
+                        x.WarrantyInMonths,
+                        x.CategoryId,
+                        x.Category != null ? x.Category.Path : null,
+                        x.BrandId,
+                        x.Brand != null ? x.Brand.Name : null,
+                        x.Model,
+                        x.ImageUrl,
+                        0,
+                        x.IsKit,
+                        x.OriginCountry ?? string.Empty,
+                        x.OriginManufacturer ?? string.Empty,
+                        x.Inventories
+                            .OrderByDescending(i => i.Quantity)
+                            .Select(i => new ProductWarehouseStockDto(
+                                i.WarehouseId,
+                                i.Warehouse != null ? i.Warehouse.Name : "—",
+                                i.Quantity,
+                                i.ReservedQuantity,
+                                i.Quantity - i.ReservedQuantity))
+                            .ToList(),
+                        x.Category != null && x.Category.ParentCategory != null
+                            ? x.Category.ParentCategory.Name : null,
+                        x.Category != null ? x.Category.Name : null,
+                        x.Inventories.Sum(i => i.Quantity - i.ReservedQuantity),
+                        x.SalesOrderItems
+                            .OrderByDescending(soi => soi.SalesOrder.OrderDate)
+                            .Select(soi => (decimal?)soi.UnitPrice)
+                            .FirstOrDefault())).ToListAsync();
 
-        var customers = await _context.Customers
-            .AsNoTracking()
-            .Where(c => c.CustomerName.Contains(term) || (c.CustomerEmail != null && c.CustomerEmail.Contains(term)))
-            .OrderBy(c => c.CustomerName)
-            .Take(perType)
-            .ToListAsync();
+            response.ProductItems.AddRange(products);
+        }
 
-        response.CustomersItems.AddRange(_mapper.Map<List<CustomerDto>>(customers));
+        if (entities.Contains(SearchEntity.Customers) || entities.Count == 0)
+        {
+            var customers = await _context.Customers
+                .AsNoTracking()
+                .Where(c => c.CustomerName.Contains(term) || (c.CustomerEmail != null && c.CustomerEmail.Contains(term)))
+                .OrderBy(c => c.CustomerName)
+                .Take(perType)
+                .ToListAsync();
 
-        var suppliers = await _context.Suppliers
-            .AsNoTracking()
-            .Where(s => s.SupplierName.Contains(term) || (s.SupplierEmail != null && s.SupplierEmail.Contains(term)))
-            .OrderBy(s => s.SupplierName)
-            .Take(perType)
-            //.Select(s => new GlobalSearchResultDto("Supplier", s.Id, s.SupplierName, s.SupplierEmail ?? "", "/suppliers"))
-            .ToListAsync();
+            response.CustomersItems.AddRange(_mapper.Map<List<CustomerDto>>(customers));
+        }
 
-        response.SuppliersItems.AddRange(_mapper.Map<List<SupplierDto>>(suppliers));
+        if (entities.Contains(SearchEntity.Suppliers))
+        {
+            var suppliers = await _context.Suppliers
+                .AsNoTracking()
+                .Where(s => s.SupplierName.Contains(term) || (s.SupplierEmail != null && s.SupplierEmail.Contains(term)))
+                .OrderBy(s => s.SupplierName)
+                .Take(perType)
+                .ToListAsync();
 
-        var salesOrders = await _context.SalesOrders
-            .AsNoTracking()
-            .Where(o => o.OrderNumber.Contains(term) || (o.Customer != null && o.Customer.CustomerName.Contains(term)))
-            .OrderByDescending(o => o.OrderDate)
-            .Take(perType)
-            //.Select(o => new GlobalSearchResultDto("Sales Order", o.Id, o.OrderNumber, o.Customer != null ? o.Customer.CustomerName : "", "/orders/sales"))
-            .ToListAsync();
+            response.SuppliersItems.AddRange(_mapper.Map<List<SupplierDto>>(suppliers));
+        }
 
-        response.SalesOrdersItems.AddRange(_mapper.Map<List<SalesOrderDto>>(salesOrders));
+        if (entities.Contains(SearchEntity.SalesOrders) || entities.Count == 0)
+        {
+            var salesOrders = await _context.SalesOrders
+                .AsNoTracking()
+                .Where(o => o.OrderNumber.Contains(term) || (o.Customer != null && o.Customer.CustomerName.Contains(term)))
+                .OrderByDescending(o => o.OrderDate)
+                .Take(perType)
+                .ToListAsync();
 
-        var purchaseOrders = await _context.PurchaseOrders
-            .AsNoTracking()
-            .Where(p => p.OrderNumber.Contains(term) || (p.Supplier != null && p.Supplier.SupplierName.Contains(term)))
-            .OrderByDescending(p => p.PurchaseDate)
-            .Take(perType)
-            //.Select(p => new GlobalSearchResultDto("Purchase Order", p.Id, p.OrderNumber, p.Supplier != null ? p.Supplier.SupplierName : "", "/orders/purchase"))
-            .ToListAsync();
+            response.SalesOrdersItems.AddRange(_mapper.Map<List<SalesOrderDto>>(salesOrders));
+        }
 
-        response.PurchaseOrdersItems.AddRange(_mapper.Map<List<PurchaseOrderDto>>(purchaseOrders));
+        if (entities.Contains(SearchEntity.PurchaseOrders) || entities.Count == 0)
+        {
+            var purchaseOrders = await _context.PurchaseOrders
+                .AsNoTracking()
+                .Where(p => p.OrderNumber.Contains(term) || (p.Supplier != null && p.Supplier.SupplierName.Contains(term)))
+                .OrderByDescending(p => p.PurchaseDate)
+                .Take(perType)
+                .ToListAsync();
 
-        //var combined = products
-        //    .Concat(customers)
-        //    .Concat(suppliers)
-        //    .Concat(salesOrders)
-        //    .Concat(purchaseOrders)
-        //    .Take(maxResults)
-        //    .ToList();
+            response.PurchaseOrdersItems.AddRange(_mapper.Map<List<PurchaseOrderDto>>(purchaseOrders));
+        }
 
         _logger.LogDebug(
-            "Global search for '{Query}' returned {ResultCount} results in {ElapsedMs:F0} ms",
+            "Global search for '{Query}' across {EntityCount} entity types returned {ResultCount} results in {ElapsedMs:F0} ms",
             term,
+            entities.Count,
+            response.ProductItems.Count + response.CustomersItems.Count
+                + response.SuppliersItems.Count + response.SalesOrdersItems.Count + response.PurchaseOrdersItems.Count,
             Stopwatch.GetElapsedTime(started).TotalMilliseconds);
 
         return response;

@@ -12,9 +12,29 @@
 
 <MudText Typo="Typo.h4" Class="mb-4">Global Search</MudText>
 
-<MudTextField @bind-Value="_query" Label="Search..." Placeholder="Search products, orders, customers, suppliers..." Class="mb-4"
+
+<MudPaper Elevation="0" Class="mb-4" Style="padding:12px 16px; border:1px solid #e2e8f0;">
+    <div class="d-flex align-center flex-wrap" style="gap:20px;">
+            <MudTextField @bind-Value="_query" Label="Search..." Placeholder="Search products, orders, customers, suppliers..." Class="mb-4"
               Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Search"
               OnAdornmentClick="Search" OnKeyUp="OnSearchKeyUp" Immediate="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        
+        <MudSelect T="SearchEntity"
+                   MultiSelection="true"
+                   @bind-SelectedValues="_selectedEntities"
+                   OnSelectionChanged="OnSelectionChanged"
+                   MultiSelectionTextFunc="@GetMultiSelectionText"
+                   Label="Entity types"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense"
+                   Style="flex:1;">
+            @foreach (var entity in Enum.GetValues<SearchEntity>())
+            {
+                <MudSelectItem T="SearchEntity" Value="@entity">@GetEntityLabel(entity)</MudSelectItem>
+            }
+        </MudSelect>       
+    </div>
+</MudPaper>
 
 @if (_hasSearched)
 {
@@ -33,6 +53,8 @@
     else
     {
         <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="0">
+            @if (_selectedEntities.Contains(SearchEntity.Products) || _selectedEntities.Contains(SearchEntity.Category) || _selectedEntities.Count==0)
+        {
             <MudTabPanel Text="@($"Products ({_results.ProductItems.Count})")">
                 @if (_results.ProductItems.Count == 0)
                 {
@@ -86,7 +108,10 @@
                     </MudTable>
                 }
             </MudTabPanel>
+        }
 
+            @if (_selectedEntities.Contains(SearchEntity.Customers) || _selectedEntities.Count == 0)
+        {
             <MudTabPanel Text="@($"Customers ({_results.CustomersItems.Count})")">
                 @if (_results.CustomersItems.Count == 0)
                 {
@@ -112,7 +137,10 @@
                     </MudTable>
                 }
             </MudTabPanel>
+        }
 
+            @if (_selectedEntities.Contains(SearchEntity.Suppliers) || _selectedEntities.Count == 0)
+        {
             <MudTabPanel Text="@($"Suppliers ({_results.SuppliersItems.Count})")">
                 @if (_results.SuppliersItems.Count == 0)
                 {
@@ -138,7 +166,10 @@
                     </MudTable>
                 }
             </MudTabPanel>
+        }
 
+            @if (_selectedEntities.Contains(SearchEntity.SalesOrders) || _selectedEntities.Count == 0)
+        {
             <MudTabPanel Text="@($"Sales Orders ({_results.SalesOrdersItems.Count})")">
                 @if (_results.SalesOrdersItems.Count == 0)
                 {
@@ -166,7 +197,10 @@
                     </MudTable>
                 }
             </MudTabPanel>
+        }
 
+            @if (_selectedEntities.Contains(SearchEntity.PurchaseOrders) || _selectedEntities.Count == 0)
+        {
             <MudTabPanel Text="@($"Purchase Orders ({_results.PurchaseOrdersItems.Count})")">
                 @if (_results.PurchaseOrdersItems.Count == 0)
                 {
@@ -194,7 +228,8 @@
                     </MudTable>
                 }
             </MudTabPanel>
-        </MudTabs>
+        }
+    </MudTabs>
     }
 }
 
@@ -212,6 +247,11 @@
     private bool _loading;
     private bool _hasSearched;
     private int _activeTab;
+    private int TotalResults=0;
+
+    /// <summary>Which entity kinds participate in the search. Every kind is selected by default so the
+    /// out-of-the-box behaviour matches the pre-filter search.</summary>
+    private IReadOnlyCollection<SearchEntity> _selectedEntities = new List<SearchEntity>();
 
     private ProductViewPanel? _productViewPanel;
     private CustomerViewPanel? _customerViewPanel;
@@ -249,36 +289,107 @@
             await _purchaseOrderViewPanel.OpenAsync(id);
     }
 
-    private int TotalResults =>
-        _results.ProductItems.Count +
-        _results.CustomersItems.Count +
-        _results.SuppliersItems.Count +
-        _results.SalesOrdersItems.Count +
-        _results.PurchaseOrdersItems.Count;
+    /// <summary>The selected entity kinds, in enum order (the same order the tabs are rendered).</summary>
+    private List<SearchEntity> SelectedEntities =>
+        Enum.GetValues<SearchEntity>().Cast<SearchEntity>().Where(_selectedEntities.Contains).ToList();
 
+    private int CountFor(SearchEntity entity) => entity switch
+    {
+        SearchEntity.Products => _results.ProductItems.Count,
+        SearchEntity.Customers => _results.CustomersItems.Count,
+        SearchEntity.Suppliers => _results.SuppliersItems.Count,
+        SearchEntity.SalesOrders => _results.SalesOrdersItems.Count,
+        SearchEntity.PurchaseOrders => _results.PurchaseOrdersItems.Count,
+        _ => 0
+    };
+
+    // private int TotalResults => SelectedEntities.Sum(CountFor);
+
+    /// <summary>
+    /// First tab that has something to show. Tabs are only rendered for checked entities, so the
+    /// active index is a position in the checked list, not a fixed slot among five.
+    /// </summary>
     private int FirstTabWithResults()
     {
-        if (_results.ProductItems.Count > 0) return 0;
-        if (_results.CustomersItems.Count > 0) return 1;
-        if (_results.SuppliersItems.Count > 0) return 2;
-        if (_results.SalesOrdersItems.Count > 0) return 3;
-        return 4;
+        var selected = SelectedEntities;
+        for (var i = 0; i < selected.Count; i++)
+        {
+            if (CountFor(selected[i]) > 0) return i;
+        }
+        return 0;
     }
+
+    /// <summary>
+    /// Text shown in the collapsed multiselect. Lists the selected entity kinds when one or two are
+    /// picked, otherwise falls back to a compact "N types selected" summary.
+    /// </summary>
+    private string GetMultiSelectionText(IReadOnlyList<string> selectedValues)
+    {
+        var labels = selectedValues
+            .Select(v => Enum.TryParse<SearchEntity>(v, true, out var e) ? GetEntityLabel(e) : v)
+            .ToList();
+
+        return labels.Count switch
+        {
+            0 => "All entity types",
+            1 => labels[0],
+            2 or 3 => string.Join(", ", labels),
+            _ => $"{labels.Count} entity types selected"
+        };
+    }
+
+    private static string GetEntityLabel(SearchEntity entity) => entity switch
+    {
+        SearchEntity.Products => "Products",
+        SearchEntity.Customers => "Customers",
+        SearchEntity.Suppliers => "Suppliers",
+        SearchEntity.SalesOrders => "Sales Orders",
+        SearchEntity.PurchaseOrders => "Purchase Orders",
+        _ => entity.ToString()
+    };
 
     private async Task OnSearchKeyUp(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") await Search();
     }
 
+    /// <summary>
+    /// Fires when the entity multiselect changes. The result set is re-run against the new selection,
+    /// so the tabs reflect the chosen kinds immediately rather than only after the next explicit search.
+    /// </summary>
+    private async Task OnSelectionChanged()
+    {
+        if (_hasSearched && !string.IsNullOrWhiteSpace(_query))
+            await Search();
+        else
+            StateHasChanged();
+    }
+
     private async Task Search()
     {
         if (string.IsNullOrWhiteSpace(_query)) return;
+
+        var entities = SelectedEntities;
+        //if (entities.Count == 0)
+        //{
+        //  _hasSearched = true;
+        //            _results = new GlobalSearchResultDto();
+        //          _activeTab = 0;
+        //        return;
+        //  }
+
         _loading = true;
         _hasSearched = true;
         try
         {
-            _results = await SearchService.Search(_query, MaxResults);
+            _results = await SearchService.Search(_query, entities, MaxResults);
             _activeTab = FirstTabWithResults();
+            TotalResults = _results.ProductItems.Count +
+            _results.CustomersItems.Count +
+            _results.SuppliersItems.Count +
+            _results.SalesOrdersItems.Count +
+            _results.PurchaseOrdersItems.Count;
+
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
