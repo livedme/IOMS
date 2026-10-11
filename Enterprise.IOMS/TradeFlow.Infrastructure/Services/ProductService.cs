@@ -17,20 +17,20 @@ namespace TradeFlow.Infrastructure.Services
         // only user was the warehouse paged read.
         private const string ProductCachePrefix = "products:";
 
-        private readonly ApplicationDbContext _db;
+        private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
         private readonly IMapper _mapper;
         private readonly ITenantCache _cache;
         private readonly ITenantProvider _tenantProvider;
         private readonly ILogger<ProductService> _logger;
 
         public ProductService(
-            ApplicationDbContext db,
+            IDbContextFactory<ApplicationDbContext> dbFactory,
             IMapper mapper,
             ITenantCache cache,
             ITenantProvider tenantProvider,
             ILogger<ProductService> logger)
         {
-            _db = db;
+            _dbFactory = dbFactory;
             _mapper = mapper;
             _cache = cache;
             _tenantProvider = tenantProvider;
@@ -39,6 +39,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<PagedResultNew<ProductDto>> GetProductsAsync(ProductPagedRequest request)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var page = Math.Max(0, request.CurrentPage);
             var pageSize = Math.Clamp(request.PageSize, 1, 100);
             var search = request.SearchTerm?.Trim();
@@ -200,15 +202,21 @@ namespace TradeFlow.Infrastructure.Services
         /// <c>DbContext.Products.ToListAsync()</c> — no filter, no ordering, tracked entities
         /// included — purely to fill a dropdown that reads four columns.
         /// </summary>
-        public async Task<List<ProductOptionDto>> GetProductOptionsAsync() =>
-            await _db.Products
+        public async Task<List<ProductOptionDto>> GetProductOptionsAsync()
+        {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
+            return await _db.Products
                 .AsNoTracking()
                 .OrderBy(p => p.Name)
                 .Select(p => new ProductOptionDto(p.Id, p.Name, p.SKU, p.SellingPrice, p.CostPrice))
                 .ToListAsync();
+        }
 
         public async Task<ProductDto?> GetProductByWarehouseIdAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var product = await _db.Products
                 .AsNoTracking()
                 .Where(p => p.Id == id)
@@ -225,6 +233,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<ProductDto?> GetProductByIdAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var product = await _db.Products
                 .AsNoTracking()
                 .Where(p => p.Id == id)
@@ -241,6 +251,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<ProductDetailsDto?> GetProductDetailsByIdAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var product = await _db.Products
                 .AsNoTracking()
                 .Include(p => p.Category)
@@ -252,6 +264,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<Guid> CreateProductAsync(ProductDetailsDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
          //   var barcodeValue = $"IOMS{dto.Id:D10}";
 
             var product = new Product
@@ -284,6 +298,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task UpdateProductAsync(ProductDetailsDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var product = await _db.Products.FindAsync(dto.Id) ?? throw new KeyNotFoundException("Product not found");
             ApplyChanges(product, dto);
             await _db.SaveChangesAsync();
@@ -295,6 +311,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task DeleteProductAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var product = await _db.Products.FindAsync(id) ?? throw new KeyNotFoundException("Product not found");
             product.IsDeleted = true;
             await _db.SaveChangesAsync();
@@ -314,6 +332,8 @@ namespace TradeFlow.Infrastructure.Services
         /// </remarks>
         public async Task<ProductDetailViewDto?> GetProductDetailViewAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var header = await _db.Products
                 .AsNoTracking()
                 .Where(p => p.Id == id)

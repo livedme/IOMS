@@ -18,12 +18,17 @@ namespace TradeFlow.Infrastructure.Services;
 // ─── Pricing Service ────────────────────────────────────────────────────────
 public class PricingService : IPricingService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public PricingService(ApplicationDbContext context) => _context = context;
+    public PricingService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<List<PriceListDto>> GetPriceLists()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         return await _context.PriceLists
             .Include(p => p.Currency)
             .Include(p => p.Items).ThenInclude(i => i.Product)
@@ -39,6 +44,8 @@ public class PricingService : IPricingService
 
     public async Task<Guid> CreatePriceList(CreatePriceListDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var priceList = new PriceList
         {
             Name = dto.Name,
@@ -69,6 +76,8 @@ public class PricingService : IPricingService
 
     public async Task AddPriceListItem(Guid priceListId, CreatePriceListItemDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var priceList = await _context.PriceLists.FindAsync(priceListId)
             ?? throw new EntityNotFoundException("PriceList", priceListId);
 
@@ -85,6 +94,8 @@ public class PricingService : IPricingService
 
     public async Task<decimal> GetEffectivePrice(Guid productId, Guid? customerId, decimal quantity)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var product = await _context.Products.FindAsync(productId)
             ?? throw new EntityNotFoundException("Product", productId);
 
@@ -119,6 +130,8 @@ public class PricingService : IPricingService
 
     public async Task<List<DiscountDto>> GetDiscounts()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         return await _context.Discounts
             .Select(d => new DiscountDto(
                 d.Id, d.Name, d.Type, d.Value,
@@ -130,6 +143,8 @@ public class PricingService : IPricingService
 
     public async Task<Guid> CreateDiscount(CreateDiscountDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var discount = new Discount
         {
             Name = dto.Name,
@@ -150,6 +165,8 @@ public class PricingService : IPricingService
 
     public async Task<List<CurrencyDto>> GetCurrencies()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         return await _context.Currencies
             .Select(c => new CurrencyDto(
                 c.Id, c.Code, c.Name, c.Symbol,
@@ -159,6 +176,8 @@ public class PricingService : IPricingService
 
     public async Task<Guid> CreateCurrency(CreateCurrencyDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var currency = new Currency
         {
             Code = dto.Code,
@@ -174,6 +193,8 @@ public class PricingService : IPricingService
 
     public async Task<decimal> ConvertCurrency(decimal amount, Guid fromCurrencyId, Guid toCurrencyId)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         if (fromCurrencyId == toCurrencyId) return amount;
 
         var rate = await _context.ExchangeRates

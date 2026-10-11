@@ -11,13 +11,11 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class SupplierService : ISupplierService
     {
-        private readonly ApplicationDbContext _db;
         private readonly IMapper _mapper;
         private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-        public SupplierService(ApplicationDbContext db, IMapper mapper, IDbContextFactory<ApplicationDbContext> dbFactory)
+        public SupplierService(IMapper mapper, IDbContextFactory<ApplicationDbContext> dbFactory)
         {
-            _db = db;
             _mapper = mapper;
             _dbFactory = dbFactory;
         }
@@ -34,6 +32,8 @@ namespace TradeFlow.Infrastructure.Services
         /// </remarks>
         public async Task<PagedResult<SupplierDto>> GetSuppliersAsync(string? search = "", int page = 1, int pageSize = 100)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             // Guard the inputs rather than trusting them. pageSize also feeds PagedResult.TotalPages,
             // which divides by it, so a zero here produced a divide-by-zero instead of an empty list.
             page = Math.Max(1, page);
@@ -64,8 +64,11 @@ namespace TradeFlow.Infrastructure.Services
         /// Active suppliers for pickers. Was duplicated across PaymentDialog and RfqDetail as a raw
         /// <c>DbContext.Suppliers</c> read that materialised tracked entities.
         /// </summary>
-        public async Task<List<SupplierDto>> GetActiveSuppliersAsync() =>
-            await _db.Suppliers
+        public async Task<List<SupplierDto>> GetActiveSuppliersAsync()
+        {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
+            return await _db.Suppliers
                 .AsNoTracking()
                 .Where(s => s.IsActive)
                 .OrderBy(s => s.SupplierName)
@@ -84,6 +87,7 @@ namespace TradeFlow.Infrastructure.Services
                     IsActive = s.IsActive
                 })
                 .ToListAsync();
+        }
 
         /// <summary>
         /// Server-side paged supplier list used by the Supplier grid. Mirrors
@@ -162,6 +166,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<List<string>> GetSupplierCitiesAsync()
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             return await _db.Suppliers.AsNoTracking()
                 .Where(s => s.City != null && s.City != string.Empty)
                 .Select(s => s.City!)
@@ -194,14 +200,18 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<SupplierDto?> GetSupplierByIdAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var supplier = await _db.Suppliers.FindAsync(id);
             return supplier == null ? null : _mapper.Map<SupplierDto>(supplier);
         }
 
         public async Task<Guid> CreateSupplierAsync(SupplierDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var currencyId = NormalizeOptionalFk(dto.DefaultCurrencyId);
-            await ValidateSupplierCurrencyAsync(currencyId);
+            await ValidateSupplierCurrencyAsync(currencyId, _db);
             var supplier = new Supplier
             {
                 SupplierName = dto.SupplierName,
@@ -228,9 +238,11 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task UpdateSupplierAsync(Guid id, SupplierDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var supplier = await _db.Suppliers.FindAsync(id) ?? throw new KeyNotFoundException("Supplier not found");
             var currencyId = NormalizeOptionalFk(dto.DefaultCurrencyId);
-            await ValidateSupplierCurrencyAsync(currencyId);
+            await ValidateSupplierCurrencyAsync(currencyId, _db);
             supplier.SupplierName = dto.SupplierName; supplier.SupplierEmail = dto.SupplierEmail; supplier.SupplierPhone = dto.SupplierPhone;
             supplier.ContactPersonName = dto.ContactPersonName; supplier.ContactPersonEmail = dto.ContactPersonEmail; supplier.ContactPersonPhone = dto.ContactPersonPhone;
             supplier.Address = dto.Address; supplier.City = dto.City; supplier.State = dto.State; supplier.Zila = dto.Zila;
@@ -247,7 +259,7 @@ namespace TradeFlow.Infrastructure.Services
         private static Guid? NormalizeOptionalFk(Guid? id) =>
             id is null || id == Guid.Empty ? null : id;
 
-        private async Task ValidateSupplierCurrencyAsync(Guid? currencyId)
+        private static async Task ValidateSupplierCurrencyAsync(Guid? currencyId, ApplicationDbContext _db)
         {
             if (currencyId.HasValue &&
                 !await _db.Currencies.AnyAsync(c => c.Id == currencyId.Value))
@@ -256,6 +268,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task DeleteSupplierAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var supplier = await _db.Suppliers.FindAsync(id) ?? throw new KeyNotFoundException("Supplier not found");
             supplier.IsDeleted = true;
             await _db.SaveChangesAsync();

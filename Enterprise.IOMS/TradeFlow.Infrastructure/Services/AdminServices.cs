@@ -10,12 +10,16 @@ namespace TradeFlow.Infrastructure.Services;
 
 public class LandedCostService : ILandedCostService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public LandedCostService(ApplicationDbContext context) => _context = context;
+    public LandedCostService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<List<LandedCostComponentDto>> GetComponents()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         return await _context.LandedCostComponents
             .Select(c => new LandedCostComponentDto(c.Id, c.Name, c.Type, c.DefaultRate))
             .ToListAsync();
@@ -23,6 +27,7 @@ public class LandedCostService : ILandedCostService
 
     public async Task<Guid> CreateComponent(CreateLandedCostComponentDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var comp = new LandedCostComponent
         {
             Name = dto.Name,
@@ -36,6 +41,7 @@ public class LandedCostService : ILandedCostService
 
     public async Task<List<LandedCostAllocationDto>> GetAllocations(Guid? purchaseOrderId)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var query = _context.LandedCostAllocations
             .Include(a => a.Component)
             .Include(a => a.PurchaseOrder)
@@ -54,6 +60,7 @@ public class LandedCostService : ILandedCostService
 
     public async Task<Guid> AllocateCost(CreateLandedCostAllocationDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var alloc = new LandedCostAllocation
         {
             PurchaseOrderId = dto.PurchaseOrderId,
@@ -69,12 +76,16 @@ public class LandedCostService : ILandedCostService
 
 public class ApprovalService : IApprovalService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public ApprovalService(ApplicationDbContext context) => _context = context;
+    public ApprovalService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<List<ApprovalWorkflowRuleDto>> GetWorkflowRules()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         return await _context.ApprovalWorkflowRules
             .Select(r => new ApprovalWorkflowRuleDto(r.Id, r.DocumentType, r.Condition,
                 r.AmountThreshold, r.ApproverRoleOrUserId, r.Level, r.IsActive))
@@ -83,6 +94,7 @@ public class ApprovalService : IApprovalService
 
     public async Task<Guid> CreateWorkflowRule(CreateApprovalWorkflowRuleDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var rule = new ApprovalWorkflowRule
         {
             DocumentType = dto.DocumentType,
@@ -99,6 +111,7 @@ public class ApprovalService : IApprovalService
 
     public async Task DeleteWorkflowRule(Guid id)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var rule = await _context.ApprovalWorkflowRules.FindAsync(id)
             ?? throw new EntityNotFoundException("ApprovalWorkflowRule", id);
         rule.IsDeleted = true;
@@ -107,6 +120,7 @@ public class ApprovalService : IApprovalService
 
     public async Task<PagedResult<ApprovalRequestDto>> GetPendingApprovals(string? userId, int page, int pageSize)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var query = _context.ApprovalRequests
             .Include(a => a.Steps)
             .Where(a => a.Status == ApprovalDecision.Pending)
@@ -127,6 +141,7 @@ public class ApprovalService : IApprovalService
 
     public async Task<Guid> SubmitForApproval(string documentType, Guid documentId)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var rules = await _context.ApprovalWorkflowRules
             .Where(r => r.DocumentType == documentType && r.IsActive)
             .OrderBy(r => r.Level)
@@ -157,6 +172,7 @@ public class ApprovalService : IApprovalService
 
     public async Task ProcessDecision(Guid approvalRequestStepId, ApprovalDecision decision, string? notes)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var step = await _context.ApprovalRequestSteps
             .Include(s => s.ApprovalRequest).ThenInclude(a => a.Steps)
             .FirstOrDefaultAsync(s => s.Id == approvalRequestStepId)
@@ -188,12 +204,16 @@ public class ApprovalService : IApprovalService
 
 public class DocumentTemplateService : IDocumentTemplateService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public DocumentTemplateService(ApplicationDbContext context) => _context = context;
+    public DocumentTemplateService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<List<DocumentTemplateDto>> GetTemplates()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         return await _context.DocumentTemplates
             .Select(t => new DocumentTemplateDto(t.Id, t.Name, t.Type, t.HtmlContent, t.IsDefault))
             .ToListAsync();
@@ -201,6 +221,7 @@ public class DocumentTemplateService : IDocumentTemplateService
 
     public async Task<Guid> CreateTemplate(CreateDocumentTemplateDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var template = new DocumentTemplate
         {
             Name = dto.Name,
@@ -215,6 +236,7 @@ public class DocumentTemplateService : IDocumentTemplateService
 
     public async Task UpdateTemplate(Guid id, CreateDocumentTemplateDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var t = await _context.DocumentTemplates.FindAsync(id)
             ?? throw new EntityNotFoundException("DocumentTemplate", id);
         t.Name = dto.Name;
@@ -226,6 +248,7 @@ public class DocumentTemplateService : IDocumentTemplateService
 
     public async Task DeleteTemplate(Guid id)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var t = await _context.DocumentTemplates.FindAsync(id)
             ?? throw new EntityNotFoundException("DocumentTemplate", id);
         t.IsDeleted = true;
@@ -235,12 +258,16 @@ public class DocumentTemplateService : IDocumentTemplateService
 
 public class WebhookService : IWebhookService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public WebhookService(ApplicationDbContext context) => _context = context;
+    public WebhookService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<List<WebhookSubscriptionDto>> GetSubscriptions()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         return await _context.WebhookSubscriptions
             .Include(w => w.DeliveryLogs)
             .Select(w => new WebhookSubscriptionDto(w.Id, w.EventType, w.Url, w.IsActive, w.DeliveryLogs.Count))
@@ -249,6 +276,7 @@ public class WebhookService : IWebhookService
 
     public async Task<Guid> CreateSubscription(CreateWebhookSubscriptionDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var sub = new WebhookSubscription
         {
             EventType = dto.EventType,
@@ -263,6 +291,7 @@ public class WebhookService : IWebhookService
 
     public async Task DeleteSubscription(Guid id)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var sub = await _context.WebhookSubscriptions.FindAsync(id)
             ?? throw new EntityNotFoundException("WebhookSubscription", id);
         sub.IsDeleted = true;
@@ -271,6 +300,7 @@ public class WebhookService : IWebhookService
 
     public async Task<List<WebhookDeliveryLogDto>> GetDeliveryLogs(Guid subscriptionId)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         return await _context.WebhookDeliveryLogs
             .Where(l => l.SubscriptionId == subscriptionId)
             .OrderByDescending(l => l.SentAt)
@@ -281,12 +311,16 @@ public class WebhookService : IWebhookService
 
 public class CustomFieldService : ICustomFieldService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public CustomFieldService(ApplicationDbContext context) => _context = context;
+    public CustomFieldService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<List<CustomFieldDefinitionDto>> GetDefinitions(string? entityType)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var query = _context.CustomFieldDefinitions.AsQueryable();
         if (!string.IsNullOrWhiteSpace(entityType))
             query = query.Where(d => d.EntityType == entityType);
@@ -298,6 +332,7 @@ public class CustomFieldService : ICustomFieldService
 
     public async Task<Guid> CreateDefinition(CreateCustomFieldDefinitionDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var maxSort = await _context.CustomFieldDefinitions
             .Where(d => d.EntityType == dto.EntityType)
             .MaxAsync(d => (int?)d.SortOrder) ?? 0;
@@ -318,6 +353,7 @@ public class CustomFieldService : ICustomFieldService
 
     public async Task DeleteDefinition(Guid id)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var def = await _context.CustomFieldDefinitions.FindAsync(id)
             ?? throw new EntityNotFoundException("CustomFieldDefinition", id);
         def.IsDeleted = true;
@@ -326,6 +362,7 @@ public class CustomFieldService : ICustomFieldService
 
     public async Task<List<CustomFieldValueDto>> GetValues(Guid entityId)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         return await _context.CustomFieldValues
             .Include(v => v.Definition)
             .Where(v => v.EntityId == entityId)
@@ -335,6 +372,7 @@ public class CustomFieldService : ICustomFieldService
 
     public async Task SetValue(Guid definitionId, Guid entityId, string? value)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var existing = await _context.CustomFieldValues
             .FirstOrDefaultAsync(v => v.DefinitionId == definitionId && v.EntityId == entityId);
 
@@ -358,12 +396,16 @@ public class CustomFieldService : ICustomFieldService
 
 public class AuditLogService : IAuditLogService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public AuditLogService(ApplicationDbContext context) => _context = context;
+    public AuditLogService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<PagedResult<AuditLogDto>> GetAuditLogs(string? tableName, string? action, int page, int pageSize)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var query = _context.AuditLogs.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(tableName))
@@ -384,12 +426,16 @@ public class AuditLogService : IAuditLogService
 
 public class ScheduledReportService : IScheduledReportService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public ScheduledReportService(ApplicationDbContext context) => _context = context;
+    public ScheduledReportService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<List<ScheduledReportDto>> GetScheduledReports()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         return await _context.ScheduledReports
             .Select(r => new ScheduledReportDto(r.Id, r.ReportType, r.CronExpression,
                 r.Recipients, r.Format, r.IsActive, r.LastRunAt, r.LastRunStatus))
@@ -398,6 +444,7 @@ public class ScheduledReportService : IScheduledReportService
 
     public async Task<Guid> CreateScheduledReport(CreateScheduledReportDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var report = new ScheduledReport
         {
             ReportType = dto.ReportType,
@@ -413,6 +460,7 @@ public class ScheduledReportService : IScheduledReportService
 
     public async Task UpdateScheduledReport(Guid id, CreateScheduledReportDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var r = await _context.ScheduledReports.FindAsync(id)
             ?? throw new EntityNotFoundException("ScheduledReport", id);
         r.ReportType = dto.ReportType;
@@ -424,6 +472,7 @@ public class ScheduledReportService : IScheduledReportService
 
     public async Task DeleteScheduledReport(Guid id)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var r = await _context.ScheduledReports.FindAsync(id)
             ?? throw new EntityNotFoundException("ScheduledReport", id);
         r.IsDeleted = true;
@@ -433,12 +482,16 @@ public class ScheduledReportService : IScheduledReportService
 
 public class DataPrivacyService : IDataPrivacyService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public DataPrivacyService(ApplicationDbContext context) => _context = context;
+    public DataPrivacyService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<List<DataSubjectRequestDto>> GetRequests()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         return await _context.DataSubjectRequests
             .OrderByDescending(r => r.CreatedAt)
             .Select(r => new DataSubjectRequestDto(r.Id, r.RequestType, r.SubjectEmail,
@@ -448,6 +501,7 @@ public class DataPrivacyService : IDataPrivacyService
 
     public async Task<Guid> CreateRequest(CreateDataSubjectRequestDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var request = new DataSubjectRequest
         {
             RequestType = dto.RequestType,
@@ -462,6 +516,7 @@ public class DataPrivacyService : IDataPrivacyService
 
     public async Task ProcessRequest(Guid id)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var r = await _context.DataSubjectRequests.FindAsync(id)
             ?? throw new EntityNotFoundException("DataSubjectRequest", id);
         r.Status = DataSubjectRequestStatus.Completed;
@@ -472,12 +527,16 @@ public class DataPrivacyService : IDataPrivacyService
 
 public class ArchivalService : IArchivalService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public ArchivalService(ApplicationDbContext context) => _context = context;
+    public ArchivalService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<List<ArchivalPolicyDto>> GetPolicies()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         return await _context.ArchivalPolicies
             .Select(p => new ArchivalPolicyDto(p.Id, p.EntityType, p.RetentionDays, p.IsActive, p.LastRunAt))
             .ToListAsync();
@@ -485,6 +544,7 @@ public class ArchivalService : IArchivalService
 
     public async Task<Guid> CreatePolicy(CreateArchivalPolicyDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var policy = new ArchivalPolicy
         {
             EntityType = dto.EntityType,
@@ -498,6 +558,7 @@ public class ArchivalService : IArchivalService
 
     public async Task UpdatePolicy(Guid id, CreateArchivalPolicyDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var p = await _context.ArchivalPolicies.FindAsync(id)
             ?? throw new EntityNotFoundException("ArchivalPolicy", id);
         p.EntityType = dto.EntityType;
@@ -507,6 +568,7 @@ public class ArchivalService : IArchivalService
 
     public async Task DeletePolicy(Guid id)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var p = await _context.ArchivalPolicies.FindAsync(id)
             ?? throw new EntityNotFoundException("ArchivalPolicy", id);
         p.IsDeleted = true;

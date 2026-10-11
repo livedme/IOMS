@@ -1,3 +1,5 @@
+@inherits DashboardTileBase<List<StockLevelDto>>
+
 <DashboardCardShell Title="Stock Levels" ViewAllHref="/inventory/stock-levels" ViewAllText="Manage Stock" FillHeight="true" Loading="@Loading">
     <div class="tm-table-wrap">
         <table class="tm-table" style="min-width:600px;">
@@ -12,7 +14,7 @@
                 </tr>
             </thead>
             <tbody>
-                @if (!Items.Any())
+                @if (!Data.Any())
                 {
                     <tr>
                         <td colspan="6" style="text-align:center; padding:32px; color:#94a3b8;">No stock records yet.</td>
@@ -20,7 +22,7 @@
                 }
                 else
                 {
-                    @foreach (var s in Items)
+                    @foreach (var s in Data)
                     {
                         var (label, pill) = Classify(s);
                         <tr>
@@ -48,8 +50,10 @@
 </DashboardCardShell>
 
 @code {
-    [Parameter] public IReadOnlyList<StockLevelDto> Items { get; set; } = Array.Empty<StockLevelDto>();
-    [Parameter] public bool Loading { get; set; }
+    protected override List<StockLevelDto> EmptyData { get; } = new();
+
+    protected override Task<List<StockLevelDto>> LoadAsync() =>
+        DashboardService.GetStockLevels(8);
 
     /// <summary>
     /// Health is judged on the reorder level, which is the same threshold the rest of the app uses

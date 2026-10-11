@@ -39,22 +39,30 @@ public class DashboardService : IDashboardService
     /// </summary>
     private const int MonthlyBucketThresholdDays = 62;
 
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
     private readonly ITenantCache _cache;
     private readonly ITenantProvider _tenantProvider;
     private readonly ILogger<DashboardService> _logger;
 
     public DashboardService(
-        ApplicationDbContext context,
+        IDbContextFactory<ApplicationDbContext> dbFactory,
         ITenantCache cache,
         ITenantProvider tenantProvider,
         ILogger<DashboardService> logger)
     {
-        _context = context;
+        _dbFactory = dbFactory;
         _cache = cache;
         _tenantProvider = tenantProvider;
         _logger = logger;
     }
+
+    /// <summary>
+    /// Opens a short-lived context for one dashboard read. The dashboard tiles load in parallel
+    /// (each card owns its own read), and a single shared <c>ApplicationDbContext</c> is not
+    /// thread-safe, so every read takes its own context instead of sharing the scoped one.
+    /// </summary>
+    private async Task<ApplicationDbContext> OpenContextAsync(CancellationToken ct) =>
+        await _dbFactory.CreateDbContextAsync(ct);
 
     /// <summary>
     /// First calendar day (inclusive) of a trailing <paramref name="days"/>-day window ending today.
@@ -72,52 +80,54 @@ public class DashboardService : IDashboardService
 
     private async Task<DashboardKpiDto> BuildDashboardKpisAsync(CancellationToken ct)
     {
+        await using var context = await OpenContextAsync(ct);
+
         var started = Stopwatch.GetTimestamp();
         var now = DateTime.UtcNow;
         var startOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
         // These are twelve independent aggregates over different tables. They are issued
-        // sequentially rather than through Task.WhenAll: EF Core's DbContext is not thread-safe
-        // and throws "A second operation was started on this context instance before a previous
-        // operation completed" if two commands overlap on one instance. Fanning them out would
-        // need a separate DbContext per query (IDbContextFactory).
+        // sequentially on the one context opened for this read, rather than through Task.WhenAll:
+        // EF Core's DbContext is not thread-safe and throws "A second operation was started on this
+        // context instance before a previous operation completed" if two commands overlap on one
+        // instance. Fanning them out would need a separate context per aggregate.
         //
-        // The result is cached for KpiLifetime, so this only runs on a cache miss, and the
-        // remaining latency is dominated by the round trips rather than by the aggregation.
-        var totalProducts = await _context.Products.CountAsync(ct);
-        var activeCustomers = await _context.Customers.CountAsync(c => c.IsActive, ct);
-        var activeSuppliers = await _context.Suppliers.CountAsync(s => s.IsActive, ct);
+        // That is fine here: the result is cached for KpiLifetime, so this only runs on a cache miss,
+        // and the remaining latency is dominated by the round trips rather than by the aggregation.
+        var totalProducts = await context.Products.CountAsync(ct);
+        var activeCustomers = await context.Customers.CountAsync(c => c.IsActive, ct);
+        var activeSuppliers = await context.Suppliers.CountAsync(s => s.IsActive, ct);
 
-        var salesThisMonth = await _context.SalesOrders
+        var salesThisMonth = await context.SalesOrders
             .Where(o => o.OrderDate >= startOfMonth && o.Status != OrderStatus.Cancelled)
             .SumAsync(o => o.TotalAmount, ct);
 
-        var purchasesThisMonth = await _context.PurchaseOrders
+        var purchasesThisMonth = await context.PurchaseOrders
             .Where(p => p.PurchaseDate >= startOfMonth && p.Status != PurchaseOrderStatus.Cancelled)
             .SumAsync(p => p.TotalAmount, ct);
 
-        var pendingSales = await _context.SalesOrders.CountAsync(o => o.Status == OrderStatus.Pending, ct);
-        var pendingPurchases = await _context.PurchaseOrders
+        var pendingSales = await context.SalesOrders.CountAsync(o => o.Status == OrderStatus.Pending, ct);
+        var pendingPurchases = await context.PurchaseOrders
             .CountAsync(p => p.Status == PurchaseOrderStatus.Draft || p.Status == PurchaseOrderStatus.Submitted, ct);
 
         // Join through Inventory -> Product rather than Include, so the reorder level and the
         // cost price are read in the same scan instead of pulling full entities into memory.
-        var lowStock = await _context.Inventories
+        var lowStock = await context.Inventories
             .Where(i => i.Product.ReorderStockLevel > 0 && i.Quantity <= i.Product.ReorderStockLevel)
             .CountAsync(ct);
 
-        var arBalance = await _context.Invoices
+        var arBalance = await context.Invoices
             .Where(i => i.InvoiceType == InvoiceType.Sales && i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled)
             .SumAsync(i => i.TotalAmount - i.PaidAmount, ct);
 
-        var apBalance = await _context.Invoices
+        var apBalance = await context.Invoices
             .Where(i => i.InvoiceType == InvoiceType.Purchase && i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled)
             .SumAsync(i => i.TotalAmount - i.PaidAmount, ct);
 
-        var overdueInvoices = await _context.Invoices
+        var overdueInvoices = await context.Invoices
             .CountAsync(i => i.DueDate < now && i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled, ct);
 
-        var inventoryValue = await _context.Inventories
+        var inventoryValue = await context.Inventories
             .SumAsync(i => (decimal?)(i.Quantity * i.Product.CostPrice), ct);
 
         var elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -138,8 +148,10 @@ public class DashboardService : IDashboardService
 
     public async Task<List<MonthlySalesDto>> GetMonthlySalesData(int months)
     {
+        await using var context = await OpenContextAsync(default);
+
         var cutoff = DateTime.UtcNow.AddMonths(-months);
-        var data = await _context.SalesOrders
+        var data = await context.SalesOrders
             .Where(o => o.OrderDate >= cutoff && o.Status != OrderStatus.Cancelled)
             .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
             .Select(g => new
@@ -158,8 +170,10 @@ public class DashboardService : IDashboardService
 
     public async Task<List<MonthlyPurchaseDto>> GetMonthlyPurchaseData(int months)
     {
+        await using var context = await OpenContextAsync(default);
+
         var cutoff = DateTime.UtcNow.AddMonths(-months);
-        var data = await _context.PurchaseOrders
+        var data = await context.PurchaseOrders
             .Where(p => p.PurchaseDate >= cutoff && p.Status != PurchaseOrderStatus.Cancelled)
             .GroupBy(p => new { p.PurchaseDate.Year, p.PurchaseDate.Month })
             .Select(g => new { g.Key.Year, g.Key.Month, Amount = g.Sum(p => p.TotalAmount), Count = g.Count() })
@@ -177,10 +191,12 @@ public class DashboardService : IDashboardService
             SnapshotLifetime,
             async ct =>
             {
+                await using var context = await OpenContextAsync(ct);
+
                 // Ranked over the selected window rather than all time, so the leaderboard matches
                 // the period the filter strip is showing.
                 var from = WindowStart(days);
-                var data = await _context.SalesOrderItems
+                var data = await context.SalesOrderItems
                     .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled && i.SalesOrder.OrderDate >= from)
                     .GroupBy(i => new { i.ProductId, i.Product.Name })
                     .Select(g => new { g.Key.Name, Revenue = g.Sum(i => i.Quantity * i.UnitPrice), Units = g.Sum(i => i.Quantity) })
@@ -194,7 +210,9 @@ public class DashboardService : IDashboardService
 
     public async Task<List<LowStockAlertDto>> GetLowStockAlerts(int count)
     {
-        var data = await _context.Inventories
+        await using var context = await OpenContextAsync(default);
+
+        var data = await context.Inventories
             .Include(i => i.Product).Include(i => i.Warehouse)
             .Where(i => i.Quantity <= i.Product.ReorderStockLevel && i.Product.ReorderStockLevel > 0)
             .OrderBy(i => i.Quantity)
@@ -207,7 +225,9 @@ public class DashboardService : IDashboardService
 
     public async Task<List<OrderStatusBreakdownDto>> GetSalesOrderStatusBreakdown()
     {
-        var data = await _context.SalesOrders
+        await using var context = await OpenContextAsync(default);
+
+        var data = await context.SalesOrders
             .GroupBy(o => o.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync();
@@ -217,7 +237,9 @@ public class DashboardService : IDashboardService
 
     public async Task<List<OrderStatusBreakdownDto>> GetPurchaseOrderStatusBreakdown()
     {
-        var data = await _context.PurchaseOrders
+        await using var context = await OpenContextAsync(default);
+
+        var data = await context.PurchaseOrders
             .GroupBy(p => p.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync();
@@ -227,7 +249,9 @@ public class DashboardService : IDashboardService
 
     public async Task<List<RecentOrderDto>> GetRecentSalesOrders(int count)
     {
-        var data = await _context.SalesOrders
+        await using var context = await OpenContextAsync(default);
+
+        var data = await context.SalesOrders
             .Include(o => o.Customer)
             .OrderByDescending(o => o.OrderDate)
             .Take(count)
@@ -239,7 +263,9 @@ public class DashboardService : IDashboardService
 
     public async Task<List<RecentOrderDto>> GetRecentPurchaseOrders(int count)
     {
-        var data = await _context.PurchaseOrders
+        await using var context = await OpenContextAsync(default);
+
+        var data = await context.PurchaseOrders
             .Include(p => p.Supplier)
             .OrderByDescending(p => p.PurchaseDate)
             .Take(count)
@@ -265,6 +291,8 @@ public class DashboardService : IDashboardService
 
     private async Task<DashboardKpiSetDto> BuildKpisAsync(int days, CancellationToken ct)
     {
+        await using var context = await OpenContextAsync(ct);
+
         var started = Stopwatch.GetTimestamp();
         days = Math.Clamp(days, 1, MaxOverviewDays);
 
@@ -276,7 +304,7 @@ public class DashboardService : IDashboardService
         // Issued one after another, not through Task.WhenAll: the scoped ApplicationDbContext cannot
         // run two operations concurrently and throws if they overlap.
 
-        var salesRows = await _context.SalesOrders
+        var salesRows = await context.SalesOrders
             .AsNoTracking()
             .Where(o => o.OrderDate >= previousFrom && o.Status != OrderStatus.Cancelled)
             .GroupBy(o => o.OrderDate.Date)
@@ -284,7 +312,7 @@ public class DashboardService : IDashboardService
             .ToListAsync(ct);
         var salesByDay = salesRows.ToDictionary(x => x.Date.Date, x => x.Amount);
 
-        var purchaseRows = await _context.PurchaseOrders
+        var purchaseRows = await context.PurchaseOrders
             .AsNoTracking()
             .Where(p => p.PurchaseDate >= previousFrom
                      && p.Status != PurchaseOrderStatus.Cancelled
@@ -296,7 +324,7 @@ public class DashboardService : IDashboardService
 
         // New counterpart parties per day. The sparkline plots the running total, so the tile shows
         // the base growing rather than the noisier daily signups.
-        var customerRows = await _context.Customers
+        var customerRows = await context.Customers
             .AsNoTracking()
             .Where(c => c.CreatedAt >= previousFrom)
             .GroupBy(c => c.CreatedAt.Date)
@@ -304,7 +332,7 @@ public class DashboardService : IDashboardService
             .ToListAsync(ct);
         var newCustomersByDay = customerRows.ToDictionary(x => x.Date.Date, x => (decimal)x.Count);
 
-        var supplierRows = await _context.Suppliers
+        var supplierRows = await context.Suppliers
             .AsNoTracking()
             .Where(s => s.CreatedAt >= previousFrom)
             .GroupBy(s => s.CreatedAt.Date)
@@ -312,7 +340,7 @@ public class DashboardService : IDashboardService
             .ToListAsync(ct);
         var newSuppliersByDay = supplierRows.ToDictionary(x => x.Date.Date, x => (decimal)x.Count);
 
-        var pendingRows = await _context.SalesOrders
+        var pendingRows = await context.SalesOrders
             .AsNoTracking()
             .Where(o => o.OrderDate >= previousFrom && o.Status == OrderStatus.Pending)
             .GroupBy(o => o.OrderDate.Date)
@@ -320,18 +348,18 @@ public class DashboardService : IDashboardService
             .ToListAsync(ct);
         var pendingByDay = pendingRows.ToDictionary(x => x.Date.Date, x => (decimal)x.Count);
 
-        var totalCustomers = await _context.Customers.CountAsync(ct);
-        var customersBeforeWindow = await _context.Customers.CountAsync(c => c.CreatedAt < from, ct);
+        var totalCustomers = await context.Customers.CountAsync(ct);
+        var customersBeforeWindow = await context.Customers.CountAsync(c => c.CreatedAt < from, ct);
 
-        var totalSuppliers = await _context.Suppliers.CountAsync(ct);
-        var suppliersBeforeWindow = await _context.Suppliers.CountAsync(s => s.CreatedAt < from, ct);
+        var totalSuppliers = await context.Suppliers.CountAsync(ct);
+        var suppliersBeforeWindow = await context.Suppliers.CountAsync(s => s.CreatedAt < from, ct);
 
         // Inventory value is a point-in-time balance at current cost. StockMovement records
         // quantities but carries no cost column, and Product.CostPrice is today's cost, so a
         // back-dated valuation would be wrong for every period in which prices moved. There is
         // therefore no honest prior window and no honest sparkline here; both are left empty and the
         // tile renders without them. The previous implementation invented a -8% trend.
-        var inventoryValue = await _context.Inventories
+        var inventoryValue = await context.Inventories
             .SumAsync(i => (decimal?)(i.Quantity * i.Product.CostPrice), ct) ?? 0m;
 
         var elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -416,19 +444,21 @@ public class DashboardService : IDashboardService
 
     private async Task<List<SalesOverviewPointDto>> BuildSalesOverviewAsync(int days, CancellationToken ct)
     {
+        await using var context = await OpenContextAsync(ct);
+
         days = Math.Clamp(days, 1, MaxOverviewDays);
 
         var now = DateTime.UtcNow;
         var cutoff = now.AddDays(-days);
         var firstDay = now.Date.AddDays(-(days - 1));
 
-        var salesByDayRows = await _context.SalesOrders
+        var salesByDayRows = await context.SalesOrders
             .Where(o => o.OrderDate >= cutoff && o.Status != OrderStatus.Cancelled)
             .GroupBy(o => o.OrderDate.Date)
             .Select(g => new { Date = g.Key, Amount = g.Sum(o => o.TotalAmount) })
             .ToListAsync(ct);
 
-        var profitByDayRows = await _context.SalesOrderItems
+        var profitByDayRows = await context.SalesOrderItems
             .Where(i => i.SalesOrder.OrderDate >= cutoff && i.SalesOrder.Status != OrderStatus.Cancelled)
             .GroupBy(i => i.SalesOrder.OrderDate.Date)
             .Select(g => new { Date = g.Key, Profit = g.Sum(i => i.LineTotalPrice - i.Product.CostPrice * i.Quantity) })
@@ -496,7 +526,9 @@ public class DashboardService : IDashboardService
             SnapshotLifetime,
             async ct =>
             {
-                var data = await _context.SalesOrderItems
+                await using var context = await OpenContextAsync(ct);
+
+                var data = await context.SalesOrderItems
                     .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled)
                     .GroupBy(i => i.Product.Category != null ? i.Product.Category.Name : "Uncategorised")
                     .Select(g => new { Category = g.Key, Amount = g.Sum(i => i.LineTotalPrice) })
@@ -519,10 +551,12 @@ public class DashboardService : IDashboardService
             SnapshotLifetime,
             async ct =>
             {
+                await using var context = await OpenContextAsync(ct);
+
                 // Measured from recorded payments. The previous implementation ignored the Payment
                 // table entirely and returned five hard-coded percentages (Cash 42.3%, Card 28.7%,
                 // ...) against an invented 48520 total, so the card never reflected real activity.
-                var data = await _context.Payments
+                var data = await context.Payments
                     .AsNoTracking()
                     .Where(p => p.Status == PaymentStatus.Completed)
                     .GroupBy(p => p.PaymentMethod)
@@ -548,11 +582,13 @@ public class DashboardService : IDashboardService
             SnapshotLifetime,
             async ct =>
             {
+                await using var context = await OpenContextAsync(ct);
+
                 // One aggregate per product, so the counts are products and not inventory rows.
                 // Counting rows would inflate the percentages whenever a product is stocked in more
                 // than one warehouse. Selecting from Products also includes products that have no
                 // inventory rows at all: their Sum is 0, so they count as out of stock.
-                var perProduct = await _context.Products
+                var perProduct = await context.Products
                     .AsNoTracking()
                     .Select(p => new
                     {
@@ -583,7 +619,9 @@ public class DashboardService : IDashboardService
             SnapshotLifetime,
             async ct =>
             {
-                var data = await _context.SalesOrders
+                await using var context = await OpenContextAsync(ct);
+
+                var data = await context.SalesOrders
                     .Where(o => o.Status != OrderStatus.Cancelled)
                     .GroupBy(o => o.Branch != null ? o.Branch.Name : "Unassigned")
                     .Select(g => new { Store = g.Key, Sales = g.Sum(o => o.TotalAmount) })
@@ -626,7 +664,9 @@ public class DashboardService : IDashboardService
     private async Task<Dictionary<string, decimal>> BuildStoreTotalsAsync(
         DateTime from, DateTime to, CancellationToken ct)
     {
-        var rows = await _context.SalesOrders
+        await using var context = await OpenContextAsync(ct);
+
+        var rows = await context.SalesOrders
             .AsNoTracking()
             .Where(o => o.OrderDate >= from && o.OrderDate < to && o.Status != OrderStatus.Cancelled)
             .GroupBy(o => o.Branch != null ? o.Branch.Name : "Unassigned")
@@ -647,11 +687,13 @@ public class DashboardService : IDashboardService
 
     private async Task<List<RecentTransactionDto>> BuildRecentTransactionsAsync(int count, int days, CancellationToken ct)
     {
+        await using var context = await OpenContextAsync(ct);
+
         // Only transactions inside the selected window are candidates, so the feed does not surface
         // an order from three months ago while the strip is set to the last week.
         var from = WindowStart(days);
 
-        var salesRows = await _context.SalesOrders
+        var salesRows = await context.SalesOrders
             .AsNoTracking()
             .Where(o => o.OrderDate >= from)
             .OrderByDescending(o => o.OrderDate)
@@ -659,7 +701,7 @@ public class DashboardService : IDashboardService
             .Select(o => new { o.OrderNumber, o.OrderDate, o.TotalAmount, StatusText = o.Status.ToString() })
             .ToListAsync(ct);
 
-        var purchaseRows = await _context.PurchaseOrders
+        var purchaseRows = await context.PurchaseOrders
             .AsNoTracking()
             .Where(p => p.PurchaseDate >= from)
             .OrderByDescending(p => p.PurchaseDate)
@@ -708,14 +750,16 @@ public class DashboardService : IDashboardService
             SnapshotLifetime,
             async ct =>
             {
-                var lowStockRows = await _context.Inventories
+                await using var context = await OpenContextAsync(ct);
+
+                var lowStockRows = await context.Inventories
                     .Where(i => i.Product.ReorderStockLevel > 0 && i.Quantity <= i.Product.ReorderStockLevel)
                     .OrderBy(i => i.Quantity)
                     .Take(2)
                     .Select(i => new { i.Product.Name, i.Quantity })
                     .ToListAsync(ct);
 
-                var expiringRows = await _context.Inventories
+                var expiringRows = await context.Inventories
                     .Where(i => i.ExpiryDate != null && i.ExpiryDate <= DateTime.UtcNow.AddDays(5))
                     .OrderBy(i => i.ExpiryDate)
                     .Take(1)
@@ -744,8 +788,10 @@ public class DashboardService : IDashboardService
             SnapshotLifetime,
             async ct =>
             {
+                await using var context = await OpenContextAsync(ct);
+
                 var from = WindowStart(days);
-                var data = await _context.SalesOrders
+                var data = await context.SalesOrders
                     .AsNoTracking()
                     .Where(o => o.OrderDate >= from)
                     .OrderByDescending(o => o.OrderDate)
@@ -786,6 +832,8 @@ public class DashboardService : IDashboardService
 
     private async Task<List<PurchaseOverviewPointDto>> BuildPurchaseOverviewAsync(int days, CancellationToken ct)
     {
+        await using var context = await OpenContextAsync(ct);
+
         days = Math.Clamp(days, 1, MaxOverviewDays);
 
         var now = DateTime.UtcNow;
@@ -794,7 +842,7 @@ public class DashboardService : IDashboardService
 
         // Draft and Cancelled purchase orders are excluded: neither represents committed spend, and
         // including drafts would make procurement look busier than it is.
-        var rows = await _context.PurchaseOrders
+        var rows = await context.PurchaseOrders
             .AsNoTracking()
             .Where(p => p.PurchaseDate >= cutoff
                      && p.Status != PurchaseOrderStatus.Cancelled
@@ -855,12 +903,14 @@ public class DashboardService : IDashboardService
 
     private async Task<InventoryOverviewDto> BuildInventoryOverviewAsync(CancellationToken ct)
     {
+        await using var context = await OpenContextAsync(ct);
+
         // Two shapes of aggregate, because they answer different questions. The per-product roll-up
         // counts *products* by health, so a product stocked in three warehouses is counted once
         // rather than three times. The single-row group sums *units and value* across every
         // inventory row. A product with no stock rows at all still appears in the first query with a
         // total of zero, and therefore counts as out of stock.
-        var perProduct = await _context.Products
+        var perProduct = await context.Products
             .AsNoTracking()
             .Select(p => new
             {
@@ -869,7 +919,7 @@ public class DashboardService : IDashboardService
             })
             .ToListAsync(ct);
 
-        var totals = await _context.Inventories
+        var totals = await context.Inventories
             .AsNoTracking()
             .GroupBy(_ => 1)
             .Select(g => new
@@ -910,13 +960,15 @@ public class DashboardService : IDashboardService
 
     private async Task<List<StoreOverviewDto>> BuildStoreOverviewAsync(int days, CancellationToken ct)
     {
+        await using var context = await OpenContextAsync(ct);
+
         // Grouped over sales order *lines* rather than order headers so that revenue and cost are
         // measured on the same rows. Summing the header TotalAmount would not allow the cost side of
         // the margin to be derived at all, and joining through Branch keeps unattributed orders in
         // the result as "Unassigned" instead of silently dropping them. The window restricts the rows
         // to the selected period so per-store performance tracks the range filter.
         var from = WindowStart(days);
-        var rows = await _context.SalesOrderItems
+        var rows = await context.SalesOrderItems
             .AsNoTracking()
             .Where(i => i.SalesOrder.Status != OrderStatus.Cancelled && i.SalesOrder.OrderDate >= from)
             .GroupBy(i => i.SalesOrder.Branch != null ? i.SalesOrder.Branch.Name : "Unassigned")
@@ -956,13 +1008,15 @@ public class DashboardService : IDashboardService
 
     private async Task<List<StockLevelDto>> BuildStockLevelsAsync(int count, CancellationToken ct)
     {
+        await using var context = await OpenContextAsync(ct);
+
         count = Math.Clamp(count, 1, 50);
 
         // Ordering is done in the database rather than after materialisation so the "most at risk
         // first" ranking holds for the whole table, not just the rows that survived the Take. The
         // CASE expression pushes rows at or below their reorder level to the front, then the
         // product name gives a stable secondary order.
-        return await _context.Inventories
+        return await context.Inventories
             .AsNoTracking()
             .OrderBy(i => i.Quantity <= i.Product.ReorderStockLevel ? 0 : 1)
             .ThenBy(i => i.Product.Name)
@@ -997,6 +1051,8 @@ public class DashboardService : IDashboardService
 
     private async Task<List<RecentActivityDto>> BuildRecentActivitiesAsync(int count, int days, CancellationToken ct)
     {
+        await using var context = await OpenContextAsync(ct);
+
         // Audit entries older than the selected window are not candidates, so the feed always
         // describes the period the rest of the dashboard is showing.
         var from = WindowStart(days);
@@ -1008,7 +1064,7 @@ public class DashboardService : IDashboardService
         // values of every record they touched.
         var tenantId = _tenantProvider.GetTenantId();
 
-        var rows = await _context.AuditLogs
+        var rows = await context.AuditLogs
             .AsNoTracking()
             .Where(a => a.TenantId == tenantId && a.Timestamp >= from)
             .OrderByDescending(a => a.Timestamp)

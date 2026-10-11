@@ -12,19 +12,18 @@ namespace TradeFlow.Infrastructure.Services;
 
 public class SalesReturnService : ISalesReturnService
 {
-    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public SalesReturnService(ApplicationDbContext context, IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+    public SalesReturnService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _context = context;
         _mapper = mapper;
         _contextFactory = contextFactory;
     }
 
     public async Task<PagedResult<SalesReturnDto>> GetSalesReturns(string? search, SalesReturnStatus? status, int page, int pageSize)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var query = _context.SalesReturns
             .AsSplitQuery()
             .Include(r => r.SalesOrder)
@@ -149,6 +148,7 @@ public class SalesReturnService : ISalesReturnService
 
     public async Task<SalesReturnDto> GetSalesReturnById(Guid id)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var ret = await _context.SalesReturns
             .AsSplitQuery()
             .Include(r => r.SalesOrder)
@@ -160,6 +160,7 @@ public class SalesReturnService : ISalesReturnService
 
     public async Task<Guid> CreateSalesReturn(SalesReturnDto dto)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         _ = await _context.SalesOrders.FindAsync(dto.SalesOrderId)
             ?? throw new EntityNotFoundException("SalesOrder", dto.SalesOrderId);
 
@@ -190,6 +191,7 @@ public class SalesReturnService : ISalesReturnService
 
     public async Task ApproveSalesReturn(Guid id)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var ret = await _context.SalesReturns
             .Include(r => r.Items)
             .Include(r => r.SalesOrder)
@@ -225,6 +227,7 @@ public class SalesReturnService : ISalesReturnService
 
     public async Task CompleteSalesReturn(Guid id)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var ret = await _context.SalesReturns.FindAsync(id)
             ?? throw new EntityNotFoundException("SalesReturn", id);
         ret.Status = SalesReturnStatus.Completed;

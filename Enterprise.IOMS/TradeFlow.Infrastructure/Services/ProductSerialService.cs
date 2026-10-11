@@ -13,17 +13,19 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class ProductSerialService : IProductSerialService
     {
-        private readonly ApplicationDbContext _db;
+        private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
         private readonly IMapper _mapper;
 
-        public ProductSerialService(ApplicationDbContext db, IMapper mapper)
+        public ProductSerialService(IDbContextFactory<ApplicationDbContext> dbFactory, IMapper mapper)
         {
-            _db = db;
+            _dbFactory = dbFactory;
             _mapper = mapper;
         }
 
         public async Task<PagedResult<ProductSerialDto>> GetSerials(Guid? productId, ProductSerialStatus? status, int page, int pageSize)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var query = _db.ProductSerials
                 .Include(ps => ps.Product)
                 .Include(ps => ps.Warehouse)
@@ -46,6 +48,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<ProductSerialDto?> GetSerialById(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var serial = await _db.ProductSerials
                 .Include(ps => ps.Product)
                 .Include(ps => ps.Warehouse)
@@ -56,6 +60,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<List<ProductSerialDto>> GetAvailableSerialsByProduct(Guid productId)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var serials = await _db.ProductSerials
                 .Include(ps => ps.Product)
                 .Include(ps => ps.Warehouse)
@@ -68,6 +74,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<Guid> CreateSerial(CreateProductSerialDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var serial = new ProductSerial
             {
                 ProductId = dto.ProductId,
@@ -89,6 +97,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<List<Guid>> CreateSerials(List<CreateProductSerialDto> dtos)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var serials = dtos.Select(dto => new ProductSerial
             {
                 ProductId = dto.ProductId,
@@ -111,6 +121,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task UpdateStatus(Guid id, ProductSerialStatus status)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var serial = await _db.ProductSerials.FindAsync(id)
                 ?? throw new KeyNotFoundException("Product serial not found");
             serial.Status = status;
@@ -119,6 +131,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task DeleteSerial(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var serial = await _db.ProductSerials.FindAsync(id)
                 ?? throw new KeyNotFoundException("Product serial not found");
             serial.IsDeleted = true;

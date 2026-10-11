@@ -11,7 +11,6 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class CategoryService : ICategoryService
     {
-        private readonly ApplicationDbContext _db;
         private readonly IMapper _mapper;
         private readonly ITenantCache _cache;
         private readonly ITenantProvider _tenantProvider;
@@ -19,14 +18,12 @@ namespace TradeFlow.Infrastructure.Services
         private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
         public CategoryService(
-            ApplicationDbContext db,
             IMapper mapper,
             ITenantCache cache,
             ITenantProvider tenantProvider,
             ILogger<CategoryService> logger,
             IDbContextFactory<ApplicationDbContext> dbFactory)
         {
-            _db = db;
             _mapper = mapper;
             _cache = cache;
             _tenantProvider = tenantProvider;
@@ -42,6 +39,8 @@ namespace TradeFlow.Infrastructure.Services
                 ReferenceDataCache.Lifetime,
                 async ct =>
                 {
+                    await using var _db = await _dbFactory.CreateDbContextAsync(ct);
+
                     var categories = await _db.Categories
                         .AsNoTracking()
                         .Include(c => c.ParentCategory)
@@ -52,6 +51,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<PagedResult<CategoryDto>> GetCategoriesAsync(string? search, int page, int pageSize)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var query = _db.Categories.AsNoTracking();
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(c => c.Name.Contains(search));
@@ -155,8 +156,10 @@ namespace TradeFlow.Infrastructure.Services
         }
         public async Task<Guid> CreateCategoryAsync(CreateCategoryDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var category = new Category { Name = dto.Name, Description = dto.Description, ParentCategoryId = dto.ParentCategoryId };
-            category.Path = await BuildPathAsync(dto.ParentCategoryId, dto.Name);
+            category.Path = await BuildPathAsync(dto.ParentCategoryId, dto.Name, _db);
             _db.Categories.Add(category);
             await _db.SaveChangesAsync();
             await _cache.RemoveByPrefixAsync(ReferenceDataCache.Prefix);
@@ -172,7 +175,7 @@ namespace TradeFlow.Infrastructure.Services
         /// save a category with an empty path. It is a category invariant rather than a view concern,
         /// so it lives with the write.
         /// </remarks>
-        private async Task<string?> BuildPathAsync(Guid? parentCategoryId, string name)
+        private static async Task<string?> BuildPathAsync(Guid? parentCategoryId, string name, ApplicationDbContext _db)
         {
             if (!parentCategoryId.HasValue)
                 return name;
@@ -192,6 +195,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task DeleteCategoryAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var category = await _db.Categories.FindAsync(id) ?? throw new KeyNotFoundException("Category not found");
             category.IsDeleted = true;
             await _db.SaveChangesAsync();
@@ -200,6 +205,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<CategoryDto> GetCategoryByIdAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var category = await _db.Categories
                 .AsNoTracking()
                 .Include(c => c.ParentCategory)
@@ -218,12 +225,14 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<Guid> UpdateCategoryAsync(Guid id, CreateCategoryDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var category = await _db.Categories.FindAsync(id) ?? throw new KeyNotFoundException("Category not found");
 
             category.Name = dto.Name;
             category.Description = dto.Description;
             category.ParentCategoryId = dto.ParentCategoryId;
-            category.Path = await BuildPathAsync(dto.ParentCategoryId, dto.Name);
+            category.Path = await BuildPathAsync(dto.ParentCategoryId, dto.Name, _db);
             await _db.SaveChangesAsync();
             await _cache.RemoveByPrefixAsync(ReferenceDataCache.Prefix);
 

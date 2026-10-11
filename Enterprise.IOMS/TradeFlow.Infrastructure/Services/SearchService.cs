@@ -19,12 +19,12 @@ namespace TradeFlow.Infrastructure.Services;
 // ─── Search Service ─────────────────────────────────────────────────────────
 public class SearchService : ISearchService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
     private readonly ILogger<SearchService> _logger;
     private readonly IMapper _mapper;
-    public SearchService(ApplicationDbContext context, ILogger<SearchService> logger, IMapper mapper)
+    public SearchService(IDbContextFactory<ApplicationDbContext> dbFactory, ILogger<SearchService> logger, IMapper mapper)
     {
-        _context = context;
+        _dbFactory = dbFactory;
         _logger = logger;
         _mapper = mapper;
     }
@@ -45,8 +45,12 @@ public class SearchService : ISearchService
         // wrapped the column in a function and could not use an index.
         var term = query.Trim();
 
-        // The searches are independent but are issued sequentially: EF Core's DbContext
-        // rejects two concurrent operations on the same instance.
+        // One short-lived context per search call, taken from the factory rather than the shared
+        // scoped DbContext: the scoped instance lives for the whole request/circuit and a DbContext
+        // rejects two concurrent operations on the same instance. The searches stay sequential on
+        // this one context for that same reason.
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         if (entities.Contains(SearchEntity.Products) || entities.Count==0)
         {
             var products = await _context.Products

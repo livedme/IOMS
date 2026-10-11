@@ -1,23 +1,33 @@
+@inherits DashboardTileBase<DashboardKpiSetDto>
 @* Headline KPI row. Each tile owns its own figure, so the row only decides which measure gets which
-   icon and tint. *@
-<div class="tm-kpis">
-    <TmKpiTile Kpi="@Kpis.TotalSales" Icon="@Icons.Material.Filled.ShoppingCart" Tone="blue" Caption="@Comparison" />
-    <TmKpiTile Kpi="@Kpis.TotalPurchases" Icon="@Icons.Material.Filled.ShoppingCartCheckout" Tone="green" Caption="@Comparison" />
-    @* No stored inventory history, so no arrow and no sparkline — see DashboardService.BuildKpisAsync. *@
-    <TmKpiTile Kpi="@Kpis.InventoryValue" Icon="@Icons.Material.Filled.Inventory2" Tone="purple" Caption="point-in-time balance" />
-    <TmKpiTile Kpi="@Kpis.TotalCustomers" Icon="@Icons.Material.Filled.People" Tone="yellow" Caption="@Comparison" />
-    <TmKpiTile Kpi="@Kpis.TotalSuppliers" Icon="@Icons.Material.Filled.LocalShipping" Tone="pink" Caption="@Comparison" />
-    <TmKpiTile Kpi="@Kpis.PendingOrders" Icon="@Icons.Material.Filled.ReceiptLong" Tone="teal" Caption="@Comparison" />
-</div>
+   icon and tint. The row loads the KPI set itself so the page does not have to hold it. *@
+@if (Loading)
+{
+    <div class="tm-kpis">
+        @for (int i = 0; i < 6; i++)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="150px;" Style="border-radius:12px;" />
+        }
+    </div>
+}
+else
+{
+    <div class="tm-kpis">
+        <TmKpiTile Kpi="@Data.TotalSales" Icon="@Icons.Material.Filled.ShoppingCart" Tone="blue" Caption="@Comparison" />
+        <TmKpiTile Kpi="@Data.TotalPurchases" Icon="@Icons.Material.Filled.ShoppingCartCheckout" Tone="green" Caption="@Comparison" />
+        @* No stored inventory history, so no arrow and no sparkline — see DashboardService.BuildKpisAsync. *@
+        <TmKpiTile Kpi="@Data.InventoryValue" Icon="@Icons.Material.Filled.Inventory2" Tone="purple" Caption="point-in-time balance" />
+        <TmKpiTile Kpi="@Data.TotalCustomers" Icon="@Icons.Material.Filled.People" Tone="yellow" Caption="@Comparison" />
+        <TmKpiTile Kpi="@Data.TotalSuppliers" Icon="@Icons.Material.Filled.LocalShipping" Tone="pink" Caption="@Comparison" />
+        <TmKpiTile Kpi="@Data.PendingOrders" Icon="@Icons.Material.Filled.ReceiptLong" Tone="teal" Caption="@Comparison" />
+    </div>
+}
 
 @code {
-    [Parameter, EditorRequired] public DashboardKpiSetDto Kpis { get; set; } = default!;
+    protected override DashboardKpiSetDto EmptyData => DashboardKpiSetDto.Empty;
 
-    /// <summary>
-    /// Width of the window the figures cover, used only to word the comparison caption. Kept as a
-    /// parameter rather than read off the page so the row renders correctly in isolation.
-    /// </summary>
-    [Parameter] public int Days { get; set; } = 30;
+    protected override Task<DashboardKpiSetDto> LoadAsync() => DashboardService.GetKpis(Range.Days);
 
-    private string Comparison => $"vs last {Days} days";
+    /// <summary>Worded from the active window so the comparison caption tracks the filter strip.</summary>
+    private string Comparison => $"vs last {Range.Days} days";
 }

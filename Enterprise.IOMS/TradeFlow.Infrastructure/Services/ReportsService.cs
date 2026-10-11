@@ -24,16 +24,13 @@ namespace TradeFlow.Infrastructure.Services
     /// </remarks>
     public class ReportsService : IReportsService
     {
-        private readonly ApplicationDbContext _db;
         private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
         private readonly ILogger<ReportsService> _logger;
 
         public ReportsService(
-            ApplicationDbContext db,
             IDbContextFactory<ApplicationDbContext> dbFactory,
             ILogger<ReportsService> logger)
         {
-            _db = db;
             _dbFactory = dbFactory;
             _logger = logger;
         }

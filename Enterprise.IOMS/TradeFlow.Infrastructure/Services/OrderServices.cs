@@ -12,14 +12,12 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class OrderService : IOrderService
     {
-        private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
         private readonly IAccountingService _accountingService;
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-        public OrderService(ApplicationDbContext context, IMapper mapper, IAccountingService accountingService, IDbContextFactory<ApplicationDbContext> contextFactory)
+        public OrderService(IMapper mapper, IAccountingService accountingService, IDbContextFactory<ApplicationDbContext> contextFactory)
         {
-            _context = context;
             _mapper = mapper;
             _accountingService = accountingService;
             _contextFactory = contextFactory;
@@ -27,6 +25,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<Guid> CreateSalesOrder(CreateSalesOrderDto dto)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var order = new SalesOrder
             {
                 OrderNumber = NumberGenerator.GenerateOrderNumber("SO"),
@@ -55,7 +55,7 @@ namespace TradeFlow.Infrastructure.Services
                 var product = await _context.Products.FindAsync(item.ProductId)
                     ?? throw new EntityNotFoundException("Product", item.ProductId);
 
-                var taxResult = await CalculateItemTax(item.ProductId, dto.CustomerId, item.UnitPrice * item.Quantity);
+                var taxResult = await CalculateItemTax(item.ProductId, dto.CustomerId, item.UnitPrice * item.Quantity, _context);
                 var discountAmt = item.UnitPrice * item.Quantity * (item.DiscountAmount / 100m);
                 var lineTotal = (item.UnitPrice * item.Quantity) - discountAmt + taxResult.TaxAmount;
 
@@ -95,6 +95,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task UpdateSalesOrder(Guid id, CreateSalesOrderDto dto)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             // Clear stale tracked entities from previous operations in the same Blazor circuit scope
             _context.ChangeTracker.Clear();
 
@@ -145,6 +147,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task ApproveOrder(Guid orderId)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var order = await _context.SalesOrders
                 .Include(o => o.Items)
                 .Include(o => o.Branch)
@@ -186,6 +190,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task CancelOrder(Guid orderId, string reason)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var order = await _context.SalesOrders
                 .Include(o => o.Items)
                 .Include(o => o.Branch)
@@ -228,6 +234,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task UpdateOrderStatus(Guid orderId, OrderStatus newStatus)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var order = await _context.SalesOrders.FindAsync(orderId)
                 ?? throw new EntityNotFoundException("SalesOrder", orderId);
 
@@ -237,6 +245,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task DeleteSalesOrder(Guid id)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var order = await _context.SalesOrders.FindAsync(id)
                 ?? throw new EntityNotFoundException("SalesOrder", id);
             if (order.Status != OrderStatus.Cancelled)
@@ -247,6 +257,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<SalesOrderDto?> GetSalesOrderById(Guid id)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var order = await _context.SalesOrders
                 .AsSplitQuery()
                 .Include(o => o.Customer)
@@ -262,6 +274,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<PagedResult<SalesOrderDto>> GetSalesOrders(string? search, List<OrderStatus?> status, int page, int pageSize)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var query = _context.SalesOrders
                 .AsSplitQuery()
                 .Include(o => o.Customer)
@@ -456,7 +470,7 @@ namespace TradeFlow.Infrastructure.Services
             return query;
         }
 
-        private async Task<TaxCalculationResult> CalculateItemTax(Guid productId, Guid customerId, decimal amount)
+        private static async Task<TaxCalculationResult> CalculateItemTax(Guid productId, Guid customerId, decimal amount, ApplicationDbContext _context)
         {
             var product = await _context.Products.FindAsync(productId);
             var customer = await _context.Customers.FindAsync(customerId);

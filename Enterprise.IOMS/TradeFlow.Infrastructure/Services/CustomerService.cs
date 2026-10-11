@@ -11,19 +11,19 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class CustomerService : ICustomerService
     {
-        private readonly ApplicationDbContext _db;
         private readonly IMapper _mapper;
         private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-        public CustomerService(ApplicationDbContext db, IMapper mapper, IDbContextFactory<ApplicationDbContext> dbFactory)
+        public CustomerService(IMapper mapper, IDbContextFactory<ApplicationDbContext> dbFactory)
         {
-            _db = db;
             _mapper = mapper;
             _dbFactory = dbFactory;
         }
 
         public async Task<PagedResult<CustomerDto>> GetCustomersAsync(string? search, int page = 1, int pageSize = 100)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var query = _db.Customers.AsQueryable();
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(c => c.CustomerName.Contains(search) || (c.CustomerEmail != null && c.CustomerEmail.Contains(search)));
@@ -36,8 +36,11 @@ namespace TradeFlow.Infrastructure.Services
         /// Active customers for pickers. Was duplicated across seven components as a raw
         /// <c>DbContext.Customers</c> read, each with a slightly different projection.
         /// </summary>
-        public async Task<List<CustomerDto>> GetActiveCustomersAsync() =>
-            await _db.Customers
+        public async Task<List<CustomerDto>> GetActiveCustomersAsync()
+        {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
+            return await _db.Customers
                 .AsNoTracking()
                 .Where(c => c.IsActive)
                 .OrderBy(c => c.CustomerName)
@@ -55,6 +58,7 @@ namespace TradeFlow.Infrastructure.Services
                     IsActive = c.IsActive
                 })
                 .ToListAsync();
+        }
 
         /// <summary>
         /// Server-side paged customer list used by the Customer grid. Mirrors
@@ -128,6 +132,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<List<string>> GetCustomerCitiesAsync()
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             return await _db.Customers.AsNoTracking()
                 .Where(c => c.City != null && c.City != string.Empty)
                 .Select(c => c.City!)
@@ -160,12 +166,16 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<CustomerDto?> GetCustomerByIdAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var customer = await _db.Customers.FindAsync(id);
             return customer == null ? null : _mapper.Map<CustomerDto>(customer);
         }
 
         public async Task<Guid> CreateCustomerAsync(CustomerDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var customer = new Customer
             {
                 CustomerName = dto.CustomerName,
@@ -188,7 +198,7 @@ namespace TradeFlow.Infrastructure.Services
                 IsTaxExempt = dto.IsTaxExempt,
                 IsActive = dto.IsActive
             };
-            await ValidateCustomerFksAsync(customer.TaxJurisdictionId, customer.DefaultPriceListId, customer.DefaultCurrencyId);
+            await ValidateCustomerFksAsync(customer.TaxJurisdictionId, customer.DefaultPriceListId, customer.DefaultCurrencyId, _db);
             _db.Customers.Add(customer);
             await _db.SaveChangesAsync();
             return customer.Id;
@@ -196,6 +206,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task UpdateCustomerAsync(Guid id, CustomerDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var customer = await _db.Customers.FindAsync(id) ?? throw new KeyNotFoundException("Customer not found");
             customer.CustomerName = dto.CustomerName; customer.CustomerEmail = dto.CustomerEmail; customer.CustomerPhone = dto.CustomerPhone;
             customer.ContactPersonName = dto.ContactPersonName; customer.ContactPersonEmail = dto.ContactPersonEmail; customer.ContactPersonPhone = dto.ContactPersonPhone;
@@ -207,7 +219,7 @@ namespace TradeFlow.Infrastructure.Services
             customer.DefaultCurrencyId = NormalizeOptionalFk(dto.DefaultCurrencyId);
             customer.IsTaxExempt = dto.IsTaxExempt;
             customer.IsActive = dto.IsActive;
-            await ValidateCustomerFksAsync(customer.TaxJurisdictionId, customer.DefaultPriceListId, customer.DefaultCurrencyId);
+            await ValidateCustomerFksAsync(customer.TaxJurisdictionId, customer.DefaultPriceListId, customer.DefaultCurrencyId, _db);
             await _db.SaveChangesAsync();
         }
 
@@ -222,7 +234,7 @@ namespace TradeFlow.Infrastructure.Services
         /// <summary>
         /// Turns a raw SQL FK violation into a clear pre-save error naming the bad reference.
         /// </summary>
-        private async Task ValidateCustomerFksAsync(Guid? taxJurisdictionId, Guid? priceListId, Guid? currencyId)
+        private static async Task ValidateCustomerFksAsync(Guid? taxJurisdictionId, Guid? priceListId, Guid? currencyId, ApplicationDbContext _db)
         {
             if (taxJurisdictionId.HasValue &&
                 !await _db.TaxJurisdictions.AnyAsync(t => t.Id == taxJurisdictionId.Value))
@@ -237,6 +249,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task DeleteCustomerAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
             var customer = await _db.Customers.FindAsync(id) ?? throw new KeyNotFoundException("Customer not found");
             customer.IsDeleted = true;
             await _db.SaveChangesAsync();

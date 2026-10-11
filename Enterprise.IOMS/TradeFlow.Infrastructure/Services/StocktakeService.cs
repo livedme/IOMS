@@ -11,13 +11,11 @@ namespace TradeFlow.Infrastructure.Services;
 
 public class StocktakeService : IStocktakeService
 {
-    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public StocktakeService(ApplicationDbContext context, IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+    public StocktakeService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _context = context;
         _mapper = mapper;
         _contextFactory = contextFactory;
     }
@@ -99,6 +97,8 @@ public class StocktakeService : IStocktakeService
 
     public async Task<PagedResult<StocktakeDto>> GetStocktakes(StocktakeStatus? status, int page, int pageSize)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+
         var query = _context.Stocktakes
             .Include(s => s.Warehouse)
             .Include(s => s.Items)
@@ -115,6 +115,8 @@ public class StocktakeService : IStocktakeService
 
     public async Task<StocktakeDto> GetStocktakeById(Guid id)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+
         var st = await _context.Stocktakes
             .AsSplitQuery()
             .Include(s => s.Warehouse)
@@ -126,6 +128,8 @@ public class StocktakeService : IStocktakeService
 
     public async Task<StocktakeVarianceDto> GetVarianceReport(Guid stocktakeId)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+
         var st = await _context.Stocktakes
             .AsSplitQuery()
             .Include(s => s.Warehouse)
@@ -142,6 +146,8 @@ public class StocktakeService : IStocktakeService
 
     public async Task<Guid> CreateStocktake(CreateStocktakeDto dto)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+
         var inventories = await _context.Inventories
             .Include(i => i.Product)
             .Where(i => i.WarehouseId == dto.WarehouseId && i.Quantity > 0)
@@ -171,6 +177,8 @@ public class StocktakeService : IStocktakeService
 
     public async Task RecordCount(RecordStocktakeCountDto dto)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+
         var item = await _context.StocktakeItems
             .Include(i => i.Stocktake)
             .FirstOrDefaultAsync(i => i.Id == dto.StocktakeItemId)
@@ -187,6 +195,8 @@ public class StocktakeService : IStocktakeService
 
     public async Task ApproveStocktake(Guid stocktakeId)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+
         var st = await _context.Stocktakes
             .Include(s => s.Items)
             .FirstOrDefaultAsync(s => s.Id == stocktakeId)
@@ -220,6 +230,8 @@ public class StocktakeService : IStocktakeService
 
     public async Task CancelStocktake(Guid stocktakeId)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
+
         var st = await _context.Stocktakes.FindAsync(stocktakeId)
             ?? throw new EntityNotFoundException("Stocktake", stocktakeId);
         st.Status = StocktakeStatus.Cancelled;

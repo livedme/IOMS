@@ -18,19 +18,18 @@ namespace TradeFlow.Infrastructure.Services;
 // ─── Quotation Service ──────────────────────────────────────────────────────
 public class QuotationService : IQuotationService
 {
-    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public QuotationService(ApplicationDbContext context, IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+    public QuotationService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _context = context;
         _mapper = mapper;
         _contextFactory = contextFactory;
     }
 
     public async Task<PagedResult<SalesQuoteDto>> GetSalesQuotes(string? search, QuoteStatus? status, int page, int pageSize)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var query = _context.SalesQuotes
             .AsSplitQuery()
             .Include(q => q.Customer)
@@ -155,6 +154,7 @@ public class QuotationService : IQuotationService
 
     public async Task<SalesQuoteDto> GetSalesQuoteById(Guid id)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var quote = await _context.SalesQuotes
             .AsSplitQuery()
             .Include(q => q.Customer)
@@ -167,6 +167,7 @@ public class QuotationService : IQuotationService
 
     public async Task<Guid> CreateSalesQuote(CreateSalesQuoteDto dto)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var quote = new SalesQuote
         {
             QuoteNumber = NumberGenerator.GenerateQuoteNumber(),
@@ -208,6 +209,7 @@ public class QuotationService : IQuotationService
 
     public async Task<Guid> ConvertQuoteToOrder(Guid quoteId)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var quote = await _context.SalesQuotes
             .Include(q => q.Items)
             .FirstOrDefaultAsync(q => q.Id == quoteId)
@@ -253,6 +255,7 @@ public class QuotationService : IQuotationService
 
     public async Task AcceptQuote(Guid quoteId)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var quote = await _context.SalesQuotes.FindAsync(quoteId)
             ?? throw new EntityNotFoundException("SalesQuote", quoteId);
 
@@ -265,6 +268,7 @@ public class QuotationService : IQuotationService
 
     public async Task RejectQuote(Guid quoteId, string reason)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var quote = await _context.SalesQuotes.FindAsync(quoteId)
             ?? throw new EntityNotFoundException("SalesQuote", quoteId);
 

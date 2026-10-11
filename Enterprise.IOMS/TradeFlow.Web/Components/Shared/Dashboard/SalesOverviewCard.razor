@@ -1,5 +1,7 @@
+@inherits DashboardTileBase<List<SalesOverviewPointDto>>
 @* Sales Overview card. Header, area plot and footer layout is shared with Purchase Overview so
-   the two read identically; only the series, accent colour and footer labels differ. *@
+   the two read identically; only the series, accent colour and footer labels differ. The card
+   loads its own series for the range currently applied by the filter strip. *@
 
 <div class="tm-card tm-panel">
     <div class="tm-panel-head" style="align-items:flex-start;">
@@ -23,7 +25,7 @@
                 <span>Loading…</span>
             </div>
         }
-        else if (Points.Count == 0)
+        else if (Data.Count == 0)
         {
             <MudAlert Severity="Severity.Info" Dense="true">No sales data yet.</MudAlert>
         }
@@ -47,20 +49,17 @@
 </div>
 
 @code {
-    [Parameter] public IReadOnlyList<SalesOverviewPointDto> Points { get; set; } = Array.Empty<SalesOverviewPointDto>();
+    protected override List<SalesOverviewPointDto> EmptyData { get; } = new();
 
-    /// <summary>Period currently applied by the dashboard filter strip. Only used for the header
-    /// label and the span caption; the series itself is read by the page.</summary>
-    [Parameter] public DashboardRange Range { get; set; } = DashboardRanges.Resolve(DashboardRanges.DefaultLabel, DateTime.UtcNow);
+    protected override Task<List<SalesOverviewPointDto>> LoadAsync() =>
+        DashboardService.GetSalesOverview(Range.Days);
 
-    [Parameter] public bool Loading { get; set; }
-
-    private decimal Total => Points.Sum(p => p.TotalSales);
-    private decimal GrossProfit => Points.Sum(p => p.Profit);
-    private decimal Peak => Points.Count == 0 ? 0m : Points.Max(p => p.TotalSales);
+    private decimal Total => Data.Sum(p => p.TotalSales);
+    private decimal GrossProfit => Data.Sum(p => p.Profit);
+    private decimal Peak => Data.Count == 0 ? 0m : Data.Max(p => p.TotalSales);
 
     private List<(string Label, decimal Value)> ChartPoints =>
-        Points.Select(p => (p.Label, p.TotalSales)).ToList();
+        Data.Select(p => (p.Label, p.TotalSales)).ToList();
 
-    private string Subtitle => Points.Count == 0 ? string.Empty : Range.Caption;
+    private string Subtitle => Data.Count == 0 ? string.Empty : Range.Caption;
 }

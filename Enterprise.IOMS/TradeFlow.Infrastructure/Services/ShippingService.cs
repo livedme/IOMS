@@ -18,12 +18,17 @@ namespace TradeFlow.Infrastructure.Services;
 // ─── Shipping Service ───────────────────────────────────────────────────────
 public class ShippingService : IShippingService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public ShippingService(ApplicationDbContext context) => _context = context;
+    public ShippingService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<Guid> CreateDeliveryNote(CreateDeliveryNoteDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var order = await _context.SalesOrders.FindAsync(dto.SalesOrderId)
             ?? throw new EntityNotFoundException("SalesOrder", dto.SalesOrderId);
 
@@ -42,6 +47,8 @@ public class ShippingService : IShippingService
 
     public async Task<Guid> CreateShipment(CreateShipmentDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var shipment = new Shipment
         {
             SalesOrderId = dto.DeliveryNoteId, // maps from UI's DeliveryNoteId context to SalesOrderId
@@ -58,6 +65,8 @@ public class ShippingService : IShippingService
 
     public async Task UpdateShipmentStatus(Guid id, ShipmentStatus status)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var shipment = await _context.Shipments.FindAsync(id)
             ?? throw new EntityNotFoundException("Shipment", id);
 
@@ -70,6 +79,8 @@ public class ShippingService : IShippingService
 
     public async Task<PagedResult<ShipmentDto>> GetShipments(string? search, int page, int pageSize)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var query = _context.Shipments.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -99,6 +110,8 @@ public class ShippingService : IShippingService
 
     public async Task<PagedResult<DeliveryNoteDto>> GetDeliveryNotesPagedAsync(string? search, int page, int pageSize)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var query = _context.DeliveryNotes.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))

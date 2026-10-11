@@ -1,3 +1,5 @@
+@inherits DashboardTileBase<List<RecentOrderExtendedDto>>
+
 <DashboardCardShell Title="Recent Orders" ViewAllHref="/sales/orders" ViewAllText="All Orders" Loading="@Loading">
     <div class="tm-table-wrap">
         <table class="tm-table" style="min-width:620px;">
@@ -12,7 +14,7 @@
                 </tr>
             </thead>
             <tbody>
-                @if (!Items.Any())
+                @if (!Data.Any())
                 {
                     <tr>
                         <td colspan="6" style="text-align:center; padding:32px; color:#94a3b8;">No recent orders.</td>
@@ -20,7 +22,7 @@
                 }
                 else
                 {
-                    @foreach (var o in Items)
+                    @foreach (var o in Data)
                     {
                         <tr>
                             <td><span class="tm-veh">@o.OrderNumber</span></td>
@@ -38,8 +40,10 @@
 </DashboardCardShell>
 
 @code {
-    [Parameter] public IReadOnlyList<RecentOrderExtendedDto> Items { get; set; } = Array.Empty<RecentOrderExtendedDto>();
-    [Parameter] public bool Loading { get; set; }
+    protected override List<RecentOrderExtendedDto> EmptyData { get; } = new();
+
+    protected override Task<List<RecentOrderExtendedDto>> LoadAsync() =>
+        DashboardService.GetRecentOrdersExtended(5, Range.Days);
 
     private static string GetStatusPill(string s) => s switch
     {

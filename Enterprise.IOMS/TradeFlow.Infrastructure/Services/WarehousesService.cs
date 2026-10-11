@@ -11,7 +11,6 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class WarehousesService : IWarehousesService
     {
-        private readonly ApplicationDbContext _db;
         private readonly IMapper _mapper;
         private readonly ITenantCache _cache;
         private readonly ITenantProvider _tenantProvider;
@@ -19,14 +18,12 @@ namespace TradeFlow.Infrastructure.Services
         private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
         public WarehousesService(
-            ApplicationDbContext db,
             IMapper mapper,
             ITenantCache cache,
             ITenantProvider tenantProvider,
             ILogger<WarehousesService> logger,
             IDbContextFactory<ApplicationDbContext> dbFactory)
         {
-            _db = db;
             _mapper = mapper;
             _cache = cache;
             _tenantProvider = tenantProvider;
@@ -34,33 +31,40 @@ namespace TradeFlow.Infrastructure.Services
             _dbFactory = dbFactory;
         }
 
-        public Task<List<WarehouseDto>> GetAllWarehousesAsync() =>
-             _cache.GetOrCreateAsync(
-                 $"{ReferenceDataCache.Prefix}warehouses",
-                 ReferenceDataCache.Lifetime,
-                 async ct =>
-                 {
-                     var warehouses = await _db.Warehouses.AsNoTracking()
-                         .Where(w => w.IsActive)
-                         .OrderBy(w => w.Name)
-                         .ToListAsync(ct);
-                     return _mapper.Map<List<WarehouseDto>>(warehouses);
-                 });
+        public Task<List<WarehouseDto>> GetAllWarehousesAsync()
+        {
+            return _cache.GetOrCreateAsync(
+                $"{ReferenceDataCache.Prefix}warehouses",
+                ReferenceDataCache.Lifetime,
+                async ct =>
+                {
+                    await using var _db = await _dbFactory.CreateDbContextAsync();
+                    var warehouses = await _db.Warehouses.AsNoTracking()
+                        .Where(w => w.IsActive)
+                        .OrderBy(w => w.Name)
+                        .ToListAsync(ct);
+                    return _mapper.Map<List<WarehouseDto>>(warehouses);
+                });
+        }
 
         /// <summary>
         /// Active warehouses for pickers. Stocktakes.razor used to load these off the context as
         /// tracked entities and hand them straight to a MudBlazor select in its create dialog.
         /// </summary>
-        public async Task<List<WarehouseDto>> GetActiveWarehousesAsync() =>
-            await _db.Warehouses
+        public async Task<List<WarehouseDto>> GetActiveWarehousesAsync()
+        {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+            return await _db.Warehouses
                 .AsNoTracking()
                 .Where(w => w.IsActive)
                 .OrderBy(w => w.Name)
                 .Select(w => new WarehouseDto(w.Id, w.Name, w.Code, w.Location, w.Address, w.IsActive))
                 .ToListAsync();
+        }
 
         public async Task<WarehouseDto> GetWarehouseByIdAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var warehouse = await _db.Warehouses
                 .AsNoTracking()
                 .FirstOrDefaultAsync(w => w.Id == id)
@@ -133,6 +137,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<PagedResult<WarehouseDto>> GetWarehousesAsync(string? search, int page, int pageSize)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var query = _db.Warehouses.AsNoTracking();
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(w => w.Name.Contains(search) || w.Code.Contains(search));
@@ -144,6 +149,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<Guid> CreateWarehouseAsync(CreateWarehouseDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var warehouse = new Warehouse { Name = dto.Name, Code = dto.Code, Location = dto.Location, Address = dto.Address };
             _db.Warehouses.Add(warehouse);
             await _db.SaveChangesAsync();
@@ -153,6 +159,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task UpdateWarehouseAsync(Guid id, CreateWarehouseDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var warehouse = await _db.Warehouses.FindAsync(id) ?? throw new KeyNotFoundException("Warehouse not found");
             warehouse.Name = dto.Name;
             warehouse.Code = dto.Code;
@@ -165,6 +172,7 @@ namespace TradeFlow.Infrastructure.Services
       
         public async Task DeleteWarehouseAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var warehouse = await _db.Warehouses.FindAsync(id) ?? throw new KeyNotFoundException("Warehouse not found");
             warehouse.IsDeleted = true;
             await _db.SaveChangesAsync();

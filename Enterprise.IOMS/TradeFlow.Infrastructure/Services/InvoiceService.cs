@@ -13,19 +13,20 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class InvoiceService : IInvoiceService
     {
-        private readonly ApplicationDbContext _db;
+        private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
         private readonly IMapper _mapper;
         private readonly ISharedNumberGenerator _numberGen;
 
-        public InvoiceService(ApplicationDbContext db, IMapper mapper, ISharedNumberGenerator numberGen)
+        public InvoiceService(IDbContextFactory<ApplicationDbContext> dbFactory, IMapper mapper, ISharedNumberGenerator numberGen)
         {
-            _db = db;
+            _dbFactory = dbFactory;
             _mapper = mapper;
             _numberGen = numberGen;
         }
 
         public async Task<PagedResult<InvoiceDto>> GetInvoicesAsync(string? search, InvoiceStatus? status, InvoiceType? type, int page, int pageSize)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var query = _db.Invoices.Include(i => i.Customer).Include(i => i.Supplier).AsQueryable();
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(i => i.InvoiceNumber.Contains(search));
@@ -39,6 +40,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<InvoiceDto?> GetInvoiceByIdAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var invoice = await _db.Invoices.Include(i => i.Customer).Include(i => i.Supplier).FirstOrDefaultAsync(i => i.Id == id);
             return invoice == null ? null : _mapper.Map<InvoiceDto>(invoice);
         }
@@ -46,6 +48,7 @@ namespace TradeFlow.Infrastructure.Services
         /// <summary>Invoices for the credit- and debit-note pickers, which only need number and amount.</summary>
         public async Task<List<InvoiceOptionDto>> GetRecentInvoiceOptions(int count)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             return await _db.Invoices
                 .AsNoTracking()
                 .OrderByDescending(i => i.InvoiceDate)
@@ -56,6 +59,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<Guid> CreateInvoiceAsync(CreateInvoiceDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var invoice = new Invoice
             {
                 InvoiceNumber = _numberGen.Generate("INV"),
@@ -86,6 +90,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<Guid> GenerateInvoiceFromSalesOrderAsync(Guid salesOrderId)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var so = await _db.SalesOrders.Include(o => o.Customer).FirstOrDefaultAsync(o => o.Id == salesOrderId)
                 ?? throw new KeyNotFoundException("Sales order not found");
             return await CreateInvoiceAsync(new CreateInvoiceDto(InvoiceType.Sales, salesOrderId, null, so.CustomerId, null, DateTime.UtcNow.AddDays(30), null));
@@ -93,6 +98,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<Guid> GenerateInvoiceFromPurchaseOrderAsync(Guid purchaseOrderId)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var po = await _db.PurchaseOrders.Include(o => o.Supplier).FirstOrDefaultAsync(o => o.Id == purchaseOrderId)
                 ?? throw new KeyNotFoundException("Purchase order not found");
             return await CreateInvoiceAsync(new CreateInvoiceDto(InvoiceType.Purchase, null, purchaseOrderId, null, po.SupplierId, DateTime.UtcNow.AddDays(30), null));

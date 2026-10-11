@@ -1,6 +1,8 @@
+@inherits DashboardTileBase<List<RecentTransactionDto>>
+
 <DashboardCardShell Title="Recent Transactions" ViewAllHref="/accounting/payments" ViewAllText="Payments" Loading="@Loading">
     <div class="tm-list">
-        @if (!Items.Any())
+        @if (!Data.Any())
         {
             <div class="tm-panel-body">
                 <MudAlert Severity="Severity.Info" Dense="true">No recent transactions.</MudAlert>
@@ -8,7 +10,7 @@
         }
         else
         {
-            @foreach (var tx in Items)
+            @foreach (var tx in Data)
             {
                 var (icon, bg) = GetTxIcon(tx.Type);
                 var (pillBg, pillFg) = GetTxStatusStyle(tx.Status);
@@ -31,8 +33,10 @@
 </DashboardCardShell>
 
 @code {
-    [Parameter] public IReadOnlyList<RecentTransactionDto> Items { get; set; } = Array.Empty<RecentTransactionDto>();
-    [Parameter] public bool Loading { get; set; }
+    protected override List<RecentTransactionDto> EmptyData { get; } = new();
+
+    protected override Task<List<RecentTransactionDto>> LoadAsync() =>
+        DashboardService.GetRecentTransactions(5, Range.Days);
 
     private static (string icon, string bg) GetTxIcon(string type) => type switch
     {

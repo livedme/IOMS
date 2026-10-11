@@ -12,17 +12,19 @@ namespace TradeFlow.Infrastructure.Services;
 
 public class RfqService : IRfqService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
     private readonly IMapper _mapper;
 
-    public RfqService(ApplicationDbContext context, IMapper mapper)
+    public RfqService(IDbContextFactory<ApplicationDbContext> dbFactory, IMapper mapper)
     {
-        _context = context;
+        _dbFactory = dbFactory;
         _mapper = mapper;
     }
 
     public async Task<PagedResult<RfqRequestDto>> GetRfqRequests(string? search, RfqStatus? status, int page, int pageSize)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var query = _context.RfqRequests
             .AsSplitQuery()
             .Include(r => r.Items).ThenInclude(i => i.Product)
@@ -42,6 +44,8 @@ public class RfqService : IRfqService
 
     public async Task<RfqRequestDto> GetRfqRequestById(Guid id)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var rfq = await _context.RfqRequests
             .AsSplitQuery()
             .Include(r => r.Items).ThenInclude(i => i.Product)
@@ -53,6 +57,8 @@ public class RfqService : IRfqService
 
     public async Task<Guid> CreateRfqRequest(CreateRfqRequestDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var rfq = new RfqRequest
         {
             RfqNumber = NumberGenerator.GenerateOrderNumber("RFQ"),
@@ -78,6 +84,8 @@ public class RfqService : IRfqService
 
     public async Task AddSupplierResponse(CreateRfqSupplierResponseDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var rfq = await _context.RfqRequests.FindAsync(dto.RfqRequestId)
             ?? throw new EntityNotFoundException("RfqRequest", dto.RfqRequestId);
 
@@ -99,6 +107,8 @@ public class RfqService : IRfqService
 
     public async Task AwardRfq(Guid rfqId, Guid supplierResponseId)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var rfq = await _context.RfqRequests
             .Include(r => r.SupplierResponses)
             .FirstOrDefaultAsync(r => r.Id == rfqId)
@@ -113,6 +123,8 @@ public class RfqService : IRfqService
 
     public async Task<Guid> ConvertRfqToPurchaseOrder(Guid rfqId, Guid supplierResponseId)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var rfq = await _context.RfqRequests
             .Include(r => r.Items)
             .Include(r => r.SupplierResponses)

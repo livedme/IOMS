@@ -1,6 +1,8 @@
+@inherits DashboardTileBase<List<SystemAlertDto>>
+
 <DashboardCardShell Title="System Alerts" ViewAllHref="/admin/audit-logs" ViewAllText="Audit Logs" Loading="@Loading">
     <div class="tm-list">
-        @if (!Items.Any())
+        @if (!Data.Any())
         {
             <div class="tm-panel-body">
                 <MudAlert Severity="Severity.Success" Dense="true">No active alerts.</MudAlert>
@@ -8,7 +10,7 @@
         }
         else
         {
-            @foreach (var al in Items)
+            @foreach (var al in Data)
             {
                 var (bg, icon) = GetAlertStyle(al.AlertType);
                 <div class="tm-list-row">
@@ -26,8 +28,11 @@
 </DashboardCardShell>
 
 @code {
-    [Parameter] public IReadOnlyList<SystemAlertDto> Items { get; set; } = Array.Empty<SystemAlertDto>();
-    [Parameter] public bool Loading { get; set; }
+    protected override List<SystemAlertDto> EmptyData { get; } = new();
+
+    // Point-in-time snapshot, so the read does not take the active range.
+    protected override Task<List<SystemAlertDto>> LoadAsync() =>
+        DashboardService.GetSystemAlerts(5);
 
     private static (string bg, string icon) GetAlertStyle(string t) => t switch
     {

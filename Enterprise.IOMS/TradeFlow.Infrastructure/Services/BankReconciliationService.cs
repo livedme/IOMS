@@ -9,12 +9,16 @@ namespace TradeFlow.Infrastructure.Services;
 
 public class BankReconciliationService : IBankReconciliationService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public BankReconciliationService(ApplicationDbContext context) => _context = context;
+    public BankReconciliationService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<List<BankStatementDto>> GetBankStatements()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         return await _context.BankStatements
             .Include(b => b.Lines)
             .OrderByDescending(b => b.StatementDate)
@@ -29,6 +33,7 @@ public class BankReconciliationService : IBankReconciliationService
 
     public async Task<BankStatementDto> GetBankStatementById(Guid id)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var bs = await _context.BankStatements
             .Include(b => b.Lines)
             .FirstOrDefaultAsync(b => b.Id == id)
@@ -43,6 +48,7 @@ public class BankReconciliationService : IBankReconciliationService
 
     public async Task<Guid> ImportBankStatement(CreateBankStatementDto dto, List<CreateBankStatementLineDto> lines)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var bs = new BankStatement
         {
             BankAccountName = dto.BankAccountName,
@@ -68,6 +74,7 @@ public class BankReconciliationService : IBankReconciliationService
 
     public async Task MatchLine(Guid bankStatementLineId, Guid paymentId)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var line = await _context.BankStatementLines.FindAsync(bankStatementLineId)
             ?? throw new EntityNotFoundException("BankStatementLine", bankStatementLineId);
 
@@ -82,6 +89,7 @@ public class BankReconciliationService : IBankReconciliationService
 
     public async Task UnmatchLine(Guid bankStatementLineId)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var line = await _context.BankStatementLines.FindAsync(bankStatementLineId)
             ?? throw new EntityNotFoundException("BankStatementLine", bankStatementLineId);
 
@@ -98,6 +106,7 @@ public class BankReconciliationService : IBankReconciliationService
 
     public async Task ApproveReconciliation(Guid bankStatementId)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var bs = await _context.BankStatements.FindAsync(bankStatementId)
             ?? throw new EntityNotFoundException("BankStatement", bankStatementId);
         bs.IsReconciled = true;

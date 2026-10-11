@@ -11,12 +11,16 @@ namespace TradeFlow.Infrastructure.Services;
 
 public class CreditDebitNoteService : ICreditDebitNoteService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public CreditDebitNoteService(ApplicationDbContext context) => _context = context;
+    public CreditDebitNoteService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<PagedResult<CreditNoteDto>> GetCreditNotes(string? search, int page, int pageSize)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var query = _context.CreditNotes
             .Include(c => c.Invoice)
             .AsQueryable();
@@ -36,6 +40,7 @@ public class CreditDebitNoteService : ICreditDebitNoteService
 
     public async Task<Guid> CreateCreditNote(CreateCreditNoteDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var invoice = await _context.Invoices.FindAsync(dto.InvoiceId)
             ?? throw new EntityNotFoundException("Invoice", dto.InvoiceId);
 
@@ -55,6 +60,7 @@ public class CreditDebitNoteService : ICreditDebitNoteService
 
     public async Task ApproveCreditNote(Guid id)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var cn = await _context.CreditNotes
             .Include(c => c.Invoice)
             .FirstOrDefaultAsync(c => c.Id == id)
@@ -67,6 +73,7 @@ public class CreditDebitNoteService : ICreditDebitNoteService
 
     public async Task<PagedResult<DebitNoteDto>> GetDebitNotes(string? search, int page, int pageSize)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var query = _context.DebitNotes
             .Include(d => d.Invoice)
             .AsQueryable();
@@ -86,6 +93,7 @@ public class CreditDebitNoteService : ICreditDebitNoteService
 
     public async Task<Guid> CreateDebitNote(CreateDebitNoteDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var invoice = await _context.Invoices.FindAsync(dto.InvoiceId)
             ?? throw new EntityNotFoundException("Invoice", dto.InvoiceId);
 
@@ -105,6 +113,7 @@ public class CreditDebitNoteService : ICreditDebitNoteService
 
     public async Task ApproveDebitNote(Guid id)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
         var dn = await _context.DebitNotes
             .Include(d => d.Invoice)
             .FirstOrDefaultAsync(d => d.Id == id)

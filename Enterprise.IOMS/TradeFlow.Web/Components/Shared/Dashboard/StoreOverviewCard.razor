@@ -1,3 +1,5 @@
+@inherits DashboardTileBase<List<StoreOverviewDto>>
+
 <DashboardCardShell Title="Store Overview" ViewAllHref="/shop/branches" ViewAllText="All Stores" FillHeight="true" Loading="@Loading">
     <div class="tm-table-wrap">
         <table class="tm-table" style="min-width:560px;">
@@ -12,7 +14,7 @@
                 </tr>
             </thead>
             <tbody>
-                @if (!Items.Any())
+                @if (!FilteredData.Any())
                 {
                     <tr>
                         <td colspan="6" style="text-align:center; padding:32px; color:#94a3b8;">No store sales yet. Assign a branch to a sales order to see per-store performance.</td>
@@ -20,8 +22,8 @@
                 }
                 else
                 {
-                    var maxRevenue = Items.Max(x => x.Revenue);
-                    @foreach (var s in Items)
+                    var maxRevenue = FilteredData.Max(x => x.Revenue);
+                    @foreach (var s in FilteredData)
                     {
                         var widthPct = maxRevenue <= 0 ? 0 : (double)s.Revenue / (double)maxRevenue * 100;
                         var marginPct = s.Revenue == 0 ? 0 : Math.Round((double)(s.Profit / s.Revenue * 100), 1);
@@ -53,6 +55,30 @@
 </DashboardCardShell>
 
 @code {
-    [Parameter] public IReadOnlyList<StoreOverviewDto> Items { get; set; } = Array.Empty<StoreOverviewDto>();
-    [Parameter] public bool Loading { get; set; }
+    private const string AllStores = "All Stores";
+
+    /// <summary>
+    /// Store picked in the filter strip. Applied in memory over the already-loaded breakdown rather
+    /// than triggering a re-query, so switching stores is instant and the read stays per-range.
+    /// </summary>
+    [Parameter] public string StoreFilter { get; set; } = AllStores;
+
+    protected override List<StoreOverviewDto> EmptyData { get; } = new();
+
+    protected override Task<List<StoreOverviewDto>> LoadAsync() =>
+        DashboardService.GetStoreOverview(Range.Days);
+
+    private List<StoreOverviewDto> FilteredData
+    {
+        get
+        {
+            if (StoreFilter == AllStores) return Data;
+
+            // "Unassigned" is the bucket for orders with no branch, so it is included when the user
+            // explicitly picks it rather than being dropped by the name comparison.
+            return Data
+                .Where(s => string.Equals(s.StoreName, StoreFilter, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
 }

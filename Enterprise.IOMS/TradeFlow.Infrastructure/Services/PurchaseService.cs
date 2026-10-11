@@ -15,14 +15,12 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class PurchaseService : IPurchaseService
     {
-        private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
         private readonly IAccountingService _accountingService;
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-        public PurchaseService(ApplicationDbContext context, IMapper mapper, IAccountingService accountingService, IDbContextFactory<ApplicationDbContext> contextFactory)
+        public PurchaseService(IMapper mapper, IAccountingService accountingService, IDbContextFactory<ApplicationDbContext> contextFactory)
         {
-            _context = context;
             _mapper = mapper;
             _accountingService = accountingService;
             _contextFactory = contextFactory;
@@ -30,6 +28,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<Guid> CreatePurchaseOrder(CreatePurchaseOrderDto dto)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             var po = new PurchaseOrder
             {
                 OrderNumber = NumberGenerator.GenerateOrderNumber("PO"),
@@ -87,6 +86,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task UpdatePurchaseOrder(Guid id, CreatePurchaseOrderDto dto)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             // Clear stale tracked entities from previous operations in the same Blazor circuit scope
             _context.ChangeTracker.Clear();
 
@@ -131,6 +131,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task ApprovePurchaseOrder(Guid poId)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             var po = await _context.PurchaseOrders.FindAsync(poId)
                 ?? throw new EntityNotFoundException("PurchaseOrder", poId);
 
@@ -143,6 +144,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task CancelPurchaseOrder(Guid id)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             var po = await _context.PurchaseOrders.FindAsync(id)
                 ?? throw new EntityNotFoundException("PurchaseOrder", id);
             if (po.Status != PurchaseOrderStatus.Draft && po.Status != PurchaseOrderStatus.Submitted)
@@ -153,6 +155,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task DeletePurchaseOrder(Guid id)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             var po = await _context.PurchaseOrders.FindAsync(id)
                 ?? throw new EntityNotFoundException("PurchaseOrder", id);
             if (po.Status != PurchaseOrderStatus.Draft && po.Status != PurchaseOrderStatus.Cancelled)
@@ -163,6 +166,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task ReceiveGoods(Guid poId, List<GoodsReceivedLineDto> lines)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             var po = await _context.PurchaseOrders
                 .Include(p => p.Items)
                 .FirstOrDefaultAsync(p => p.Id == poId)
@@ -212,6 +216,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<PurchaseOrderDto?> GetPurchaseOrderById(Guid id)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             var po = await _context.PurchaseOrders
                 .AsSplitQuery()
                 .Include(p => p.Supplier)
@@ -224,6 +229,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<PagedResult<PurchaseOrderDto>> GetPurchaseOrders(string? search, PurchaseOrderStatus? status, int page, int pageSize)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             var query = _context.PurchaseOrders
                 .AsSplitQuery()
                 .Include(p => p.Supplier)
@@ -374,6 +380,7 @@ namespace TradeFlow.Infrastructure.Services
         /// </summary>
         public async Task<List<PurchaseOrderOptionDto>> GetRecentPurchaseOrders(int count)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
             return await _context.PurchaseOrders
                 .AsNoTracking()
                 .OrderByDescending(p => p.PurchaseDate)

@@ -1,6 +1,8 @@
+@inherits DashboardTileBase<List<RecentActivityDto>>
+
 <DashboardCardShell Title="Recent Activities" ViewAllHref="/admin/audit-logs" ViewAllText="Audit Log" FillHeight="true" Loading="@Loading">
     <div class="tm-list">
-        @if (!Items.Any())
+        @if (!Data.Any())
         {
             <div class="tm-panel-body">
                 <MudAlert Severity="Severity.Info" Dense="true">
@@ -10,7 +12,7 @@
         }
         else
         {
-            @foreach (var a in Items)
+            @foreach (var a in Data)
             {
                 <div class="tm-list-row">
                     <div class="tm-list-ico" style="background:@a.Tone;">
@@ -32,6 +34,8 @@
 </DashboardCardShell>
 
 @code {
-    [Parameter] public IReadOnlyList<RecentActivityDto> Items { get; set; } = Array.Empty<RecentActivityDto>();
-    [Parameter] public bool Loading { get; set; }
+    protected override List<RecentActivityDto> EmptyData { get; } = new();
+
+    protected override Task<List<RecentActivityDto>> LoadAsync() =>
+        DashboardService.GetRecentActivities(8, Range.Days);
 }

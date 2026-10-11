@@ -18,12 +18,17 @@ namespace TradeFlow.Infrastructure.Services;
 // ─── Tax Service ────────────────────────────────────────────────────────────
 public class TaxService : ITaxService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public TaxService(ApplicationDbContext context) => _context = context;
+    public TaxService(IDbContextFactory<ApplicationDbContext> dbFactory)
+    {
+        _dbFactory = dbFactory;
+    }
 
     public async Task<List<TaxRateDto>> GetTaxRates()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         return await _context.TaxRates
             .Include(t => t.TaxJurisdiction)
             .Select(t => new TaxRateDto(
@@ -35,6 +40,8 @@ public class TaxService : ITaxService
 
     public async Task<Guid> CreateTaxRate(CreateTaxRateDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var taxRate = new TaxRate
         {
             Name = dto.Name,
@@ -53,6 +60,8 @@ public class TaxService : ITaxService
 
     public async Task UpdateTaxRate(Guid id, CreateTaxRateDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var taxRate = await _context.TaxRates.FindAsync(id)
             ?? throw new EntityNotFoundException("TaxRate", id);
 
@@ -68,6 +77,8 @@ public class TaxService : ITaxService
 
     public async Task<List<TaxJurisdictionDto>> GetJurisdictions()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         return await _context.TaxJurisdictions
             .Include(j => j.TaxRates)
             .Select(j => new TaxJurisdictionDto(
@@ -81,6 +92,8 @@ public class TaxService : ITaxService
 
     public async Task<Guid> CreateJurisdiction(CreateTaxJurisdictionDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var jurisdiction = new TaxJurisdiction
         {
             Name = dto.Name,
@@ -96,6 +109,8 @@ public class TaxService : ITaxService
 
     public async Task<decimal> CalculateTax(Guid jurisdictionId, decimal amount)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var rates = await _context.TaxRates
             .Where(t => t.TaxJurisdictionId == jurisdictionId && t.IsActive
                 && t.EffectiveFrom <= DateTime.UtcNow

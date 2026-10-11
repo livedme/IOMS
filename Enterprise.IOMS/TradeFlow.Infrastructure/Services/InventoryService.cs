@@ -15,13 +15,11 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class InventoryService : IInventoryService
     {
-        private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-        public InventoryService(ApplicationDbContext context, IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+        public InventoryService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
         {
-            _context = context;
             _mapper = mapper;
             _contextFactory = contextFactory;
         }
@@ -279,6 +277,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<PagedResult<InventoryTrackingDto>> GetInventoryTrackingByWarehouse(Guid warehouseId, int page, int pageSize)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var query = _context.Inventories
                 .Include(i => i.Product)
                 .Include(i => i.Warehouse)
@@ -311,6 +311,8 @@ namespace TradeFlow.Infrastructure.Services
         }
         public async Task<PagedResult<InventoryTrackingDto>> GetInventoryTrackingByWarehouses(IEnumerable<Guid> warehouseIds, int page, int pageSize)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var query = _context.Inventories
                 .Include(i => i.Product)
                 .Include(i => i.Warehouse)
@@ -344,6 +346,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<int> GetStockLevel(Guid productId, Guid warehouseId)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var inv = await _context.Inventories
                 .FirstOrDefaultAsync(i => i.ProductId == productId && i.WarehouseId == warehouseId);
             return inv?.Quantity ?? 0;
@@ -351,6 +355,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task AdjustStock(Guid productId, Guid warehouseId, int quantityChange, string reason)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var inv = await _context.Inventories
                 .FirstOrDefaultAsync(i => i.ProductId == productId && i.WarehouseId == warehouseId);
 
@@ -389,6 +395,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<string> CreateStockTransferAsync(StockTransferDtoModel dto)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             try
             {
                 if (dto.TargetWarehouseId == Guid.Empty)
@@ -412,7 +420,7 @@ namespace TradeFlow.Infrastructure.Services
 
                 foreach (var line in lines)
                 {
-                    var source = await FindInventoryAsync(line.ProductId, line.SourceWarehouseId);
+                    var source = await FindInventoryAsync(line.ProductId, line.SourceWarehouseId, _context);
 
                     if (source == null || source.AvailableQuantity < line.Quantity)
                         throw new InsufficientStockException(line.ProductId, line.Quantity, source?.AvailableQuantity ?? 0);
@@ -420,7 +428,7 @@ namespace TradeFlow.Infrastructure.Services
                     source.Quantity -= line.Quantity;
                     source.LastStockDate = DateTime.UtcNow;
 
-                    var target = await FindInventoryAsync(line.ProductId, dto.TargetWarehouseId);
+                    var target = await FindInventoryAsync(line.ProductId, dto.TargetWarehouseId, _context);
 
                     if (target == null)
                     {
@@ -478,6 +486,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<string> UpdateStockTransferAsync(Guid id, StockTransferDtoModel dto)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var transfer = await _context.StockTransfers
                 .Include(t => t.Items)
                 .FirstOrDefaultAsync(t => t.Id == id)
@@ -495,7 +505,7 @@ namespace TradeFlow.Infrastructure.Services
 
             var mainItem = lines.OrderByDescending(l => l.Quantity).FirstOrDefault(); // Sort lines by quantity descending)
             // 1. Reverse the previously posted lines against the ORIGINAL warehouses.
-            await ReverseTransferLinesAsync(transfer, "edit");
+            await ReverseTransferLinesAsync(transfer, "edit", _context);
 
             // 2. Remove the old lines and their movement legs.
             var oldMovements = await _context.StockMovements
@@ -581,6 +591,8 @@ namespace TradeFlow.Infrastructure.Services
         /// </summary>
         public async Task CancelStockTransferAsync(Guid id)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var transfer = await _context.StockTransfers
                 .Include(t => t.Items)
                 .FirstOrDefaultAsync(t => t.Id == id)
@@ -589,7 +601,7 @@ namespace TradeFlow.Infrastructure.Services
             if (transfer.Status == StockTransferStatus.Cancelled)
                 return;
 
-            await ReverseTransferLinesAsync(transfer, "cancel");
+            await ReverseTransferLinesAsync(transfer, "cancel", _context);
 
             transfer.Status = StockTransferStatus.Cancelled;
             await _context.SaveChangesAsync();
@@ -600,17 +612,17 @@ namespace TradeFlow.Infrastructure.Services
         /// inventories for every posted line. Used by edit (before re-posting)
         /// and cancel. Throws when stock was already consumed.
         /// </summary>
-        private async Task ReverseTransferLinesAsync(StockTransfer transfer, string action)
+        private static async Task ReverseTransferLinesAsync(StockTransfer transfer, string action, ApplicationDbContext _context)
         {
             foreach (var old in transfer.Items.ToList())
             {
                 var source = old.SourceInventoryId.HasValue
                     ? await _context.Inventories.FirstOrDefaultAsync(i => i.Id == old.SourceInventoryId.Value)
-                    : await FindInventoryAsync(old.ProductId, transfer.SourceWarehouseId);
+                    : await FindInventoryAsync(old.ProductId, transfer.SourceWarehouseId, _context);
 
                 var target = old.TargetInventoryId.HasValue
                     ? await _context.Inventories.FirstOrDefaultAsync(i => i.Id == old.TargetInventoryId.Value)
-                    : await FindInventoryAsync(old.ProductId, transfer.TargetWarehouseId);
+                    : await FindInventoryAsync(old.ProductId, transfer.TargetWarehouseId, _context);
 
                 if (source == null || target == null)
                     throw new InvalidOperationException($"Cannot {action} transfer {transfer.TransferNumber}: the original stock records no longer exist.");
@@ -630,7 +642,7 @@ namespace TradeFlow.Infrastructure.Services
         /// added earlier in the same batch (not yet saved) is reused instead of inserted
         /// twice — which would violate the unique index on Tenant + Product + Warehouse.
         /// </summary>
-        private async Task<Inventory?> FindInventoryAsync(Guid productId, Guid warehouseId) =>
+        private static async Task<Inventory?> FindInventoryAsync(Guid productId, Guid warehouseId, ApplicationDbContext _context) =>
             _context.Inventories.Local.FirstOrDefault(i => i.ProductId == productId && i.WarehouseId == warehouseId)
             ?? await _context.Inventories.FirstOrDefaultAsync(i => i.ProductId == productId && i.WarehouseId == warehouseId);
 
@@ -713,6 +725,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<StockTransferListDto> GetStockTransferByIdAsync(Guid id)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var transfer = await _context.StockTransfers
                 .AsSplitQuery()
                 .AsNoTracking()
@@ -728,6 +742,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<List<LowStockAlertDto>> GetLowStockAlerts()
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             return await _context.Inventories
                 .Include(i => i.Product)
                 .Include(i => i.Warehouse)
@@ -740,6 +756,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<PagedResult<InventoryDto>> GetInventoryByWarehouse(Guid warehouseId, int page, int pageSize)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var query = _context.Inventories
                 .Include(i => i.Product)
                 .Include(i => i.Warehouse)

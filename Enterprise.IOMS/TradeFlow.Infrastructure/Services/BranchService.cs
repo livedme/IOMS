@@ -13,13 +13,11 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class BranchService : IBranchService
     {
-        private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-        public BranchService(ApplicationDbContext context, IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+        public BranchService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
         {
-            _context = context;
             _mapper = mapper;
             _contextFactory = contextFactory;
         }
@@ -91,6 +89,7 @@ namespace TradeFlow.Infrastructure.Services
         }
         public async Task<Guid> CreateBranch(CreateBranchDto dto)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
 
             var branch = new Branch()
             {
@@ -109,6 +108,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task DeleteBranch(Guid id)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var entity = await _context.Branches.FindAsync(id) ?? throw new EntityNotFoundException("Branches", id);
             if (entity != null)
             {
@@ -119,6 +120,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<BranchDto?> GetBranchById(Guid id)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var query = await _context.Branches
                .Include(o => o.SalesOrders).FirstOrDefaultAsync(o => o.Id == id) ?? throw new EntityNotFoundException("Branches", id);
 
@@ -129,6 +132,8 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<List<BranchDto>> GetBranches()
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var query = _context.Branches
                 .Include(o => o.SalesOrders)
                 .AsQueryable();
@@ -142,16 +147,22 @@ namespace TradeFlow.Infrastructure.Services
         /// Active branches for the order filters. Orders.razor was reading this straight off the
         /// context; the projection here matches the one it was doing by hand.
         /// </summary>
-        public async Task<List<BranchDto>> GetActiveBranchesAsync() =>
-            await _context.Branches
+        public async Task<List<BranchDto>> GetActiveBranchesAsync()
+        {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
+            return await _context.Branches
                 .AsNoTracking()
                 .Where(b => b.IsActive)
                 .OrderBy(b => b.Name)
                 .Select(b => new BranchDto(b.Id, b.Name, b.Code, b.Location, b.Address, b.IsActive))
                 .ToListAsync();
+        }
 
         public async Task UpdateBranch(Guid id, CreateBranchDto dto)
         {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
             var entity = await _context.Branches.FindAsync(id) ?? throw new EntityNotFoundException("Branches", id);
             if (entity != null)
             {

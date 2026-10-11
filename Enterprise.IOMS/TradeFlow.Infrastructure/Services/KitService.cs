@@ -11,13 +11,11 @@ namespace TradeFlow.Infrastructure.Services;
 
 public class KitService : IKitService
 {
-    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public KitService(ApplicationDbContext context, IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+    public KitService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _context = context;
         _mapper = mapper;
         _contextFactory = contextFactory;
     }
@@ -90,6 +88,7 @@ public class KitService : IKitService
 
     public async Task<List<KitDto>> GetKits()
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var kits = await _context.Kits
             .Include(k => k.Product)
             .Include(k => k.Components).ThenInclude(c => c.ComponentProduct)
@@ -99,6 +98,7 @@ public class KitService : IKitService
 
     public async Task<KitDto> GetKitById(Guid id)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var kit = await _context.Kits
             .Include(k => k.Product)
             .Include(k => k.Components).ThenInclude(c => c.ComponentProduct)
@@ -109,6 +109,7 @@ public class KitService : IKitService
 
     public async Task<Guid> CreateKit(CreateKitDto dto)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var kit = new Kit
         {
             ProductId = dto.ProductId,
@@ -131,6 +132,7 @@ public class KitService : IKitService
 
     public async Task AssembleKit(KitAssemblyDto dto)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var kit = await _context.Kits
             .Include(k => k.Components)
             .FirstOrDefaultAsync(k => k.Id == dto.KitId)
@@ -183,6 +185,7 @@ public class KitService : IKitService
 
     public async Task DisassembleKit(KitAssemblyDto dto)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var kit = await _context.Kits
             .Include(k => k.Components)
             .FirstOrDefaultAsync(k => k.Id == dto.KitId)

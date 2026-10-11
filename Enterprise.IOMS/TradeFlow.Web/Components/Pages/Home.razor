@@ -2,7 +2,6 @@
 @rendermode InteractiveServer
 @attribute [Authorize]
 @using System.Diagnostics
-@inject IDashboardService DashboardService
 @inject IBranchService BranchService
 @inject ILogger<Home> Logger
 
@@ -15,58 +14,49 @@
         </Actions>
     </TmPageHeader>
 
+    @* The filter strip is the dashboard's single control surface: it owns the range selector, the
+       store selector and refresh. Every tile below is a self-loading card that reacts to the range
+       and reload token pushed down here, so this page only composes the grid. *@
     <DashboardHeader DateRange="@_dateRange"
                      StoreFilter="@_storeFilter"
                      Stores="@_stores"
                      DateRangeChanged="@OnDateRangeChanged"
                      StoreFilterChanged="@OnStoreFilterChanged"
-                     OnRefresh="@LoadDashboard" />
+                     OnRefresh="@Reload" />
 
     <div class="tm-dash">
-        @if (_kpisLoading)
-        {
-            <div class="tm-kpis">
-                @for (int i = 0; i < 6; i++)
-                {
-                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="150px;" Style="border-radius:12px;" />
-                }
-            </div>
-        }
-        else
-        {
-            <DashboardKpiRow Kpis="@_kpis" Days="@_range.Days" />
-        }
+        <DashboardKpiRow Range="@_range" ReloadToken="@_reloadToken" />
 
         @* ── Sales and purchasing over time ────────────────────────────── *@
         @* Paired in an equal two-column row: the two overview cards share a layout, and
            tm-dash-cols (3fr/1fr) would squeeze the purchase chart to a third of the
            width and leave its axis unreadable. *@
         <div class="tm-dash-row">
-            <SalesOverviewCard Points="@_salesOverview" Range="@_range" Loading="@_salesLoading" />
-            <PurchaseOverviewCard Points="@_purchaseOverview" Range="@_range" Loading="@_purchaseLoading" />
+            <SalesOverviewCard Range="@_range" ReloadToken="@_reloadToken" />
+            <PurchaseOverviewCard Range="@_range" ReloadToken="@_reloadToken" />
         </div>
 
         @* ── Product leaders and the stock behind them ──────────────────── *@
         <div class="tm-dash-row">
-            <TopProductsCard Items="@_topProducts" Loading="@_topProductsLoading" />
-            <StockLevelsCard Items="@_stockLevels" Loading="@_stockLevelsLoading" />
+            <TopProductsCard Range="@_range" ReloadToken="@_reloadToken" />
+            <StockLevelsCard Range="@_range" ReloadToken="@_reloadToken" />
         </div>
 
         @* ── Inventory and store position ───────────────────────────────── *@
         <div class="tm-dash-row">
-            <InventoryOverviewCard Overview="@_inventoryOverview" Loading="@_inventoryLoading" />
-            <StoreOverviewCard Items="@FilteredStores" Loading="@_storeOverviewLoading" />
+            <InventoryOverviewCard Range="@_range" ReloadToken="@_reloadToken" />
+            <StoreOverviewCard Range="@_range" ReloadToken="@_reloadToken" StoreFilter="@_storeFilter" />
         </div>
 
         @* ── Live operational feeds ─────────────────────────────────────── *@
         <div class="tm-dash-row">
-            <RecentOrdersCard Items="@_recentOrdersExt" Loading="@_recentOrdersLoading" />
-            <RecentTransactionsCard Items="@_recentTx" Loading="@_txLoading" />
+            <RecentOrdersCard Range="@_range" ReloadToken="@_reloadToken" />
+            <RecentTransactionsCard Range="@_range" ReloadToken="@_reloadToken" />
         </div>
 
         <div class="tm-dash-row">
-            <RecentActivitiesCard Items="@_recentActivities" Loading="@_recentActivitiesLoading" />
-            <SystemAlertsCard Items="@_alerts" Loading="@_alertsLoading" />
+            <RecentActivitiesCard Range="@_range" ReloadToken="@_reloadToken" />
+            <SystemAlertsCard Range="@_range" ReloadToken="@_reloadToken" />
         </div>
 
         <AnalyticsPromoCard />
@@ -74,20 +64,6 @@
 </div>
 
 @code {
-    private static readonly InventoryOverviewDto EmptyInventoryOverview = new(0, 0, 0, 0, 0, 0, 0, 0m, 0m);
-
-    private bool _kpisLoading = true;
-    private bool _salesLoading = true;
-    private bool _purchaseLoading = true;
-    private bool _inventoryLoading = true;
-    private bool _storeOverviewLoading = true;
-    private bool _topProductsLoading = true;
-    private bool _stockLevelsLoading = true;
-    private bool _txLoading = true;
-    private bool _alertsLoading = true;
-    private bool _recentOrdersLoading = true;
-    private bool _recentActivitiesLoading = true;
-
     private const string AllStores = "All Stores";
 
     private string _dateRange = DashboardRanges.DefaultLabel;
@@ -100,34 +76,28 @@
     /// </summary>
     private DashboardRange _range = DashboardRanges.Resolve(DashboardRanges.DefaultLabel, DateTime.UtcNow);
 
+    /// <summary>
+    /// Bumped whenever the tile data must be re-read from the source (range change, toolbar refresh).
+    /// Each card reloads only when this changes, so unrelated re-renders — such as the store filter —
+    /// do not re-query.
+    /// </summary>
+    private int _reloadToken;
+
     private List<string> _stores = new();
 
-    private DashboardKpiSetDto _kpis = DashboardKpiSetDto.Empty;
-    private List<SalesOverviewPointDto> _salesOverview = new();
-    private List<PurchaseOverviewPointDto> _purchaseOverview = new();
-    private InventoryOverviewDto _inventoryOverview = EmptyInventoryOverview;
-    private List<StoreOverviewDto> _storeOverview = new();
-    private List<StoreOverviewDto> FilteredStores => FilterByStore(_storeOverview);
-    private List<TopProductDto> _topProducts = new();
-    private List<StockLevelDto> _stockLevels = new();
-    private List<RecentTransactionDto> _recentTx = new();
-    private List<SystemAlertDto> _alerts = new();
-    private List<RecentOrderExtendedDto> _recentOrdersExt = new();
-    private List<RecentActivityDto> _recentActivities = new();
-
-    protected override async Task OnInitializedAsync() => await LoadDashboard();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStores();
+    }
 
     /// <summary>
-    /// Populates every dashboard tile. Also wired to the toolbar refresh button.
+    /// Refreshes the branch list the store selector is built from. Reloaded on every refresh so a
+    /// store added or renamed while the dashboard is open appears without a full page reload. If this
+    /// fails the selector simply stays on "All Stores" and every store-scoped card shows the full
+    /// set, which is the safe default.
     /// </summary>
-    private async Task LoadDashboard()
+    private async Task LoadStores()
     {
-        var started = Stopwatch.GetTimestamp();
-
-        // Branch names drive the store selector. Reloaded on every refresh so a store added or
-        // renamed while the dashboard is open appears without a full page reload. If this fails the
-        // selector simply stays on "All Stores" and every store-scoped card shows the full set,
-        // which is the safe default.
         var branches = await SafeAsync(() => BranchService.GetBranches(), new List<BranchDto>(), "GetBranches");
         _stores = branches
             .Where(b => !string.IsNullOrWhiteSpace(b.Name))
@@ -136,71 +106,53 @@
             .OrderBy(n => n)
             .ToList();
 
-        // A store that no longer exists (deleted while the filter was applied) would otherwise
-        // leave the dashboard showing nothing with no obvious way back.
+        // A store that no longer exists (deleted while the filter was applied) would otherwise leave
+        // the dashboard showing nothing with no obvious way back.
         if (_storeFilter != AllStores && !_stores.Contains(_storeFilter, StringComparer.OrdinalIgnoreCase))
         {
             _storeFilter = AllStores;
         }
-
-        await LoadTiles();
-
-        Logger.LogInformation("Dashboard loaded in {ElapsedMs:F0} ms", Stopwatch.GetElapsedTime(started).TotalMilliseconds);
     }
 
     /// <summary>
-    /// Refreshes every tile against the currently selected range. Also invoked by the range selector,
-    /// which is why every range-scoped read takes the day count: changing the filter has to move the
-    /// whole dashboard, not just the charts above the fold.
+    /// Toolbar refresh: re-read the branch list and force every tile to reload.
     /// </summary>
-    private async Task LoadTiles()
+    private async Task Reload()
     {
-        // Put every tile back into its loading state so the spinners and skeletons reappear, not
-        // only on the first paint.
-        _kpisLoading = _salesLoading = _purchaseLoading = _inventoryLoading = true;
-        _storeOverviewLoading = _topProductsLoading = _stockLevelsLoading = _txLoading = true;
-        _alertsLoading = _recentOrdersLoading = _recentActivitiesLoading = true;
+        var started = Stopwatch.GetTimestamp();
 
-        // The dashboard reads are issued one after another rather than through Task.WhenAll.
-        // IDashboardService is scoped, so every call shares a single ApplicationDbContext, and EF
-        // Core throws "A second operation was started on this context instance" if two of these
-        // overlap. Genuine fan-out would need a separate DbContext per read (IDbContextFactory).
-        // Each read clears its own tile's loading flag and re-renders, so the page fills in one
-        // card at a time instead of staying on skeletons until the slowest read completes.
-        var days = _range.Days;
+        await LoadStores();
+        _reloadToken++;
 
-        // Inventory Overview, Stock Levels and System Alerts are point-in-time snapshots with no
-        // date dimension, so they are reloaded but not filtered by the window.
-        _kpis = await LoadTile(() => DashboardService.GetKpis(days), DashboardKpiSetDto.Empty, "GetKpis", () => _kpisLoading = false);
-        _salesOverview = await LoadTile(() => DashboardService.GetSalesOverview(days), new List<SalesOverviewPointDto>(), "GetSalesOverview", () => _salesLoading = false);
-        _purchaseOverview = await LoadTile(() => DashboardService.GetPurchaseOverview(days), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview", () => _purchaseLoading = false);
-        _inventoryOverview = await LoadTile(() => DashboardService.GetInventoryOverview(), EmptyInventoryOverview, "GetInventoryOverview", () => _inventoryLoading = false);
-        _storeOverview = await LoadTile(() => DashboardService.GetStoreOverview(days), new List<StoreOverviewDto>(), "GetStoreOverview", () => _storeOverviewLoading = false);
-        _topProducts = await LoadTile(() => DashboardService.GetTopProducts(5, days), new List<TopProductDto>(), "GetTopProducts", () => _topProductsLoading = false);
-        _stockLevels = await LoadTile(() => DashboardService.GetStockLevels(8), new List<StockLevelDto>(), "GetStockLevels", () => _stockLevelsLoading = false);
-        _recentTx = await LoadTile(() => DashboardService.GetRecentTransactions(5, days), new List<RecentTransactionDto>(), "GetRecentTransactions", () => _txLoading = false);
-        _alerts = await LoadTile(() => DashboardService.GetSystemAlerts(5), new List<SystemAlertDto>(), "GetSystemAlerts", () => _alertsLoading = false);
-        _recentOrdersExt = await LoadTile(() => DashboardService.GetRecentOrdersExtended(5, days), new List<RecentOrderExtendedDto>(), "GetRecentOrdersExtended", () => _recentOrdersLoading = false);
-        _recentActivities = await LoadTile(() => DashboardService.GetRecentActivities(8, days), new List<RecentActivityDto>(), "GetRecentActivities", () => _recentActivitiesLoading = false);
+        Logger.LogInformation("Dashboard refreshed in {ElapsedMs:F0} ms", Stopwatch.GetElapsedTime(started).TotalMilliseconds);
     }
 
     /// <summary>
-    /// Runs one dashboard read, then clears that tile's loading flag and re-renders before the
-    /// next read starts. This is what makes the tiles appear one by one rather than all at once.
+    /// Applies a new period to the whole dashboard. Resolving the window and bumping the reload token
+    /// is all that is needed: every range-scoped card reads the new <see cref="DashboardRange"/> and
+    /// reloads itself, so changing the filter moves the whole page, not just the charts above the fold.
     /// </summary>
-    private async Task<T> LoadTile<T>(Func<Task<T>> call, T fallback, string label, Action onLoaded)
+    private Task OnDateRangeChanged(string v)
     {
-        var value = await SafeAsync(call, fallback, label);
-        onLoaded();
-        await InvokeAsync(StateHasChanged);
-        return value;
+        _dateRange = v;
+        _range = DashboardRanges.Resolve(v, DateTime.UtcNow);
+        _reloadToken++;
+        return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Runs a dashboard read and substitutes an empty value on failure. The failure is logged at
-    /// Error with the full exception so an outage is visible in the log stream; the previous
-    /// implementation wrote to the console, which meant a database failure and a genuinely empty
-    /// dashboard were indistinguishable on screen.
+    /// The store selector narrows the cards that are per-store by nature. It is applied in memory by
+    /// the store card, so no tile is re-queried and the choice is instant.
+    /// </summary>
+    private Task OnStoreFilterChanged(string v)
+    {
+        _storeFilter = v;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Runs the branch lookup and substitutes an empty list on failure. The failure is logged at
+    /// Error with the full exception so an outage is visible in the log stream.
     /// </summary>
     private async Task<T> SafeAsync<T>(Func<Task<T>> call, T fallback, string label)
     {
@@ -210,42 +162,8 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Dashboard tile '{DashboardTile}' failed; rendering an empty tile.", label);
+            Logger.LogError(ex, "Dashboard load '{DashboardStep}' failed.", label);
             return fallback;
         }
-    }
-
-    private async Task OnDateRangeChanged(string v)
-    {
-        _dateRange = v;
-        _range = DashboardRanges.Resolve(v, DateTime.UtcNow);
-
-        // Every range-scoped tile is reloaded for the new window. All the tiles read here share one
-        // scoped DbContext, so the loads stay sequential (see LoadTiles); the one-by-one flushing
-        // shows the range taking effect immediately rather than after the slowest read.
-        await LoadTiles();
-    }
-
-    /// <summary>
-    /// The store selector narrows the cards that are per-store by nature. The headline KPIs and the
-    /// sales/purchase strips are tenant-wide aggregates and are not narrowed, because the underlying
-    /// reads group across every branch and re-running them per branch would mean one query per
-    /// branch on every filter change.
-    /// </summary>
-    private Task OnStoreFilterChanged(string v)
-    {
-        _storeFilter = v;
-        return Task.CompletedTask;
-    }
-
-    private List<StoreOverviewDto> FilterByStore(List<StoreOverviewDto> source)
-    {
-        if (_storeFilter == AllStores) return source;
-
-        // "Unassigned" is the bucket for orders with no branch, so it is included when the user
-        // explicitly picks it rather than being dropped by the name comparison.
-        return source
-            .Where(s => string.Equals(s.StoreName, _storeFilter, StringComparison.OrdinalIgnoreCase))
-            .ToList();
     }
 }

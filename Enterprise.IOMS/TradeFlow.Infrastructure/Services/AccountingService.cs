@@ -13,17 +13,19 @@ namespace TradeFlow.Infrastructure.Services;
 
 public class AccountingService : IAccountingService
 {
-    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
+    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    public AccountingService(ApplicationDbContext context, IMapper mapper)
+    public AccountingService(IMapper mapper, IDbContextFactory<ApplicationDbContext> dbFactory)
     {
-        _context = context;
         _mapper = mapper;
+        _dbFactory = dbFactory;
     }
 
     public async Task<Guid> CreateJournalEntry(CreateJournalEntryDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var totalDebits = dto.Lines.Sum(l => l.Debit);
         var totalCredits = dto.Lines.Sum(l => l.Credit);
 
@@ -56,8 +58,10 @@ public class AccountingService : IAccountingService
 
     public async Task AutoPostSalesEntry(Guid salesOrderId, decimal amount)
     {
-        var arAccount = await GetAccountByCode(AccountCodes.AccountsReceivable);
-        var revenueAccount = await GetAccountByCode(AccountCodes.SalesRevenue);
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
+        var arAccount = await GetAccountByCode(AccountCodes.AccountsReceivable, _context);
+        var revenueAccount = await GetAccountByCode(AccountCodes.SalesRevenue, _context);
 
         var entry = new JournalEntry
         {
@@ -76,8 +80,10 @@ public class AccountingService : IAccountingService
 
     public async Task AutoPostPurchaseEntry(Guid purchaseOrderId, decimal amount)
     {
-        var inventoryAccount = await GetAccountByCode(AccountCodes.Inventory);
-        var apAccount = await GetAccountByCode(AccountCodes.AccountsPayable);
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
+        var inventoryAccount = await GetAccountByCode(AccountCodes.Inventory, _context);
+        var apAccount = await GetAccountByCode(AccountCodes.AccountsPayable, _context);
 
         var entry = new JournalEntry
         {
@@ -96,6 +102,8 @@ public class AccountingService : IAccountingService
 
     public async Task ReverseJournalEntry(Guid journalEntryId, string reason)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var original = await _context.JournalEntries
             .Include(j => j.Lines).ThenInclude(l => l.Account)
             .FirstOrDefaultAsync(j => j.Id == journalEntryId)
@@ -131,6 +139,8 @@ public class AccountingService : IAccountingService
 
     public async Task<TrialBalanceDto> GetTrialBalance(DateTime asOfDate)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var accounts = await _context.Accounts.ToListAsync();
         var lines = new List<TrialBalanceLineDto>();
 
@@ -155,6 +165,8 @@ public class AccountingService : IAccountingService
 
     public async Task<ProfitAndLossDto> GetProfitAndLoss(DateTime from, DateTime to)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var journalLines = await _context.JournalEntryLines
             .Include(l => l.Account)
             .Include(l => l.JournalEntry)
@@ -182,6 +194,8 @@ public class AccountingService : IAccountingService
 
     public async Task<BalanceSheetDto> GetBalanceSheet(DateTime asOfDate)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var journalLines = await _context.JournalEntryLines
             .Include(l => l.Account)
             .Include(l => l.JournalEntry)
@@ -216,6 +230,8 @@ public class AccountingService : IAccountingService
 
     public async Task<PagedResult<JournalEntryDto>> GetJournalEntries(string? search, int page, int pageSize)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var query = _context.JournalEntries
             .Include(j => j.Lines).ThenInclude(l => l.Account)
             .AsQueryable();
@@ -232,6 +248,8 @@ public class AccountingService : IAccountingService
 
     public async Task<PagedResult<AccountDto>> GetAccounts(string? search, AccountType? type, int page, int pageSize)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var query = _context.Accounts.Include(a => a.ParentAccount).AsQueryable();
 
         if (type.HasValue) query = query.Where(a => a.AccountType == type.Value);
@@ -245,7 +263,7 @@ public class AccountingService : IAccountingService
         var dtos = new List<AccountDto>();
         foreach (var account in items)
         {
-            var balance = await GetAccountBalance(account.Id);
+            var balance = await GetAccountBalance(account.Id, _context);
             var dto = _mapper.Map<AccountDto>(account);
             dtos.Add(dto with { Balance = balance });
         }
@@ -255,6 +273,8 @@ public class AccountingService : IAccountingService
 
     public async Task<List<AccountDto>> GetChartOfAccounts()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var accounts = await _context.Accounts
             .Include(a => a.ParentAccount)
             .OrderBy(a => a.Code)
@@ -263,7 +283,7 @@ public class AccountingService : IAccountingService
         var dtos = new List<AccountDto>();
         foreach (var account in accounts)
         {
-            var balance = await GetAccountBalance(account.Id);
+            var balance = await GetAccountBalance(account.Id, _context);
             var dto = _mapper.Map<AccountDto>(account);
             dtos.Add(dto with { Balance = balance });
         }
@@ -272,6 +292,8 @@ public class AccountingService : IAccountingService
 
     public async Task<Guid> CreateAccount(CreateAccountDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var exists = await _context.Accounts.AnyAsync(a => a.Code == dto.Code);
         if (exists) throw new DomainException($"Account with code {dto.Code} already exists.");
 
@@ -291,6 +313,8 @@ public class AccountingService : IAccountingService
 
     public async Task RecordPayment(CreatePaymentDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var invoice = await _context.Invoices.FindAsync(dto.InvoiceId)
             ?? throw new EntityNotFoundException("Invoice", dto.InvoiceId);
 
@@ -320,11 +344,11 @@ public class AccountingService : IAccountingService
         _context.Payments.Add(payment);
 
         // Auto-post payment journal entry
-        var cashAccount = await GetAccountByCode(AccountCodes.Cash);
+        var cashAccount = await GetAccountByCode(AccountCodes.Cash, _context);
 
         if (invoice.InvoiceType == InvoiceType.Sales)
         {
-            var arAccount = await GetAccountByCode(AccountCodes.AccountsReceivable);
+            var arAccount = await GetAccountByCode(AccountCodes.AccountsReceivable, _context);
             var je = new JournalEntry
             {
                 Reference = NumberGenerator.GenerateJournalReference(),
@@ -338,7 +362,7 @@ public class AccountingService : IAccountingService
         }
         else
         {
-            var apAccount = await GetAccountByCode(AccountCodes.AccountsPayable);
+            var apAccount = await GetAccountByCode(AccountCodes.AccountsPayable, _context);
             var je = new JournalEntry
             {
                 Reference = NumberGenerator.GenerateJournalReference(),
@@ -356,6 +380,8 @@ public class AccountingService : IAccountingService
 
     public async Task RecordPayment(RecordPaymentDto dto)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         if (dto.Amount <= 0) throw new DomainException("Payment amount must be positive.");
 
         var payment = new Payment
@@ -386,7 +412,7 @@ public class AccountingService : IAccountingService
 
         _context.Payments.Add(payment);
 
-        var cashAccount = await GetAccountByCode(AccountCodes.Cash);
+        var cashAccount = await GetAccountByCode(AccountCodes.Cash, _context);
         var je = new JournalEntry
         {
             Reference = NumberGenerator.GenerateJournalReference(),
@@ -397,13 +423,13 @@ public class AccountingService : IAccountingService
 
         if (dto.PaymentType == PaymentType.Receipt)
         {
-            var arAccount = await GetAccountByCode(AccountCodes.AccountsReceivable);
+            var arAccount = await GetAccountByCode(AccountCodes.AccountsReceivable, _context);
             je.Lines.Add(new JournalEntryLine { AccountId = cashAccount.Id, Debit = dto.Amount, Credit = 0 });
             je.Lines.Add(new JournalEntryLine { AccountId = arAccount.Id, Debit = 0, Credit = dto.Amount });
         }
         else
         {
-            var apAccount = await GetAccountByCode(AccountCodes.AccountsPayable);
+            var apAccount = await GetAccountByCode(AccountCodes.AccountsPayable, _context);
             je.Lines.Add(new JournalEntryLine { AccountId = apAccount.Id, Debit = dto.Amount, Credit = 0 });
             je.Lines.Add(new JournalEntryLine { AccountId = cashAccount.Id, Debit = 0, Credit = dto.Amount });
         }
@@ -414,6 +440,8 @@ public class AccountingService : IAccountingService
 
     public async Task<List<AgingReportDto>> GetArAging()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var invoices = await _context.Invoices
             .Include(i => i.Customer)
             .Where(i => i.InvoiceType == InvoiceType.Sales && i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled)
@@ -434,6 +462,8 @@ public class AccountingService : IAccountingService
 
     public async Task<List<AgingReportDto>> GetApAging()
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var invoices = await _context.Invoices
             .Include(i => i.Supplier)
             .Where(i => i.InvoiceType == InvoiceType.Purchase && i.Status != InvoiceStatus.Paid && i.Status != InvoiceStatus.Cancelled)
@@ -452,7 +482,7 @@ public class AccountingService : IAccountingService
             }).ToList();
     }
 
-    private async Task<Account> GetAccountByCode(string code)
+    private static async Task<Account> GetAccountByCode(string code, ApplicationDbContext _context)
     {
         return await _context.Accounts.FirstOrDefaultAsync(a => a.Code == code)
             ?? throw new DomainException($"System account {code} not found. Please run seed data.");
@@ -464,6 +494,8 @@ public class AccountingService : IAccountingService
     /// </summary>
     public async Task<List<GeneralLedgerLineDto>> GetGeneralLedgerLines(Guid? accountId, DateTime? from, DateTime? to)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var query = _context.JournalEntryLines.AsQueryable();
 
         if (accountId.HasValue)
@@ -489,6 +521,8 @@ public class AccountingService : IAccountingService
 
     public async Task<List<PaymentListItemDto>> GetRecentPayments(int count)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         return await _context.Payments
             .AsNoTracking()
             .OrderByDescending(p => p.PaymentDate)
@@ -510,6 +544,8 @@ public class AccountingService : IAccountingService
     /// </summary>
     public async Task<CustomerStatementDto> GetCustomerStatement(Guid customerId, DateTime from, DateTime to)
     {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
         var invoices = await _context.Invoices
             .Where(i => i.CustomerId == customerId && i.InvoiceDate >= from && i.InvoiceDate < to)
             .OrderBy(i => i.InvoiceDate)
@@ -527,7 +563,7 @@ public class AccountingService : IAccountingService
         return new CustomerStatementDto(invoices, payments);
     }
 
-    private async Task<decimal> GetAccountBalance(Guid accountId)
+    private static async Task<decimal> GetAccountBalance(Guid accountId, ApplicationDbContext _context)
     {
         var lines = await _context.JournalEntryLines
             .Where(l => l.AccountId == accountId)

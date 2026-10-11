@@ -1,14 +1,16 @@
+@inherits DashboardTileBase<List<TopProductDto>>
+
 <DashboardCardShell Title="Top Selling Products by Revenue" ViewAllHref="/products/list" ViewAllText="All Products" FillHeight="true" Loading="@Loading">
     <div class="tm-panel-body" style="padding:4px 6px 8px;">
-        @if (Items.Any())
+        @if (Data.Any())
         {
             int rank = 1;
 
             // Items arrive ordered by revenue (GetTopProducts groups by product and sorts on
             // SUM(Quantity * UnitPrice) descending), and the bar is scaled against the top seller
             // so the leader always fills the track.
-            double maxRev = Items.Max(x => (double)x.Revenue);
-            foreach (var p in Items.Take(5))
+            double maxRev = Data.Max(x => (double)x.Revenue);
+            foreach (var p in Data.Take(5))
             {
                 var widthPct = maxRev == 0 ? 0 : (double)p.Revenue / maxRev * 100;
                 <div class="tm-list-row">
@@ -33,6 +35,8 @@
 </DashboardCardShell>
 
 @code {
-    [Parameter] public IReadOnlyList<TopProductDto> Items { get; set; } = Array.Empty<TopProductDto>();
-    [Parameter] public bool Loading { get; set; }
+    protected override List<TopProductDto> EmptyData { get; } = new();
+
+    protected override Task<List<TopProductDto>> LoadAsync() =>
+        DashboardService.GetTopProducts(5, Range.Days);
 }

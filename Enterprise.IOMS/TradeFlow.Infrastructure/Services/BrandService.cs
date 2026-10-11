@@ -11,7 +11,6 @@ namespace TradeFlow.Infrastructure.Services
 {
     public class BrandService : IBrandService
     {
-        private readonly ApplicationDbContext _db;
         private readonly IMapper _mapper;
         private readonly ITenantCache _cache;
         private readonly ITenantProvider _tenantProvider;
@@ -19,14 +18,12 @@ namespace TradeFlow.Infrastructure.Services
         private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
         public BrandService(
-            ApplicationDbContext db,
             IMapper mapper,
             ITenantCache cache,
             ITenantProvider tenantProvider,
             ILogger<BrandService> logger,
             IDbContextFactory<ApplicationDbContext> dbFactory)
         {
-            _db = db;
             _mapper = mapper;
             _cache = cache;
             _tenantProvider = tenantProvider;
@@ -34,8 +31,10 @@ namespace TradeFlow.Infrastructure.Services
             _dbFactory = dbFactory;
         }
 
-        public Task<List<BrandDto>> GetAllBrandsAsync() =>
-            _cache.GetOrCreateAsync(
+        public async Task<List<BrandDto>> GetAllBrandsAsync()
+        {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+            return await _cache.GetOrCreateAsync(
                 $"{ReferenceDataCache.Prefix}brands",
                 ReferenceDataCache.Lifetime,
                 async ct =>
@@ -43,9 +42,11 @@ namespace TradeFlow.Infrastructure.Services
                     var brands = await _db.Brands.AsNoTracking().OrderBy(b => b.Name).ToListAsync(ct);
                     return _mapper.Map<List<BrandDto>>(brands);
                 });
+        }
 
         public async Task<BrandDto> GetBrandByIdAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var brand = await _db.Brands.FindAsync(id);
             if (brand == null) throw new KeyNotFoundException("Brand not found");
             return _mapper.Map<BrandDto>(brand);
@@ -53,6 +54,7 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<PagedResult<BrandDto>> GetBrandsAsync(string? search, int page, int pageSize)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var query = _db.Brands.AsNoTracking();
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(b => b.Name.Contains(search)
@@ -174,6 +176,7 @@ namespace TradeFlow.Infrastructure.Services
        
         public async Task<Guid> CreateBrandAsync(CreateBrandDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var brand = new Brand
             {
                 Name = dto.Name,
@@ -193,6 +196,7 @@ namespace TradeFlow.Infrastructure.Services
        
         public async Task<bool> UpdateBrandAsync(Guid id, CreateBrandDto dto)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var brand = await _db.Brands.FindAsync(id) ?? throw new KeyNotFoundException("Brand not found");
             brand.Name = dto.Name;
             brand.BrandCode = dto.BrandCode;
@@ -209,6 +213,7 @@ namespace TradeFlow.Infrastructure.Services
        
         public async Task<bool> DeleteBrandAsync(Guid id)
         {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
             var brand = await _db.Brands.FindAsync(id) ?? throw new KeyNotFoundException("Brand not found");
             brand.IsDeleted = true;
             await _db.SaveChangesAsync();

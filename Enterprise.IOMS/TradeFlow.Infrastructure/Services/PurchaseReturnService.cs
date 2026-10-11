@@ -12,19 +12,18 @@ namespace TradeFlow.Infrastructure.Services;
 
 public class PurchaseReturnService : IPurchaseReturnService
 {
-    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-    public PurchaseReturnService(ApplicationDbContext context, IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+    public PurchaseReturnService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
     {
-        _context = context;
         _mapper = mapper;
         _contextFactory = contextFactory;
     }
 
     public async Task<PagedResult<PurchaseReturnDto>> GetPurchaseReturns(string? search, PurchaseReturnStatus? status, int page, int pageSize)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var query = _context.PurchaseReturns
             .AsSplitQuery()
             .Include(r => r.PurchaseOrder)
@@ -148,6 +147,7 @@ public class PurchaseReturnService : IPurchaseReturnService
 
     public async Task<PurchaseReturnDto> GetPurchaseReturnById(Guid id)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var ret = await _context.PurchaseReturns
             .AsSplitQuery()
             .Include(r => r.PurchaseOrder)
@@ -159,6 +159,7 @@ public class PurchaseReturnService : IPurchaseReturnService
 
     public async Task<Guid> CreatePurchaseReturn(PurchaseReturnDto dto)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var po = await _context.PurchaseOrders.FindAsync(dto.PurchaseOrderId)
             ?? throw new EntityNotFoundException("PurchaseOrder", dto.PurchaseOrderId);
 
@@ -191,6 +192,7 @@ public class PurchaseReturnService : IPurchaseReturnService
 
     public async Task ApprovePurchaseReturn(Guid id)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var ret = await _context.PurchaseReturns
             .Include(r => r.Items)
             .FirstOrDefaultAsync(r => r.Id == id)
@@ -222,6 +224,7 @@ public class PurchaseReturnService : IPurchaseReturnService
 
     public async Task CompletePurchaseReturn(Guid id)
     {
+        await using var _context = await _contextFactory.CreateDbContextAsync();
         var ret = await _context.PurchaseReturns.FindAsync(id)
             ?? throw new EntityNotFoundException("PurchaseReturn", id);
         ret.Status = PurchaseReturnStatus.Completed;
