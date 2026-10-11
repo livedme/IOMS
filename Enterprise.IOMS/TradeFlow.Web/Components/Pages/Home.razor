@@ -22,67 +22,71 @@
                      StoreFilterChanged="@OnStoreFilterChanged"
                      OnRefresh="@LoadDashboard" />
 
-    @if (_loading)
-    {
-        <div class="tm-kpis">
-            @for (int i = 0; i < 6; i++)
-            {
-                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="150px;" Style="border-radius:12px;" />
-            }
-        </div>
-        <div class="tm-card tm-table-card">
-            <div class="tm-loading">
-                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
-                <span>Loading dashboard data...</span>
+    <div class="tm-dash">
+        @if (_kpisLoading)
+        {
+            <div class="tm-kpis">
+                @for (int i = 0; i < 6; i++)
+                {
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="150px;" Style="border-radius:12px;" />
+                }
             </div>
-        </div>
-    }
-    else
-    {
-        <div class="tm-dash">
+        }
+        else
+        {
             <DashboardKpiRow Kpis="@_kpis" Days="@_overviewDays" />
+        }
 
-            @* ── Sales and purchasing over time ────────────────────────────── *@
-            @* Paired in an equal two-column row: the two overview cards share a layout, and
-               tm-dash-cols (3fr/1fr) would squeeze the purchase chart to a third of the
-               width and leave its axis unreadable. *@
-            <div class="tm-dash-row">
-                <SalesOverviewCard Points="@_salesOverview" Range="@_range" />
-                <PurchaseOverviewCard Points="@_purchaseOverview" Range="@_range" />
-            </div>
-
-            @* ── Product leaders and the stock behind them ──────────────────── *@
-            <div class="tm-dash-row">
-                <TopProductsCard Items="@_topProducts" />
-                <StockLevelsCard Items="@_stockLevels" />
-            </div>
-
-            @* ── Inventory and store position ───────────────────────────────── *@
-            <div class="tm-dash-row">
-                <InventoryOverviewCard Overview="@_inventoryOverview" />
-                <StoreOverviewCard Items="@FilteredStores" />
-            </div>
-
-            @* ── Live operational feeds ─────────────────────────────────────── *@
-            <div class="tm-dash-row">
-                <RecentOrdersCard Items="@_recentOrdersExt" />
-                <RecentTransactionsCard Items="@_recentTx" />
-            </div>
-
-            <div class="tm-dash-row">
-                <RecentActivitiesCard Items="@_recentActivities" />
-                <SystemAlertsCard Items="@_alerts" />
-            </div>
-
-            <AnalyticsPromoCard />
+        @* ── Sales and purchasing over time ────────────────────────────── *@
+        @* Paired in an equal two-column row: the two overview cards share a layout, and
+           tm-dash-cols (3fr/1fr) would squeeze the purchase chart to a third of the
+           width and leave its axis unreadable. *@
+        <div class="tm-dash-row">
+            <SalesOverviewCard Points="@_salesOverview" Range="@_range" Loading="@_salesLoading" />
+            <PurchaseOverviewCard Points="@_purchaseOverview" Range="@_range" Loading="@_purchaseLoading" />
         </div>
-    }
+
+        @* ── Product leaders and the stock behind them ──────────────────── *@
+        <div class="tm-dash-row">
+            <TopProductsCard Items="@_topProducts" Loading="@_topProductsLoading" />
+            <StockLevelsCard Items="@_stockLevels" Loading="@_stockLevelsLoading" />
+        </div>
+
+        @* ── Inventory and store position ───────────────────────────────── *@
+        <div class="tm-dash-row">
+            <InventoryOverviewCard Overview="@_inventoryOverview" Loading="@_inventoryLoading" />
+            <StoreOverviewCard Items="@FilteredStores" Loading="@_storeOverviewLoading" />
+        </div>
+
+        @* ── Live operational feeds ─────────────────────────────────────── *@
+        <div class="tm-dash-row">
+            <RecentOrdersCard Items="@_recentOrdersExt" Loading="@_recentOrdersLoading" />
+            <RecentTransactionsCard Items="@_recentTx" Loading="@_txLoading" />
+        </div>
+
+        <div class="tm-dash-row">
+            <RecentActivitiesCard Items="@_recentActivities" Loading="@_recentActivitiesLoading" />
+            <SystemAlertsCard Items="@_alerts" Loading="@_alertsLoading" />
+        </div>
+
+        <AnalyticsPromoCard />
+    </div>
 </div>
 
 @code {
     private static readonly InventoryOverviewDto EmptyInventoryOverview = new(0, 0, 0, 0, 0, 0, 0, 0m, 0m);
 
-    private bool _loading = true;
+    private bool _kpisLoading = true;
+    private bool _salesLoading = true;
+    private bool _purchaseLoading = true;
+    private bool _inventoryLoading = true;
+    private bool _storeOverviewLoading = true;
+    private bool _topProductsLoading = true;
+    private bool _stockLevelsLoading = true;
+    private bool _txLoading = true;
+    private bool _alertsLoading = true;
+    private bool _recentOrdersLoading = true;
+    private bool _recentActivitiesLoading = true;
 
     private const string AllStores = "All Stores";
 
@@ -125,24 +129,30 @@
     private async Task LoadDashboard()
     {
         var started = Stopwatch.GetTimestamp();
-        _loading = true;
+
+        // Put every tile back into its loading state so the spinners and skeletons reappear on
+        // refresh, not only on the first paint.
+        _kpisLoading = _salesLoading = _purchaseLoading = _inventoryLoading = true;
+        _storeOverviewLoading = _topProductsLoading = _stockLevelsLoading = _txLoading = true;
+        _alertsLoading = _recentOrdersLoading = _recentActivitiesLoading = true;
 
         // The dashboard reads are issued one after another rather than through Task.WhenAll.
         // IDashboardService is scoped, so every call shares a single ApplicationDbContext, and EF
         // Core throws "A second operation was started on this context instance" if two of these
         // overlap. Genuine fan-out would need a separate DbContext per read (IDbContextFactory).
-        // Repeating a render inside the TTL window is served from cache and costs no round trips.
-        _kpis = await SafeAsync(() => DashboardService.GetKpis(_overviewDays), DashboardKpiSetDto.Empty, "GetKpis");
-        _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(_overviewDays), new List<SalesOverviewPointDto>(), "GetSalesOverview");
-        _purchaseOverview = await SafeAsync(() => DashboardService.GetPurchaseOverview(_purchaseDays), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview");
-        _inventoryOverview = await SafeAsync(() => DashboardService.GetInventoryOverview(), EmptyInventoryOverview, "GetInventoryOverview");
-        _storeOverview = await SafeAsync(() => DashboardService.GetStoreOverview(), new List<StoreOverviewDto>(), "GetStoreOverview");
-        _topProducts = await SafeAsync(() => DashboardService.GetTopProducts(5), new List<TopProductDto>(), "GetTopProducts");
-        _stockLevels = await SafeAsync(() => DashboardService.GetStockLevels(8), new List<StockLevelDto>(), "GetStockLevels");
-        _recentTx = await SafeAsync(() => DashboardService.GetRecentTransactions(5), new List<RecentTransactionDto>(), "GetRecentTransactions");
-        _alerts = await SafeAsync(() => DashboardService.GetSystemAlerts(5), new List<SystemAlertDto>(), "GetSystemAlerts");
-        _recentOrdersExt = await SafeAsync(() => DashboardService.GetRecentOrdersExtended(5), new List<RecentOrderExtendedDto>(), "GetRecentOrdersExtended");
-        _recentActivities = await SafeAsync(() => DashboardService.GetRecentActivities(8), new List<RecentActivityDto>(), "GetRecentActivities");
+        // Each read clears its own tile's loading flag and re-renders, so the page fills in one
+        // card at a time instead of staying on skeletons until the slowest read completes.
+        _kpis = await LoadTile(() => DashboardService.GetKpis(_overviewDays), DashboardKpiSetDto.Empty, "GetKpis", () => _kpisLoading = false);
+        _salesOverview = await LoadTile(() => DashboardService.GetSalesOverview(_overviewDays), new List<SalesOverviewPointDto>(), "GetSalesOverview", () => _salesLoading = false);
+        _purchaseOverview = await LoadTile(() => DashboardService.GetPurchaseOverview(_purchaseDays), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview", () => _purchaseLoading = false);
+        _inventoryOverview = await LoadTile(() => DashboardService.GetInventoryOverview(), EmptyInventoryOverview, "GetInventoryOverview", () => _inventoryLoading = false);
+        _storeOverview = await LoadTile(() => DashboardService.GetStoreOverview(), new List<StoreOverviewDto>(), "GetStoreOverview", () => _storeOverviewLoading = false);
+        _topProducts = await LoadTile(() => DashboardService.GetTopProducts(5), new List<TopProductDto>(), "GetTopProducts", () => _topProductsLoading = false);
+        _stockLevels = await LoadTile(() => DashboardService.GetStockLevels(8), new List<StockLevelDto>(), "GetStockLevels", () => _stockLevelsLoading = false);
+        _recentTx = await LoadTile(() => DashboardService.GetRecentTransactions(5), new List<RecentTransactionDto>(), "GetRecentTransactions", () => _txLoading = false);
+        _alerts = await LoadTile(() => DashboardService.GetSystemAlerts(5), new List<SystemAlertDto>(), "GetSystemAlerts", () => _alertsLoading = false);
+        _recentOrdersExt = await LoadTile(() => DashboardService.GetRecentOrdersExtended(5), new List<RecentOrderExtendedDto>(), "GetRecentOrdersExtended", () => _recentOrdersLoading = false);
+        _recentActivities = await LoadTile(() => DashboardService.GetRecentActivities(8), new List<RecentActivityDto>(), "GetRecentActivities", () => _recentActivitiesLoading = false);
 
         // Branch names drive the store selector. If this fails the selector simply stays on
         // "All Stores" and every store-scoped card shows the full set, which is the safe default.
@@ -161,9 +171,19 @@
             _storeFilter = AllStores;
         }
 
-        _loading = false;
-
         Logger.LogInformation("Dashboard loaded in {ElapsedMs:F0} ms", Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+    }
+
+    /// <summary>
+    /// Runs one dashboard read, then clears that tile's loading flag and re-renders before the
+    /// next read starts. This is what makes the tiles appear one by one rather than all at once.
+    /// </summary>
+    private async Task<T> LoadTile<T>(Func<Task<T>> call, T fallback, string label, Action onLoaded)
+    {
+        var value = await SafeAsync(call, fallback, label);
+        onLoaded();
+        await InvokeAsync(StateHasChanged);
+        return value;
     }
 
     /// <summary>
@@ -197,10 +217,12 @@
         _purchaseDays = days;
 
         // The KPI row covers the same window as the charts, so it is reloaded with them rather than
-        // left describing the range that was in force before the change.
-        _kpis = await SafeAsync(() => DashboardService.GetKpis(days), DashboardKpiSetDto.Empty, "GetKpis");
-        _salesOverview = await SafeAsync(() => DashboardService.GetSalesOverview(days), new List<SalesOverviewPointDto>(), "GetSalesOverview");
-        _purchaseOverview = await SafeAsync(() => DashboardService.GetPurchaseOverview(days), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview");
+        // left describing the range that was in force before the change. Each tile is flashed back
+        // into its loading state and published as soon as its read returns.
+        _kpisLoading = _salesLoading = _purchaseLoading = true;
+        _kpis = await LoadTile(() => DashboardService.GetKpis(days), DashboardKpiSetDto.Empty, "GetKpis", () => _kpisLoading = false);
+        _salesOverview = await LoadTile(() => DashboardService.GetSalesOverview(days), new List<SalesOverviewPointDto>(), "GetSalesOverview", () => _salesLoading = false);
+        _purchaseOverview = await LoadTile(() => DashboardService.GetPurchaseOverview(days), new List<PurchaseOverviewPointDto>(), "GetPurchaseOverview", () => _purchaseLoading = false);
     }
 
     /// <summary>

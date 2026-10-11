@@ -1,4 +1,4 @@
-<DashboardCardShell Title="Store Overview" ViewAllHref="/shop/branches" ViewAllText="All Stores" FillHeight="true">
+<DashboardCardShell Title="Store Overview" ViewAllHref="/shop/branches" ViewAllText="All Stores" FillHeight="true" Loading="@Loading">
     <div class="tm-table-wrap">
         <table class="tm-table" style="min-width:560px;">
             <thead>
@@ -54,4 +54,5 @@
 
 @code {
     [Parameter] public IReadOnlyList<StoreOverviewDto> Items { get; set; } = Array.Empty<StoreOverviewDto>();
+    [Parameter] public bool Loading { get; set; }
 }

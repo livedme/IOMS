@@ -1,4 +1,4 @@
-<DashboardCardShell Title="Inventory Overview" ViewAllHref="/inventory/stock-levels" ViewAllText="Stock Levels" FillHeight="true">
+<DashboardCardShell Title="Inventory Overview" ViewAllHref="/inventory/stock-levels" ViewAllText="Stock Levels" FillHeight="true" Loading="@Loading">
     <div class="tm-list">
         @{
             // Cost and retail valuation are both measured from the same quantity rows, so the
@@ -65,4 +65,5 @@
     private static readonly InventoryOverviewDto Empty = new(0, 0, 0, 0, 0, 0, 0, 0m, 0m);
 
     [Parameter] public InventoryOverviewDto Overview { get; set; } = Empty;
+    [Parameter] public bool Loading { get; set; }
 }

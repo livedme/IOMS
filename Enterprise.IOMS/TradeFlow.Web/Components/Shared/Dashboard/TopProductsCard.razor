@@ -1,4 +1,4 @@
-<DashboardCardShell Title="Top Selling Products by Revenue" ViewAllHref="/products/list" ViewAllText="All Products" FillHeight="true">
+<DashboardCardShell Title="Top Selling Products by Revenue" ViewAllHref="/products/list" ViewAllText="All Products" FillHeight="true" Loading="@Loading">
     <div class="tm-panel-body" style="padding:4px 6px 8px;">
         @if (Items.Any())
         {
@@ -34,4 +34,5 @@
 
 @code {
     [Parameter] public IReadOnlyList<TopProductDto> Items { get; set; } = Array.Empty<TopProductDto>();
+    [Parameter] public bool Loading { get; set; }
 }

@@ -16,7 +16,14 @@
     </div>
 
     <div class="tm-panel-body">
-        @if (Points.Count == 0)
+        @if (Loading)
+        {
+            <div class="tm-loading">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <span>Loading…</span>
+            </div>
+        }
+        else if (Points.Count == 0)
         {
             <MudAlert Severity="Severity.Info" Dense="true">No sales data yet.</MudAlert>
         }
@@ -45,6 +52,8 @@
     /// <summary>Period currently applied by the dashboard filter strip. Only used for the header
     /// label and the span caption; the series itself is read by the page.</summary>
     [Parameter] public DashboardRange Range { get; set; } = DashboardRanges.Resolve(DashboardRanges.DefaultLabel, DateTime.UtcNow);
+
+    [Parameter] public bool Loading { get; set; }
 
     private decimal Total => Points.Sum(p => p.TotalSales);
     private decimal GrossProfit => Points.Sum(p => p.Profit);

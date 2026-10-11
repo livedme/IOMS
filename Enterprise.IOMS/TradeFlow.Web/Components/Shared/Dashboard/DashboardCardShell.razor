@@ -11,7 +11,17 @@
             }
         </div>
     </div>
-    @ChildContent
+    @if (Loading)
+    {
+        <div class="tm-loading">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+            <span>Loading…</span>
+        </div>
+    }
+    else
+    {
+        @ChildContent
+    }
 </div>
 
 @code {
@@ -19,6 +29,7 @@
     [Parameter] public string? ViewAllHref { get; set; }
     [Parameter] public string ViewAllText { get; set; } = "View All";
     [Parameter] public bool FillHeight { get; set; }
+    [Parameter] public bool Loading { get; set; }
     [Parameter] public RenderFragment? HeaderExtra { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 }

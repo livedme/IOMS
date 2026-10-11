@@ -1,4 +1,4 @@
-<DashboardCardShell Title="Recent Orders" ViewAllHref="/sales/orders" ViewAllText="All Orders">
+<DashboardCardShell Title="Recent Orders" ViewAllHref="/sales/orders" ViewAllText="All Orders" Loading="@Loading">
     <div class="tm-table-wrap">
         <table class="tm-table" style="min-width:620px;">
             <thead>
@@ -39,6 +39,7 @@
 
 @code {
     [Parameter] public IReadOnlyList<RecentOrderExtendedDto> Items { get; set; } = Array.Empty<RecentOrderExtendedDto>();
+    [Parameter] public bool Loading { get; set; }
 
     private static string GetStatusPill(string s) => s switch
     {

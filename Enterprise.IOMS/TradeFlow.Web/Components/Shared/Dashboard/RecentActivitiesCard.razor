@@ -1,4 +1,4 @@
-<DashboardCardShell Title="Recent Activities" ViewAllHref="/admin/audit-logs" ViewAllText="Audit Log" FillHeight="true">
+<DashboardCardShell Title="Recent Activities" ViewAllHref="/admin/audit-logs" ViewAllText="Audit Log" FillHeight="true" Loading="@Loading">
     <div class="tm-list">
         @if (!Items.Any())
         {
@@ -33,4 +33,5 @@
 
 @code {
     [Parameter] public IReadOnlyList<RecentActivityDto> Items { get; set; } = Array.Empty<RecentActivityDto>();
+    [Parameter] public bool Loading { get; set; }
 }

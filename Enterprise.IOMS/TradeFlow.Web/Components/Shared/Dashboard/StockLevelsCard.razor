@@ -1,4 +1,4 @@
-<DashboardCardShell Title="Stock Levels" ViewAllHref="/inventory/stock-levels" ViewAllText="Manage Stock" FillHeight="true">
+<DashboardCardShell Title="Stock Levels" ViewAllHref="/inventory/stock-levels" ViewAllText="Manage Stock" FillHeight="true" Loading="@Loading">
     <div class="tm-table-wrap">
         <table class="tm-table" style="min-width:600px;">
             <thead>
@@ -49,6 +49,7 @@
 
 @code {
     [Parameter] public IReadOnlyList<StockLevelDto> Items { get; set; } = Array.Empty<StockLevelDto>();
+    [Parameter] public bool Loading { get; set; }
 
     /// <summary>
     /// Health is judged on the reorder level, which is the same threshold the rest of the app uses

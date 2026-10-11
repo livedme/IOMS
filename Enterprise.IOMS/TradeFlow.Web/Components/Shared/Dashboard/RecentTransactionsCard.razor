@@ -1,4 +1,4 @@
-<DashboardCardShell Title="Recent Transactions" ViewAllHref="/accounting/payments" ViewAllText="Payments">
+<DashboardCardShell Title="Recent Transactions" ViewAllHref="/accounting/payments" ViewAllText="Payments" Loading="@Loading">
     <div class="tm-list">
         @if (!Items.Any())
         {
@@ -32,6 +32,7 @@
 
 @code {
     [Parameter] public IReadOnlyList<RecentTransactionDto> Items { get; set; } = Array.Empty<RecentTransactionDto>();
+    [Parameter] public bool Loading { get; set; }
 
     private static (string icon, string bg) GetTxIcon(string type) => type switch
     {

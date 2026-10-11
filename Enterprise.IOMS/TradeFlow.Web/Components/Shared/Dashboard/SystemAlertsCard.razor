@@ -1,4 +1,4 @@
-<DashboardCardShell Title="System Alerts" ViewAllHref="/admin/audit-logs" ViewAllText="Audit Logs">
+<DashboardCardShell Title="System Alerts" ViewAllHref="/admin/audit-logs" ViewAllText="Audit Logs" Loading="@Loading">
     <div class="tm-list">
         @if (!Items.Any())
         {
@@ -27,6 +27,7 @@
 
 @code {
     [Parameter] public IReadOnlyList<SystemAlertDto> Items { get; set; } = Array.Empty<SystemAlertDto>();
+    [Parameter] public bool Loading { get; set; }
 
     private static (string bg, string icon) GetAlertStyle(string t) => t switch
     {
