@@ -61,9 +61,10 @@ public sealed class SecurityHeadersMiddleware
             var httpContext = (HttpContext)state;
             var headers = httpContext.Response.Headers;
 
-            // The print route is loaded in a same-origin hidden iframe to generate a PDF
-            // download without navigating. Everything else stays fully un-frameable.
-            var allowSelfFraming = httpContext.Request.Path.StartsWithSegments("/print");
+            // Framing is limited to the same origin. Same-origin iframes are used by the print
+            // route to generate PDF downloads without navigating; cross-origin embedding stays
+            // blocked by both frame-ancestors 'self' and X-Frame-Options SAMEORIGIN.
+            const bool allowSelfFraming = true;
 
             headers["X-Content-Type-Options"] = "nosniff";
             headers["X-Frame-Options"] = allowSelfFraming ? "SAMEORIGIN" : "DENY";
