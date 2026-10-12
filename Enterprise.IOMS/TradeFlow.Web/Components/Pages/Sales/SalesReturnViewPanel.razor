@@ -59,6 +59,27 @@
 
                 <MudDivider Class="mb-3" />
 
+                <!-- Customer -->
+                <div class="so-info-card mb-3">
+                    <div class="so-info-icon">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Style="color:#fff;" />
+                    </div>
+                    <div class="overflow-hidden">
+                        <div class="so-lbl">Customer</div>
+                        <div class="so-val fw-bold text-truncate">@(string.IsNullOrWhiteSpace(_return.CustomerName) ? "—" : _return.CustomerName)</div>
+                        @if (!string.IsNullOrEmpty(_return.CustomerPhone))
+                        {
+                            <div class="so-sm">@_return.CustomerPhone</div>
+                        }
+                        @if (!string.IsNullOrEmpty(_return.CustomerCity))
+                        {
+                            <div class="so-sm">@_return.CustomerCity@(!string.IsNullOrEmpty(_return.CustomerState) ? $", {_return.CustomerState}" : "")</div>
+                        }
+                    </div>
+                </div>
+
+                <MudDivider Class="mb-3" />
+
                 @if (!string.IsNullOrWhiteSpace(_return.Reason))
                 {
                     <div class="so-lbl mb-1">Reason</div>

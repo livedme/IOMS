@@ -54,22 +54,6 @@
                 }
                 else if (_order != null)
                 {
-                    <!-- Reference block -->
-                    <div class="so-ref-block mb-3">
-                        <div class="d-flex justify-space-between">
-                            <div>
-                                <div class="so-lbl">Order Number</div>
-                                <div class="so-val-lg">@_order.OrderNumber</div>
-                            </div>
-                            <div class="text-end">
-                                <div class="so-lbl">Order Date</div>
-                                <div class="so-val fw-semibold">@_order.OrderDate.ToString("dd MMM yyyy")</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <MudDivider Class="mb-3" />
-
                     <!-- Customer & Branch -->
                     <MudGrid Spacing="2" Class="mb-3">
                         <MudItem xs="6">
@@ -86,7 +70,7 @@
                                     }
                                     @if (!string.IsNullOrEmpty(_order.Customer?.City))
                                     {
-                                        <div class="so-sm">@_order.Customer.City@(!string.IsNullOrEmpty(_order.Customer.State) ? $",         {_order.Customer.State}" : "")</div>
+                                        <div class="so-sm">@_order.Customer.City@(!string.IsNullOrEmpty(_order.Customer.State) ? $", {_order.Customer.State}" : "")</div>
                                     }
                                 </div>
                             </div>
@@ -106,24 +90,33 @@
                                 </div>
                             </div>
                         </MudItem>
-                        @if (!string.IsNullOrEmpty(_order.Naration) || !string.IsNullOrEmpty(_order.Chalan))
-                        {
-                            @if (!string.IsNullOrEmpty(_order.Naration))
-                            {
-                                <MudItem xs="6">
-                                    <div class="so-lbl">Narration</div>
-                                    <div class="so-val">@_order.Naration</div>
-                                </MudItem>
-                            }
-                            @if (!string.IsNullOrEmpty(_order.Chalan))
-                            {
-                                <MudItem xs="6">
-                                    <div class="so-lbl">Chalan</div>
-                                    <div class="so-val">@_order.Chalan</div>
-                                </MudItem>
-                            }
-                        }
                     </MudGrid>
+
+                    <MudDivider Class="mb-3" />
+
+                    <!-- Order details -->
+                    <div class="so-ref-block mb-3">
+                        <div class="d-flex justify-space-between">
+                            <div>
+                                <div class="so-lbl">Order Number</div>
+                                <div class="so-val-lg">@_order.OrderNumber</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="so-lbl">Order Date</div>
+                                <div class="so-val fw-semibold">@_order.OrderDate.ToString("dd MMM yyyy")</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="so-lbl">Chalan No</div>
+                                <div class="so-val fw-semibold">@(string.IsNullOrWhiteSpace(_order.Chalan) ? "—" : _order.Chalan)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_order.Naration))
+                    {
+                        <div class="so-lbl mb-1">Narration</div>
+                        <div class="so-val mb-3">@_order.Naration</div>
+                    }
 
                     <MudDivider Class="mb-3" />
 

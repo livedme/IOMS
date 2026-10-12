@@ -377,17 +377,19 @@
         margin: 0;
     }
 
-    html,
-    body {
+    html {
         background: #ffffff !important;
         height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
     }
 
-    /* repeat this padding on every page fragment so content clears the bands */
+    /* repeat this padding on every page fragment so content clears the fixed bands */
     body {
-        padding: 24mm 14mm 20mm;
+        background: #ffffff !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 24mm 14mm 20mm !important;
         -webkit-box-decoration-break: clone;
         box-decoration-break: clone;
     }

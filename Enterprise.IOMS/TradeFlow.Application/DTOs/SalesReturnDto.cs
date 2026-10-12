@@ -8,6 +8,10 @@ public class SalesReturnDto
     public string ReturnNumber { get; set; } = string.Empty;
     public Guid SalesOrderId { get; set; }
     public string SalesOrderNumber { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public string? CustomerPhone { get; set; }
+    public string? CustomerCity { get; set; }
+    public string? CustomerState { get; set; }
     public SalesReturnStatus Status { get; set; }
     public decimal TotalAmount { get; set; }
     public string? Reason { get; set; }

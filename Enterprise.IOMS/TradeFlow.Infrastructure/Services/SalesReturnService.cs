@@ -151,7 +151,7 @@ public class SalesReturnService : ISalesReturnService
         await using var _context = await _contextFactory.CreateDbContextAsync();
         var ret = await _context.SalesReturns
             .AsSplitQuery()
-            .Include(r => r.SalesOrder)
+            .Include(r => r.SalesOrder).ThenInclude(o => o.Customer)
             .Include(r => r.Items).ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new EntityNotFoundException("SalesReturn", id);

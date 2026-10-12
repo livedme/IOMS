@@ -305,6 +305,17 @@
                 </div>
             </div>
             <div class="doc-info-card">
+                <div class="doc-info-icon">&#128100;</div>
+                <div>
+                    <div class="doc-lbl">Customer</div>
+                    <div class="doc-val doc-val-lg">@(string.IsNullOrWhiteSpace(SalesReturn.CustomerName) ? "—" : SalesReturn.CustomerName)</div>
+                    @if (!string.IsNullOrEmpty(SalesReturn.CustomerPhone))
+                    {
+                        <div class="doc-sm">@SalesReturn.CustomerPhone</div>
+                    }
+                </div>
+            </div>
+            <div class="doc-info-card">
                 <div class="doc-info-icon">&#128230;</div>
                 <div>
                     <div class="doc-lbl">Source Order</div>
