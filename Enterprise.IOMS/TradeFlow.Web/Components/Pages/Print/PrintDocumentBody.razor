@@ -1,0 +1,639 @@
+@* Server-side document template. Holds only the printable document markup (no toolbar, no layout)
+   so it can be rendered either inside the /print page or to an HTML string on the server and handed
+   to the client-side `downloadFile` JS function for PDF generation. *@
+
+<div class="doc-page" id="doc-page">
+    <header class="doc-head">
+        <div class="doc-brand">
+            <img src="/logo.png" class="doc-logo" alt="Avancer" />
+            <div>
+                <div class="doc-brand-name">AVANCER</div>
+                <div class="doc-brand-tag">Inventory &amp; Order Management</div>
+            </div>
+        </div>
+        <div class="doc-title-block">
+            <div class="doc-title">@DocTitle</div>
+            <div class="doc-ref">@DocRef</div>
+            @if (!string.IsNullOrWhiteSpace(StatusText))
+            {
+                <div class="doc-status">@StatusText</div>
+            }
+        </div>
+        <div class="doc-issued">
+            <div class="doc-lbl">Issued</div>
+            <div class="doc-val">@DateTime.Now.ToString("dd MMM yyyy")</div>
+        </div>
+    </header>
+
+    @if (SalesOrder is not null)
+    {
+        <div class="doc-info-row doc-sec">
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128100;</div>
+                <div>
+                    <div class="doc-lbl">Customer</div>
+                    <div class="doc-val doc-val-lg">@(SalesOrder.Customer?.CustomerName ?? "—")</div>
+                    @if (!string.IsNullOrEmpty(SalesOrder.Customer?.CustomerPhone))
+                    {
+                        <div class="doc-sm">@SalesOrder.Customer!.CustomerPhone</div>
+                    }
+                    @if (!string.IsNullOrEmpty(SalesOrder.Customer?.City))
+                    {
+                        <div class="doc-sm">@SalesOrder.Customer!.City@(!string.IsNullOrEmpty(SalesOrder.Customer.State) ? $", {SalesOrder.Customer.State}" : "")</div>
+                    }
+                </div>
+            </div>
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#127978;</div>
+                <div>
+                    <div class="doc-lbl">Branch</div>
+                    <div class="doc-val">@(SalesOrder.Branch?.Name ?? "—")</div>
+                    @if (!string.IsNullOrEmpty(SalesOrder.Branch?.Location))
+                    {
+                        <div class="doc-sm">@SalesOrder.Branch!.Location</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-ref-block">
+            <div>
+                <div class="doc-lbl">Order Date</div>
+                <div class="doc-val">@SalesOrder.OrderDate.ToString("dd MMM yyyy")</div>
+            </div>
+            <div>
+                <div class="doc-lbl">Chalan No</div>
+                <div class="doc-val">@(string.IsNullOrWhiteSpace(SalesOrder.Chalan) ? "—" : SalesOrder.Chalan)</div>
+            </div>
+            <div>
+                <div class="doc-lbl">Narration</div>
+                <div class="doc-val">@(string.IsNullOrWhiteSpace(SalesOrder.Naration) ? "—" : SalesOrder.Naration)</div>
+            </div>
+            <div class="doc-r">
+                <div class="doc-lbl">Expected</div>
+                <div class="doc-val">@(SalesOrder.ExpectedDeliveryDate?.ToString("dd MMM yyyy") ?? "—")</div>
+            </div>
+        </div>
+
+        <div class="doc-sec">
+            <div class="doc-sec-title">Order Items (@SalesOrder.Items.Count)</div>
+            <table class="doc-items">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th class="r">Qty</th>
+                        <th class="r">Unit Price</th>
+                        <th class="r">Discount</th>
+                        <th class="r">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var it in SalesOrder.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div>@it.ProductName</div>
+                                <div class="sub">@it.ProductSKU</div>
+                            </td>
+                            <td class="r">@it.Quantity</td>
+                            <td class="r">@Money(it.UnitPrice)</td>
+                            <td class="r">@Money(it.TotalDiscount)</td>
+                            <td class="r">@Money(it.LineTotalPrice)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="doc-totals">
+                <div class="doc-total-row"><span>Subtotal</span><span>@Money(SalesOrder.SubTotal)</span></div>
+                @if (SalesOrder.DiscountAmount > 0)
+                {
+                    <div class="doc-total-row"><span>Discount</span><span>-@Money(SalesOrder.DiscountAmount)</span></div>
+                }
+                @if (SalesOrder.TaxAmount > 0)
+                {
+                    <div class="doc-total-row"><span>Tax</span><span>@Money(SalesOrder.TaxAmount)</span></div>
+                }
+                @if (SalesOrder.LabourCharge > 0)
+                {
+                    <div class="doc-total-row"><span>Labour</span><span>@Money(SalesOrder.LabourCharge)</span></div>
+                }
+                @if (SalesOrder.TruckCharge > 0)
+                {
+                    <div class="doc-total-row"><span>Transport</span><span>@Money(SalesOrder.TruckCharge)</span></div>
+                }
+                <div class="doc-total-row doc-grand"><span>Grand Total</span><span>@Money(SalesOrder.TotalAmount)</span></div>
+                <div class="doc-total-row doc-paid"><span>Paid</span><span>@Money(SalesOrder.PaidAmount)</span></div>
+                <div class="doc-total-row doc-due"><span>Due</span><span>@Money(SalesOrder.DueAmount)</span></div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(SalesOrder.Notes))
+            {
+                <div class="doc-notes"><strong>Notes:</strong> @SalesOrder.Notes</div>
+            }
+        </div>
+    }
+    else if (PurchaseOrder is not null)
+    {
+        <div class="doc-info-row doc-sec">
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#127974;</div>
+                <div>
+                    <div class="doc-lbl">Supplier</div>
+                    <div class="doc-val doc-val-lg">@PurchaseOrder.SupplierName</div>
+                </div>
+            </div>
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128230;</div>
+                <div>
+                    <div class="doc-lbl">Warehouse</div>
+                    <div class="doc-val">@(PurchaseOrder.WarehouseName ?? "—")</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-ref-block">
+            <div>
+                <div class="doc-lbl">Purchase Date</div>
+                <div class="doc-val">@PurchaseOrder.PurchaseDate.ToString("dd MMM yyyy")</div>
+            </div>
+            <div>
+                <div class="doc-lbl">Expected</div>
+                <div class="doc-val">@(PurchaseOrder.ExpectedDeliveryDate?.ToString("dd MMM yyyy") ?? "—")</div>
+            </div>
+            <div>
+                <div class="doc-lbl">Notes</div>
+                <div class="doc-val">@(string.IsNullOrWhiteSpace(PurchaseOrder.Notes) ? "—" : PurchaseOrder.Notes)</div>
+            </div>
+            <div class="doc-r">
+                <div class="doc-lbl">Items</div>
+                <div class="doc-val">@PurchaseOrder.Items.Count</div>
+            </div>
+        </div>
+
+        <div class="doc-sec">
+            <div class="doc-sec-title">Order Items (@PurchaseOrder.Items.Count)</div>
+            <table class="doc-items">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th class="r">Ordered</th>
+                        <th class="r">Received</th>
+                        <th class="r">Unit Price</th>
+                        <th class="r">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var it in PurchaseOrder.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div>@it.ProductName</div>
+                                <div class="sub">@it.ProductSKU</div>
+                            </td>
+                            <td class="r">@it.Quantity</td>
+                            <td class="r">@it.ReceivedQuantity</td>
+                            <td class="r">@Money(it.UnitPrice)</td>
+                            <td class="r">@Money(it.LineTotalPrice)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="doc-totals">
+                <div class="doc-total-row"><span>Subtotal</span><span>@Money(PurchaseOrder.SubTotal)</span></div>
+                @if (PurchaseOrder.DiscountAmount > 0)
+                {
+                    <div class="doc-total-row"><span>Discount</span><span>-@Money(PurchaseOrder.DiscountAmount)</span></div>
+                }
+                @if (PurchaseOrder.TaxAmount > 0)
+                {
+                    <div class="doc-total-row"><span>Tax</span><span>@Money(PurchaseOrder.TaxAmount)</span></div>
+                }
+                @if (PurchaseOrder.LabourCharge > 0)
+                {
+                    <div class="doc-total-row"><span>Labour</span><span>@Money(PurchaseOrder.LabourCharge)</span></div>
+                }
+                @if (PurchaseOrder.TruckCharge > 0)
+                {
+                    <div class="doc-total-row"><span>Transport</span><span>@Money(PurchaseOrder.TruckCharge)</span></div>
+                }
+                <div class="doc-total-row doc-grand"><span>Grand Total</span><span>@Money(PurchaseOrder.TotalAmount)</span></div>
+                <div class="doc-total-row doc-paid"><span>Paid</span><span>@Money(PurchaseOrder.PaidAmount)</span></div>
+                <div class="doc-total-row doc-due"><span>Due</span><span>@Money(PurchaseOrder.DueAmount)</span></div>
+            </div>
+        </div>
+    }
+    else if (Quote is not null)
+    {
+        <div class="doc-info-row doc-sec">
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128100;</div>
+                <div>
+                    <div class="doc-lbl">Customer</div>
+                    <div class="doc-val doc-val-lg">@(Quote.CustomerName ?? "—")</div>
+                </div>
+            </div>
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128197;</div>
+                <div>
+                    <div class="doc-lbl">Validity</div>
+                    <div class="doc-val">@Quote.ValidUntil.ToString("dd MMM yyyy")@(Quote.ValidUntil < DateTime.Today ? " (expired)" : "")</div>
+                    <div class="doc-sm">Quote date @Quote.QuoteDate.ToString("dd MMM yyyy") · v@Quote.Version</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-sec">
+            <div class="doc-sec-title">Quoted Items (@Quote.Items.Count)</div>
+            <table class="doc-items">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th class="r">Qty</th>
+                        <th class="r">Unit Price</th>
+                        <th class="r">Disc %</th>
+                        <th class="r">Tax</th>
+                        <th class="r">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var it in Quote.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div>@it.ProductName</div>
+                                <div class="sub">@it.ProductSKU</div>
+                            </td>
+                            <td class="r">@it.Quantity</td>
+                            <td class="r">@Money(it.UnitPrice)</td>
+                            <td class="r">@it.DiscountPercent.ToString("N0")%</td>
+                            <td class="r">@Money(it.TaxAmount)</td>
+                            <td class="r">@Money(it.LineTotal)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="doc-totals">
+                <div class="doc-total-row"><span>Subtotal</span><span>@Money(Quote.SubTotal)</span></div>
+                @if (Quote.DiscountAmount > 0)
+                {
+                    <div class="doc-total-row"><span>Discount</span><span>-@Money(Quote.DiscountAmount)</span></div>
+                }
+                @if (Quote.TaxAmount > 0)
+                {
+                    <div class="doc-total-row"><span>Tax</span><span>@Money(Quote.TaxAmount)</span></div>
+                }
+                <div class="doc-total-row doc-grand"><span>Total</span><span>@Money(Quote.TotalAmount)</span></div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Quote.Notes))
+            {
+                <div class="doc-notes"><strong>Notes:</strong> @Quote.Notes</div>
+            }
+        </div>
+    }
+    else if (SalesReturn is not null)
+    {
+        <div class="doc-info-row doc-sec">
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#8617;</div>
+                <div>
+                    <div class="doc-lbl">Return Number</div>
+                    <div class="doc-val doc-val-lg">@SalesReturn.ReturnNumber</div>
+                </div>
+            </div>
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128230;</div>
+                <div>
+                    <div class="doc-lbl">Source Order</div>
+                    <div class="doc-val">@(string.IsNullOrWhiteSpace(SalesReturn.SalesOrderNumber) ? "—" : SalesReturn.SalesOrderNumber)</div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(SalesReturn.Reason))
+        {
+            <div class="doc-notes"><strong>Reason:</strong> @SalesReturn.Reason</div>
+        }
+
+        <div class="doc-sec">
+            <div class="doc-sec-title">Returned Items (@SalesReturn.ItemsLine.Count)</div>
+            <table class="doc-items">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th class="r">Qty</th>
+                        <th class="r">Unit Price</th>
+                        <th class="r">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var it in SalesReturn.ItemsLine)
+                    {
+                        <tr>
+                            <td>@it.ProductName</td>
+                            <td class="r">@it.Quantity</td>
+                            <td class="r">@Money(it.UnitPrice)</td>
+                            <td class="r">@Money(it.LineTotal)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="doc-totals">
+                <div class="doc-total-row"><span>Items</span><span>@SalesReturn.ItemsLine.Count</span></div>
+                <div class="doc-total-row"><span>Total Units</span><span>@SalesReturn.ItemsLine.Sum(x => x.Quantity)</span></div>
+                <div class="doc-total-row doc-grand"><span>Refund Total</span><span>@Money(SalesReturn.TotalAmount)</span></div>
+            </div>
+        </div>
+    }
+    else if (PurchaseReturn is not null)
+    {
+        <div class="doc-info-row doc-sec">
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#8617;</div>
+                <div>
+                    <div class="doc-lbl">Return Number</div>
+                    <div class="doc-val doc-val-lg">@PurchaseReturn.ReturnNumber</div>
+                </div>
+            </div>
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128230;</div>
+                <div>
+                    <div class="doc-lbl">Source Order</div>
+                    <div class="doc-val">@(string.IsNullOrWhiteSpace(PurchaseReturn.PurchaseOrderNumber) ? "—" : PurchaseReturn.PurchaseOrderNumber)</div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(PurchaseReturn.Reason))
+        {
+            <div class="doc-notes"><strong>Reason:</strong> @PurchaseReturn.Reason</div>
+        }
+
+        <div class="doc-sec">
+            <div class="doc-sec-title">Returned Items (@PurchaseReturn.ItemsLine.Count)</div>
+            <table class="doc-items">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th class="r">Qty</th>
+                        <th class="r">Unit Cost</th>
+                        <th class="r">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var it in PurchaseReturn.ItemsLine)
+                    {
+                        <tr>
+                            <td>@it.ProductName</td>
+                            <td class="r">@it.Quantity</td>
+                            <td class="r">@Money(it.UnitCost)</td>
+                            <td class="r">@Money(it.LineTotal)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="doc-totals">
+                <div class="doc-total-row"><span>Items</span><span>@PurchaseReturn.ItemsLine.Count</span></div>
+                <div class="doc-total-row"><span>Total Units</span><span>@PurchaseReturn.ItemsLine.Sum(x => x.Quantity)</span></div>
+                <div class="doc-total-row doc-grand"><span>Return Total</span><span>@Money(PurchaseReturn.TotalAmount)</span></div>
+            </div>
+        </div>
+    }
+    else if (Invoice is not null)
+    {
+        <div class="doc-info-row doc-sec">
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128100;</div>
+                <div>
+                    <div class="doc-lbl">@(Invoice.InvoiceType == InvoiceType.Sales ? "Customer" : "Supplier")</div>
+                    <div class="doc-val doc-val-lg">@(Invoice.CustomerName ?? Invoice.SupplierName ?? "—")</div>
+                </div>
+            </div>
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128196;</div>
+                <div>
+                    <div class="doc-lbl">Invoice Type</div>
+                    <div class="doc-val">@Invoice.InvoiceType</div>
+                    <div class="doc-sm">Issued @Invoice.InvoiceDate.ToString("dd MMM yyyy")</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-ref-block">
+            <div>
+                <div class="doc-lbl">Invoice Date</div>
+                <div class="doc-val">@Invoice.InvoiceDate.ToString("dd MMM yyyy")</div>
+            </div>
+            <div>
+                <div class="doc-lbl">Due Date</div>
+                <div class="doc-val">@Invoice.DueDate.ToString("dd MMM yyyy")</div>
+            </div>
+            <div class="doc-r">
+                <div class="doc-lbl">Balance Due</div>
+                <div class="doc-val doc-val-lg">@Money(Invoice.BalanceDue)</div>
+            </div>
+        </div>
+
+        <div class="doc-sec">
+            <div class="doc-sec-title">Charges</div>
+            <div class="doc-totals" style="margin-left:0; width:100%;">
+                <div class="doc-total-row"><span>Subtotal</span><span>@Money(Invoice.SubTotal)</span></div>
+                <div class="doc-total-row"><span>Tax</span><span>@Money(Invoice.TaxAmount)</span></div>
+                <div class="doc-total-row doc-grand"><span>Total</span><span>@Money(Invoice.TotalAmount)</span></div>
+                <div class="doc-total-row doc-paid"><span>Paid</span><span>@Money(Invoice.PaidAmount)</span></div>
+                <div class="doc-total-row doc-due"><span>Balance Due</span><span>@Money(Invoice.BalanceDue)</span></div>
+            </div>
+        </div>
+    }
+    else if (Product is not null)
+    {
+        <div class="doc-info-row doc-sec">
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128230;</div>
+                <div>
+                    <div class="doc-lbl">Product</div>
+                    <div class="doc-val doc-val-lg">@Product.Name</div>
+                    <div class="doc-sm">@(Product.Model ?? "—")</div>
+                </div>
+            </div>
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128176;</div>
+                <div>
+                    <div class="doc-lbl">Selling Price</div>
+                    <div class="doc-val doc-val-lg">@Money(Product.SellingPrice)</div>
+                    <div class="doc-sm">Cost @Money(Product.CostPrice)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-sec">
+            <div class="doc-sec-title">General Information</div>
+            <div class="doc-grid four">
+                <div><div class="doc-lbl">SKU</div><div class="doc-val">@(Product.SKU ?? "—")</div></div>
+                <div><div class="doc-lbl">Category</div><div class="doc-val">@(Product.ParentCategoryName ?? Product.CategoryName ?? "—")</div></div>
+                <div><div class="doc-lbl">Sub Category</div><div class="doc-val">@(Product.ParentCategoryName is not null ? Product.CategoryName ?? "—" : "—")</div></div>
+                <div><div class="doc-lbl">Brand</div><div class="doc-val">@(Product.BrandName ?? "—")</div></div>
+                <div><div class="doc-lbl">Barcode</div><div class="doc-val">@(Product.Barcode ?? "—")</div></div>
+                <div><div class="doc-lbl">Cost (Purchase)</div><div class="doc-val">@Money(Product.CostPrice)</div></div>
+                <div><div class="doc-lbl">Wholesale</div><div class="doc-val">@Money(Product.WholeSellingPrice)</div></div>
+                <div><div class="doc-lbl">Reorder Level</div><div class="doc-val">@Product.ReorderStockLevel</div></div>
+                <div><div class="doc-lbl">Warranty</div><div class="doc-val">@(Product.WarrantyInMonths?.ToString() ?? "—")</div></div>
+                <div><div class="doc-lbl">Min Order Qty</div><div class="doc-val">@(Product.MinOrderQuantity?.ToString() ?? "—")</div></div>
+                <div><div class="doc-lbl">Sold (30d)</div><div class="doc-val">@Product.Last30DaysSales</div></div>
+                <div><div class="doc-lbl">Available</div><div class="doc-val">@Product.TotalAvailable</div></div>
+                <div><div class="doc-lbl">Origin</div><div class="doc-val">@(Product.OriginCountry ?? "—")</div></div>
+                <div><div class="doc-lbl">Preferred Supplier</div><div class="doc-val">@(Product.PreferredSupplierName ?? "—")</div></div>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Product.Description))
+            {
+                <div class="doc-notes" style="margin-top:14px;">
+                    <strong>Description:</strong> @Product.Description
+                </div>
+            }
+        </div>
+
+        @if (Product.WarehouseStock.Count > 0)
+        {
+            <div class="doc-sec">
+                <div class="doc-sec-title">Stock by Warehouse (@Product.WarehouseStock.Count)</div>
+                <table class="doc-items">
+                    <thead>
+                        <tr>
+                            <th>Warehouse</th>
+                            <th class="r">Quantity</th>
+                            <th class="r">Reserved</th>
+                            <th class="r">Available</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Product.WarehouseStock)
+                        {
+                            <tr>
+                                <td>@s.WarehouseName</td>
+                                <td class="r">@s.Quantity</td>
+                                <td class="r">@s.ReservedQuantity</td>
+                                <td class="r">@s.AvailableQuantity</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (Product.SalesOrderLines.Count > 0)
+        {
+            <div class="doc-sec">
+                <div class="doc-sec-title">Recent Sales (@Product.SalesOrderLines.Count)</div>
+                <table class="doc-items">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th class="r">Qty</th>
+                            <th class="r">Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Product.SalesOrderLines.Take(15))
+                        {
+                            <tr>
+                                <td>
+                                    <div>@s.OrderNumber</div>
+                                    <div class="sub">@s.OrderDate.ToString("dd MMM yyyy")</div>
+                                </td>
+                                <td>@s.PartyName</td>
+                                <td class="r">@s.Quantity</td>
+                                <td class="r">@Money(s.UnitPrice)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (Product.PurchaseOrderLines.Count > 0)
+        {
+            <div class="doc-sec">
+                <div class="doc-sec-title">Recent Purchases (@Product.PurchaseOrderLines.Count)</div>
+                <table class="doc-items">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Supplier</th>
+                            <th class="r">Qty</th>
+                            <th class="r">Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Product.PurchaseOrderLines.Take(15))
+                        {
+                            <tr>
+                                <td>
+                                    <div>@p.OrderNumber</div>
+                                    <div class="sub">@p.OrderDate.ToString("dd MMM yyyy")</div>
+                                </td>
+                                <td>@p.PartyName</td>
+                                <td class="r">@p.Quantity</td>
+                                <td class="r">@Money(p.UnitPrice)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (Product.Movements.Count > 0)
+        {
+            <div class="doc-sec">
+                <div class="doc-sec-title">Recent Movements (@Product.Movements.Count)</div>
+                <table class="doc-items">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Warehouse</th>
+                            <th>Type</th>
+                            <th class="r">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in Product.Movements.Take(15))
+                        {
+                            <tr>
+                                <td>@m.MovementDate.ToString("dd MMM yyyy")</td>
+                                <td>@m.WarehouseName</td>
+                                <td>@m.MovementType</td>
+                                <td class="r">@m.Quantity</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+
+    <div class="doc-footer">
+        Avancer Inc. | 123 Business Park, New York, NY 10001, USA<br />
+        Phone: (212) 555-0000 | Email: sales@avancer.com | www.avancer.com
+    </div>
+</div>
+
+@code {
+    [Parameter] public string DocTitle { get; set; } = "Document";
+    [Parameter] public string DocRef { get; set; } = "—";
+    [Parameter] public string StatusText { get; set; } = "";
+
+    [Parameter] public SalesOrderDto? SalesOrder { get; set; }
+    [Parameter] public PurchaseOrderDto? PurchaseOrder { get; set; }
+    [Parameter] public SalesQuoteDto? Quote { get; set; }
+    [Parameter] public SalesReturnDto? SalesReturn { get; set; }
+    [Parameter] public PurchaseReturnDto? PurchaseReturn { get; set; }
+    [Parameter] public InvoiceDto? Invoice { get; set; }
+    [Parameter] public ProductDetailViewDto? Product { get; set; }
+
+    private static string Money(decimal value) => value.ToString("C");
+}

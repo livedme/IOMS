@@ -83,6 +83,25 @@ main {
     .left-nav-menu ::deep nav > nav {
     }
 
+    /* Selected-effect on the parent group when one of its sub menu items is active */
+    .left-nav-menu ::deep .nav-group-active > .mud-nav-link {
+        color: rgb(142 159 237) !important;
+        background-color: rgba(142, 159, 237, 0.12) !important;
+        border-radius: 6px;
+    }
+
+    .left-nav-menu ::deep .nav-group-active > .mud-nav-link .mud-nav-link-icon {
+        color: rgb(142 159 237) !important;
+    }
+
+    /* Collapsed icon rail: the group renders as an icon button instead of a MudNavGroup */
+    .left-nav-menu ::deep .left-nav-rail-item.nav-group-active .mud-icon-button {
+        color: rgb(142 159 237) !important;
+        background-color: rgba(142, 159, 237, 0.12) !important;
+        border-radius: 0px;
+        border-right: 2px solid rgb(142 159 237) !important;
+    }
+
     /* Menu left, content right: the rail and MudMainContent are flex siblings. */
     .layout-body {
         display: flex;

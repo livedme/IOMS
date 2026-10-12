@@ -46,8 +46,10 @@ window.iomsPdf = {
     // Loads the print route in an off-screen same-origin iframe. The page's ?action query
     // decides whether it prints or downloads - no navigation, no new tab either way.
     openDocument: function (url) {
+        debugger;
         let frame = document.getElementById('ioms-pdf-frame');
         if (!frame) {
+        debugger;
             frame = document.createElement('iframe');
             frame.id = 'ioms-pdf-frame';
             frame.setAttribute('aria-hidden', 'true');
@@ -57,15 +59,56 @@ window.iomsPdf = {
             frame.style.width = '820px';
             frame.style.height = '1100px';
             frame.style.border = '0';
+            // /print is behind [Authorize]. If the session has expired the request 302s to the sign-in
+            // page, which would load silently in this off-screen frame and make Print/Download look
+            // broken. Send the user to sign in at the top level (the server-supplied ReturnUrl brings
+            // them back to the document afterwards) instead of leaving them with a blank result.
+            // frame.addEventListener('load', function () {
+            //     try {
+            //         debugger;
+            //         const path = frame.contentWindow.location.pathname.toLowerCase();
+            //         if (path.indexOf('/account/login') === 0) {
+            //             window.top.location.href = frame.contentWindow.location.href;
+            //         }
+            //     } catch (e) {
+            //        // Frame is not same-origin (unexpected); nothing to inspect.
+            //     }
+            // });
             document.body.appendChild(frame);
         }
         frame.src = url;
     },
 
     download: async function (elementId, fileName, title, reference) {
+        debugger;
         const el = document.getElementById(elementId);
         if (!el) return false;
+        return await window.iomsPdf._renderElement(el, fileName, title, reference);
+    },
 
+    // Receives a server-rendered HTML fragment (the document markup) and generates a PDF from it.
+    // Used by the /print page so the server can build the template and hand off only the markup.
+    downloadHtml: async function (html, fileName, title, reference) {
+        debugger;
+        const host = document.createElement('div');
+        host.setAttribute('data-ioms-pdf-host', '1');
+        host.style.position = 'fixed';
+        host.style.left = '-10000px';
+        host.style.top = '0';
+        host.style.width = '820px';
+        host.style.background = '#ffffff';
+        host.innerHTML = html || '';
+        document.body.appendChild(host);
+        try {
+            // The page already holds a #doc-page element, so scope the lookup to this host.
+            const el = host.querySelector('#doc-page') || host;
+            return await window.iomsPdf._renderElement(el, fileName, title, reference);
+        } finally {
+            host.remove();
+        }
+    },
+
+    _renderElement: async function (el, fileName, title, reference) {
         const ready = () => typeof html2canvas !== 'undefined' && window.jspdf && window.jspdf.jsPDF;
         for (let i = 0; i < 50 && !ready(); i++) {
             await new Promise(r => setTimeout(r, 100));
@@ -141,4 +184,14 @@ window.iomsPdf = {
         pdf.save(fileName || 'document.pdf');
         return true;
     }
+};
+
+// Called from PrintDocument.razor via JS.InvokeVoidAsync("downloadFile", html, fileName, title, ref).
+window.downloadFile = async function (html, fileName, title, reference) {
+    debugger;
+    const ok = await window.iomsPdf.downloadHtml(html, fileName, title, reference);
+    if (!ok) {
+        alert('PDF engine is still loading — please try again in a moment.');
+    }
+    return ok;
 };

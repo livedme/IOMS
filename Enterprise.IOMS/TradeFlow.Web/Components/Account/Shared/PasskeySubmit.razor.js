@@ -121,6 +121,14 @@ customElements.define('passkey-submit', class extends HTMLElement {
     }
 
     async tryAutofillPasskey() {
+        // Conditional-mediation autofill is a top-level browsing-context UX, and its automatic POST
+        // must not run from an embedded frame. When the session has expired, the [Authorize] /print
+        // route 302s to the sign-in page, which is rendered inside the hidden print iframe - auto-
+        // posting from there fails antiforgery validation and logs a misleading "antiforgery token
+        // was missing or invalid" error to the console. Skip autofill unless we are the top document.
+        if (window.self !== window.top) {
+            return;
+        }
         if (browserSupportsPasskeys && this.attrs.operation === 'Request' && await PublicKeyCredential.isConditionalMediationAvailable?.()) {
             await this.obtainAndSubmitCredential(/* useConditionalMediation */ true);
         }

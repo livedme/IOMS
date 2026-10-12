@@ -32,12 +32,15 @@ public static class DependencyInjection
                     b =>
                     {
                         b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
-                        b.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+                        b.EnableRetryOnFailure(5, TimeSpan.FromSeconds(20), null);
                         b.MinBatchSize(4);
                         b.MaxBatchSize(100);
                     });
             },
             ServiceLifetime.Scoped);
+
+        services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
+        //services.AddDatabaseDeveloperPageExceptionFilter();
 
         var redisConnection = configuration.GetConnectionString("Redis");
         if (string.IsNullOrWhiteSpace(redisConnection))

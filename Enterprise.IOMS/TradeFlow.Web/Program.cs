@@ -57,6 +57,8 @@ builder.Services.AddAuthorization(options =>
         .RequireRole(Roles.Admin, Roles.Manager));
 });
 
+builder.Services.AddDatabaseDeveloperPageExceptionFilter(); 
+
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
