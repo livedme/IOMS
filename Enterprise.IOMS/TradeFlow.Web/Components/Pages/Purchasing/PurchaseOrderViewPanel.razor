@@ -1,6 +1,7 @@
 @inject IPurchaseService PurchaseService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
+@inject IPrintDocumentRenderer PrintRenderer
 
 @if (_open)
 {
@@ -196,13 +197,29 @@
     private async Task DownloadPdf()
     {
         if (_order is null) return;
-        await JS.InvokeVoidAsync("iomsPdf.openDocument", $"/print/purchase-order/{_order.Id}?action=pdf");
+        try
+        {
+            var doc = await PrintRenderer.RenderPurchaseOrderAsync(_order);
+            await JS.InvokeVoidAsync("downloadFile", doc.Html, doc.FileName + ".pdf", doc.Title, doc.Reference);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Could not generate the PDF: " + ex.Message);
+        }
     }
 
     private async Task PrintDoc()
     {
         if (_order is null) return;
-        await JS.InvokeVoidAsync("iomsPdf.openDocument", $"/print/purchase-order/{_order.Id}?action=print");
+        try
+        {
+            var doc = await PrintRenderer.RenderPurchaseOrderAsync(_order);
+            await JS.InvokeVoidAsync("printHtml", doc.Html, doc.Title, doc.Reference);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Could not print the document: " + ex.Message);
+        }
     }
 
     public async Task OpenAsync(Guid id)

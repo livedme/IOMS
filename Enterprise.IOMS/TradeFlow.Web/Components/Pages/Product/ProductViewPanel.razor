@@ -2,6 +2,7 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject IPrintDocumentRenderer PrintRenderer
 
 @if (_open)
 {
@@ -269,13 +270,29 @@
     private async Task DownloadPdf()
     {
         if (_details is null) return;
-        await JS.InvokeVoidAsync("iomsPdf.openDocument", $"/print/product/{_details.Id}?action=pdf");
+        try
+        {
+            var doc = await PrintRenderer.RenderProductAsync(_details);
+            await JS.InvokeVoidAsync("downloadFile", doc.Html, doc.FileName + ".pdf", doc.Title, doc.Reference);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Could not generate the PDF: " + ex.Message);
+        }
     }
 
     private async Task PrintDoc()
     {
         if (_details is null) return;
-        await JS.InvokeVoidAsync("iomsPdf.openDocument", $"/print/product/{_details.Id}?action=print");
+        try
+        {
+            var doc = await PrintRenderer.RenderProductAsync(_details);
+            await JS.InvokeVoidAsync("printHtml", doc.Html, doc.Title, doc.Reference);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Could not print the document: " + ex.Message);
+        }
     }
 
     public async Task OpenAsync(Guid id)

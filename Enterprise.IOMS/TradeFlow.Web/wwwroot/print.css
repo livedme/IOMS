@@ -462,6 +462,23 @@
         color: #7c3aed;
     }
 
+    .print-chrome .pc-left {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .pc-logo {
+        height: 26px;
+        width: auto;
+        display: block;
+    }
+
+    .pc-text {
+        display: flex;
+        flex-direction: column;
+    }
+
     .pc-right {
         text-align: right;
     }

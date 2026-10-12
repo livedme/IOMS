@@ -27,6 +27,9 @@ builder.Services.AddMudServices();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
+// Server-side document rendering (PrintDocumentBody -> HTML string for client-side PDF/print)
+builder.Services.AddScoped<IPrintDocumentRenderer, PrintDocumentRenderer>();
+
 // Add Infrastructure (DbContext, Identity, Repository, TenantProvider, caching)
 builder.Services.AddInfrastructure(builder.Configuration);
 
