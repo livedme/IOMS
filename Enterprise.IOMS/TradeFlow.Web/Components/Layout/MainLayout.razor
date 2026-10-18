@@ -37,14 +37,8 @@
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Profile</MudText>
                     </MudStack>
                 </MudMenuItem>
-                <MudMenuItem Icon="@Icons.Material.Outlined.Logout" IconColor="Color.Warning">
-                    <form action="/Account/Logout" method="post">
-                        <AntiforgeryToken />
-                        <input type="hidden" name="returnUrl" value="/" />
-                        <button type="submit" style="background:none;border:none;padding:0;cursor:pointer;color:var(--mud-palette-error);font:inherit;">
-                            Sign out
-                        </button>
-                    </form>
+                <MudMenuItem Icon="@Icons.Material.Outlined.Logout" IconColor="Color.Warning" Href="/Account/Logout" ForceLoad="true">
+                    Sign out
                 </MudMenuItem>
             </ChildContent>
         </MudMenu>

@@ -4,7 +4,7 @@
 @implements IDisposable
 @if (Rail)
 {
-    <div class="left-nav-rail-item @(IsActive ? "nav-group-active" : "")" @onmouseenter="EnterFlyout" @onmouseleave="ScheduleCloseFlyout">
+    <div class="left-nav-item @(IsActive ? "nav-group-active" : "")" @onmouseenter="EnterFlyout" @onmouseleave="ScheduleCloseFlyout">
         <MudIconButton Icon="@Icon" Title="@Title" Size="Size.Medium" Style="color:#A3A3A3;" OnClick="ToggleFlyout" />
         <MudPopover Open="@_flyout" AnchorOrigin="Origin.CenterRight" TransformOrigin="Origin.CenterLeft" Elevation="8" Paper="true">
             <div class="pa-2" @onclick="CloseFlyout" @onmouseenter="CancelCloseFlyout" @onmouseleave="CloseFlyoutNow" style="min-width:230px;">
@@ -128,3 +128,4 @@ else
         _closeCts?.Dispose();
     }
 }
+

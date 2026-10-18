@@ -145,6 +145,7 @@ namespace TradeFlow.Infrastructure.Services
                         .Select(i => new ProductWarehouseStockDto(
                             i.WarehouseId,
                             i.Warehouse != null ? i.Warehouse.Name : "—",
+                            i.Warehouse != null ? i.Warehouse.Code : "—",
                             i.Quantity,
                             i.ReservedQuantity,
                             i.Quantity - i.ReservedQuantity))
@@ -370,6 +371,7 @@ namespace TradeFlow.Infrastructure.Services
                 .Select(i => new ProductWarehouseStockDto(
                     i.WarehouseId,
                     i.Warehouse.Name,
+                    i.Warehouse.Code,
                     i.Quantity,
                     i.ReservedQuantity,
                     i.Quantity - i.ReservedQuantity))

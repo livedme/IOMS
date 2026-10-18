@@ -129,8 +129,8 @@ customElements.define('passkey-submit', class extends HTMLElement {
         if (window.self !== window.top) {
             return;
         }
-        if (browserSupportsPasskeys && this.attrs.operation === 'Request' && await PublicKeyCredential.isConditionalMediationAvailable?.()) {
-            await this.obtainAndSubmitCredential(/* useConditionalMediation */ true);
-        }
+        // Disable automatic submit on load to avoid antiforgery/race issues
+        // Autofill will still work if user triggers the button flow.
+        return;
     }
 });

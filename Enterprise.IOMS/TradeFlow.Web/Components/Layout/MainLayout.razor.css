@@ -95,7 +95,7 @@ main {
     }
 
     /* Collapsed icon rail: the group renders as an icon button instead of a MudNavGroup */
-    .left-nav-menu ::deep .left-nav-rail-item.nav-group-active .mud-icon-button {
+    .left-nav-menu ::deep .left-nav-item.nav-group-active .mud-icon-button {
         color: rgb(142 159 237) !important;
         background-color: rgba(142, 159, 237, 0.12) !important;
         border-radius: 0px;

@@ -97,7 +97,7 @@
                                 {
                                     @foreach (var w in context.WarehouseStocks)
                                     {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@w.WarehouseName: @w.Quantity</MudChip>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@w.Code: @w.Quantity</MudChip>
                                     }
                                 }
                             </MudTd>

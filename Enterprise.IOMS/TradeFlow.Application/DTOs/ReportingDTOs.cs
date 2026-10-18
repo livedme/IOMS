@@ -105,6 +105,7 @@ public record ProductRevenueRowDto(
 public record ProductWarehouseStockDto(
     Guid WarehouseId,
     string WarehouseName,
+    string Code,
     int Quantity,
     int ReservedQuantity,
     int AvailableQuantity);

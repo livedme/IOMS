@@ -179,7 +179,7 @@
                                     {
                                         @foreach (var w in p.WarehouseStocks)
                                         {
-                                            <span class="tm-pill tm-pill-blue" title="@w.WarehouseName (avail. @w.AvailableQuantity)"><span class="tm-dot"></span>@w.WarehouseName: @w.Quantity</span>
+                                            <span class="tm-pill tm-pill-blue" title="@w.WarehouseName (avail. @w.AvailableQuantity)"><span class="tm-dot"></span>@w.Code: @w.Quantity</span>
                                         }
                                     }
                                 </td>
@@ -278,16 +278,16 @@
         _loading = true;
         try
         {
-            pagedResultNew = await ProductService.GetProductsAsync(pagedRequest);
+            //pagedResultNew = await ProductService.GetProductsAsync(pagedRequest);
 
             // Deleting the last row on the last page, or narrowing a filter, can leave the
             // current page past the end. Step back until a page has content, otherwise the table
             // renders empty while the pager still points at a valid-looking page number.
             if (pagedResultNew.Items.Count == 0 && pagedRequest.CurrentPage > 0)
             {
-                pagedRequest.CurrentPage--;
-                pagedResultNew = await ProductService.GetProductsAsync(pagedRequest);
-            }
+                pagedRequest.CurrentPage--;              
+            }            
+            pagedResultNew = await ProductService.GetProductsAsync(pagedRequest);
 
             _hasLoadedOnce = true;
         }

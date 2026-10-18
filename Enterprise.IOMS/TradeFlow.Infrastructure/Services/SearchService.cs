@@ -90,6 +90,7 @@ public class SearchService : ISearchService
                             .Select(i => new ProductWarehouseStockDto(
                                 i.WarehouseId,
                                 i.Warehouse != null ? i.Warehouse.Name : "—",
+                                i.Warehouse != null ? i.Warehouse.Code : "—",
                                 i.Quantity,
                                 i.ReservedQuantity,
                                 i.Quantity - i.ReservedQuantity))
@@ -139,6 +140,7 @@ public class SearchService : ISearchService
                             .Select(i => new ProductWarehouseStockDto(
                                 i.WarehouseId,
                                 i.Warehouse != null ? i.Warehouse.Name : "—",
+                                i.Warehouse != null ? i.Warehouse.Code : "—",
                                 i.Quantity,
                                 i.ReservedQuantity,
                                 i.Quantity - i.ReservedQuantity))
