@@ -16,8 +16,8 @@
 }
 else
 {
-    <div  class="left-nav-menu-item" @onmouseenter="Enter" @onmouseleave="Leave">
-        <MudNavGroup Title="@Title" Icon="@Icon" @bind-Expanded="_open" Class="@GroupClass">
+    <div class="left-nav-menu-item">
+        <MudNavGroup Title="@Title" Icon="@Icon" Expanded="_open" ExpandedChanged="OnExpandedChanged" Class="@GroupClass">
             @ChildContent
         </MudNavGroup>
     </div>
@@ -120,6 +120,11 @@ else
     {
         CancelCloseFlyout();
         _flyout = false;
+    }
+
+    private void OnExpandedChanged(bool expanded)
+    {
+        _open = expanded;
     }
 
     public void Dispose()
