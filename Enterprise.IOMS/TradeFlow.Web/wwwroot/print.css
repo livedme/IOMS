@@ -502,13 +502,70 @@
         display: table-header-group;
     }
 
+    .doc-items tfoot {
+        display: table-footer-group;
+    }
+
+    /* A table that flows onto the next page must not keep its screen-level
+       clip/rounding — `overflow:hidden` + border-radius on a fragmented table
+       renders a hard cut line straight through the middle of a row. Drop the
+       clip and keep only a normal border so the page break is clean. */
+    .doc-items {
+        overflow: visible !important;
+        border-radius: 0 !important;
+        border: none !important;
+    }
+
     .doc-items tr,
-    .doc-info-card,
-    .doc-totals {
-        page-break-inside: avoid;
+    .doc-info-card {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    /* every cell is a hard atomic block: if a row cannot fit above the fixed
+       footer band, the whole row is pushed to the next page instead of being
+       sliced in half by the page boundary */
+    .doc-items tr > td,
+    .doc-items tr > th,
+    .doc-items tbody > tr > td {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-before: auto;
+        page-break-after: auto;
+        orphans: 3;
+        widows: 3;
     }
 
     .doc-sec {
         page-break-inside: auto;
+    }
+
+    /* keep a heading with its table and never strand a header row */
+    .doc-sec-title {
+        page-break-after: avoid;
+    }
+
+    .doc-items thead th {
+        border-top: 1px solid #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .doc-items td {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    .doc-totals,
+    .doc-notes,
+    .doc-info-row,
+    .doc-ref-block,
+    .doc-totals .doc-total-row {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    /* a totals box must stay attached to the last row it summarises */
+    .doc-totals {
+        page-break-before: avoid;
     }
 }

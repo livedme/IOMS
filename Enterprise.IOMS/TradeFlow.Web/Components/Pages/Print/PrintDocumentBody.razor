@@ -626,6 +626,215 @@
             </div>
         }
     }
+    else if (Customer is not null)
+    {
+        <div class="doc-info-row doc-sec">
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128100;</div>
+                <div>
+                    <div class="doc-lbl">Customer</div>
+                    <div class="doc-val doc-val-lg">@Customer.CustomerName</div>
+                    @if (!string.IsNullOrEmpty(Customer.CustomerPhone))
+                    {
+                        <div class="doc-sm">@Customer.CustomerPhone</div>
+                    }
+                    @if (!string.IsNullOrEmpty(Customer.City))
+                    {
+                        <div class="doc-sm">@Customer.City@(!string.IsNullOrEmpty(Customer.State) ? $", {Customer.State}" : "")</div>
+                    }
+                </div>
+            </div>
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#128176;</div>
+                <div>
+                    <div class="doc-lbl">Credit Limit</div>
+                    <div class="doc-val doc-val-lg">@Money(Customer.CreditLimit)</div>
+                    @if (CustomerOutstanding > 0)
+                    {
+                        <div class="doc-sm">Outstanding @Money(CustomerOutstanding)</div>
+                    }
+                    else
+                    {
+                        <div class="doc-sm">Outstanding —</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-sec">
+            <div class="doc-sec-title">Contact Details</div>
+            <div class="doc-grid four">
+                <div><div class="doc-lbl">Email</div><div class="doc-val">@(Customer.CustomerEmail ?? "—")</div></div>
+                <div><div class="doc-lbl">Phone</div><div class="doc-val">@(Customer.CustomerPhone ?? "—")</div></div>
+                <div><div class="doc-lbl">Contact Person</div><div class="doc-val">@(Customer.ContactPersonName ?? "—")</div></div>
+                <div><div class="doc-lbl">Contact Phone</div><div class="doc-val">@(Customer.ContactPersonPhone ?? "—")</div></div>
+                <div><div class="doc-lbl">Contact Email</div><div class="doc-val">@(Customer.ContactPersonEmail ?? "—")</div></div>
+                <div><div class="doc-lbl">Payment Terms</div><div class="doc-val">@(Customer.PaymentTerms ?? "—")</div></div>
+                <div><div class="doc-lbl">Address</div><div class="doc-val">@(Customer.Address ?? "—")</div></div>
+                <div><div class="doc-lbl">City</div><div class="doc-val">@(Customer.City ?? "—")</div></div>
+                <div><div class="doc-lbl">Zila</div><div class="doc-val">@(Customer.Zila ?? "—")</div></div>
+                <div><div class="doc-lbl">State</div><div class="doc-val">@(Customer.State ?? "—")</div></div>
+                <div><div class="doc-lbl">Country</div><div class="doc-val">@(Customer.Country ?? "—")</div></div>
+                <div><div class="doc-lbl">Postal Code</div><div class="doc-val">@(Customer.PostalCode ?? "—")</div></div>
+                <div><div class="doc-lbl">Tax Exempt</div><div class="doc-val">@(Customer.IsTaxExempt ? "Yes" : "No")</div></div>
+                <div><div class="doc-lbl">Status</div><div class="doc-val">@(Customer.IsActive ? "Active" : "Inactive")</div></div>
+            </div>
+        </div>
+
+        @if (CustomerOrders.Count > 0)
+        {
+            <div class="doc-sec">
+                <div class="doc-sec-title">Recent Orders (@CustomerOrders.Count)</div>
+                <table class="doc-items">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th class="r">Total</th>
+                            <th class="r">Paid</th>
+                            <th class="r">Due</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var o in CustomerOrders.Take(20))
+                        {
+                            <tr>
+                                <td>@o.OrderNumber</td>
+                                <td>@o.OrderDate.ToString("dd MMM yyyy")</td>
+                                <td>@o.Status</td>
+                                <td class="r">@Money(o.TotalAmount)</td>
+                                <td class="r">@Money(o.PaidAmount)</td>
+                                <td class="r">@Money(o.DueAmount)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div class="doc-totals">
+                    <div class="doc-total-row"><span>Orders</span><span>@CustomerOrders.Count</span></div>
+                    <div class="doc-total-row"><span>Total Sales</span><span>@Money(CustomerOrders.Sum(x => x.TotalAmount))</span></div>
+                    <div class="doc-total-row doc-paid"><span>Paid</span><span>@Money(CustomerOrders.Sum(x => x.PaidAmount))</span></div>
+                    <div class="doc-total-row doc-due"><span>Outstanding</span><span>@Money(CustomerOrders.Sum(x => x.DueAmount))</span></div>
+                </div>
+            </div>
+        }
+
+        @if (CustomerInvoices.Count > 0)
+        {
+            <div class="doc-sec">
+                <div class="doc-sec-title">Recent Invoices (@CustomerInvoices.Count)</div>
+                <table class="doc-items">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Date</th>
+                            <th class="r">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var inv in CustomerInvoices.Take(20))
+                        {
+                            <tr>
+                                <td>@inv.InvoiceNumber</td>
+                                <td>@inv.InvoiceDate.ToString("dd MMM yyyy")</td>
+                                <td class="r">@Money(inv.TotalAmount)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div class="doc-totals">
+                    <div class="doc-total-row"><span>Invoices</span><span>@CustomerInvoices.Count</span></div>
+                    <div class="doc-total-row doc-grand"><span>Total</span><span>@Money(CustomerInvoices.Sum(x => x.TotalAmount))</span></div>
+                </div>
+            </div>
+        }
+    }
+    else if (Supplier is not null)
+    {
+        <div class="doc-info-row doc-sec">
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#127974;</div>
+                <div>
+                    <div class="doc-lbl">Supplier</div>
+                    <div class="doc-val doc-val-lg">@Supplier.SupplierName</div>
+                    @if (!string.IsNullOrEmpty(Supplier.SupplierPhone))
+                    {
+                        <div class="doc-sm">@Supplier.SupplierPhone</div>
+                    }
+                    @if (!string.IsNullOrEmpty(Supplier.City))
+                    {
+                        <div class="doc-sm">@Supplier.City@(!string.IsNullOrEmpty(Supplier.State) ? $", {Supplier.State}" : "")</div>
+                    }
+                </div>
+            </div>
+            <div class="doc-info-card">
+                <div class="doc-info-icon">&#11088;</div>
+                <div>
+                    <div class="doc-lbl">Rating</div>
+                    <div class="doc-val doc-val-lg">@Supplier.Rating.ToString("0.#") / 5</div>
+                    <div class="doc-sm">Lead time @Supplier.LeadTimeDays days</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-sec">
+            <div class="doc-sec-title">Contact Details</div>
+            <div class="doc-grid four">
+                <div><div class="doc-lbl">Email</div><div class="doc-val">@(Supplier.SupplierEmail ?? "—")</div></div>
+                <div><div class="doc-lbl">Phone</div><div class="doc-val">@(Supplier.SupplierPhone ?? "—")</div></div>
+                <div><div class="doc-lbl">Contact Person</div><div class="doc-val">@(Supplier.ContactPersonName ?? "—")</div></div>
+                <div><div class="doc-lbl">Contact Phone</div><div class="doc-val">@(Supplier.ContactPersonPhone ?? "—")</div></div>
+                <div><div class="doc-lbl">Contact Email</div><div class="doc-val">@(Supplier.ContactPersonEmail ?? "—")</div></div>
+                <div><div class="doc-lbl">Payment Terms</div><div class="doc-val">@(Supplier.PaymentTerms ?? "—")</div></div>
+                <div><div class="doc-lbl">Lead Time (days)</div><div class="doc-val">@Supplier.LeadTimeDays</div></div>
+                <div><div class="doc-lbl">Address</div><div class="doc-val">@(Supplier.Address ?? "—")</div></div>
+                <div><div class="doc-lbl">City</div><div class="doc-val">@(Supplier.City ?? "—")</div></div>
+                <div><div class="doc-lbl">Zila</div><div class="doc-val">@(Supplier.Zila ?? "—")</div></div>
+                <div><div class="doc-lbl">State</div><div class="doc-val">@(Supplier.State ?? "—")</div></div>
+                <div><div class="doc-lbl">Country</div><div class="doc-val">@(Supplier.Country ?? "—")</div></div>
+                <div><div class="doc-lbl">Postal Code</div><div class="doc-val">@(Supplier.PostalCode ?? "—")</div></div>
+                <div><div class="doc-lbl">Status</div><div class="doc-val">@(Supplier.IsActive ? "Active" : "Inactive")</div></div>
+            </div>
+        </div>
+
+        @if (SupplierOrders.Count > 0)
+        {
+            <div class="doc-sec">
+                <div class="doc-sec-title">Recent Purchase Orders (@SupplierOrders.Count)</div>
+                <table class="doc-items">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th class="r">Total</th>
+                            <th class="r">Paid</th>
+                            <th class="r">Due</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var o in SupplierOrders.Take(20))
+                        {
+                            <tr>
+                                <td>@o.OrderNumber</td>
+                                <td>@o.PurchaseDate.ToString("dd MMM yyyy")</td>
+                                <td>@o.Status</td>
+                                <td class="r">@Money(o.TotalAmount)</td>
+                                <td class="r">@Money(o.PaidAmount)</td>
+                                <td class="r">@Money(o.DueAmount)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div class="doc-totals">
+                    <div class="doc-total-row"><span>Purchase Orders</span><span>@SupplierOrders.Count</span></div>
+                    <div class="doc-total-row"><span>Total Purchases</span><span>@Money(SupplierOrders.Sum(x => x.TotalAmount))</span></div>
+                    <div class="doc-total-row doc-paid"><span>Paid</span><span>@Money(SupplierOrders.Sum(x => x.PaidAmount))</span></div>
+                    <div class="doc-total-row doc-due"><span>Outstanding</span><span>@Money(SupplierOrders.Sum(x => x.DueAmount))</span></div>
+                </div>
+            </div>
+        }
+    }
 
     <div class="doc-footer">
         Avancer Inc. | 123 Business Park, New York, NY 10001, USA<br />
@@ -645,6 +854,12 @@
     [Parameter] public PurchaseReturnDto? PurchaseReturn { get; set; }
     [Parameter] public InvoiceDto? Invoice { get; set; }
     [Parameter] public ProductDetailViewDto? Product { get; set; }
+    [Parameter] public CustomerDto? Customer { get; set; }
+    [Parameter] public decimal CustomerOutstanding { get; set; }
+    [Parameter] public List<SalesOrderDto> CustomerOrders { get; set; } = new();
+    [Parameter] public List<StatementInvoiceRowDto> CustomerInvoices { get; set; } = new();
+    [Parameter] public SupplierDto? Supplier { get; set; }
+    [Parameter] public List<PurchaseOrderDto> SupplierOrders { get; set; } = new();
 
     private static string Money(decimal value) => value.ToString("C");
 }

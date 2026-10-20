@@ -2,6 +2,8 @@
 @inject IOrderService OrderService
 @inject IAccountingService AccountingService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject IPrintDocumentRenderer PrintRenderer
 
 @if (_open)
 {
@@ -218,6 +220,12 @@
         {
             <div class="so-footer">
                 <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Print"
+                           OnClick="PrintDoc">Print</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Download"
+                           OnClick="DownloadPdf">Download PDF</MudButton>
             </div>
         }
     </div>
@@ -291,5 +299,33 @@
         _animateIn = false;
         _customer = null;
         StateHasChanged();
+    }
+
+    private async Task DownloadPdf()
+    {
+        if (_customer is null) return;
+        try
+        {
+            var doc = await PrintRenderer.RenderCustomerAsync(_customer, _outstanding, _recentOrders, _invoices);
+            await JS.InvokeVoidAsync("downloadFile", doc.Html, doc.FileName + ".pdf", doc.Title, doc.Reference);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Could not generate the PDF: " + ex.Message);
+        }
+    }
+
+    private async Task PrintDoc()
+    {
+        if (_customer is null) return;
+        try
+        {
+            var doc = await PrintRenderer.RenderCustomerAsync(_customer, _outstanding, _recentOrders, _invoices);
+            await JS.InvokeVoidAsync("printHtml", doc.Html, doc.Title, doc.Reference);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Could not print the document: " + ex.Message);
+        }
     }
 }
