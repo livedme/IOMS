@@ -1,0 +1,98 @@
+<div class="tm-daterange">
+    <MudSelect T="string"
+               Label="Range"
+               Value="_preset"
+               ValueChanged="OnPresetChanged"
+               Variant="Variant.Outlined"
+               Margin="Margin.Dense"
+               ShrinkLabel="true"
+               Dense="true"
+               Style="min-width:175px">
+        @foreach (var p in GetPresets())
+        {
+            <MudSelectItem Value="@p.Label">@p.Label</MudSelectItem>
+        }
+        <MudSelectItem Value="@CustomLabel">@CustomLabel</MudSelectItem>
+    </MudSelect>
+
+    <MudDatePicker Date="FromInternal"
+                   Label="From"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense"
+                   ShrinkLabel="true"
+                   AutoClose="true"
+                   Disabled="@(!IsCustom)"
+                   AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
+                   Adornment="Adornment.End"
+                   DateChanged="OnFromChanged" />
+    <MudDatePicker Date="ToInternal"
+                   Label="To"
+                   Variant="Variant.Outlined"
+                   Margin="Margin.Dense"
+                   ShrinkLabel="true"
+                   AutoClose="true"
+                   Disabled="@(!IsCustom)"
+                   AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
+                   Adornment="Adornment.End"
+                   DateChanged="OnToChanged" />
+</div>
+
+@code {
+    private const string CustomLabel = "Custom";
+
+    /// <summary>Inclusive start of the range. Null means no lower bound.</summary>
+    [Parameter] public DateTime? From { get; set; }
+    /// <summary>Inclusive end of the range. Null means no upper bound.</summary>
+    [Parameter] public DateTime? To { get; set; }
+
+    /// <summary>Raised once after any change (preset, picker or custom edit).</summary>
+    [Parameter] public EventCallback<(DateTime? From, DateTime? To)> RangeChanged { get; set; }
+
+    private string? _preset;
+    private DateTime? FromInternal { get; set; }
+    private DateTime? ToInternal { get; set; }
+
+    private bool IsCustom => _preset == CustomLabel;
+
+    protected override void OnParametersSet()
+    {
+        FromInternal = From;
+        ToInternal = To;
+
+        if (_preset != CustomLabel)
+            _preset = MatchPreset()?.Label ?? CustomLabel;
+    }
+
+    private sealed record Preset(string Label, DateTime From, DateTime To);
+
+    private static List<Preset> GetPresets()
+    {
+        var today = DateTime.Today;
+        return new()
+        {
+            new Preset("Today", today, today),
+            new Preset("Last 7 Days", today.AddDays(-6), today),
+            new Preset("This Month", new DateTime(today.Year, today.Month, 1), today),
+            new Preset("Last Month", new DateTime(today.Year, today.Month, 1).AddMonths(-1), new DateTime(today.Year, today.Month, 1).AddDays(-1)),
+            new Preset("This Year", new DateTime(today.Year, 1, 1), today),
+            new Preset("Last Year", new DateTime(today.Year - 1, 1, 1), new DateTime(today.Year - 1, 12, 31))
+        };
+    }
+
+    private Preset? MatchPreset() =>
+        GetPresets().FirstOrDefault(p => From?.Date == p.From && To?.Date == p.To);
+
+    private Task OnPresetChanged(string? label)
+    {
+        _preset = label == null || label == CustomLabel ? CustomLabel : label;
+        if (IsCustom)
+            return Task.CompletedTask;
+
+        var p = GetPresets().FirstOrDefault(x => x.Label == _preset);
+        return p != null ? RangeChanged.InvokeAsync((p.From, p.To)) : Task.CompletedTask;
+    }
+
+    private Task OnFromChanged(DateTime? date) => RangeChanged.InvokeAsync((date, To));
+
+    private Task OnToChanged(DateTime? date) => RangeChanged.InvokeAsync((From, date));
+}

@@ -47,12 +47,7 @@
                 }
             </select>
         </div>
-        <div class="tm-select">
-            <input type="date" value="@FormatDate(pagedRequest.From)" @onchange="OnFromChanged" title="From date" />
-        </div>
-        <div class="tm-select">
-            <input type="date" value="@FormatDate(pagedRequest.To)" @onchange="OnToChanged" title="To date" />
-        </div>
+        <TmDateRange From="pagedRequest.From" To="pagedRequest.To" RangeChanged="OnRangeChanged" />
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
@@ -317,16 +312,10 @@
         await Load();
     }
 
-    private async Task OnFromChanged(ChangeEventArgs e)
+    private async Task OnRangeChanged((DateTime? From, DateTime? To) range)
     {
-        pagedRequest.From = ParseDate(e.Value);
-        pagedRequest.CurrentPage = 0;
-        await Load();
-    }
-
-    private async Task OnToChanged(ChangeEventArgs e)
-    {
-        pagedRequest.To = ParseDate(e.Value);
+        pagedRequest.From = range.From;
+        pagedRequest.To = range.To;
         pagedRequest.CurrentPage = 0;
         await Load();
     }
@@ -341,11 +330,6 @@
         pagedRequest.CurrentPage = 0;
         await Load();
     }
-
-    private static DateTime? ParseDate(object? value) =>
-        DateTime.TryParse(value?.ToString(), out var d) ? d : null;
-
-    private static string FormatDate(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "";
 
     // ─── Paging (zero-based, matches TmPager) ───
     private async Task GoToPage(int page)

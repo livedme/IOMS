@@ -729,6 +729,28 @@ h1:focus {
         color: #111827;
     }
 
+/* Date-range filter row: Range select (presets + Custom) and MudDatePicker pair */
+.tm-daterange {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+    flex: 2;
+    min-width: 480px;
+}
+
+    .tm-daterange .mud-input {
+/*        min-width: 150px;
+        max-width: 190px;*/
+        background: #fff;
+        border-radius: 8px;
+    }
+
+    .tm-daterange .mud-input.mud-disabled {
+        background: #f8fafc;
+        opacity: .75;
+    }
+
 .tm-table-card {
     overflow: hidden;
     position: relative;

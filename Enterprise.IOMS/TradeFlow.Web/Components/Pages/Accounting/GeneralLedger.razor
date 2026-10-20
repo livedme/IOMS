@@ -21,7 +21,7 @@
     </div>
 
     <div class="tm-card tm-filters">
-        <div class="tm-select">
+        <div class="tm-select col-md-6" style="flex:0 0 auto;">
             <select value="@(_selectedAccountId?.ToString() ?? "")" @onchange="OnAccountChanged">
                 <option value="">All Accounts</option>
                 @foreach (var a in _accounts)
@@ -30,12 +30,7 @@
                 }
             </select>
         </div>
-        <div class="tm-select">
-            <input type="date" value="@FormatDate(_fromDate)" @onchange="OnFromChanged" title="From date" />
-        </div>
-        <div class="tm-select">
-            <input type="date" value="@FormatDate(_toDate)" @onchange="OnToChanged" title="To date" />
-        </div>
+        <TmDateRange From="_fromDate" To="_toDate" RangeChanged="OnRangeChanged" />
         <button class="tm-reset" @onclick="ResetFilters">Reset</button>
     </div>
 
@@ -173,16 +168,10 @@
         await LoadLedger();
     }
 
-    private async Task OnFromChanged(ChangeEventArgs e)
+    private async Task OnRangeChanged((DateTime? From, DateTime? To) range)
     {
-        _fromDate = ParseDate(e.Value);
-        _currentPage = 0;
-        await LoadLedger();
-    }
-
-    private async Task OnToChanged(ChangeEventArgs e)
-    {
-        _toDate = ParseDate(e.Value);
+        _fromDate = range.From;
+        _toDate = range.To;
         _currentPage = 0;
         await LoadLedger();
     }
@@ -198,11 +187,6 @@
 
     private static Guid? ParseGuid(object? value) =>
         Guid.TryParse(value?.ToString(), out var g) && g != Guid.Empty ? g : null;
-
-    private static DateTime? ParseDate(object? value) =>
-        DateTime.TryParse(value?.ToString(), out var d) ? d : null;
-
-    private static string FormatDate(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "";
 
     private Task GoToPage(int page)
     {
