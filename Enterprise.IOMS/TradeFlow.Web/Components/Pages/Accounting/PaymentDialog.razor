@@ -21,23 +21,29 @@
                 @if (_paymentType == PaymentType.Receipt)
                 {
                     <MudItem xs="12">
-                        <MudSelect @bind-Value="_customerId" Label="Customer" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
-                            @foreach (var c in _customers)
-                            {
-                                <MudSelectItem Value="@c.Id">@c.CustomerName</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudAutocomplete T="ControlItemsDto"
+                                         Label="Customer"
+                                         Required="true"
+                                         @bind-Value="_selectedCustomer"
+                                         SearchFunc="SearchCustomers"
+                                         ToStringFunc="@(c => c?.Name ?? "")"
+                                         ResetValueOnEmptyText="true"
+                                         CoerceText="true"
+                                         Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudItem>
                 }
                 else
                 {
                     <MudItem xs="12">
-                        <MudSelect @bind-Value="_supplierId" Label="Supplier" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
-                            @foreach (var s in _suppliers)
-                            {
-                                <MudSelectItem Value="@s.Id">@s.SupplierName</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudAutocomplete T="ControlItemsDto"
+                                         Label="Supplier"
+                                         Required="true"
+                                         @bind-Value="_selectedSupplier"
+                                         SearchFunc="SearchSuppliers"
+                                         ToStringFunc="@(c => c?.Name ?? "")"
+                                         ResetValueOnEmptyText="true"
+                                         CoerceText="true"
+                                         Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudItem>
                 }
                 <MudItem xs="12" sm="6">
@@ -73,8 +79,8 @@
 
     private PaymentType _paymentType = PaymentType.Receipt;
     private DateTime? _paymentDate = DateTime.Today;
-    private Guid _customerId;
-    private Guid _supplierId;
+    private ControlItemsDto? _selectedCustomer;
+    private ControlItemsDto? _selectedSupplier;
     private PaymentMethod _paymentMethod = PaymentMethod.BankTransfer;
     private decimal _amount;
     private string _reference = "";
@@ -89,6 +95,36 @@
         _suppliers = await SupplierService.GetActiveSuppliersAsync();
     }
 
+    private Task<IEnumerable<ControlItemsDto>> SearchCustomers(string text, CancellationToken token)
+    {
+        IEnumerable<ControlItemsDto> results;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            results = _customers.Select(c => new ControlItemsDto { Id = c.Id, Name = c.CustomerName });
+        }
+        else
+        {
+            results = _customers.Where(c => c.CustomerName.Contains(text, StringComparison.OrdinalIgnoreCase))
+                .Select(c => new ControlItemsDto { Id = c.Id, Name = c.CustomerName });
+        }
+        return Task.FromResult(results);
+    }
+
+    private Task<IEnumerable<ControlItemsDto>> SearchSuppliers(string text, CancellationToken token)
+    {
+        IEnumerable<ControlItemsDto> results;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            results = _suppliers.Select(s => new ControlItemsDto { Id = s.Id, Name = s.SupplierName });
+        }
+        else
+        {
+            results = _suppliers.Where(s => s.SupplierName.Contains(text, StringComparison.OrdinalIgnoreCase))
+                .Select(s => new ControlItemsDto { Id = s.Id, Name = s.SupplierName });
+        }
+        return Task.FromResult(results);
+    }
+
     private async Task Submit()
     {
         await _form.ValidateAsync();
@@ -98,8 +134,8 @@
         {
             var dto = new RecordPaymentDto(
                 _paymentType,
-                _paymentType == PaymentType.Receipt ? _customerId : null,
-                _paymentType == PaymentType.Payment ? _supplierId : null,
+                _paymentType == PaymentType.Receipt ? (Guid)_selectedCustomer!.Id : null,
+                _paymentType == PaymentType.Payment ? (Guid)_selectedSupplier!.Id : null,
                 null,
                 _amount,
                 _paymentMethod,

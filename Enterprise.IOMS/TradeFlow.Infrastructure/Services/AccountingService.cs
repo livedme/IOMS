@@ -503,7 +503,7 @@ public class AccountingService : IAccountingService
         if (from.HasValue)
             query = query.Where(l => l.JournalEntry.EntryDate >= from.Value);
         if (to.HasValue)
-            query = query.Where(l => l.JournalEntry.EntryDate <= to.Value);
+            query = query.Where(l => l.JournalEntry.EntryDate < to.Value.Date.AddDays(1));
 
         return await query
             .OrderBy(l => l.JournalEntry.EntryDate)

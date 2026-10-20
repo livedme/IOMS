@@ -4,82 +4,126 @@
 @inject IAccountingService AccountingService
 @inject ISnackbar Snackbar
 
-
-
 <PageTitle>General Ledger - IOMS</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">General Ledger</MudText>
+<div class="tm-page">
+    <TmPageHeader Icon="📒" Title="General Ledger" Subtitle="Journal lines by account — server-side filtering with paging">
+        <Actions>
+            <button class="tm-reset" @onclick="LoadLedger">⟳ Refresh</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudPaper Elevation="2" Class="pa-4 mb-4">
-    <MudGrid>
-        <MudItem xs="12" sm="3">
-            <MudSelect @bind-Value="_selectedAccountId" Label="Account" Variant="Variant.Outlined" Margin="Margin.Dense"
-                       Clearable="true" Dense="true">
+    <div class="tm-stats">
+        <TmStatTile Icon="Σ" Number="@TotalDebitsText" Label="Total Debits" Tone="blue" />
+        <TmStatTile Icon="Σ" Number="@TotalCreditsText" Label="Total Credits" Tone="purple" />
+        <TmStatTile Icon="⚖" Number="@NetBalanceText" Label="Net Balance" Tone="teal" />
+        <TmStatTile Icon="📄" Number="@_allEntries.Count" Label="Entries" Tone="green" />
+    </div>
+
+    <div class="tm-card tm-filters">
+        <div class="tm-select">
+            <select value="@(_selectedAccountId?.ToString() ?? "")" @onchange="OnAccountChanged">
+                <option value="">All Accounts</option>
                 @foreach (var a in _accounts)
                 {
-                    <MudSelectItem Value="@a.Id">@a.Code - @a.Name</MudSelectItem>
+                    <option value="@a.Id">@a.Code - @a.Name</option>
                 }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_fromDate" Label="From Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudDatePicker @bind-Date="_toDate" Label="To Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="3" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadLedger"
-                       StartIcon="@Icons.Material.Filled.Search">Filter</MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+            </select>
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(_fromDate)" @onchange="OnFromChanged" title="From date" />
+        </div>
+        <div class="tm-select">
+            <input type="date" value="@FormatDate(_toDate)" @onchange="OnToChanged" title="To date" />
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudTable Items="@_entries" Dense="true" Hover="true" Striped="true" Loading="@_loading" Elevation="0">
-        <HeaderContent>
-            <MudTh>Date</MudTh>
-            <MudTh>Journal #</MudTh>
-            <MudTh>Account</MudTh>
-            <MudTh>Description</MudTh>
-            <MudTh Style="text-align:right">Debit</MudTh>
-            <MudTh Style="text-align:right">Credit</MudTh>
-            <MudTh Style="text-align:right">Balance</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.EntryDate.ToString("yyyy-MM-dd")</MudTd>
-            <MudTd>@context.JournalNumber</MudTd>
-            <MudTd>@context.AccountCode - @context.AccountName</MudTd>
-            <MudTd>@context.Description</MudTd>
-            <MudTd Style="text-align:right">@(context.DebitAmount > 0 ? context.DebitAmount.ToString("N2") : "")</MudTd>
-            <MudTd Style="text-align:right">@(context.CreditAmount > 0 ? context.CreditAmount.ToString("N2") : "")</MudTd>
-            <MudTd Style="text-align:right"><strong>@context.RunningBalance.ToString("N2")</strong></MudTd>
-        </RowTemplate>
-    </MudTable>
-
-    @if (_entries.Any())
-    {
-        <MudDivider Class="my-3" />
-        <MudGrid>
-            <MudItem xs="12" sm="4">
-                <MudText><strong>Total Debits:</strong> @_entries.Sum(e => e.DebitAmount).ToString("N2")</MudText>
-            </MudItem>
-            <MudItem xs="12" sm="4">
-                <MudText><strong>Total Credits:</strong> @_entries.Sum(e => e.CreditAmount).ToString("N2")</MudText>
-            </MudItem>
-            <MudItem xs="12" sm="4">
-                <MudText><strong>Net Balance:</strong> @(_entries.Sum(e => e.DebitAmount) - _entries.Sum(e => e.CreditAmount)).ToString("N2")</MudText>
-            </MudItem>
-        </MudGrid>
-    }
-</MudPaper>
+    <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading ledger...</MudText>
+            </div>
+        }
+        <div class="tm-table-wrap">
+            <table class="tm-table">
+                <thead>
+                    <tr>
+                        <th>📅 Date</th>
+                        <th>Journal #</th>
+                        <th>Account</th>
+                        <th>Description</th>
+                        <th style="text-align:right">Debit</th>
+                        <th style="text-align:right">Credit</th>
+                        <th style="text-align:right">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!_hasLoadedOnce && _loading)
+                    {
+                        <tr><td colspan="7" style="text-align:center; padding:40px; color:#94a3b8;">Loading ledger...</td></tr>
+                    }
+                    else if (!_entries.Any())
+                    {
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No journal entries found — try a different account or date range</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var e in _entries)
+                        {
+                            <tr>
+                                <td class="tm-dim">@e.EntryDate.ToString("dd MMM yyyy")</td>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">📄</span>@e.JournalNumber</span></td>
+                                <td><span class="tm-pill tm-pill-blue"><span class="tm-dot"></span>@e.AccountCode - @e.AccountName</span></td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(e.Description) ? "-" : e.Description)</td>
+                                <td style="text-align:right" class="tm-money">@(e.DebitAmount > 0 ? e.DebitAmount.ToString("N2") : "-")</td>
+                                <td style="text-align:right" class="tm-money">@(e.CreditAmount > 0 ? e.CreditAmount.ToString("N2") : "-")</td>
+                                <td style="text-align:right" class="tm-money"><strong>@e.RunningBalance.ToString("N2")</strong></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="@_currentPage"
+                     PageSize="@_pageSize"
+                     TotalCount="@_allEntries.Count"
+                     TotalPages="@_totalPages"
+                     ItemLabel="Entries"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
+    </div>
+</div>
 
 @code {
     private List<AccountDto> _accounts = new();
+    private List<GeneralLedgerEntryDto> _allEntries = new();
     private List<GeneralLedgerEntryDto> _entries = new();
     private Guid? _selectedAccountId;
     private DateTime? _fromDate = new DateTime(DateTime.Today.Year, 1, 1);
     private DateTime? _toDate = DateTime.Today;
-    private bool _loading;
+    private bool _loading = true;
+    private bool _hasLoadedOnce;
+
+    private int _currentPage;
+    private int _pageSize = 25;
+    private int _totalPages = 1;
+
+    private string TotalDebitsText => _allEntries.Sum(e => e.DebitAmount).ToString("N2");
+    private string TotalCreditsText => _allEntries.Sum(e => e.CreditAmount).ToString("N2");
+    private string NetBalanceText => (_allEntries.Sum(e => e.DebitAmount) - _allEntries.Sum(e => e.CreditAmount)).ToString("N2");
 
     protected override async Task OnInitializedAsync()
     {
@@ -89,6 +133,7 @@
             _accounts = result.Items;
         }
         catch (Exception ex) { Snackbar.Add($"Error loading accounts: {ex.Message}", Severity.Error); }
+        await LoadLedger();
     }
 
     private async Task LoadLedger()
@@ -99,15 +144,103 @@
             var lines = await AccountingService.GetGeneralLedgerLines(_selectedAccountId, _fromDate, _toDate);
 
             decimal runningBalance = 0;
-            _entries = lines.Select(l =>
+            _allEntries = lines.Select(l =>
             {
                 runningBalance += l.Debit - l.Credit;
                 return new GeneralLedgerEntryDto(l.EntryDate, l.EntryNumber, l.AccountCode, l.AccountName, l.Description, l.Debit, l.Credit, runningBalance);
             }).ToList();
+
+            _hasLoadedOnce = true;
+            ApplyPage();
         }
         catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
         finally { _loading = false; }
     }
 
-    private record GeneralLedgerEntryDto(DateTime EntryDate, string JournalNumber, string AccountCode, string AccountName, string Description, decimal DebitAmount, decimal CreditAmount, decimal RunningBalance);
+    // Running balance is computed over the full filtered set before paging, so it stays
+    // continuous across pages; this only re-slices the loaded list.
+    private void ApplyPage()
+    {
+        _totalPages = Math.Max(1, (int)Math.Ceiling(_allEntries.Count / (double)_pageSize));
+        _currentPage = Math.Clamp(_currentPage, 0, _totalPages - 1);
+        _entries = _allEntries.Skip(_currentPage * _pageSize).Take(_pageSize).ToList();
+    }
+
+    private async Task OnAccountChanged(ChangeEventArgs e)
+    {
+        _selectedAccountId = ParseGuid(e.Value);
+        _currentPage = 0;
+        await LoadLedger();
+    }
+
+    private async Task OnFromChanged(ChangeEventArgs e)
+    {
+        _fromDate = ParseDate(e.Value);
+        _currentPage = 0;
+        await LoadLedger();
+    }
+
+    private async Task OnToChanged(ChangeEventArgs e)
+    {
+        _toDate = ParseDate(e.Value);
+        _currentPage = 0;
+        await LoadLedger();
+    }
+
+    private async Task ResetFilters()
+    {
+        _selectedAccountId = null;
+        _fromDate = new DateTime(DateTime.Today.Year, 1, 1);
+        _toDate = DateTime.Today;
+        _currentPage = 0;
+        await LoadLedger();
+    }
+
+    private static Guid? ParseGuid(object? value) =>
+        Guid.TryParse(value?.ToString(), out var g) && g != Guid.Empty ? g : null;
+
+    private static DateTime? ParseDate(object? value) =>
+        DateTime.TryParse(value?.ToString(), out var d) ? d : null;
+
+    private static string FormatDate(DateTime? d) => d?.ToString("yyyy-MM-dd") ?? "";
+
+    private Task GoToPage(int page)
+    {
+        _currentPage = Math.Clamp(page, 0, _totalPages - 1);
+        ApplyPage();
+        return Task.CompletedTask;
+    }
+
+    private Task GoPrevPage()
+    {
+        if (_currentPage > 0)
+        {
+            _currentPage--;
+            ApplyPage();
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task GoNextPage()
+    {
+        if (_currentPage < _totalPages - 1)
+        {
+            _currentPage++;
+            ApplyPage();
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            _pageSize = Math.Clamp(sz, 1, 100);
+            _currentPage = 0;
+            ApplyPage();
+        }
+        return Task.CompletedTask;
+    }
+
+    private record GeneralLedgerEntryDto(DateTime EntryDate, string JournalNumber, string AccountCode, string AccountName, string? Description, decimal DebitAmount, decimal CreditAmount, decimal RunningBalance);
 }
