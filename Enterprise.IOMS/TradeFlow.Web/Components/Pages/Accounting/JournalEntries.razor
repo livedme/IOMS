@@ -193,21 +193,30 @@
     private async Task OpenCreate()
     {
         var accounts = await AccountingService.GetChartOfAccounts();
-        var parameters = new DialogParameters<JournalEntryDialog> { { x => x.Accounts, accounts } };
-        var dialog = await DialogService.ShowAsync<JournalEntryDialog>("New Journal Entry", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
-        var result = await dialog.Result;
-        if (result != null && !result.Canceled && result.Data is CreateJournalEntryDto dto)
+        var parameters = new DialogParameters<JournalEntryDialog>
         {
-            try
-            {
-                await AccountingService.CreateJournalEntry(dto);
-                Snackbar.Add("Journal entry created", Severity.Success);
-                await LoadEntries();
-            }
-            catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        }
+            { x => x.Accounts, accounts },
+            { x => x.OnSubmit, EventCallback.Factory.Create<CreateJournalEntryDto>(this, HandleFormSubmit) },
+            { x => x.OnSubmitAndNew, EventCallback.Factory.Create<CreateJournalEntryDto>(this, HandleFormSubmit) },
+            { x => x.OnCancel, EventCallback.Factory.Create(this, CloseDialog) }
+        };
+        var dialog = await DialogService.ShowAsync<JournalEntryDialog>("New Journal Entry", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true, CloseOnEscapeKey = true });
+        await dialog.Result;
     }
+
+    private async Task HandleFormSubmit(CreateJournalEntryDto dto)
+    {
+        try
+        {
+            await AccountingService.CreateJournalEntry(dto);
+            Snackbar.Add("Journal entry created", Severity.Success);
+            await LoadEntries();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private Task CloseDialog() => Task.CompletedTask;
 
     private void OnSearchInput(ChangeEventArgs e)
     {

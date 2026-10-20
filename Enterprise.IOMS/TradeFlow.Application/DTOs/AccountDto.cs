@@ -24,4 +24,21 @@ namespace TradeFlow.Application.DTOs
         List<CreateJournalEntryLineDto> Lines);
 
     public record CreateJournalEntryLineDto(Guid AccountId, decimal Debit, decimal Credit, string? Description);
+
+    public class CreateJournalEntryDtoModels
+    {
+        public DateTime? EntryDate { get; set; } = DateTime.Today;
+        public string? Description { get; set; }
+        public JournalLineDtoModels LineObj { get; set; } = new JournalLineDtoModels();
+        public List<CreateJournalEntryLineDto> JournalLines { get; set; } = new List<CreateJournalEntryLineDto>();
+
+        public class JournalLineDtoModels
+        {
+            public ControlDto AccountDdlControl { get; set; } = new ControlDto();
+            public Guid AccountId { get; set; }
+            public string? Description { get; set; }
+            public decimal Debit { get; set; }
+            public decimal Credit { get; set; }
+        }
+    }
 }

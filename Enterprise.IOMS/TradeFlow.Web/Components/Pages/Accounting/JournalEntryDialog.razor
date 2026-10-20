@@ -1,104 +1,451 @@
 @using MudBlazor
 
-<MudDialog>
+<MudDialog Class="bg-dialog-sales">
     <DialogContent>
-        <MudDatePicker @bind-Date="_entryDate" Label="Entry Date" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        <MudTextField @bind-Value="_description" Label="Description" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"Class="mt-3" />
+        <div class="journal-entry-form">
+            <MudGrid>
+                <MudItem xs="12" sm="2">
+                    <MudDatePicker @bind-Date="dataModel.EntryDate" Label="Entry Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @ref="RefDescription" @bind-Value="dataModel.Description" Label="Description" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex align-center justify-end">
+                    @{ CalculateTotals(); }
+                    <MudText Typo="Typo.body2" Color="@(_isBalanced ? Color.Success : Color.Error)">
+                        Debits: @_totalDebit.ToString("N2") |
+                        Credits: @_totalCredit.ToString("N2")
+                        @(_isBalanced ? " ✓ Balanced" : " ✗ Imbalanced")
+                    </MudText>
+                </MudItem>
+            </MudGrid>
 
-        <MudText Typo="Typo.h6" Class="mt-4 mb-2">Lines</MudText>
+            <MudText Typo="Typo.h6" Class="my-0">Journal Lines</MudText>
 
-        <MudTable Items="@_lines" Dense="true" Elevation="0">
-            <HeaderContent>
-                <MudTh>Account</MudTh>
-                <MudTh>Description</MudTh>
-                <MudTh Style="text-align:right">Debit</MudTh>
-                <MudTh Style="text-align:right">Credit</MudTh>
-                <MudTh></MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@Accounts.FirstOrDefault(a => a.Id == context.AccountId)?.Name</MudTd>
-                <MudTd>@context.Description</MudTd>
-                <MudTd Style="text-align:right">@context.Debit.ToString("N2")</MudTd>
-                <MudTd Style="text-align:right">@context.Credit.ToString("N2")</MudTd>
-                <MudTd>
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                   OnClick="@(() => _lines.Remove(context))" />
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
-
-        <MudGrid Class="mt-3">
-            <MudItem xs="12" sm="3">
-                <MudSelect @bind-Value="_newAccountId" Label="Account" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
-                    @foreach (var account in Accounts)
+            <MudTable Items="@dataModel.JournalLines" Dense="true" Elevation="0" Class="product-item-list" FixedHeader="true" ContainerClass="border-bottom-0 mud-table-container">
+                <HeaderContent>
+                    <MudTh Style="width:auto;">Account</MudTh>
+                    <MudTh Style="width:auto;">Description</MudTh>
+                    <MudTh Style="width:130px;">Debit</MudTh>
+                    <MudTh Style="width:130px;">Credit</MudTh>
+                    <MudTh Class="pe-0" Style="width:150px;">Net</MudTh>
+                    <MudTh Style="width:70px;" class="text-end">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Primary" OnClick="AddNewItem" />
+                    </MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    @if (context.AccountId == Guid.Empty)
                     {
-                        <MudSelectItem Value="@account.Id">@account.Code - @account.Name</MudSelectItem>
+                        <MudTd Style="width:auto;">
+                            <MudAutocomplete T="ControlItemsDto"
+                                             @ref="dataModel.LineObj.AccountDdlControl.ControlRef"
+                                             Label=""
+                                             Required="true"
+                                             @key="dataModel.LineObj.AccountDdlControl.LastSelectedItem"
+                                             @bind-Value="dataModel.LineObj.AccountDdlControl.SelectedItem"
+                                             @bind-Text="dataModel.LineObj.AccountDdlControl.SelectedText"
+                                             @bind-Value:after="OnAccountChanged"
+                                             SearchFunc="SearchAccounts"
+                                             ToStringFunc="@(c => c?.Name ?? "")"
+                                             ResetValueOnEmptyText="true"
+                                             CoerceText="true"
+                                             Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudTd>
+                        <MudTd Style="width:auto;"><MudTextField @ref="RefLineDescription" @bind-Value="dataModel.LineObj.Description" Label="" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
+                        <MudTd Style="width:auto;"><MudNumericField @bind-Value="dataModel.LineObj.Debit" Min="0" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
+                        <MudTd Style="width:auto;"><MudNumericField @bind-Value="dataModel.LineObj.Credit" Min="0" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
+                        <MudTd Class="pe-0" Style="width:auto;">
+                            <MudNumericField Value="@((dataModel.LineObj.Debit - dataModel.LineObj.Credit))" Disabled="true" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudTd>
+                        <MudTd Style="width:auto;padding: 6px !important;" class="">
+                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Class="float-start" Color="Color.Primary" OnClick="AddItem" />
+                            <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Class="float-end" Color="Color.Secondary" OnClick="@(() => RemoveEditItem(context))" />
+                        </MudTd>
                     }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="3">
-                <MudTextField @bind-Value="_newLineDesc" Label="Desc" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-            <MudItem xs="12" sm="2">
-                <MudNumericField @bind-Value="_newDebit" Label="Debit" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-            <MudItem xs="12" sm="2">
-                <MudNumericField @bind-Value="_newCredit" Label="Credit" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            </MudItem>
-            <MudItem xs="12" sm="2">
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddLine" Class="mt-2">Add</MudButton>
-            </MudItem>
-        </MudGrid>
+                    else
+                    {
+                        var itemIndex = dataModel.JournalLines.IndexOf(context);
+                        @if (_editingItemIndex == itemIndex)
+                        {
+                            <MudTd Style="width:auto;">
+                                <MudAutocomplete T="ControlItemsDto"
+                                                 @ref="dataModel.LineObj.AccountDdlControl.ControlRef"
+                                                 Label=""
+                                                 Required="true"
+                                                 @key="dataModel.LineObj.AccountDdlControl.LastSelectedItem"
+                                                 @bind-Value="dataModel.LineObj.AccountDdlControl.SelectedItem"
+                                                 @bind-Text="dataModel.LineObj.AccountDdlControl.SelectedText"
+                                                 @bind-Value:after="OnEditAccountChanged"
+                                                 SearchFunc="SearchAccounts"
+                                                 ToStringFunc="@(c => c?.Name ?? "")"
+                                                 ResetValueOnEmptyText="true"
+                                                 CoerceText="true"
+                                                 Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudTd>
+                            <MudTd Style="width:auto;"><MudTextField @ref="RefLineDescription" @bind-Value="dataModel.LineObj.Description" Label="" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
+                            <MudTd Style="width:auto;"><MudNumericField @bind-Value="dataModel.LineObj.Debit" Min="0" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
+                            <MudTd Style="width:auto;"><MudNumericField @bind-Value="dataModel.LineObj.Credit" Min="0" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudTd>
+                            <MudTd Class="pe-0" Style="width:auto;">
+                                <MudNumericField Value="@((dataModel.LineObj.Debit - dataModel.LineObj.Credit))" Disabled="true" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudTd>
+                            <MudTd Style="width:auto;padding: 6px !important;" class="">
+                                <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Class="float-start" Color="Color.Primary" OnClick="@(() => SaveEditItem(itemIndex))" />
+                                <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Close" Size="Size.Small" Class="float-end" Color="Color.Secondary" OnClick="CancelEditItem" />
+                            </MudTd>
+                        }
+                        else
+                        {
+                            var account = Accounts.FirstOrDefault(a => a.Id == context.AccountId);
+                            <MudTd>@(account != null ? $"{account.Code} - {account.Name}" : "-")</MudTd>
+                            <MudTd>@(string.IsNullOrWhiteSpace(context.Description) ? "-" : context.Description)</MudTd>
+                            <MudTd Style="width:auto;">@(context.Debit > 0 ? context.Debit.ToString("N2") : "-")</MudTd>
+                            <MudTd Style="width:auto;">@(context.Credit > 0 ? context.Credit.ToString("N2") : "-")</MudTd>
+                            <MudTd Style="width:auto;">@((context.Debit - context.Credit).ToString("N2"))</MudTd>
+                            <MudTd Style="width:auto;" class="text-end d-inline-flex justify-content-between">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Info" OnClick="@(() => StartEditItem(itemIndex, context))" />
+                                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => dataModel.JournalLines.Remove(context))" />
+                            </MudTd>
+                        }
+                    }
+                </RowTemplate>
+            </MudTable>
 
-        <MudGrid Class="mt-3">
-            <MudItem xs="6">
-                <MudText Color="@(_isBalanced ? Color.Success : Color.Error)">
-                    Debits: @_lines.Sum(l => l.Debit).ToString("N2") |
-                    Credits: @_lines.Sum(l => l.Credit).ToString("N2")
-                    @(_isBalanced ? " ✓ Balanced" : " ✗ Imbalanced")
-                </MudText>
-            </MudItem>
-        </MudGrid>
+            <MudCard Class="mt-4">
+                <MudCardHeader Class="pb-0 pt-2">
+                    <MudText>Balance</MudText>
+                    <hr class="border-1" />
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudGrid Class="pt-0">
+                        <MudItem xs="3" Class="pe-2 pt-2">
+                            <MudNumericField Value="@_totalDebit" Disabled="true" Label="Total Debit" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        </MudItem>
+                        <MudItem xs="3" Class="pe-2 pt-2">
+                            <MudNumericField Value="@_totalCredit" Disabled="true" Label="Total Credit" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        </MudItem>
+                        <MudItem xs="3" Class="pe-2 pt-2">
+                            <MudNumericField Value="@_difference" Disabled="true" Label="Difference" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        </MudItem>
+                        <MudItem xs="3" Class="pe-2 pt-2">
+                            <MudTextField Value="@(_isBalanced ? "Balanced" : "Imbalanced")" Disabled="true" Label="Status" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+            <div class="d-flex gap-2 justify-end mt-4 pb-2">
+                <MudButton OnClick="Cancel">Cancel</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_isBalanced)">
+                    Post
+                </MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAndNew" Disabled="@(!_isBalanced)">
+                    Post & New
+                </MudButton>
+            </div>
+        </div>
     </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit"
-                   Disabled="@(!_isBalanced || !_lines.Any())">Post</MudButton>
-    </DialogActions>
 </MudDialog>
+
+
+@inject IDialogService DialogService
+@inject IAccountingService AccountingService
+@inject ISnackbar Snackbar
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public List<AccountDto> Accounts { get; set; } = new();
+    [Parameter] public CreateJournalEntryDtoModels dataModel { get; set; } = new CreateJournalEntryDtoModels();
+    [Parameter] public EventCallback<CreateJournalEntryDto> OnSubmit { get; set; }
+    [Parameter] public EventCallback<CreateJournalEntryDto> OnSubmitAndNew { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
 
-    private DateTime? _entryDate = DateTime.Today;
-    private string? _description;
-    private List<CreateJournalEntryLineDto> _lines = new();
+    private MudTextField<string>? RefDescription;
+    private MudTextField<string>? RefLineDescription;
 
-    private Guid _newAccountId;
-    private string? _newLineDesc;
-    private decimal _newDebit, _newCredit;
+    private static readonly ControlItemsDto AddNewAccountOption = new ControlItemsDto(){ Id = Guid.Empty, Name = "Add New" };
 
-    private bool _isBalanced => _lines.Any() &&
-        Math.Abs(_lines.Sum(l => l.Debit) - _lines.Sum(l => l.Credit)) < 0.01m;
+    private int _editingItemIndex = -1;
+
+    private decimal _totalDebit;
+    private decimal _totalCredit;
+    private decimal _difference;
+    private bool _isBalanced;
 
     protected override void OnInitialized()
     {
-        if (Accounts.Count > 0) _newAccountId = Accounts.First().Id;
+        if (dataModel.LineObj.AccountDdlControl.SelectedItem == null && Accounts.Count > 0)
+        {
+            var first = Accounts.First();
+            dataModel.LineObj.AccountDdlControl.SelectedItem = new ControlItemsDto(){ Id = first.Id, Name = $"{first.Code} - {first.Name}", IsSelected = false };
+            dataModel.LineObj.AccountDdlControl.SelectedText = $"{first.Code} - {first.Name}";
+            dataModel.LineObj.AccountDdlControl.LastSelectedItem = dataModel.LineObj.AccountDdlControl.SelectedItem;
+        }
     }
 
-    private void AddLine()
+    private async Task OnAccountChanged()
     {
-        if (_newAccountId == Guid.Empty || (_newDebit == 0 && _newCredit == 0)) return;
-        _lines.Add(new CreateJournalEntryLineDto(_newAccountId, _newDebit, _newCredit, _newLineDesc));
-        _newDebit = 0; _newCredit = 0; _newLineDesc = null;
+        var acc = dataModel.LineObj.AccountDdlControl.SelectedItem;
+
+        if (acc?.Id == Guid.Empty)
+        {
+            var previousAccount = dataModel.LineObj.AccountDdlControl.SelectedItem;
+            var dialog = await DialogService.ShowAsync<AccountDialog>("New Account",
+                new DialogParameters<AccountDialog>(),
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+            var result = await dialog.Result;
+
+            await dataModel.LineObj.AccountDdlControl.ControlRef.ResetAsync();
+
+            if (result != null && !result.Canceled && result.Data is CreateAccountDto dto)
+            {
+                var newAccountId = await AccountingService.CreateAccount(dto);
+                Snackbar.Add("Account created successfully", Severity.Success);
+
+                Accounts = await AccountingService.GetChartOfAccounts();
+
+                acc = new ControlItemsDto(){ Id = newAccountId, Name = $"{dto.Code} - {dto.Name}" };
+
+                dataModel.LineObj.AccountId = newAccountId;
+                await UpdateControlSelection(dataModel.LineObj.AccountDdlControl, acc);
+
+                StateHasChanged();
+            }
+            else
+            {
+                await UpdateControlSelection(dataModel.LineObj.AccountDdlControl, previousAccount);
+
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            dataModel.LineObj.AccountId = acc != null ? (Guid)acc.Id : Guid.Empty;
+            await UpdateControlSelection(dataModel.LineObj.AccountDdlControl, acc);
+        }
+
+        if (RefLineDescription is not null)
+        {
+            await RefLineDescription.FocusAsync();
+        }
     }
 
-    private void Cancel() => MudDialog.Cancel();
-
-    private void Submit()
+    private async Task UpdateControlSelection(ControlDto control, ControlItemsDto? selectedItem)
     {
-        var dto = new CreateJournalEntryDto(_entryDate ?? DateTime.Today, _description, _lines);
+        if (selectedItem != null)
+        {
+            control.SelectedItem = selectedItem;
+            control.LastSelectedItem = selectedItem;
+            control.SelectedText = selectedItem.Name ?? selectedItem.Text1;
+            control.SelectedIndex++;
+        }
+    }
+
+    private Task<IEnumerable<ControlItemsDto>> SearchAccounts(string text, CancellationToken _)
+    {
+        IEnumerable<ControlItemsDto> baseResults;
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            baseResults = Accounts.Where(a => a.IsActive).Select(a => new ControlItemsDto(){ Id = a.Id, Name = $"{a.Code} - {a.Name}", IsSelected = false });
+        }
+        else
+        {
+            baseResults = Accounts.Where(a =>
+                a.IsActive &&
+                (a.Name.Contains(text, StringComparison.OrdinalIgnoreCase) ||
+                 a.Code.Contains(text, StringComparison.OrdinalIgnoreCase)))
+                .Select(a => new ControlItemsDto(){ Id = a.Id, Name = $"{a.Code} - {a.Name}", IsSelected = false });
+        }
+
+        var results = baseResults.Append(AddNewAccountOption).DistinctBy(c => c.Id);
+
+        return Task.FromResult(results);
+    }
+
+    private async Task StartEditItem(int index, CreateJournalEntryLineDto line)
+    {
+        if (dataModel.JournalLines.Any(x => x.AccountId == Guid.Empty)) return;
+
+        _editingItemIndex = index;
+        var account = Accounts.FirstOrDefault(a => a.Id == line.AccountId);
+        dataModel.LineObj.AccountId = line.AccountId;
+        dataModel.LineObj.AccountDdlControl.SelectedItem = account != default
+            ? new ControlItemsDto(){ Id = account.Id, Name = $"{account.Code} - {account.Name}", IsSelected = false }
+            : new ControlItemsDto(){ Id = Guid.Empty, Name = "", IsSelected = false };
+        dataModel.LineObj.Description = line.Description;
+        dataModel.LineObj.Debit = line.Debit;
+        dataModel.LineObj.Credit = line.Credit;
+
+        await UpdateControlSelection(dataModel.LineObj.AccountDdlControl, dataModel.LineObj.AccountDdlControl.SelectedItem);
+    }
+
+    private async Task SaveEditItem(int index)
+    {
+        if (dataModel.LineObj.AccountId == Guid.Empty) return;
+        if (dataModel.LineObj.Debit < 0 || dataModel.LineObj.Credit < 0) return;
+        if ((dataModel.LineObj.Debit > 0 && dataModel.LineObj.Credit > 0) ||
+            (dataModel.LineObj.Debit == 0 && dataModel.LineObj.Credit == 0)) return;
+
+        var updated = new CreateJournalEntryLineDto(
+            dataModel.LineObj.AccountId,
+            dataModel.LineObj.Debit,
+            dataModel.LineObj.Credit,
+            dataModel.LineObj.Description);
+
+        dataModel.JournalLines[index] = updated;
+        _editingItemIndex = -1;
+        CalculateTotals();
+    }
+
+    private async Task CancelEditItem()
+    {
+        _editingItemIndex = -1;
+
+        if (RefDescription is not null)
+        {
+            await RefDescription.FocusAsync();
+        }
+    }
+
+    private async Task RemoveEditItem(CreateJournalEntryLineDto item)
+    {
+        dataModel.JournalLines.Remove(item);
+        CalculateTotals();
+        if (RefDescription is not null)
+        {
+            await RefDescription.FocusAsync();
+        }
+    }
+
+    private async Task OnEditAccountChanged()
+    {
+        var acc = dataModel.LineObj.AccountDdlControl.SelectedItem;
+        if (acc == null) return;
+
+        dataModel.LineObj.AccountId = (Guid)acc.Id;
+        dataModel.LineObj.AccountDdlControl.LastSelectedItem = acc;
+        dataModel.LineObj.AccountDdlControl.SelectedText = acc?.Name;
+
+        if (RefLineDescription is not null)
+        {
+            await RefLineDescription.FocusAsync();
+        }
+    }
+
+    private async Task FocusAccountBox()
+    {
+        await Task.Delay(100);
+        if (dataModel.LineObj.AccountDdlControl.ControlRef is not null)
+        {
+            await dataModel.LineObj.AccountDdlControl.ControlRef.ResetAsync();
+            await dataModel.LineObj.AccountDdlControl.ControlRef.FocusAsync();
+        }
+    }
+
+    private async Task AddNewItem()
+    {
+        var item = dataModel.JournalLines.Where(x => x.AccountId == Guid.Empty).FirstOrDefault();
+        if (item != null) return;
+        if (_editingItemIndex >= 0) return;
+
+        dataModel.LineObj.AccountDdlControl.LastSelectedItem = null;
+        dataModel.LineObj.AccountDdlControl.SelectedText = "";
+        dataModel.LineObj.AccountDdlControl.SelectedItem = new ControlItemsDto(){ Id = Guid.Empty, Name = "", IsSelected = false };
+        dataModel.LineObj.AccountId = Guid.Empty;
+        dataModel.LineObj.Description = null;
+        dataModel.LineObj.Debit = 0;
+        dataModel.LineObj.Credit = 0;
+
+        dataModel.JournalLines.Insert(0, new CreateJournalEntryLineDto(Guid.Empty, 0, 0, null));
+
+        await FocusAccountBox();
+    }
+
+    private async Task AddItem()
+    {
+        var selected = dataModel.LineObj.AccountDdlControl.SelectedItem;
+        if (selected == null || selected.Id == Guid.Empty) return;
+        if (dataModel.LineObj.Debit < 0 || dataModel.LineObj.Credit < 0) return;
+        if ((dataModel.LineObj.Debit > 0 && dataModel.LineObj.Credit > 0) ||
+            (dataModel.LineObj.Debit == 0 && dataModel.LineObj.Credit == 0)) return;
+
+        dataModel.JournalLines.Insert(dataModel.JournalLines.Count, new CreateJournalEntryLineDto((Guid)selected.Id, dataModel.LineObj.Debit, dataModel.LineObj.Credit, dataModel.LineObj.Description));
+        dataModel.LineObj.AccountId = Guid.Empty;
+        dataModel.LineObj.Description = null;
+        dataModel.LineObj.Debit = 0;
+        dataModel.LineObj.Credit = 0;
+        CalculateTotals();
+
+        if (Accounts.Count > 0)
+        {
+            var first = Accounts.First();
+            dataModel.LineObj.AccountDdlControl.SelectedItem = new ControlItemsDto(){ Id = first.Id, Name = $"{first.Code} - {first.Name}", IsSelected = false };
+            dataModel.LineObj.AccountDdlControl.SelectedText = $"{first.Code} - {first.Name}";
+        }
+
+        await FocusAccountBox();
+    }
+
+    private void CalculateTotals()
+    {
+        var committed = dataModel.JournalLines.Where(l => l.AccountId != Guid.Empty).ToList();
+        _totalDebit = committed.Sum(l => l.Debit);
+        _totalCredit = committed.Sum(l => l.Credit);
+        _difference = _totalDebit - _totalCredit;
+        _isBalanced = committed.Any() && Math.Abs(_difference) < 0.01m;
+    }
+
+    private void ResetForm()
+    {
+        dataModel.Description = null;
+        dataModel.JournalLines = new List<CreateJournalEntryLineDto>();
+        _editingItemIndex = -1;
+        dataModel.LineObj.AccountId = Guid.Empty;
+        dataModel.LineObj.Description = null;
+        dataModel.LineObj.Debit = 0;
+        dataModel.LineObj.Credit = 0;
+        dataModel.LineObj.AccountDdlControl.LastSelectedItem = null;
+        dataModel.LineObj.AccountDdlControl.SelectedText = "";
+
+        if (Accounts.Count > 0)
+        {
+            var first = Accounts.First();
+            dataModel.LineObj.AccountDdlControl.SelectedItem = new ControlItemsDto(){ Id = first.Id, Name = $"{first.Code} - {first.Name}", IsSelected = false };
+            dataModel.LineObj.AccountDdlControl.SelectedText = $"{first.Code} - {first.Name}";
+        }
+
+        CalculateTotals();
+    }
+
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+        MudDialog.Cancel();
+    }
+
+    private async Task Submit()
+    {
+        CalculateTotals();
+        if (!_isBalanced) return;
+
+        var dto = new CreateJournalEntryDto(dataModel.EntryDate ?? DateTime.Today, dataModel.Description,
+            dataModel.JournalLines.Where(l => l.AccountId != Guid.Empty).ToList());
+        await OnSubmit.InvokeAsync(dto);
         MudDialog.Close(DialogResult.Ok(dto));
+    }
+
+    private async Task SubmitAndNew()
+    {
+        CalculateTotals();
+        if (!_isBalanced) return;
+
+        var dto = new CreateJournalEntryDto(dataModel.EntryDate ?? DateTime.Today, dataModel.Description,
+            dataModel.JournalLines.Where(l => l.AccountId != Guid.Empty).ToList());
+        await OnSubmitAndNew.InvokeAsync(dto);
+        ResetForm();
+
+        if (RefDescription is not null)
+        {
+            await RefDescription.FocusAsync();
+        }
     }
 }

@@ -1,0 +1,206 @@
+@inject IInvoiceService InvoiceService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject IPrintDocumentRenderer PrintRenderer
+
+@if (_open)
+{
+    <div class="so-backdrop" @onclick="Close"></div>
+
+    <div class="so-side-panel @(_animateIn ? "so-panel-open" : "")">
+
+        <!-- Header -->
+        <div class="so-header">
+            <div class="d-flex align-items-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Primary" />
+                <div>
+                    <div class="so-header-title">Invoice</div>
+                    @if (_invoice != null)
+                    {
+                        <div class="so-header-sub">@_invoice.InvoiceNumber</div>
+                    }
+                </div>
+                @if (_invoice != null)
+                {
+                    <MudChip T="string" Color="@GetInvoiceStatusColor(_invoice.Status)" Size="Size.Small" Class="ms-1">
+                        @_invoice.Status</MudChip>
+                }
+            </div>
+            <div class="d-flex gap-1">
+                <MudTooltip Text="Close panel">
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Close" />
+                </MudTooltip>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="so-body">
+            @if (_loading)
+            {
+                <div class="d-flex justify-center align-center" style="height:200px;">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+            else if (_invoice != null)
+            {
+                <!-- Reference block -->
+                <div class="so-ref-block mb-3">
+                    <div class="d-flex justify-space-between">
+                        <div>
+                            <div class="so-lbl">Invoice Number</div>
+                            <div class="so-val-lg">@_invoice.InvoiceNumber</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="so-lbl">Invoice Date</div>
+                            <div class="so-val fw-semibold">@_invoice.InvoiceDate.ToString("dd MMM yyyy")</div>
+                            <div class="so-sm">Due <span class="@(_invoice.DueDate < DateTime.Today && _invoice.Status != InvoiceStatus.Paid && _invoice.Status != InvoiceStatus.Cancelled ? "text-danger fw-semibold" : "")">@_invoice.DueDate.ToString("dd MMM yyyy")</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Party -->
+                <MudGrid Spacing="2" Class="mb-3">
+                    <MudItem xs="12">
+                        <div class="so-info-card">
+                            <div class="so-info-icon">
+                                <MudIcon Icon="@(_invoice.InvoiceType == InvoiceType.Sales ? Icons.Material.Filled.Person : Icons.Material.Filled.Business)" Size="Size.Small" Style="color:#fff;" />
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="so-lbl">@(_invoice.InvoiceType == InvoiceType.Sales ? "Customer" : "Supplier")</div>
+                                <div class="so-val fw-bold text-truncate">@(_invoice.CustomerName ?? _invoice.SupplierName ?? "—")</div>
+                            </div>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Charges -->
+                <div class="so-section-lbl mb-2">Summary</div>
+                <div class="so-totals-box mb-3">
+                    <div class="so-total-row">
+                        <span>Subtotal</span>
+                        <span>@_invoice.SubTotal.ToString("C")</span>
+                    </div>
+                    @if (_invoice.TaxAmount > 0)
+                    {
+                        <div class="so-total-row">
+                            <span>Tax</span>
+                            <span>@_invoice.TaxAmount.ToString("C")</span>
+                        </div>
+                    }
+                    <div class="so-total-row so-grand-total">
+                        <span>TOTAL</span>
+                        <span>@_invoice.TotalAmount.ToString("C")</span>
+                    </div>
+                    <div class="so-total-row">
+                        <span>Paid</span>
+                        <span class="text-success">@_invoice.PaidAmount.ToString("C")</span>
+                    </div>
+                    <div class="so-total-row @(_invoice.BalanceDue > 0 ? "so-due-row" : "")">
+                        <span>Balance Due</span>
+                        <span>@_invoice.BalanceDue.ToString("C")</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        @if (_invoice != null)
+        {
+            <div class="so-footer">
+                <MudButton Variant="Variant.Text" OnClick="Close" Size="Size.Small">Close</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Print"
+                           OnClick="PrintDoc">Print</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Download"
+                           OnClick="DownloadPdf">Download PDF</MudButton>
+                @* <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.OpenInNew"
+                           Href="@($"/print/invoice/{_invoice.Id}")" Target="_blank">Open in New Tab</MudButton> *@
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _open;
+    private bool _animateIn;
+    private bool _loading;
+    private InvoiceDto? _invoice;
+
+    private Color GetInvoiceStatusColor(InvoiceStatus status) => status switch
+    {
+        InvoiceStatus.Paid => Color.Success,
+        InvoiceStatus.PartiallyPaid => Color.Warning,
+        InvoiceStatus.Sent => Color.Info,
+        InvoiceStatus.Draft => Color.Default,
+        InvoiceStatus.Overdue => Color.Error,
+        InvoiceStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+
+    private async Task DownloadPdf()
+    {
+        if (_invoice is null) return;
+        try
+        {
+            var doc = await PrintRenderer.RenderInvoiceAsync(_invoice);
+            await JS.InvokeVoidAsync("downloadFile", doc.Html, doc.FileName + ".pdf", doc.Title, doc.Reference);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Could not generate the PDF: " + ex.Message);
+        }
+    }
+
+    private async Task PrintDoc()
+    {
+        if (_invoice is null) return;
+        try
+        {
+            var doc = await PrintRenderer.RenderInvoiceAsync(_invoice);
+            await JS.InvokeVoidAsync("printHtml", doc.Html, doc.Title, doc.Reference);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Could not print the document: " + ex.Message);
+        }
+    }
+
+    public async Task OpenAsync(Guid id)
+    {
+        _open = true;
+        _loading = true;
+        _animateIn = false;
+        _invoice = null;
+        StateHasChanged();
+
+        await Task.Delay(20);
+        _animateIn = true;
+        StateHasChanged();
+
+        try
+        {
+            _invoice = await InvoiceService.GetInvoiceByIdAsync(id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        _open = false;
+        _animateIn = false;
+        _invoice = null;
+        StateHasChanged();
+    }
+}
