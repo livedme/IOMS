@@ -175,5 +175,14 @@ namespace TradeFlow.Web.Utility
             true => "Active",
             false => "In-active"
         };
+        public static string GetTypePill(AccountType t) => t switch
+        {
+            AccountType.Asset => "tm-pill tm-pill-teal",
+            AccountType.Liability => "tm-pill tm-pill-red",
+            AccountType.Equity => "tm-pill tm-pill-purple",
+            AccountType.Revenue => "tm-pill tm-pill-green",
+            AccountType.Expense => "tm-pill tm-pill-amber",
+            _ => "tm-pill tm-pill-blue"
+        };
     }
 }

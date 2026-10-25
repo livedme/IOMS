@@ -1,4 +1,5 @@
 @page "/accounting/accounts"
+@using TradeFlow.Shared.Helpers
 @rendermode InteractiveServer
 @attribute [Authorize]
 @inject IAccountingService AccountingService
@@ -70,7 +71,7 @@
                             <tr>
                                 <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🔢</span>@a.Code</span></td>
                                 <td class="tm-branch">@a.Name</td>
-                                <td><span class="@GetTypePill(a.AccountType)"><span class="tm-dot"></span>@a.AccountType</span></td>
+                                <td><span class="@CommonUtility.GetTypePill(a.AccountType)"><span class="tm-dot"></span>@a.AccountType</span></td>
                                 <td class="tm-dim">@(string.IsNullOrWhiteSpace(a.ParentAccountName) ? "-" : a.ParentAccountName)</td>
                                 <td style="text-align:right" class="tm-money">@a.Balance.ToString("N0")</td>
                                 <td>
@@ -143,10 +144,17 @@
 
     private async Task OpenCreate()
     {
-        var dialog = await DialogService.ShowAsync<AccountDialog>("New Account",
+        var parameters = new DialogParameters<AccountDialog>
+        {
+            { x => x.dataModel, new AccountModelDto(){
+                Code = NumberGenerator.GenerateAccountCode()                
+            } }
+        };
+       
+        var dialog = await DialogService.ShowAsync<AccountDialog>("New Account", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
-        if (result != null && !result.Canceled && result.Data is CreateAccountDto dto)
+        if (result != null && !result.Canceled && result.Data is AccountModelDto dto)
         {
             try
             {
@@ -157,6 +165,7 @@
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
     }
+    
 
     private void OnSearchInput(ChangeEventArgs e)
     {
@@ -207,14 +216,4 @@
             _page = 1;
         }
     }
-
-    private static string GetTypePill(AccountType t) => t switch
-    {
-        AccountType.Asset => "tm-pill tm-pill-teal",
-        AccountType.Liability => "tm-pill tm-pill-red",
-        AccountType.Equity => "tm-pill tm-pill-purple",
-        AccountType.Revenue => "tm-pill tm-pill-green",
-        AccountType.Expense => "tm-pill tm-pill-amber",
-        _ => "tm-pill tm-pill-blue"
-    };
 }

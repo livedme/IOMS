@@ -15,7 +15,7 @@ public interface IAccountingService
     Task<PagedResult<JournalEntryDto>> GetJournalEntries(string? search, int page, int pageSize);
     Task<PagedResult<AccountDto>> GetAccounts(string? search, AccountType? type, int page, int pageSize);
     Task<List<AccountDto>> GetChartOfAccounts();
-    Task<Guid> CreateAccount(CreateAccountDto dto);
+    Task<Guid> CreateAccount(AccountModelDto dto);
     Task RecordPayment(CreatePaymentDto dto);
     Task RecordPayment(RecordPaymentDto dto);
     Task<List<AgingReportDto>> GetArAging();

@@ -6,13 +6,31 @@ using TradeFlow.Domain.Enums;
 namespace TradeFlow.Application.DTOs
 {
 
+    public class AccountModelDto
+    {
+        public string Code { get; set; }
+        public string Name { get; set; }
+        public AccountType AccountType { get; set; }
+        public Guid? ParentAccountId { get; set; }
+        public string? Description { get; set; }
+
+        //public AccountModelDto(string Code, string Name, AccountType AccountType, Guid? ParentAccountId, string? Description)
+        //{
+        //    this.Code = Code;
+        //    this.Name = Name;
+        //    this.AccountType = AccountType;
+        //    this.ParentAccountId = ParentAccountId;
+        //    this.Description = Description;
+        //}
+    }
+
     // Accounting
     public record AccountDto(Guid Id, string Code, string Name, AccountType AccountType,
         Guid? ParentAccountId, string? ParentAccountName, bool IsActive, bool IsSystemAccount,
         string? Description, decimal Balance);
 
-    public record CreateAccountDto(string Code, string Name, AccountType AccountType,
-        Guid? ParentAccountId, string? Description);
+    //public record CreateAccountDto(string Code, string Name, AccountType AccountType,
+    //    Guid? ParentAccountId, string? Description);
 
     public record JournalEntryDto(Guid Id, string Reference, DateTime EntryDate, string? Description,
         bool IsAutoPosted, bool IsReversed, List<JournalEntryLineDto> Lines);

@@ -133,13 +133,16 @@
                 </MudCardContent>
             </MudCard>
             <div class="d-flex gap-2 justify-end mt-4 pb-2">
-                <MudButton OnClick="Cancel">Cancel</MudButton>
-                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_isBalanced)">
+                <MudButton @ref="CancleButtonRef" OnClick="Cancel">Cancel</MudButton>
+               @*  <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_isBalanced)">
                     Post
                 </MudButton>
                 <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAndNew" Disabled="@(!_isBalanced)">
                     Post & New
-                </MudButton>
+                </MudButton> *@
+
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Post</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAndNew">Post & New</MudButton>
             </div>
         </div>
     </DialogContent>
@@ -160,6 +163,7 @@
 
     private MudTextField<string>? RefDescription;
     private MudTextField<string>? RefLineDescription;
+    private MudButton? CancleButtonRef;
 
     private static readonly ControlItemsDto AddNewAccountOption = new ControlItemsDto(){ Id = Guid.Empty, Name = "Add New" };
 
@@ -195,7 +199,7 @@
 
             await dataModel.LineObj.AccountDdlControl.ControlRef.ResetAsync();
 
-            if (result != null && !result.Canceled && result.Data is CreateAccountDto dto)
+            if (result != null && !result.Canceled && result.Data is AccountModelDto dto)
             {
                 var newAccountId = await AccountingService.CreateAccount(dto);
                 Snackbar.Add("Account created successfully", Severity.Success);
@@ -300,9 +304,9 @@
     {
         _editingItemIndex = -1;
 
-        if (RefDescription is not null)
+        if (CancleButtonRef is not null)
         {
-            await RefDescription.FocusAsync();
+            await CancleButtonRef.FocusAsync();
         }
     }
 
@@ -310,9 +314,9 @@
     {
         dataModel.JournalLines.Remove(item);
         CalculateTotals();
-        if (RefDescription is not null)
+        if (CancleButtonRef is not null)
         {
-            await RefDescription.FocusAsync();
+            await CancleButtonRef.FocusAsync();
         }
     }
 

@@ -31,6 +31,9 @@ public static class NumberGenerator
     public static string GenerateJournalReference()
         => $"JE-{DateTime.UtcNow:yyMMdd}{_random.Next(10, 999999)}";
 
+    public static string GenerateAccountCode()
+      => $"AC-{DateTime.UtcNow:yyMMdd}{_random.Next(10, 999999)}";
+
     public static string GenerateCode(string prefix) => $"{prefix}-{DateTime.UtcNow:yyMMdd}{_random.Next(10, 999999)}";//$"{prefix}-{DateTime.UtcNow:yyMMdd}{Guid.NewGuid().ToString()[..8].ToUpperInvariant()}";
 
 }

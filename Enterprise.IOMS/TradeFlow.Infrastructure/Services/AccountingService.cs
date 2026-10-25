@@ -290,7 +290,7 @@ public class AccountingService : IAccountingService
         return dtos;
     }
 
-    public async Task<Guid> CreateAccount(CreateAccountDto dto)
+    public async Task<Guid> CreateAccount(AccountModelDto dto)
     {
         await using var _context = await _dbFactory.CreateDbContextAsync();
 

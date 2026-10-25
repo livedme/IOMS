@@ -1,30 +1,39 @@
 @using MudBlazor
-@using TradeFlow.Web.Components.Shared
 <MudDialog>
     <DialogContent>
-        <MudTextField @bind-Value="_code" Label="Account Code" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        <MudTextField @bind-Value="_name" Label="Account Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        <MudSelect @bind-Value="_type" Label="Account Type" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
-            @foreach (var type in Enum.GetValues<AccountType>())
-            {
-                <MudSelectItem Value="@type">@type</MudSelectItem>
-            }
-        </MudSelect>
-        <RichTextField @bind-Value="_description" Label="Description" Lines="2" Class="mt-3" />
+        <MudForm @ref="_form" Class="gap-3">
+            <MudTextField @bind-Value="dataModel.Code" Disabled="true" Label="Account Code" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudTextField @bind-Value="dataModel.Name" Label="Account Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudSelect @bind-Value="dataModel.AccountType" Label="Account Type" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var type in Enum.GetValues<AccountType>())
+                {
+                    <MudSelectItem Value="@type">@type</MudSelectItem>
+                }
+            </MudSelect>
+            <RichTextField @bind-Value="dataModel.Description" Label="Description" Lines="2" Class="mt-3" />
+
+        </MudForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
     </DialogActions>
 </MudDialog>
-
 @code {
-    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter]
+    public AccountModelDto dataModel { get; set; } = new();
 
-    private string _code = "", _name = "";
-    private string? _description;
-    private AccountType _type = AccountType.Asset;
+    private MudForm _form = default!;
 
-    private void Cancel() => MudDialog.Cancel();
-    private void Submit() => MudDialog.Close(DialogResult.Ok(new CreateAccountDto(_code, _name, _type, null, _description)));
+    private async Task Cancel() => MudDialog.Cancel();
+    private async Task Submit()
+    {
+        await _form.ValidateAsync();
+
+        if (!_form.IsValid)
+            return;
+        MudDialog.Close(DialogResult.Ok(dataModel));
+    }
 }
