@@ -5,73 +5,145 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<PageTitle>Debit Notes</PageTitle>
-<MudText Typo="Typo.h4" Class="mb-4">Debit Notes</MudText>
+<PageTitle>Debit Notes - IOMS</PageTitle>
 
-<MudPaper Class="pa-4 mb-4">
-    <MudGrid>
-        <MudItem xs="12" sm="8">
-            <MudTextField @bind-Value="_search" Label="Search" Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                          OnKeyUp="@(async _ => await LoadData())" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-        </MudItem>
-        <MudItem xs="12" sm="4" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       OnClick="CreateNote" StartIcon="@Icons.Material.Filled.Add">New Debit Note</MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+<div class="tm-page">
+    <TmPageHeader Icon="🧾" Title="Debit Notes" Subtitle="Issue charges against supplier invoices">
+        <Actions>
+            <button class="tm-reset" @onclick="Load">⟳ Refresh</button>
+            <button class="tm-add-btn" @onclick="CreateNote">+ New Debit Note</button>
+        </Actions>
+    </TmPageHeader>
 
-<MudTable Items="_notes" Hover="true" Striped="true" Loading="_loading">
-    <HeaderContent>
-        <MudTh>Debit Note #</MudTh>
-        <MudTh>Invoice #</MudTh>
-        <MudTh>Date</MudTh>
-        <MudTh>Amount</MudTh>
-        <MudTh>Reason</MudTh>
-        <MudTh>Status</MudTh>
-        <MudTh>Actions</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="Debit Note #">@context.DebitNoteNumber</MudTd>
-        <MudTd DataLabel="Invoice #">@context.InvoiceNumber</MudTd>
-        <MudTd DataLabel="Date">@context.Date.ToShortDateString()</MudTd>
-        <MudTd DataLabel="Amount">@context.Amount.ToString("C")</MudTd>
-        <MudTd DataLabel="Reason">@context.Reason</MudTd>
-        <MudTd DataLabel="Status">
-            <MudChip T="string" Color="@(context.Status == DebitNoteStatus.Approved ? Color.Success : context.Status == DebitNoteStatus.Draft ? Color.Default : Color.Info)" Size="Size.Small">
-                @context.Status
-            </MudChip>
-        </MudTd>
-        <MudTd DataLabel="Actions">
-            @if (context.Status == DebitNoteStatus.Draft)
-            {
-                <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small"
-                               OnClick="@(() => ApproveNote(context.Id))" Title="Approve" />
-            }
-        </MudTd>
-    </RowTemplate>
-</MudTable>
+    <div class="tm-stats">
+        <TmStatTile Icon="🧾" Number="@_notes.Count" Label="Debit Notes" Tone="blue" />
+        <TmStatTile Icon="📝" Number="@DraftCount" Label="Draft" Tone="amber" OnClick="@(() => PickStatus(DebitNoteStatus.Draft))" />
+        <TmStatTile Icon="✅" Number="@ApprovedCount" Label="Approved" Tone="green" OnClick="@(() => PickStatus(DebitNoteStatus.Approved))" />
+        <TmStatTile Icon="🔁" Number="@AppliedCount" Label="Applied" Tone="purple" OnClick="@(() => PickStatus(DebitNoteStatus.Applied))" />
+        <TmStatTile Icon="🚫" Number="@CancelledCount" Label="Cancelled" Tone="red" OnClick="@(() => PickStatus(DebitNoteStatus.Cancelled))" />
+        <TmStatTile Icon="💵" Number="@TotalAmount" Label="Total Debit Amount" Tone="teal" />
+    </div>
 
-<MudPagination Class="mt-4" Count="_totalPages" SelectedChanged="OnPageChanged" Selected="_page" />
+    <div class="tm-card tm-filters">
+        <div class="tm-search">
+            <span>🔍</span>
+            <input placeholder="Search by debit note number, invoice number or reason..." value="@_search" @oninput="OnSearchInput" />
+        </div>
+        <div class="tm-select">
+            <select @onchange="OnStatusChanged">
+                <option value="" selected="@(_statusFilter == null)">All Statuses</option>
+                @foreach (DebitNoteStatus s in Enum.GetValues<DebitNoteStatus>())
+                {
+                    <option value="@s" selected="@(_statusFilter == s)">@s</option>
+                }
+            </select>
+        </div>
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <div class="tm-card tm-table-card">
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:1000px">
+                <thead>
+                    <tr>
+                        <th>🧾 Debit Note #</th>
+                        <th>Invoice #</th>
+                        <th>📅 Date</th>
+                        <th>Status</th>
+                        <th style="text-align:right">Amount</th>
+                        <th>Reason</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
+                    {
+                        <tr><td colspan="7"><TmLoading Message="Loading debit notes..." /></td></tr>
+                    }
+                    else if (Paged.Count == 0)
+                    {
+                        <tr><td colspan="7"><div class="tm-loading">No debit notes found</div></td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var n in Paged)
+                        {
+                            <tr>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🧾</span>@n.DebitNoteNumber</span></td>
+                                <td class="tm-dim">@n.InvoiceNumber</td>
+                                <td class="tm-dim">@n.Date.ToString("dd MMM yyyy")</td>
+                                <td><span class="@StatusPill(n.Status)"><span class="tm-dot"></span>@n.Status</span></td>
+                                <td style="text-align:right" class="tm-money">@n.Amount.ToString("N2")</td>
+                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(n.Reason) ? "-" : n.Reason)</td>
+                                <td>
+                                    @if (n.Status == DebitNoteStatus.Draft)
+                                    {
+                                        <button class="tm-reset" @onclick="@(async () => await ApproveNote(n.Id))" title="Approve">Approve</button>
+                                    }
+                                    else
+                                    {
+                                        <span class="tm-dim">-</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <TmPager CurrentPage="@(_page - 1)"
+                  PageSize="_pageSize"
+                  TotalCount="@Filtered.Count"
+                  TotalPages="@PageTotal"
+                  ItemLabel="Debit Notes"
+                  OnGoToPage="GoToPage"
+                  OnPrev="GoPrevPage"
+                  OnNext="GoNextPage"
+                  OnPageSizeChanged="OnPageSizeChanged" />
+    </div>
+</div>
 
 @code {
     private List<DebitNoteDto> _notes = new();
-    private string? _search;
+    private bool _loading = true;
+    private string _search = "";
+    private DebitNoteStatus? _statusFilter;
     private int _page = 1;
-    private int _totalPages = 1;
-    private bool _loading;
+    private int _pageSize = 10;
 
-    protected override async Task OnInitializedAsync() => await LoadData();
+    private int DraftCount => _notes.Count(n => n.Status == DebitNoteStatus.Draft);
+    private int ApprovedCount => _notes.Count(n => n.Status == DebitNoteStatus.Approved);
+    private int AppliedCount => _notes.Count(n => n.Status == DebitNoteStatus.Applied);
+    private int CancelledCount => _notes.Count(n => n.Status == DebitNoteStatus.Cancelled);
+    private string TotalAmount => _notes.Sum(n => n.Amount).ToString("N2");
 
-    private async Task LoadData()
+    private static string StatusPill(DebitNoteStatus s) => s switch
+    {
+        DebitNoteStatus.Draft => "tm-pill tm-pill-amber",
+        DebitNoteStatus.Approved => "tm-pill tm-pill-green",
+        DebitNoteStatus.Applied => "tm-pill tm-pill-blue",
+        DebitNoteStatus.Cancelled => "tm-pill tm-pill-red",
+        _ => "tm-pill tm-pill-gray"
+    };
+
+    private List<DebitNoteDto> Filtered => _notes.Where(n =>
+        (_statusFilter == null || n.Status == _statusFilter.Value)
+        && (string.IsNullOrWhiteSpace(_search)
+            || n.DebitNoteNumber.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || n.InvoiceNumber.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || (n.Reason?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
+
+    private List<DebitNoteDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
     {
         _loading = true;
         try
         {
-            var result = await NoteService.GetDebitNotes(_search, _page, 20);
+            var result = await NoteService.GetDebitNotes(null, 1, 500);
             _notes = result.Items;
-            _totalPages = result.TotalPages;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
@@ -82,7 +154,7 @@
         var dialog = await DialogService.ShowAsync<DebitNoteDialog>("New Debit Note",
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
-        if (result is not null && !result.Canceled) await LoadData();
+        if (result is not null && !result.Canceled) await Load();
     }
 
     private async Task ApproveNote(Guid id)
@@ -91,14 +163,55 @@
         {
             await NoteService.ApproveDebitNote(id);
             Snackbar.Add("Debit note approved.", Severity.Success);
-            await LoadData();
+            await Load();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 
-    private async Task OnPageChanged(int page)
+    private void OnSearchInput(ChangeEventArgs e)
     {
-        _page = page;
-        await LoadData();
+        _search = e.Value?.ToString() ?? "";
+        _page = 1;
+    }
+
+    private void OnStatusChanged(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString();
+        _statusFilter = string.IsNullOrEmpty(v) ? null : Enum.Parse<DebitNoteStatus>(v);
+        _page = 1;
+    }
+
+    private void PickStatus(DebitNoteStatus s)
+    {
+        _statusFilter = _statusFilter == s ? null : s;
+        _page = 1;
+    }
+
+    private void ResetFilters()
+    {
+        _search = "";
+        _statusFilter = null;
+        _page = 1;
+    }
+
+    private int PageTotal => Math.Max(1, (int)Math.Ceiling(Filtered.Count / (double)_pageSize));
+
+    private Task GoToPage(int pageIndex)
+    {
+        _page = Math.Clamp(pageIndex + 1, 1, PageTotal);
+        return Task.CompletedTask;
+    }
+
+    private Task GoPrevPage() => GoToPage(_page - 2);
+
+    private Task GoNextPage() => GoToPage(_page);
+
+    private void OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var size) && size > 0)
+        {
+            _pageSize = size;
+            _page = 1;
+        }
     }
 }

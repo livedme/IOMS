@@ -8,7 +8,7 @@
             <MudSelect T="Guid?" @bind-Value="_invoiceId" Label="Invoice" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var inv in _invoices)
                 {
-                    <MudSelectItem Value="@inv.Id">@inv.InvoiceNumber - @inv.TotalAmount.ToString("C")</MudSelectItem>
+                    <MudSelectItem T="Guid?" Value="@((Guid?)inv.Id)">@inv.InvoiceNumber - @inv.TotalAmount.ToString("C")</MudSelectItem>
                 }
             </MudSelect>
             <MudNumericField @bind-Value="_amount" Label="Amount" Min="0.01m" Format="N2" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
