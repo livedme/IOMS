@@ -81,8 +81,8 @@
                                 <div class="so-val fw-semibold" style="line-height:1.2;">@context.ProductName</div>
                             </MudTd>
                             <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                            <MudTd Style="text-align:right">@context.UnitCost.ToString("C")</MudTd>
-                            <MudTd Style="text-align:right;font-weight:600;">@context.LineTotal.ToString("C")</MudTd>
+                            <MudTd Style="text-align:right">@Taka.H(context.UnitCost)</MudTd>
+                            <MudTd Style="text-align:right;font-weight:600;">@Taka.H(context.LineTotal)</MudTd>
                         </RowTemplate>
                     </MudTable>
                 </div>
@@ -101,7 +101,7 @@
                     </div>
                     <div class="so-total-row so-grand-total">
                         <span>TOTAL</span>
-                        <span>@_return.TotalAmount.ToString("C")</span>
+                        <span>@Taka.H(_return.TotalAmount)</span>
                     </div>
                 </div>
             }

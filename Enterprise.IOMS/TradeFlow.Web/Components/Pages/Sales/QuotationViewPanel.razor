@@ -104,10 +104,10 @@
                                 <div class="so-sm text-muted">@context.ProductSKU</div>
                             </MudTd>
                             <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                            <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
+                            <MudTd Style="text-align:right">@Taka.H(context.UnitPrice)</MudTd>
                             <MudTd Style="text-align:right">@context.DiscountPercent.ToString("N0")%</MudTd>
-                            <MudTd Style="text-align:right">@context.TaxAmount.ToString("C")</MudTd>
-                            <MudTd Style="text-align:right;font-weight:600;">@context.LineTotal.ToString("C")</MudTd>
+                            <MudTd Style="text-align:right">@Taka.H(context.TaxAmount)</MudTd>
+                            <MudTd Style="text-align:right;font-weight:600;">@Taka.H(context.LineTotal)</MudTd>
                         </RowTemplate>
                     </MudTable>
                 </div>
@@ -118,25 +118,25 @@
                 <div class="so-totals-box">
                     <div class="so-total-row">
                         <span>Subtotal</span>
-                        <span>@_quote.SubTotal.ToString("C")</span>
+                        <span>@Taka.H(_quote.SubTotal)</span>
                     </div>
                     @if (_quote.DiscountAmount > 0)
                     {
                         <div class="so-total-row">
                             <span>Discount</span>
-                            <span class="text-error">-@_quote.DiscountAmount.ToString("C")</span>
+                            <span class="text-error">-@Taka.H(_quote.DiscountAmount)</span>
                         </div>
                     }
                     @if (_quote.TaxAmount > 0)
                     {
                         <div class="so-total-row">
                             <span>Tax</span>
-                            <span>@_quote.TaxAmount.ToString("C")</span>
+                            <span>@Taka.H(_quote.TaxAmount)</span>
                         </div>
                     }
                     <div class="so-total-row so-grand-total">
                         <span>TOTAL</span>
-                        <span>@_quote.TotalAmount.ToString("C")</span>
+                        <span>@Taka.H(_quote.TotalAmount)</span>
                     </div>
                 </div>
             }

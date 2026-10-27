@@ -23,7 +23,7 @@
                         <div class="tm-list-sub">@tx.Type · @tx.TimeAgo</div>
                     </div>
                     <div class="tm-list-end">
-                        <div class="tm-list-amt">@tx.Amount.ToString("C")</div>
+                        <div class="tm-list-amt">@Taka.H(tx.Amount)</div>
                         <span class="tm-pill" style="background:@pillBg; color:@pillFg; border-color:@pillBg; margin-top:3px;">@tx.Status</span>
                     </div>
                 </div>

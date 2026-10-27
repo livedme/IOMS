@@ -82,26 +82,26 @@
                 <div class="so-totals-box mb-3">
                     <div class="so-total-row">
                         <span>Subtotal</span>
-                        <span>@_invoice.SubTotal.ToString("C")</span>
+                        <span>@Taka.H(_invoice.SubTotal)</span>
                     </div>
                     @if (_invoice.TaxAmount > 0)
                     {
                         <div class="so-total-row">
                             <span>Tax</span>
-                            <span>@_invoice.TaxAmount.ToString("C")</span>
+                            <span>@Taka.H(_invoice.TaxAmount)</span>
                         </div>
                     }
                     <div class="so-total-row so-grand-total">
                         <span>TOTAL</span>
-                        <span>@_invoice.TotalAmount.ToString("C")</span>
+                        <span>@Taka.H(_invoice.TotalAmount)</span>
                     </div>
                     <div class="so-total-row">
                         <span>Paid</span>
-                        <span class="text-success">@_invoice.PaidAmount.ToString("C")</span>
+                        <span class="text-success">@Taka.H(_invoice.PaidAmount)</span>
                     </div>
                     <div class="so-total-row @(_invoice.BalanceDue > 0 ? "so-due-row" : "")">
                         <span>Balance Due</span>
-                        <span>@_invoice.BalanceDue.ToString("C")</span>
+                        <span>@Taka.H(_invoice.BalanceDue)</span>
                     </div>
                 </div>
             }

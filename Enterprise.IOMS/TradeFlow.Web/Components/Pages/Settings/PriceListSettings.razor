@@ -48,7 +48,7 @@
             <RowTemplate>
                 <MudTd><strong>@context.Name</strong></MudTd>
                 <MudTd>@context.DiscountType</MudTd>
-                <MudTd>@(context.DiscountType == DiscountType.Percentage ? $"{context.Value}%" : context.Value.ToString("C"))</MudTd>
+                <MudTd>@(context.DiscountType == DiscountType.Percentage ? $"{context.Value}%" : Taka.H(context.Value))</MudTd>
                 <MudTd>@context.MinimumQuantity</MudTd>
                 <MudTd>@context.StartDate.ToString("MMM-dd") - @context.EndDate?.ToString("MMM-dd")</MudTd>
                 <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">@(context.IsActive ? "Active" : "Inactive")</MudChip></MudTd>

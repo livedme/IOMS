@@ -34,14 +34,14 @@
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-primary);">
                 <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Inventory Value</MudText>
-                <MudText Typo="Typo.h5"><strong>@_rows.Sum(r => r.TotalValue).ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_rows.Sum(r => r.TotalValue))</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-warning);">
                 <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Landed Cost</MudText>
-                <MudText Typo="Typo.h5"><strong>@_rows.Sum(r => r.LandedCost).ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_rows.Sum(r => r.LandedCost))</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="4">
@@ -92,10 +92,10 @@
         <MudTd>@context.ProductName</MudTd>
         <MudTd>@context.SKU</MudTd>
         <MudTd Style="text-align:right">@context.TotalQty</MudTd>
-        <MudTd Style="text-align:right">@context.UnitCost.ToString("C")</MudTd>
-        <MudTd Style="text-align:right">@context.TotalValue.ToString("C")</MudTd>
-        <MudTd Style="text-align:right">@context.LandedCost.ToString("C")</MudTd>
-        <MudTd Style="text-align:right">@context.EffectiveCost.ToString("C")</MudTd>
+        <MudTd Style="text-align:right">@Taka.H(context.UnitCost)</MudTd>
+        <MudTd Style="text-align:right">@Taka.H(context.TotalValue)</MudTd>
+        <MudTd Style="text-align:right">@Taka.H(context.LandedCost)</MudTd>
+        <MudTd Style="text-align:right">@Taka.H(context.EffectiveCost)</MudTd>
     </RowTemplate>
 </MudTable>
 

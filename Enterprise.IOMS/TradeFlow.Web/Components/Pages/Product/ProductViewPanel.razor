@@ -57,7 +57,7 @@
                             </div>
                             <div class="text-end">
                                 <div class="so-lbl">Selling Price</div>
-                                <div class="so-val fw-semibold">@_details.SellingPrice.ToString("C")</div>
+                                <div class="so-val fw-semibold">@Taka.H(_details.SellingPrice)</div>
                             </div>
                         </div>
                     </div>
@@ -85,11 +85,11 @@
                         </MudItem>
                         <MudItem xs="4">
                             <div class="so-lbl">Cost (Purchase)</div>
-                            <div class="so-val">@_details.CostPrice.ToString("C")</div>
+                            <div class="so-val">@Taka.H(_details.CostPrice)</div>
                         </MudItem>
                         <MudItem xs="4">
                             <div class="so-lbl">Wholesale</div>
-                            <div class="so-val">@_details.WholeSellingPrice.ToString("C")</div>
+                            <div class="so-val">@Taka.H(_details.WholeSellingPrice)</div>
                         </MudItem>
                         <MudItem xs="4">
                             <div class="so-lbl">Reorder Level</div>
@@ -175,7 +175,7 @@
                                     </MudTd>
                                     <MudTd>@context.PartyName</MudTd>
                                     <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                                    <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
+                                    <MudTd Style="text-align:right">@Taka.H(context.UnitPrice)</MudTd>
                                 </RowTemplate>
                             </MudTable>
                         </div>
@@ -206,7 +206,7 @@
                                     </MudTd>
                                     <MudTd>@context.PartyName</MudTd>
                                     <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                                    <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
+                                    <MudTd Style="text-align:right">@Taka.H(context.UnitPrice)</MudTd>
                                 </RowTemplate>
                             </MudTable>
                         </div>

@@ -47,7 +47,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd><strong>@context.DocumentType</strong></MudTd>
-            <MudTd>@(context.AmountThreshold?.ToString("C") ?? "Any")</MudTd>
+            <MudTd>@(context.AmountThreshold is { } th ? Taka.H(th) : (MarkupString)"Any")</MudTd>
             <MudTd>@context.Level</MudTd>
             <MudTd><MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)" Color="@(context.IsActive ? Color.Success : Color.Error)" /></MudTd>
         </RowTemplate>

@@ -13,7 +13,7 @@
             @* The period is a label, not a control: the range selector in the filter strip above is
                the single control for both overview cards. *@
             <span class="tm-ov-period">@Range.Label.ToUpperInvariant()</span>
-            <div class="tm-ov-total">@Total.ToString("C0")</div>
+            <div class="tm-ov-total">@Taka.Ho(Total)</div>
         </div>
     </div>
 
@@ -37,11 +37,11 @@
             <div class="tm-ov-foot">
                 <div>
                     <span class="tm-dim">Peak day</span>
-                    <span class="tm-ov-peak">@Peak.ToString("C0")</span>
+                    <span class="tm-ov-peak">@Taka.Ho(Peak)</span>
                 </div>
                 <div>
                     <span class="tm-dim">Gross profit</span>
-                    <span class="@(GrossProfit < 0 ? "tm-red" : "tm-green")">@GrossProfit.ToString("C0")</span>
+                    <span class="@(GrossProfit < 0 ? "tm-red" : "tm-green")">@Taka.Ho(GrossProfit)</span>
                 </div>
             </div>
         }

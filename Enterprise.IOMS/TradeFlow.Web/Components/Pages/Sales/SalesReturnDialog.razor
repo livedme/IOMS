@@ -51,7 +51,7 @@
                                              ValueChanged="@(value => UpdateLineTotal(context, context.Quantity, value))" Format="N2" Min="1"
                                              Margin="Margin.Dense" Variant="Variant.Outlined" />
                         </MudTd>
-                        <MudTd Style="text-align:right;">@context.LineTotal.ToString("C")</MudTd>
+                        <MudTd Style="text-align:right;">@Taka.H(context.LineTotal)</MudTd>
                     </RowTemplate>
                     <FooterContent>
                         <MudTd><strong>Total</strong></MudTd>
@@ -63,7 +63,7 @@
                                 }
 
                             <strong>
-                                @salesReturnDto.TotalAmount.ToString("C")
+                                @Taka.H(salesReturnDto.TotalAmount)
                             </strong>
                         </MudTd>
                     </FooterContent>

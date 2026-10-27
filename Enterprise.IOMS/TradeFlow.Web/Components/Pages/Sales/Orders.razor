@@ -200,32 +200,32 @@
                         <MudTd>@context.ProductName</MudTd>
                         <MudTd>@context.ProductSKU</MudTd>
                         <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                        <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
-                        <MudTd Style="text-align:right">@context.TotalDiscount.ToString("C")</MudTd>
-                        <MudTd Style="text-align:right">@context.LineTotalPrice.ToString("C")</MudTd>
+                        <MudTd Style="text-align:right">@Taka.H(context.UnitPrice)</MudTd>
+                        <MudTd Style="text-align:right">@Taka.H(context.TotalDiscount)</MudTd>
+                        <MudTd Style="text-align:right">@Taka.H(context.LineTotalPrice)</MudTd>
                     </RowTemplate>
                 </MudTable>
             </div>
             <div class="col-lg-4">
                 <div class="tm-summary-card">
                     <h6 class="text-primary mb-3">ORDER SUMMARY</h6>
-                    <div class="tm-summary-item"><span>Subtotal</span><strong>@_viewOrder.SubTotal.ToString("C")</strong></div>
-                    <div class="tm-summary-item"><span>Discount</span><strong>@_viewOrder.DiscountAmount.ToString("C")</strong></div>
-                    <div class="tm-summary-item"><span>Tax</span><strong>@_viewOrder.TaxAmount.ToString("C")</strong></div>
-                    <div class="tm-summary-item"><span>Labour</span><strong>@_viewOrder.LabourCharge.ToString("C")</strong></div>
-                    <div class="tm-summary-item"><span>Truck</span><strong>@_viewOrder.TruckCharge.ToString("C")</strong></div>
+                    <div class="tm-summary-item"><span>Subtotal</span><strong>@Taka.H(_viewOrder.SubTotal)</strong></div>
+                    <div class="tm-summary-item"><span>Discount</span><strong>@Taka.H(_viewOrder.DiscountAmount)</strong></div>
+                    <div class="tm-summary-item"><span>Tax</span><strong>@Taka.H(_viewOrder.TaxAmount)</strong></div>
+                    <div class="tm-summary-item"><span>Labour</span><strong>@Taka.H(_viewOrder.LabourCharge)</strong></div>
+                    <div class="tm-summary-item"><span>Truck</span><strong>@Taka.H(_viewOrder.TruckCharge)</strong></div>
                     <div class="pt-3 border-top mt-2">
                         <div class="d-flex justify-content-between">
                             <strong>TOTAL</strong>
-                            <span class="text-primary fw-bold fs-5">@_viewOrder.TotalAmount.ToString("C")</span>
+                            <span class="text-primary fw-bold fs-5">@Taka.H(_viewOrder.TotalAmount)</span>
                         </div>
                         <div class="d-flex justify-content-between mt-1">
                             <span class="text-muted">Paid</span>
-                            <span class="text-success fw-semibold">@_viewOrder.PaidAmount.ToString("C")</span>
+                            <span class="text-success fw-semibold">@Taka.H(_viewOrder.PaidAmount)</span>
                         </div>
                         <div class="d-flex justify-content-between mt-1">
                             <span class="text-muted">Due</span>
-                            <span class="text-danger fw-semibold">@_viewOrder.DueAmount.ToString("C")</span>
+                            <span class="text-danger fw-semibold">@Taka.H(_viewOrder.DueAmount)</span>
                         </div>
                     </div>
                 </div>

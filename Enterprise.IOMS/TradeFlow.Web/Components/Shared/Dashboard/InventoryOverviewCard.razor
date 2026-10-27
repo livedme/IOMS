@@ -14,13 +14,13 @@
                 ? 0
                 : Math.Round((double)Data.ReservedQuantity / Data.TotalQuantity * 100, 1);
 
-            var rows = new[]
+            var rows = new (string Label, object Value, string Note, string Color, string Icon)[]
             {
                 (Label: "Units on Hand",      Value: Data.TotalQuantity.ToString("N0"),       Note: "Physical stock across all warehouses", Color: "#3b82f6", Icon: Icons.Material.Filled.Inventory2),
                 (Label: "Available to Sell",  Value: Data.AvailableQuantity.ToString("N0"),  Note: $"On hand less {Data.ReservedQuantity:N0} reserved ({reservedPct:0.#}%)", Color: "#22c55e", Icon: Icons.Material.Filled.CheckCircle),
                 (Label: "Reserved",           Value: Data.ReservedQuantity.ToString("N0"),   Note: "Committed to open orders", Color: "#f59e0b", Icon: Icons.Material.Filled.Lock),
-                (Label: "Value at Cost",      Value: Data.InventoryValueAtCost.ToString("C0"), Note: "What the stock was bought for", Color: "#8b5cf6", Icon: Icons.Material.Filled.Receipt),
-                (Label: "Value at Retail",    Value: Data.InventoryValueAtRetail.ToString("C0"), Note: $"Same stock at selling price (+{marginPct:0.#}% margin)", Color: "#0ea5e9", Icon: Icons.Material.Filled.Sell)
+                (Label: "Value at Cost",      Value: Taka.Ho(Data.InventoryValueAtCost), Note: "What the stock was bought for", Color: "#8b5cf6", Icon: Icons.Material.Filled.Receipt),
+                (Label: "Value at Retail",    Value: Taka.Ho(Data.InventoryValueAtRetail), Note: $"Same stock at selling price (+{marginPct:0.#}% margin)", Color: "#0ea5e9", Icon: Icons.Material.Filled.Sell)
             };
         }
         @foreach (var r in rows)

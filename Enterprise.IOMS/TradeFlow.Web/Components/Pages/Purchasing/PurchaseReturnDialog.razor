@@ -61,7 +61,7 @@
                         @* @{
                             CalculateLineTotal(context);
                         } *@
-                        <div>@context.LineTotal.ToString("C")</div>
+                        <div>@Taka.H(context.LineTotal)</div>
                     </MudTd>                      
             </RowTemplate> 
             <FooterContent>
@@ -71,7 +71,7 @@
                 @{
                     purchaseReturnDto.TotalAmount = purchaseReturnDto.ItemsLine.Where(item => item.IsSelected).Sum(item => item.LineTotal);
                 }
-                <MudTd Style="text-align:right;"><strong>@purchaseReturnDto.TotalAmount.ToString("C")</strong></MudTd>
+                <MudTd Style="text-align:right;"><strong>@Taka.H(purchaseReturnDto.TotalAmount)</strong></MudTd>
             </FooterContent>
         </MudTable>  
         </MudItem>

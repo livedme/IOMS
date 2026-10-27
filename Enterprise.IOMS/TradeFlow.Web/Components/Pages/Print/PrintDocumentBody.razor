@@ -861,5 +861,5 @@
     [Parameter] public SupplierDto? Supplier { get; set; }
     [Parameter] public List<PurchaseOrderDto> SupplierOrders { get; set; } = new();
 
-    private static string Money(decimal value) => value.ToString("C");
+    private static MarkupString Money(decimal value) => Taka.H(value);
 }

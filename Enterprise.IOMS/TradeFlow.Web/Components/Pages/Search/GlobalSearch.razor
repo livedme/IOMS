@@ -83,9 +83,9 @@
                             <MudTd DataLabel="Category">@(context.ParentCategoryName ?? context.SubCategoryName ?? context.CategoryName ?? "—")</MudTd>
                             <MudTd DataLabel="Subcategory">@(context.ParentCategoryName != null ? (context.SubCategoryName ?? "—") : "—")</MudTd>
                             <MudTd DataLabel="Brand">@(context.BrandName ?? "—")</MudTd>
-                            <MudTd DataLabel="Cost">@context.CostPrice.ToString("C")</MudTd>
-                            <MudTd DataLabel="Selling">@context.SellingPrice.ToString("C")</MudTd>
-                            <MudTd DataLabel="Last Rate">@(context.LastSalesRate.HasValue ? context.LastSalesRate.Value.ToString("C") : "—")</MudTd>
+                            <MudTd DataLabel="Cost">@Taka.H(context.CostPrice)</MudTd>
+                            <MudTd DataLabel="Selling">@Taka.H(context.SellingPrice)</MudTd>
+                            <MudTd DataLabel="Last Rate">@(context.LastSalesRate.HasValue ? Taka.H(context.LastSalesRate.Value) : "—")</MudTd>
                             <MudTd DataLabel="Stock">@context.TotalStock</MudTd>
                             <MudTd DataLabel="Avail">@context.AvailableQuantity</MudTd>
                             <MudTd DataLabel="Warehouses">
@@ -189,7 +189,7 @@
                             <MudTd DataLabel="Order #"><strong>@context.OrderNumber</strong></MudTd>
                             <MudTd DataLabel="Customer">@(context.Customer?.CustomerName ?? "—")</MudTd>
                             <MudTd DataLabel="Status"><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
-                            <MudTd DataLabel="Total">@context.TotalAmount.ToString("C")</MudTd>
+                            <MudTd DataLabel="Total">@Taka.H(context.TotalAmount)</MudTd>
                             <MudTd Style="text-align:right">
                                 <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => OpenSalesOrder(context.Id))">View</MudButton>
                             </MudTd>
@@ -220,7 +220,7 @@
                             <MudTd DataLabel="Order #"><strong>@context.OrderNumber</strong></MudTd>
                             <MudTd DataLabel="Supplier">@context.SupplierName</MudTd>
                             <MudTd DataLabel="Status"><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
-                            <MudTd DataLabel="Total">@context.TotalAmount.ToString("C")</MudTd>
+                            <MudTd DataLabel="Total">@Taka.H(context.TotalAmount)</MudTd>
                             <MudTd Style="text-align:right">
                                 <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => OpenPurchaseOrder(context.Id))">View</MudButton>
                             </MudTd>

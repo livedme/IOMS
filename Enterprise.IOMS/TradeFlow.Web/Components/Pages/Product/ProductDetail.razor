@@ -53,9 +53,9 @@ else
             <div class="pd-active"><i></i>Active</div>
         </div>
         <div class="pd-stats">
-            <div class="pd-stat"><div class="pd-stat-lbl">Cost</div><div class="pd-stat-val">@_product.CostPrice.ToString("C")</div></div>
-            <div class="pd-stat"><div class="pd-stat-lbl">Sell Price</div><div class="pd-stat-val">@_product.SellingPrice.ToString("C")</div></div>
-            <div class="pd-stat"><div class="pd-stat-lbl">Whole Sell Price</div><div class="pd-stat-val">@_product.WholeSellingPrice.ToString("C")</div></div>
+            <div class="pd-stat"><div class="pd-stat-lbl">Cost</div><div class="pd-stat-val">@Taka.H(_product.CostPrice)</div></div>
+            <div class="pd-stat"><div class="pd-stat-lbl">Sell Price</div><div class="pd-stat-val">@Taka.H(_product.SellingPrice)</div></div>
+            <div class="pd-stat"><div class="pd-stat-lbl">Whole Sell Price</div><div class="pd-stat-val">@Taka.H(_product.WholeSellingPrice)</div></div>
             <div class="pd-stat"><div class="pd-stat-lbl">Margin</div><div class="pd-stat-val green">@Margin%</div></div>
         </div>
     </div>
@@ -75,7 +75,7 @@ else
                 <div class="ov-card"><div class="n">@_product.TotalAvailable</div><div class="l">Total Available</div></div>
                 <div class="ov-card"><div class="n">@_inventories.Sum(x => x.ReservedQuantity)</div><div class="l">Total Reserved</div></div>
                 <div class="ov-card"><div class="n">@_product.Last30DaysSales</div><div class="l">Last 30 Days Sales</div></div>
-                <div class="ov-card"><div class="n">@((_product.TotalAvailable * _product.CostPrice).ToString("C"))</div><div class="l">Stock Value (Cost)</div></div>
+                <div class="ov-card"><div class="n">@(Taka.H((_product.TotalAvailable * _product.CostPrice)))</div><div class="l">Stock Value (Cost)</div></div>
             </div>
             <div class="ov-grid">
                 <div>
@@ -105,7 +105,7 @@ else
                     <div class="ov-value">@(_product.Model ?? "-")</div>
                     <hr class="ov-divider" />
                     <div class="ov-label">Whole Selling Price</div>
-                    <div class="ov-value">@_product.WholeSellingPrice.ToString("C")</div>
+                    <div class="ov-value">@Taka.H(_product.WholeSellingPrice)</div>
                     <hr class="ov-divider" />
                     <div class="ov-label">Reorder Level</div>
                     <div class="ov-value">@_product.ReorderStockLevel</div>
@@ -128,7 +128,7 @@ else
                                 <td class="tm-strong">@inv.WarehouseName</td>
                                 <td>@inv.AvailableQuantity</td>
                                 <td>@inv.ReservedQuantity</td>
-                                <td>@((inv.AvailableQuantity * _product.CostPrice).ToString("C"))</td>
+                                <td>@(Taka.H((inv.AvailableQuantity * _product.CostPrice)))</td>
                                 <td><span class="@(inv.AvailableQuantity <= _product.ReorderStockLevel ? "tm-pill tm-pill-amber" : "tm-pill tm-pill-green")"><span class="tm-dot"></span>@(inv.AvailableQuantity <= 0 ? "Out" : inv.AvailableQuantity <= _product.ReorderStockLevel ? "Low" : "In Stock")</span></td>
                             </tr>
                         } }
@@ -173,8 +173,8 @@ else
                                 <td>@s.PartyName</td>
                                 <td>@s.OrderDate.ToString("dd MMM yyyy")</td>
                                 <td>@s.Quantity</td>
-                                <td>@s.UnitPrice.ToString("C")</td>
-                                <td class="tm-green">@((s.Quantity * s.UnitPrice).ToString("C"))</td>
+                                <td>@Taka.H(s.UnitPrice)</td>
+                                <td class="tm-green">@(Taka.H((s.Quantity * s.UnitPrice)))</td>
                                 <td><span class="tm-pill @GetOrderPill(s.Status)"><span class="tm-dot"></span>@s.Status</span></td>
                             </tr>
                         } }
@@ -196,8 +196,8 @@ else
                                 <td>@p.PartyName</td>
                                 <td>@p.OrderDate.ToString("dd MMM yyyy")</td>
                                 <td>@p.Quantity</td>
-                                <td>@p.UnitPrice.ToString("C")</td>
-                                <td class="tm-green">@((p.Quantity * p.UnitPrice).ToString("C"))</td>
+                                <td>@Taka.H(p.UnitPrice)</td>
+                                <td class="tm-green">@(Taka.H((p.Quantity * p.UnitPrice)))</td>
                                 <td><span class="tm-pill @GetOrderPill(p.Status)"><span class="tm-dot"></span>@p.Status</span></td>
                             </tr>
                         } }

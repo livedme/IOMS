@@ -107,7 +107,7 @@
                                 @{
                                     CalculateLineTotal();
                                 }
-                                <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="N2" Adornment="Adornment.Start" AdornmentText="৳" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudTd>
                             <MudTd Style="width:auto;padding: 6px !important;" class="">
                                 <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Class="float-start" Color="Color.Primary" OnClick="AddItem" />
@@ -149,7 +149,7 @@
                                     @{
                                         CalculateLineTotal();
                                     }
-                                    <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="C" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="N2" Adornment="Adornment.Start" AdornmentText="৳" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                 </MudTd>
                                 <MudTd Style="width:auto;padding: 6px !important;" class="">
                                     <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Class="float-start" Color="Color.Primary" OnClick="@(() => SaveEditItem(itemIndex))" />
@@ -166,9 +166,9 @@
                                     }
                                 </MudTd>
                                 <MudTd Style="width:auto;">@context.Quantity</MudTd>
-                                <MudTd Style="width:auto;">@context.UnitPrice.ToString("C")</MudTd>
-                                <MudTd Style="width:auto;">@context.TotalDiscountAmount.ToString("C")</MudTd>
-                                <MudTd Style="width:auto;">@context.TotalPrice.ToString("C")</MudTd>
+                                <MudTd Style="width:auto;">@Taka.H(context.UnitPrice)</MudTd>
+                                <MudTd Style="width:auto;">@Taka.H(context.TotalDiscountAmount)</MudTd>
+                                <MudTd Style="width:auto;">@Taka.H(context.TotalPrice)</MudTd>
                                 <MudTd Style="width:auto;" class="text-end d-inline-flex justify-content-between">
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Info" OnClick="@(() => StartEditItem(itemIndex, context))" />
                                     <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => dataModel.ItemsLine.Remove(context))" />

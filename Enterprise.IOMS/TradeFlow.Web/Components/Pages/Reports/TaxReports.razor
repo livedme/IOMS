@@ -25,21 +25,21 @@
         <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
             <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Error" Size="Size.Large" Class="mr-3" />
             <div><MudText Typo="Typo.body2" Color="Color.Secondary">Output Tax (Sales)</MudText>
-            <MudText Typo="Typo.h5"><strong>@_outputTax.ToString("C0")</strong></MudText></div>
+            <MudText Typo="Typo.h5"><strong>@Taka.Ho(_outputTax)</strong></MudText></div>
         </MudPaper>
     </MudItem>
     <MudItem xs="12" md="4">
         <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
             <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Success" Size="Size.Large" Class="mr-3" />
             <div><MudText Typo="Typo.body2" Color="Color.Secondary">Input Tax (Purchases)</MudText>
-            <MudText Typo="Typo.h5"><strong>@_inputTax.ToString("C0")</strong></MudText></div>
+            <MudText Typo="Typo.h5"><strong>@Taka.Ho(_inputTax)</strong></MudText></div>
         </MudPaper>
     </MudItem>
     <MudItem xs="12" md="4">
         <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="@($"border-left:4px solid {(_netTax >= 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)")};")">
             <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="@(_netTax >= 0 ? Color.Error : Color.Success)" Size="Size.Large" Class="mr-3" />
             <div><MudText Typo="Typo.body2" Color="Color.Secondary">Net Tax Liability</MudText>
-            <MudText Typo="Typo.h5"><strong>@_netTax.ToString("C0")</strong></MudText></div>
+            <MudText Typo="Typo.h5"><strong>@Taka.Ho(_netTax)</strong></MudText></div>
         </MudPaper>
     </MudItem>
 </MudGrid>
@@ -85,8 +85,8 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd><strong>@context.TaxName (@context.Rate%)</strong></MudTd>
-            <MudTd Style="text-align:right">@context.TaxableAmount.ToString("C")</MudTd>
-            <MudTd Style="text-align:right">@context.TaxAmount.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@Taka.H(context.TaxableAmount)</MudTd>
+            <MudTd Style="text-align:right">@Taka.H(context.TaxAmount)</MudTd>
         </RowTemplate>
     </MudTable>
 </MudPaper>

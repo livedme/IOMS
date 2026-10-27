@@ -98,9 +98,9 @@ else
                             <MudTd>@context.ProductName</MudTd>
                             <MudTd>@context.ProductSKU</MudTd>
                             <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                            <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
-                            <MudTd Style="text-align:right">@context.TotalDiscount.ToString("C")</MudTd>
-                            <MudTd Style="text-align:right">@context.LineTotalPrice.ToString("C")</MudTd>
+                            <MudTd Style="text-align:right">@Taka.H(context.UnitPrice)</MudTd>
+                            <MudTd Style="text-align:right">@Taka.H(context.TotalDiscount)</MudTd>
+                            <MudTd Style="text-align:right">@Taka.H(context.LineTotalPrice)</MudTd>
                         </RowTemplate>
                     </MudTable>
                 </MudItem>
@@ -113,31 +113,31 @@ else
 
                     <div class="summary-item">
                         <span>Subtotal</span>
-                        <strong>@_order.SubTotal.ToString("C")</strong>
+                        <strong>@Taka.H(_order.SubTotal)</strong>
                     </div>
 
                     <div class="summary-item">
                         <span>Discount</span>
-                        <strong>@_order.DiscountAmount.ToString("C")</strong>
+                        <strong>@Taka.H(_order.DiscountAmount)</strong>
                     </div>
                     <div class="summary-item">
                         <span>Tax</span>
-                        <strong>@_order.TaxAmount.ToString("C")</strong>
+                        <strong>@Taka.H(_order.TaxAmount)</strong>
                     </div>
                     <div class="summary-item">
                         <span>Labour</span>
-                        <strong>@_order.LabourCharge.ToString("C")</strong>
+                        <strong>@Taka.H(_order.LabourCharge)</strong>
                     </div>
 
                     <div class="summary-item">
                         <span>Truck</span>
-                        <strong>@_order.TruckCharge.ToString("C")</strong>
+                        <strong>@Taka.H(_order.TruckCharge)</strong>
                     </div>
 
                     <div class="pt-4">
                         <h5>TOTAL</h5>
                         <div class="total-price">
-                            @_order.TotalAmount.ToString("C")
+                            @Taka.H(_order.TotalAmount)
                         </div>
                     </div>
                 </div>

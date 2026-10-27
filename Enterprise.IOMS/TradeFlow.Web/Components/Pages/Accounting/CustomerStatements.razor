@@ -48,21 +48,21 @@
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-info);">
                 <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Info" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Invoiced</MudText>
-                <MudText Typo="Typo.h5"><strong>@_totalInvoiced.ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_totalInvoiced)</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="3">
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
                 <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Success" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Paid</MudText>
-                <MudText Typo="Typo.h5"><strong>@_totalPaid.ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_totalPaid)</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="3">
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
                 <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Color="Color.Error" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Balance Due</MudText>
-                <MudText Typo="Typo.h5"><strong>@_balanceDue.ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_balanceDue)</strong></MudText></div>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -118,9 +118,9 @@
                          Color="@(context.Type == "Invoice" ? Color.Info : Color.Success)">@context.Type</MudChip>
             </MudTd>
             <MudTd DataLabel="Reference">@context.Reference</MudTd>
-            <MudTd DataLabel="Debit" Style="text-align:right">@(context.Debit > 0 ? context.Debit.ToString("C") : "")</MudTd>
-            <MudTd DataLabel="Credit" Style="text-align:right">@(context.Credit > 0 ? context.Credit.ToString("C") : "")</MudTd>
-            <MudTd DataLabel="Balance" Style="text-align:right"><strong>@context.RunningBalance.ToString("C")</strong></MudTd>
+            <MudTd DataLabel="Debit" Style="text-align:right">@(context.Debit > 0 ? Taka.H(context.Debit) : "")</MudTd>
+            <MudTd DataLabel="Credit" Style="text-align:right">@(context.Credit > 0 ? Taka.H(context.Credit) : "")</MudTd>
+            <MudTd DataLabel="Balance" Style="text-align:right"><strong>@Taka.H(context.RunningBalance)</strong></MudTd>
         </RowTemplate>
     </MudTable>
 </MudPaper>

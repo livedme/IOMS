@@ -137,9 +137,9 @@
                                     <div class="so-sm text-muted">@context.ProductSKU</div>
                                 </MudTd>
                                 <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                                <MudTd Style="text-align:right">@context.UnitPrice.ToString("C")</MudTd>
-                                <MudTd Style="text-align:right">@context.TotalDiscount.ToString("C")</MudTd>
-                                <MudTd Style="text-align:right;font-weight:600;">@context.LineTotalPrice.ToString("C")</MudTd>
+                                <MudTd Style="text-align:right">@Taka.H(context.UnitPrice)</MudTd>
+                                <MudTd Style="text-align:right">@Taka.H(context.TotalDiscount)</MudTd>
+                                <MudTd Style="text-align:right;font-weight:600;">@Taka.H(context.LineTotalPrice)</MudTd>
                             </RowTemplate>
                         </MudTable>
                     </div>
@@ -150,47 +150,47 @@
                     <div class="so-totals-box">
                         <div class="so-total-row">
                             <span>Subtotal</span>
-                            <span>@_order.SubTotal.ToString("C")</span>
+                            <span>@Taka.H(_order.SubTotal)</span>
                         </div>
                         @if (_order.DiscountAmount > 0)
                         {
                             <div class="so-total-row">
                                 <span>Discount</span>
-                                <span class="text-error">-@_order.DiscountAmount.ToString("C")</span>
+                                <span class="text-error">-@Taka.H(_order.DiscountAmount)</span>
                             </div>
                         }
                         @if (_order.TaxAmount > 0)
                         {
                             <div class="so-total-row">
                                 <span>Tax</span>
-                                <span>@_order.TaxAmount.ToString("C")</span>
+                                <span>@Taka.H(_order.TaxAmount)</span>
                             </div>
                         }
                         @if (_order.LabourCharge > 0)
                         {
                             <div class="so-total-row">
                                 <span>Labour</span>
-                                <span>@_order.LabourCharge.ToString("C")</span>
+                                <span>@Taka.H(_order.LabourCharge)</span>
                             </div>
                         }
                         @if (_order.TruckCharge > 0)
                         {
                             <div class="so-total-row">
                                 <span>Transport</span>
-                                <span>@_order.TruckCharge.ToString("C")</span>
+                                <span>@Taka.H(_order.TruckCharge)</span>
                             </div>
                         }
                         <div class="so-total-row so-grand-total">
                             <span>TOTAL</span>
-                            <span>@_order.TotalAmount.ToString("C")</span>
+                            <span>@Taka.H(_order.TotalAmount)</span>
                         </div>
                         <div class="so-total-row">
                             <span>Paid</span>
-                            <span class="text-success">@_order.PaidAmount.ToString("C")</span>
+                            <span class="text-success">@Taka.H(_order.PaidAmount)</span>
                         </div>
                         <div class="so-total-row @(_order.DueAmount > 0 ? "so-due-row" : "")">
                             <span>Due</span>
-                            <span>@_order.DueAmount.ToString("C")</span>
+                            <span>@Taka.H(_order.DueAmount)</span>
                         </div>
                     </div>
 

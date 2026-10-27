@@ -10,7 +10,7 @@
         <span class="tm-kpi-label">@Kpi.Label</span>
     </div>
 
-    <div class="tm-kpi-value">@FormattedValue</div>
+    <div class="tm-kpi-value">@Taka.H(Kpi.Value)</div>
 
     <div class="tm-kpi-foot">
         @if (Kpi.Growth.HasValue)
@@ -42,9 +42,9 @@
     /// <summary>Basis of the comparison, e.g. "vs last 7 days".</summary>
     [Parameter] public string Caption { get; set; } = "";
 
-    private string FormattedValue => Kpi.Format == DashboardKpiFormat.Currency
-        ? Kpi.Value.ToString("C0")
-        : Kpi.Value.ToString("N0");
+    private MarkupString FormattedValue => Kpi.Format == DashboardKpiFormat.Currency
+        ? Taka.Ho(Kpi.Value)
+        : (MarkupString)Kpi.Value.ToString("N0");
 
     /// <summary>Sparkline stroke, matched to the icon tint of the tile's tone.</summary>
     private string Accent => Tone switch

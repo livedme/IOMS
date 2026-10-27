@@ -30,21 +30,21 @@
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
                 <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Success" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Class A</MudText>
-                <MudText Typo="Typo.h6"><strong>@_aItems.Count items &middot; @_aItems.Sum(i => i.Revenue).ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h6"><strong>@_aItems.Count items &middot; @Taka.Ho(_aItems.Sum(i => i.Revenue))</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-warning);">
                 <MudIcon Icon="@Icons.Material.Filled.StarHalf" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Class B</MudText>
-                <MudText Typo="Typo.h6"><strong>@_bItems.Count items &middot; @_bItems.Sum(i => i.Revenue).ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h6"><strong>@_bItems.Count items &middot; @Taka.Ho(_bItems.Sum(i => i.Revenue))</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
                 <MudIcon Icon="@Icons.Material.Filled.StarBorder" Color="Color.Error" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Class C</MudText>
-                <MudText Typo="Typo.h6"><strong>@_cItems.Count items &middot; @_cItems.Sum(i => i.Revenue).ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h6"><strong>@_cItems.Count items &middot; @Taka.Ho(_cItems.Sum(i => i.Revenue))</strong></MudText></div>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -97,7 +97,7 @@
     <RowTemplate>
         <MudTd DataLabel="Product">@context.ProductName</MudTd>
         <MudTd DataLabel="SKU">@context.SKU</MudTd>
-        <MudTd DataLabel="Revenue" Style="text-align:right">@context.Revenue.ToString("C")</MudTd>
+        <MudTd DataLabel="Revenue" Style="text-align:right">@Taka.H(context.Revenue)</MudTd>
         <MudTd DataLabel="% of Total" Style="text-align:right">@context.RevenuePercent.ToString("F1")%</MudTd>
         <MudTd DataLabel="Cumulative %" Style="text-align:right">@context.CumulativePercent.ToString("F1")%</MudTd>
         <MudTd DataLabel="Class">

@@ -51,7 +51,7 @@
                 <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
                     <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" Class="mr-3" />
                     <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Value</MudText>
-                    <MudText Typo="Typo.h5"><strong>@_stockTotals.Sum(s => s.Value).ToString("C0")</strong></MudText></div>
+                    <MudText Typo="Typo.h5"><strong>@Taka.Ho(_stockTotals.Sum(s => s.Value))</strong></MudText></div>
                 </MudPaper>
             </MudItem>
             <MudItem xs="12" sm="4">
@@ -104,7 +104,7 @@
             <MudTd Style="text-align:right">@context.Quantity</MudTd>
             <MudTd Style="text-align:right">@context.Reserved</MudTd>
             <MudTd Style="text-align:right">@context.Available</MudTd>
-            <MudTd Style="text-align:right">@context.Value.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@Taka.H(context.Value)</MudTd>
         </RowTemplate>
     </MudTable>
 }
@@ -161,7 +161,7 @@ else if (_reportType == "Valuation")
                 <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
                     <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Success" Size="Size.Large" Class="mr-3" />
                     <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Inventory Value</MudText>
-                    <MudText Typo="Typo.h5"><strong>@_valuationRows.Sum(r => r.TotalValue).ToString("C0")</strong></MudText></div>
+                    <MudText Typo="Typo.h5"><strong>@Taka.Ho(_valuationRows.Sum(r => r.TotalValue))</strong></MudText></div>
                 </MudPaper>
             </MudItem>
         </MudGrid>
@@ -186,8 +186,8 @@ else if (_reportType == "Valuation")
             <MudTd>@context.ProductName</MudTd>
             <MudTd>@context.SKU</MudTd>
             <MudTd Style="text-align:right">@context.TotalQty</MudTd>
-            <MudTd Style="text-align:right">@context.CostPrice.ToString("C")</MudTd>
-            <MudTd Style="text-align:right">@context.TotalValue.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@Taka.H(context.CostPrice)</MudTd>
+            <MudTd Style="text-align:right">@Taka.H(context.TotalValue)</MudTd>
         </RowTemplate>
     </MudTable>
 }

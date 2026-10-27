@@ -58,9 +58,9 @@
                         </div>
                         <div class="text-end">
                             <div class="so-lbl">Credit Limit</div>
-                            <div class="so-val fw-semibold">@_customer.CreditLimit.ToString("C")</div>
+                            <div class="so-val fw-semibold">@Taka.H(_customer.CreditLimit)</div>
                             <div class="so-lbl mt-1">Outstanding</div>
-                            <div class="so-val fw-semibold @(_outstanding > 0 ? "text-error" : "text-success")">@_outstanding.ToString("C")</div>
+                            <div class="so-val fw-semibold @(_outstanding > 0 ? "text-error" : "text-success")">@Taka.H(_outstanding)</div>
                         </div>
                     </div>
                 </div>
@@ -148,16 +148,16 @@
                                 <MudTd><strong>@context.OrderNumber</strong></MudTd>
                                 <MudTd>@context.OrderDate.ToString("dd MMM yyyy")</MudTd>
                                 <MudTd><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
-                                <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
-                                <MudTd Style="text-align:right">@context.PaidAmount.ToString("C")</MudTd>
-                                <MudTd Style="text-align:right;font-weight:600;">@context.DueAmount.ToString("C")</MudTd>
+                                <MudTd Style="text-align:right">@Taka.H(context.TotalAmount)</MudTd>
+                                <MudTd Style="text-align:right">@Taka.H(context.PaidAmount)</MudTd>
+                                <MudTd Style="text-align:right;font-weight:600;">@Taka.H(context.DueAmount)</MudTd>
                             </RowTemplate>
                         </MudTable>
                     </div>
                     <div class="so-totals-box mb-3">
-                        <div class="so-total-row"><span>Total Sales (recent @_recentOrders.Count)</span><span>@_historyTotal.ToString("C")</span></div>
-                        <div class="so-total-row"><span>Paid</span><span class="text-success">@_historyPaid.ToString("C")</span></div>
-                        <div class="so-total-row so-due-row"><span>Outstanding</span><span>@_historyDue.ToString("C")</span></div>
+                        <div class="so-total-row"><span>Total Sales (recent @_recentOrders.Count)</span><span>@Taka.H(_historyTotal)</span></div>
+                        <div class="so-total-row"><span>Paid</span><span class="text-success">@Taka.H(_historyPaid)</span></div>
+                        <div class="so-total-row so-due-row"><span>Outstanding</span><span>@Taka.H(_historyDue)</span></div>
                     </div>
                 }
 
@@ -181,7 +181,7 @@
                             <RowTemplate>
                                 <MudTd><strong>@context.InvoiceNumber</strong></MudTd>
                                 <MudTd>@context.InvoiceDate.ToString("dd MMM yyyy")</MudTd>
-                                <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
+                                <MudTd Style="text-align:right">@Taka.H(context.TotalAmount)</MudTd>
                             </RowTemplate>
                         </MudTable>
                     </div>
@@ -207,7 +207,7 @@
                             <RowTemplate>
                                 <MudTd><strong>@context.PaymentNumber</strong></MudTd>
                                 <MudTd>@context.PaymentDate.ToString("dd MMM yyyy")</MudTd>
-                                <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+                                <MudTd Style="text-align:right">@Taka.H(context.Amount)</MudTd>
                             </RowTemplate>
                         </MudTable>
                     </div>

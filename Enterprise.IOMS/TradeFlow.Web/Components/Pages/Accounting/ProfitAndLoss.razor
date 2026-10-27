@@ -30,14 +30,14 @@
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
                 <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Revenue</MudText>
-                <MudText Typo="Typo.h5"><strong>@_report.TotalRevenue.ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_report.TotalRevenue)</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
                 <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Error" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Expenses</MudText>
-                <MudText Typo="Typo.h5"><strong>@_report.TotalExpenses.ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_report.TotalExpenses)</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="4">
@@ -45,7 +45,7 @@
                 <MudIcon Icon="@(_report.NetProfit >= 0 ? Icons.Material.Filled.ThumbUp : Icons.Material.Filled.ThumbDown)"
                          Color="@(_report.NetProfit >= 0 ? Color.Success : Color.Error)" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Net Profit</MudText>
-                <MudText Typo="Typo.h5"><strong>@_report.NetProfit.ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_report.NetProfit)</strong></MudText></div>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -91,11 +91,11 @@
             <RowTemplate>
                 <MudTd>@context.AccountCode</MudTd>
                 <MudTd>@context.AccountName</MudTd>
-                <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+                <MudTd Style="text-align:right">@Taka.H(context.Amount)</MudTd>
             </RowTemplate>
             <FooterContent>
                 <MudTd ColSpan="2"><strong>Total Revenue</strong></MudTd>
-                <MudTd Style="text-align:right"><strong>@_report.TotalRevenue.ToString("C")</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@Taka.H(_report.TotalRevenue)</strong></MudTd>
             </FooterContent>
         </MudTable>
 
@@ -109,11 +109,11 @@
             <RowTemplate>
                 <MudTd>@context.AccountCode</MudTd>
                 <MudTd>@context.AccountName</MudTd>
-                <MudTd Style="text-align:right">@context.Amount.ToString("C")</MudTd>
+                <MudTd Style="text-align:right">@Taka.H(context.Amount)</MudTd>
             </RowTemplate>
             <FooterContent>
                 <MudTd ColSpan="2"><strong>Total Expenses</strong></MudTd>
-                <MudTd Style="text-align:right"><strong>@_report.TotalExpenses.ToString("C")</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@Taka.H(_report.TotalExpenses)</strong></MudTd>
             </FooterContent>
         </MudTable>
     </MudPaper>

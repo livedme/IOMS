@@ -20,7 +20,7 @@
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-primary);">
                 <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total AR Outstanding</MudText>
-                <MudText Typo="Typo.h5"><strong>@_data.Sum(d => d.Total).ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_data.Sum(d => d.Total))</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="3">
@@ -34,14 +34,14 @@
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-warning);">
                 <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Overdue (30+)</MudText>
-                <MudText Typo="Typo.h5"><strong>@_data.Sum(d => d.Days31to60 + d.Days61to90 + d.Days90Plus).ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_data.Sum(d => d.Days31to60 + d.Days61to90 + d.Days90Plus))</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="3">
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
                 <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Critical (90+)</MudText>
-                <MudText Typo="Typo.h5"><strong>@_data.Sum(d => d.Days90Plus).ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_data.Sum(d => d.Days90Plus))</strong></MudText></div>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -78,25 +78,25 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.EntityName</MudTd>
-            <MudTd Style="text-align:right">@context.Current.ToString("C")</MudTd>
-            <MudTd Style="text-align:right">@context.Days1to30.ToString("C")</MudTd>
-            <MudTd Style="text-align:right">@context.Days31to60.ToString("C")</MudTd>
-            <MudTd Style="text-align:right">@context.Days61to90.ToString("C")</MudTd>
+            <MudTd Style="text-align:right">@Taka.H(context.Current)</MudTd>
+            <MudTd Style="text-align:right">@Taka.H(context.Days1to30)</MudTd>
+            <MudTd Style="text-align:right">@Taka.H(context.Days31to60)</MudTd>
+            <MudTd Style="text-align:right">@Taka.H(context.Days61to90)</MudTd>
             <MudTd Style="text-align:right">
                 <MudText Color="@(context.Days90Plus > 0 ? Color.Error : Color.Default)">
-                    @context.Days90Plus.ToString("C")
+                    @Taka.H(context.Days90Plus)
                 </MudText>
             </MudTd>
-            <MudTd Style="text-align:right"><strong>@context.Total.ToString("C")</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@Taka.H(context.Total)</strong></MudTd>
         </RowTemplate>
         <FooterContent>
             <MudTd><strong>Grand Total</strong></MudTd>
-            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Current).ToString("C")</strong></MudTd>
-            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Days1to30).ToString("C")</strong></MudTd>
-            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Days31to60).ToString("C")</strong></MudTd>
-            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Days61to90).ToString("C")</strong></MudTd>
-            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Days90Plus).ToString("C")</strong></MudTd>
-            <MudTd Style="text-align:right"><strong>@_data.Sum(d => d.Total).ToString("C")</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@Taka.H(_data.Sum(d => d.Current))</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@Taka.H(_data.Sum(d => d.Days1to30))</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@Taka.H(_data.Sum(d => d.Days31to60))</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@Taka.H(_data.Sum(d => d.Days61to90))</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@Taka.H(_data.Sum(d => d.Days90Plus))</strong></MudTd>
+            <MudTd Style="text-align:right"><strong>@Taka.H(_data.Sum(d => d.Total))</strong></MudTd>
         </FooterContent>
     </MudTable>
 </MudPaper>

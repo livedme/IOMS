@@ -30,7 +30,7 @@
                             <td class="tm-dim">@o.Store</td>
                             <td class="tm-dim">@o.Date.ToString("dd MMM yyyy hh:mm tt")</td>
                             <td><span class="@GetStatusPill(o.Status)"><span class="tm-dot"></span>@o.Status</span></td>
-                            <td class="tm-money" style="text-align:right; font-weight:700;">@o.Amount.ToString("C")</td>
+                            <td class="tm-money" style="text-align:right; font-weight:700;">@Taka.H(o.Amount)</td>
                         </tr>
                     }
                 }

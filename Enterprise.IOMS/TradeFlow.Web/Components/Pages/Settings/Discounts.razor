@@ -25,7 +25,7 @@
     <RowTemplate>
         <MudTd>@context.Name</MudTd>
         <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.Type == DiscountType.Percentage ? Color.Info : Color.Warning)">@context.Type</MudChip></MudTd>
-        <MudTd>@(context.Type == DiscountType.Percentage ? $"{context.Value}%" : context.Value.ToString("C"))</MudTd>
+        <MudTd>@(context.Type == DiscountType.Percentage ? $"{context.Value}%" : Taka.H(context.Value))</MudTd>
         <MudTd>@(context.MinQuantity?.ToString() ?? "—")</MudTd>
         <MudTd>@(context.MaxQuantity?.ToString() ?? "—")</MudTd>
         <MudTd>@(context.StartDate?.ToShortDateString() ?? "—")</MudTd>

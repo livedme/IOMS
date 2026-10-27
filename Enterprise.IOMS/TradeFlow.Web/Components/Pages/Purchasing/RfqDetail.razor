@@ -29,7 +29,7 @@ else
             <RowTemplate>
                 <MudTd>@context.ProductName</MudTd>
                 <MudTd Style="text-align:right">@context.Quantity</MudTd>
-                <MudTd Style="text-align:right">@(context.TargetUnitPrice?.ToString("C") ?? "-")</MudTd>
+                <MudTd Style="text-align:right">@(context.TargetUnitPrice is { } tp ? Taka.H(tp) : (MarkupString)"-")</MudTd>
             </RowTemplate>
         </MudTable>
     </MudPaper>
@@ -52,7 +52,7 @@ else
             </HeaderContent>
             <RowTemplate>
                 <MudTd>@context.SupplierName</MudTd>
-                <MudTd Style="text-align:right">@context.QuotedPrice.ToString("C")</MudTd>
+                <MudTd Style="text-align:right">@Taka.H(context.QuotedPrice)</MudTd>
                 <MudTd>@context.LeadTimeDays days</MudTd>
                 <MudTd>@(context.ValidUntil?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
                 <MudTd>@(context.IsSelected ? "✓" : "")</MudTd>

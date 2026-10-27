@@ -43,7 +43,7 @@
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-info);">
                 <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Info" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Value Locked</MudText>
-                <MudText Typo="Typo.h5"><strong>@_items.Sum(i => i.Value).ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_items.Sum(i => i.Value))</strong></MudText></div>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -98,7 +98,7 @@
         <MudTd DataLabel="SKU">@context.SKU</MudTd>
         <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
         <MudTd DataLabel="Quantity" Style="text-align:right">@context.Quantity</MudTd>
-        <MudTd DataLabel="Value" Style="text-align:right">@context.Value.ToString("C")</MudTd>
+        <MudTd DataLabel="Value" Style="text-align:right">@Taka.H(context.Value)</MudTd>
         <MudTd DataLabel="Last Movement">@(context.LastMovementDate?.ToShortDateString() ?? "Never")</MudTd>
         <MudTd DataLabel="Days Idle" Style="text-align:right">
             <MudChip T="string" Size="Size.Small" Color="@(context.DaysSinceLastMovement > 180 ? Color.Error : Color.Warning)">

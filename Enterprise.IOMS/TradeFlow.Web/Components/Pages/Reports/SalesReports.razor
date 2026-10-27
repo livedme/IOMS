@@ -49,14 +49,14 @@
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
                 <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Total Revenue</MudText>
-                <MudText Typo="Typo.h5"><strong>@_totalRevenue.ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_totalRevenue)</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-info);">
                 <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Info" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Avg Order Value</MudText>
-                <MudText Typo="Typo.h5"><strong>@(_totalOrders > 0 ? (_totalRevenue / _totalOrders).ToString("C0") : "৳0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@(_totalOrders > 0 ? Taka.Ho((_totalRevenue / _totalOrders)) : Taka.Ho(0))</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
@@ -74,21 +74,21 @@
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-tertiary);">
                 <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Tertiary" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Invoiced Amount</MudText>
-                <MudText Typo="Typo.h5"><strong>@_totalInvoiced.ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_totalInvoiced)</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-success);">
                 <MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Success" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Collected</MudText>
-                <MudText Typo="Typo.h5"><strong>@_totalCollected.ToString("C0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@Taka.Ho(_totalCollected)</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-error);">
                 <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Outstanding</MudText>
-                <MudText Typo="Typo.h5"><strong>@((_totalInvoiced - _totalCollected).ToString("C0"))</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@(Taka.Ho((_totalInvoiced - _totalCollected)))</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
@@ -190,22 +190,22 @@
             <RowTemplate>
                 <MudTd>@context.Name</MudTd>
                 <MudTd Style="text-align:right">@context.OrderCount</MudTd>
-                <MudTd Style="text-align:right">@context.Revenue.ToString("C")</MudTd>
-                <MudTd Style="text-align:right">@context.Invoiced.ToString("C")</MudTd>
-                <MudTd Style="text-align:right">@context.Collected.ToString("C")</MudTd>
+                <MudTd Style="text-align:right">@Taka.H(context.Revenue)</MudTd>
+                <MudTd Style="text-align:right">@Taka.H(context.Invoiced)</MudTd>
+                <MudTd Style="text-align:right">@Taka.H(context.Collected)</MudTd>
                 <MudTd Style="text-align:right">
                     <MudText Color="@(context.Outstanding > 0 ? Color.Error : Color.Success)">
-                        @context.Outstanding.ToString("C")
+                        @Taka.H(context.Outstanding)
                     </MudText>
                 </MudTd>
             </RowTemplate>
             <FooterContent>
                 <MudTd><strong>Total</strong></MudTd>
                 <MudTd Style="text-align:right"><strong>@_customerData.Sum(c => c.OrderCount)</strong></MudTd>
-                <MudTd Style="text-align:right"><strong>@_customerData.Sum(c => c.Revenue).ToString("C")</strong></MudTd>
-                <MudTd Style="text-align:right"><strong>@_customerData.Sum(c => c.Invoiced).ToString("C")</strong></MudTd>
-                <MudTd Style="text-align:right"><strong>@_customerData.Sum(c => c.Collected).ToString("C")</strong></MudTd>
-                <MudTd Style="text-align:right"><strong>@_customerData.Sum(c => c.Outstanding).ToString("C")</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@Taka.H(_customerData.Sum(c => c.Revenue))</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@Taka.H(_customerData.Sum(c => c.Invoiced))</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@Taka.H(_customerData.Sum(c => c.Collected))</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@Taka.H(_customerData.Sum(c => c.Outstanding))</strong></MudTd>
             </FooterContent>
         </MudTable>
     </MudPaper>
@@ -224,15 +224,15 @@ else if (_reportType == "ByProduct")
             <RowTemplate>
                 <MudTd>@context.ProductName</MudTd>
                 <MudTd Style="text-align:right">@context.UnitsSold.ToString("N0")</MudTd>
-                <MudTd Style="text-align:right">@context.Revenue.ToString("C")</MudTd>
-                <MudTd Style="text-align:right">@context.TaxAmount.ToString("C")</MudTd>
-                <MudTd Style="text-align:right">@(context.UnitsSold > 0 ? (context.Revenue / context.UnitsSold).ToString("C") : "-")</MudTd>
+                <MudTd Style="text-align:right">@Taka.H(context.Revenue)</MudTd>
+                <MudTd Style="text-align:right">@Taka.H(context.TaxAmount)</MudTd>
+                <MudTd Style="text-align:right">@(context.UnitsSold > 0 ? Taka.H((context.Revenue / context.UnitsSold)) : "-")</MudTd>
             </RowTemplate>
             <FooterContent>
                 <MudTd><strong>Total</strong></MudTd>
                 <MudTd Style="text-align:right"><strong>@_productData.Sum(p => p.UnitsSold).ToString("N0")</strong></MudTd>
-                <MudTd Style="text-align:right"><strong>@_productData.Sum(p => p.Revenue).ToString("C")</strong></MudTd>
-                <MudTd Style="text-align:right"><strong>@_productData.Sum(p => p.TaxAmount).ToString("C")</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@Taka.H(_productData.Sum(p => p.Revenue))</strong></MudTd>
+                <MudTd Style="text-align:right"><strong>@Taka.H(_productData.Sum(p => p.TaxAmount))</strong></MudTd>
                 <MudTd></MudTd>
             </FooterContent>
         </MudTable>
@@ -260,7 +260,7 @@ else if (_summaryLoaded)
                         @context.Status
                     </MudChip>
                 </MudTd>
-                <MudTd Style="text-align:right">@context.TotalAmount.ToString("C")</MudTd>
+                <MudTd Style="text-align:right">@Taka.H(context.TotalAmount)</MudTd>
             </RowTemplate>
         </MudTable>
     </MudPaper>

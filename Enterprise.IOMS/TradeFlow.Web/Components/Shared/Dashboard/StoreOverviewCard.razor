@@ -37,10 +37,10 @@
                                 </div>
                             </td>
                             <td class="tm-num" style="text-align:right;">@s.Orders.ToString("N0")</td>
-                            <td class="tm-money" style="text-align:right; font-weight:600;">@s.Revenue.ToString("C0")</td>
-                            <td class="tm-dim" style="text-align:right;">@s.Cost.ToString("C0")</td>
+                            <td class="tm-money" style="text-align:right; font-weight:600;">@Taka.Ho(s.Revenue)</td>
+                            <td class="tm-dim" style="text-align:right;">@Taka.Ho(s.Cost)</td>
                             <td class="tm-money" style="text-align:right; font-weight:600; color:@(s.Profit < 0 ? "#dc2626" : "#16a34a");">
-                                @s.Profit.ToString("C0")
+                                @Taka.Ho(s.Profit)
                                 <span style="font-size:10.5px; font-weight:500;">(@marginPct.ToString("0.#")%)</span>
                             </td>
                             <td style="text-align:right;">
