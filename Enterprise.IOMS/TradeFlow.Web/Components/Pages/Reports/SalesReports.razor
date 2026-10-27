@@ -56,7 +56,7 @@
             <MudPaper Class="pa-4 d-flex align-center" Elevation="3" Style="border-left:4px solid var(--mud-palette-info);">
                 <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Info" Size="Size.Large" Class="mr-3" />
                 <div><MudText Typo="Typo.body2" Color="Color.Secondary">Avg Order Value</MudText>
-                <MudText Typo="Typo.h5"><strong>@(_totalOrders > 0 ? (_totalRevenue / _totalOrders).ToString("C0") : "$0")</strong></MudText></div>
+                <MudText Typo="Typo.h5"><strong>@(_totalOrders > 0 ? (_totalRevenue / _totalOrders).ToString("C0") : "৳0")</strong></MudText></div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">

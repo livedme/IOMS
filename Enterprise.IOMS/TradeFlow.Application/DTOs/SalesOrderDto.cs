@@ -24,7 +24,7 @@ namespace TradeFlow.Application.DTOs
     public class CreateSalesOrderDtoModels
     {
         public string? BranchName { get; set; }
-        public Guid BranchId { get; set; }
+        public Guid? BranchId { get; set; }
         public Guid? CustomerId { get; set; }
         public Guid? WarehouseId { get; set; }
         public string? Notes { get; set; }

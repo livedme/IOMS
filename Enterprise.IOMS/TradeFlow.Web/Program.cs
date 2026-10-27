@@ -17,8 +17,16 @@ using TradeFlow.Web.Components;
 using TradeFlow.Web.Components.Account;
 using TradeFlow.Web.Middleware;
 using TradeFlow.Web.Services;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Force BDT (৳) as the currency symbol app-wide so every ToString("C") / Format="C"
+// renders ৳ instead of inheriting the server culture's $ symbol.
+var appCulture = (CultureInfo)CultureInfo.GetCultureInfo("en-US").Clone();
+appCulture.NumberFormat.CurrencySymbol = "৳";
+CultureInfo.DefaultThreadCurrentCulture = appCulture;
+CultureInfo.DefaultThreadCurrentUICulture = appCulture;
 
 // Add MudBlazor
 builder.Services.AddMudServices();

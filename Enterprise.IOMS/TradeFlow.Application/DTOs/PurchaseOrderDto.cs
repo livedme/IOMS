@@ -24,7 +24,7 @@ namespace TradeFlow.Application.DTOs
     public class PurchaseOrderDtoModels
     {
         public DateTime? PurchaseDate { get; set; } = DateTime.UtcNow;
-        public Guid WarehouseId { get; set; }
+        public Guid? WarehouseId { get; set; }
         public string? WarehouseText { get; set; }
         public string? Notes { get; set; }
         public decimal SubTotal { get; set; }

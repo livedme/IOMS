@@ -3341,3 +3341,7 @@ body {
 .mud-input-helper-text.mud-input-error {
     display: none !important;
 }
+
+.fw-value .mud-input-root{
+    font-weight: bolder !important;
+}

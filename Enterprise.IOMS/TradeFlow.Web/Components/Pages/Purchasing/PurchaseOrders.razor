@@ -472,7 +472,7 @@
         var suppliers = _suppliers;
         var wareHouse = _warehouses;
         var dataModel = new PurchaseOrderDtoModels();
-        string dialogTitle = "New Purchase Order";
+        string dialogTitle = "New Purchase";
 
         if (orderId.HasValue){
             var order = await PurchaseService.GetPurchaseOrderById(orderId.Value);
