@@ -26,6 +26,8 @@ namespace TradeFlow.Application.DTOs
         public Guid? TaxJurisdictionId { get; set; }
         public Guid? DefaultPriceListId { get; set; }
         public Guid? DefaultCurrencyId { get; set; }
+        public decimal OpeningBalance { get; set; }
+        public bool CreateOpeningInvoice { get; set; }
 
         
     }

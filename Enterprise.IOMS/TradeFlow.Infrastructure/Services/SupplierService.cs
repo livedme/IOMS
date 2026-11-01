@@ -3,7 +3,9 @@ using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
+using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
+using TradeFlow.Shared.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -232,10 +234,54 @@ namespace TradeFlow.Infrastructure.Services
             };
 
             _db.Suppliers.Add(supplier);
+
+            dto.Id = supplier.Id; // for the opening balance invoice below
+
+            await SupplierInitializInvoice(dto, _db);
+
+            //if (dto.CreateOpeningInvoice)
+            //{
+            //    if (dto.OpeningBalance <= 0)
+            //        throw new DomainException("Opening balance must be greater than zero when an opening balance invoice is requested.");
+
+            //    _db.Invoices.Add(new Invoice
+            //    {
+            //        InvoiceNumber = NumberGenerator.GenerateInvoiceNumber("OB"),
+            //        InvoiceType = InvoiceType.Purchase,
+            //        SupplierId = supplier.Id,
+            //        InvoiceDate = DateTime.UtcNow,
+            //        DueDate = DateTime.UtcNow.AddDays(30),
+            //        SubTotal = dto.OpeningBalance,
+            //        TotalAmount = dto.OpeningBalance,
+            //        Status = InvoiceStatus.Sent,
+            //        Notes = "Opening balance invoice"
+            //    });
+            //}
+
             await _db.SaveChangesAsync();
             return supplier.Id;
         }
+        public async Task SupplierInitializInvoice(SupplierDto dto, ApplicationDbContext _db)
+        {
+            if (dto.CreateOpeningInvoice)
+            {
+                if (dto.OpeningBalance <= 0)
+                    throw new DomainException("Opening balance must be greater than zero when an opening balance invoice is requested.");
 
+                _db.Invoices.Add(new Invoice
+                {
+                    InvoiceNumber = NumberGenerator.GenerateInvoiceNumber("SOB"),
+                    InvoiceType = InvoiceType.Purchase,
+                    SupplierId = dto.Id,
+                    InvoiceDate = DateTime.UtcNow,
+                    DueDate = DateTime.UtcNow.AddDays(30),
+                    SubTotal = dto.OpeningBalance,
+                    TotalAmount = dto.OpeningBalance,
+                    Status = InvoiceStatus.Overdue,
+                    Notes = "Opening balance invoice"
+                });
+            }
+        }
         public async Task UpdateSupplierAsync(Guid id, SupplierDto dto)
         {
             await using var _db = await _dbFactory.CreateDbContextAsync();
@@ -249,6 +295,9 @@ namespace TradeFlow.Infrastructure.Services
             supplier.Country = dto.Country; supplier.PostalCode = dto.PostalCode;
             supplier.PaymentTerms = dto.PaymentTerms; supplier.LeadTimeDays = dto.LeadTimeDays;
             supplier.DefaultCurrencyId = currencyId;
+
+            await SupplierInitializInvoice(dto, _db);
+
             await _db.SaveChangesAsync();
         }
 

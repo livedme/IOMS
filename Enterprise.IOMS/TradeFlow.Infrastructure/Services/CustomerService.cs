@@ -1,11 +1,14 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
+using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+using TradeFlow.Shared.Helpers;
+using static MudBlazor.Icons;
 
 namespace TradeFlow.Infrastructure.Services
 {
@@ -200,10 +203,54 @@ namespace TradeFlow.Infrastructure.Services
             };
             await ValidateCustomerFksAsync(customer.TaxJurisdictionId, customer.DefaultPriceListId, customer.DefaultCurrencyId, _db);
             _db.Customers.Add(customer);
+
+            dto.Id = customer.Id; // for the opening balance invoice below
+
+           await CustomerInitializInvoice(dto, _db);
+
+            //if (dto.CreateOpeningInvoice)
+            //{
+            //    if (dto.OpeningBalance <= 0)
+            //        throw new DomainException("Opening balance must be greater than zero when an opening balance invoice is requested.");
+
+            //    _db.Invoices.Add(new Invoice
+            //    {
+            //        InvoiceNumber = NumberGenerator.GenerateInvoiceNumber("OB"),
+            //        InvoiceType = InvoiceType.Sales,
+            //        CustomerId = customer.Id,
+            //        InvoiceDate = DateTime.UtcNow,
+            //        DueDate = DateTime.UtcNow.AddDays(30),
+            //        SubTotal = dto.OpeningBalance,
+            //        TotalAmount = dto.OpeningBalance,
+            //        Status = InvoiceStatus.Sent,
+            //        Notes = "Opening balance invoice"
+            //    });
+            //}
+
             await _db.SaveChangesAsync();
             return customer.Id;
         }
+        public async Task CustomerInitializInvoice(CustomerDto dto, ApplicationDbContext _db)
+        {
+            if (dto.CreateOpeningInvoice)
+            {
+                if (dto.OpeningBalance <= 0)
+                    throw new DomainException("Opening balance must be greater than zero when an opening balance invoice is requested.");
 
+                _db.Invoices.Add(new Invoice
+                {
+                    InvoiceNumber = NumberGenerator.GenerateInvoiceNumber("COB"),
+                    InvoiceType = InvoiceType.Sales,
+                    CustomerId = dto.Id,
+                    InvoiceDate = DateTime.UtcNow,
+                    DueDate = DateTime.UtcNow.AddDays(30),
+                    SubTotal = dto.OpeningBalance,
+                    TotalAmount = dto.OpeningBalance,
+                    Status = InvoiceStatus.Overdue,
+                    Notes = "Opening balance invoice"
+                });
+            }
+        }
         public async Task UpdateCustomerAsync(Guid id, CustomerDto dto)
         {
             await using var _db = await _dbFactory.CreateDbContextAsync();
@@ -220,6 +267,9 @@ namespace TradeFlow.Infrastructure.Services
             customer.IsTaxExempt = dto.IsTaxExempt;
             customer.IsActive = dto.IsActive;
             await ValidateCustomerFksAsync(customer.TaxJurisdictionId, customer.DefaultPriceListId, customer.DefaultCurrencyId, _db);
+
+            await CustomerInitializInvoice(dto, _db);
+
             await _db.SaveChangesAsync();
         }
 

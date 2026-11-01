@@ -20,6 +20,8 @@ namespace TradeFlow.Application.DTOs
         public string? Country { get; set; }
         public string? PostalCode { get; set; }
         public Guid? DefaultCurrencyId { get; set; }
+        public decimal OpeningBalance { get; set; }
+        public bool CreateOpeningInvoice { get; set; }
         public string? PaymentTerms { get; set; }
         public int LeadTimeDays { get; set; } = 1;
         public decimal Rating { get; set; } = 0;

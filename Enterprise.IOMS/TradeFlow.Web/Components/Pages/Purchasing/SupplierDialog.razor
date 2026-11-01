@@ -23,7 +23,13 @@
                 @* <MudItem xs="12" sm="4"><MudTextField @bind-Value="Supplier.Country" Label="Country" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem>
             <MudItem xs="12" sm="6"><MudTextField @bind-Value="Supplier.PostalCode" Label="Postal Code" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/></MudItem> *@
                 @* <MudItem xs="12" sm="6"><MudTextField @bind-Value="Supplier.PaymentTerms" Label="Payment Terms" ShrinkLabel]="true" Variant]="Variant.Outlined" Margin]="Margin.Dense"/></MudItem> *@
-                <MudItem xs="12">
+                <MudItem xs="12" sm="4">
+                    <MudCheckBox @bind-Value="Supplier.CreateOpeningInvoice" Label="Opening Balance Invoice" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
+                </MudItem>
+                 <MudItem xs="12" sm="4">
+                    <MudNumericField @bind-Value="Supplier.OpeningBalance" Label="Opening Balance" ReadOnly="@(!Supplier.CreateOpeningInvoice)" Min="0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>                           
+                <MudItem xs="12" sm="4" class="d-flex align-end justify-end">
                     <MudCheckBox @bind-Value="Supplier.IsActive" Label="Is Active" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
                 </MudItem>
             </MudGrid>
