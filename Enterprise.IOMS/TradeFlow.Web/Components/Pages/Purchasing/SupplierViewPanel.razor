@@ -1,5 +1,6 @@
 @inject ISupplierService SupplierService
 @inject IPurchaseService PurchaseService
+@inject IAccountingService AccountingService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject IPrintDocumentRenderer PrintRenderer
@@ -217,6 +218,11 @@
                 _historyTotal = _recentOrders.Sum(o => o.TotalAmount);
                 _historyPaid = _recentOrders.Sum(o => o.PaidAmount);
                 _historyDue = _recentOrders.Sum(o => o.DueAmount);
+
+                   var statement = await AccountingService.GetCustomerStatement(id, new DateTime(2000, 1, 1), DateTime.UtcNow.AddDays(1));
+                _invoices = statement.Invoices.OrderByDescending(i => i.InvoiceDate).Take(10).ToList();
+                _payments = statement.Payments.OrderByDescending(p => p.PaymentDate).Take(10).ToList();
+
             }
         }
         catch (Exception ex)

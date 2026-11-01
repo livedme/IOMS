@@ -33,4 +33,6 @@ public interface IAccountingService
 
     /// <summary>Invoices and payments for one customer over a window, for the statement screen.</summary>
     Task<CustomerStatementDto> GetCustomerStatement(Guid customerId, DateTime from, DateTime to);
+    Task<CustomerStatementDto> GetSupplierStatement(Guid supplierId, DateTime from, DateTime to);
+    
 }

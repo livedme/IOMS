@@ -562,6 +562,26 @@ public class AccountingService : IAccountingService
 
         return new CustomerStatementDto(invoices, payments);
     }
+    public async Task<CustomerStatementDto> GetSupplierStatement(Guid supplierId, DateTime from, DateTime to)
+    {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+
+        var invoices = await _context.Invoices
+            .Where(i => i.SupplierId == supplierId && i.InvoiceDate >= from && i.InvoiceDate < to)
+            .OrderBy(i => i.InvoiceDate)
+            .AsNoTracking()
+            .Select(i => new StatementInvoiceRowDto(i.Id, i.InvoiceNumber, i.InvoiceDate, i.TotalAmount, i.PaidAmount, i.IsInitialInvoice))
+            .ToListAsync();
+
+        var payments = await _context.Payments
+            .Where(p => p.SupplierId == supplierId && p.PaymentDate >= from && p.PaymentDate < to)
+            .OrderBy(p => p.PaymentDate)
+            .AsNoTracking()
+            .Select(p => new StatementPaymentRowDto(p.Id, p.PaymentNumber, p.PaymentDate, p.Amount))
+            .ToListAsync();
+
+        return new CustomerStatementDto(invoices, payments);
+    }
 
     private static async Task<decimal> GetAccountBalance(Guid accountId, ApplicationDbContext _context)
     {
