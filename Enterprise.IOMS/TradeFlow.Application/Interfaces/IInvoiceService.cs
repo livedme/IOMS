@@ -12,5 +12,5 @@ public interface IInvoiceService
     Task<Guid> GenerateInvoiceFromPurchaseOrderAsync(Guid purchaseOrderId);
 
     /// <summary>Invoices for the credit- and debit-note pickers. Was read off the context.</summary>
-    Task<List<InvoiceOptionDto>> GetRecentInvoiceOptions(int count);
+    Task<List<InvoiceOptionDto>> GetRecentInvoiceOptions(int count, InvoiceType type);
 }

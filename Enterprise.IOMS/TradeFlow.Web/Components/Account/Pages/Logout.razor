@@ -1,0 +1,28 @@
+@page "/Account/Logout"
+@layout EmptyLayout
+<PageTitle>Signing out</PageTitle>
+<div style="min-height:70vh;display:flex;align-items:center;justify-content:center;">
+    <div style="text-align:center;">
+        <p style="color:var(--mud-palette-text-secondary,#7C7F93);">Signing out, please wait...</p>
+        @if (HttpContext.User.Identity?.IsAuthenticated == true)
+        {
+            <form method="post" action="/Account/Logout" id="auto-logout-form">
+                <AntiforgeryToken />
+            </form>
+            <noscript>
+                <form method="post" action="/Account/Logout">
+                    <AntiforgeryToken />
+                    <button type="submit" class="btn btn-primary">Sign out</button>
+                </form>
+            </noscript>
+            <script>
+                document.getElementById('auto-logout-form').submit();
+            </script>
+        }
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+}

@@ -46,23 +46,26 @@ namespace TradeFlow.Infrastructure.Services
         }
 
         /// <summary>Invoices for the credit- and debit-note pickers, which only need number and amount.</summary>
-        public async Task<List<InvoiceOptionDto>> GetRecentInvoiceOptions(int count)
+        public async Task<List<InvoiceOptionDto>> GetRecentInvoiceOptions(int count, InvoiceType type)
         {
             await using var _db = await _dbFactory.CreateDbContextAsync();
-            return await _db.Invoices
+
+            return await _db.Invoices.Where(i => i.InvoiceType == type && (i.Status != InvoiceStatus.Cancelled && i.Status != InvoiceStatus.Paid))
                 .AsNoTracking()
                 .OrderByDescending(i => i.InvoiceDate)
                 .Take(count)
-                .Select(i => new InvoiceOptionDto(i.Id, i.InvoiceNumber, i.TotalAmount))
+                .Select(i => new InvoiceOptionDto(i.Id, i.InvoiceNumber, i.TotalAmount, i.PaidAmount, i.BalanceDue))
                 .ToListAsync();
         }
 
         public async Task<Guid> CreateInvoiceAsync(CreateInvoiceDto dto)
         {
             await using var _db = await _dbFactory.CreateDbContextAsync();
+
+            var InvoiceNumber=string.Empty;
+
             var invoice = new Invoice
             {
-                InvoiceNumber = _numberGen.Generate("INV"),
                 InvoiceType = dto.InvoiceType,
                 SalesOrderId = dto.SalesOrderId,
                 PurchaseOrderId = dto.PurchaseOrderId,
@@ -74,15 +77,19 @@ namespace TradeFlow.Infrastructure.Services
 
             if (dto.SalesOrderId.HasValue)
             {
+                InvoiceNumber = _numberGen.Generate("SO-Inv");
                 var so = await _db.SalesOrders.FindAsync(dto.SalesOrderId.Value);
                 if (so != null) { invoice.SubTotal = so.SubTotal; invoice.TaxAmount = so.TaxAmount; invoice.TotalAmount = so.TotalAmount; invoice.CustomerId = so.CustomerId; }
             }
             else if (dto.PurchaseOrderId.HasValue)
             {
+                InvoiceNumber = _numberGen.Generate("PO-Inv");
+
                 var po = await _db.PurchaseOrders.FindAsync(dto.PurchaseOrderId.Value);
                 if (po != null) { invoice.SubTotal = po.SubTotal; invoice.TaxAmount = po.TaxAmount; invoice.TotalAmount = po.TotalAmount; invoice.SupplierId = po.SupplierId; }
             }
 
+            invoice.InvoiceNumber = InvoiceNumber;
             _db.Invoices.Add(invoice);
             await _db.SaveChangesAsync();
             return invoice.Id;

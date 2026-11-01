@@ -96,7 +96,9 @@
                     }
                     else
                     {
-                        @foreach (var b in pagedResultNew.Items)
+                        var items = pagedResultNew.Items.OrderBy(b => b.CreatedAt).ToList();
+
+                        @foreach (var b in items)
                         {
                             var pill = IsActive(b) ? "tm-pill tm-pill-green" : "tm-pill tm-pill-red";
                             var icoBg = GetIconBg(b.Name);

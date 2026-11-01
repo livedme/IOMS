@@ -192,7 +192,7 @@
             var previousCategory = DataModel.CategoryControl.LastSelectedItem;
             var parameters = new DialogParameters<CategoryDialog>
             {
-                { x => x.AllCategories, Categories.Where(c => c.Id != Guid.Empty).Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path)).ToList() }
+                { x => x.AllCategories, Categories.Where(c => c.Id != Guid.Empty).Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.ParentCategoryId, null, 0, c.Path, c.CreatedAt)).ToList() }
             };
 
             var dialog = await DialogService.ShowAsync<CategoryDialog>("New Category", parameters,

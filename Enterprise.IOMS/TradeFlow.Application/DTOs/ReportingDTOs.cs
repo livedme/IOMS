@@ -160,7 +160,7 @@ public record PurchaseOrderOptionDto(
     DateTime PurchaseDate,
     PurchaseOrderStatus Status);
 
-public record InvoiceOptionDto(Guid Id, string InvoiceNumber, decimal TotalAmount);
+public record InvoiceOptionDto(Guid Id, string InvoiceNumber, decimal TotalAmount, decimal PaidAmount, decimal BalanceDue);
 
 public record TrialBalanceDto(DateTime AsOfDate, List<TrialBalanceLineDto> Lines,
     decimal TotalDebits, decimal TotalCredits);

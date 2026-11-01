@@ -6,8 +6,10 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.Text.Json;
+using TradeFlow.Infrastructure.Services;
 using TradeFlow.Web.Components.Account.Pages;
 using TradeFlow.Web.Components.Account.Pages.Manage;
 
@@ -53,10 +55,32 @@ namespace Microsoft.AspNetCore.Routing
 
             accountGroup.MapPost("/Logout", async (
               ClaimsPrincipal user,
+              HttpContext context,
               [FromServices] SignInManager<ApplicationUser> signInManager,
+              [FromServices] ITenantCache tenantCache,
+              [FromServices] IOptions<AntiforgeryOptions> antiforgeryOptions,
               [FromForm] string? returnUrl) =>
             {
+                // Evict every cached tenant entry while the principal is still resolvable; after
+                // SignOutAsync the tenant claim can no longer be trusted by TenantProvider.
+                await tenantCache.ClearAllAsync();
+
                 await signInManager.SignOutAsync();
+
+                // Full teardown: expire every cookie the browser sent except the antiforgery one,
+                // which must survive so the next request can still validate its tokens.
+                var antiforgeryPrefix = GetAntiforgeryCookiePrefix(antiforgeryOptions.Value);
+                foreach (var cookieName in context.Request.Cookies.Keys)
+                {
+                    if (antiforgeryPrefix is not null
+                        && cookieName.StartsWith(antiforgeryPrefix, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    context.Response.Cookies.Delete(cookieName);
+                }
+
                 var redirectTo = string.IsNullOrEmpty(returnUrl) ? "~/" : $"~/{returnUrl.TrimStart('/')}";
                 return TypedResults.LocalRedirect(redirectTo);
             });
@@ -127,6 +151,21 @@ namespace Microsoft.AspNetCore.Routing
             });
 
             return accountGroup;
+        }
+
+        /// <summary>
+        /// Resolves the antiforgery cookie-name prefix from the configured options. The default
+        /// name is <c>.AspNetCore.Antiforgery.&#123;0&#125;</c> where <c>&#123;0&#125;</c> is replaced with a per-app
+        /// identifier, so everything before that placeholder identifies the cookie unambiguously.
+        /// </summary>
+        private static string? GetAntiforgeryCookiePrefix(AntiforgeryOptions options)
+        {
+            var name = options.Cookie?.Name;
+            if (string.IsNullOrWhiteSpace(name))
+                return null;
+
+            var placeholder = name.IndexOf('{');
+            return placeholder > 0 ? name[..placeholder] : name;
         }
 
         private static async Task<IResult> PasskeyCreationOptionsAsync(

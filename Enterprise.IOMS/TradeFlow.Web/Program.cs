@@ -1,15 +1,10 @@
 using TradeFlow.Application;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Infrastructure;
-using TradeFlow.Infrastructure.Data;
-using TradeFlow.Infrastructure.Identity;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using System.Threading.RateLimiting;
 using TradeFlow.Shared.Constants;
@@ -101,6 +96,12 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+
+// Apply pending migrations and seed roles, users, and reference data (idempotent).
+using (var seedScope = app.Services.CreateScope())
+{
+    await TradeFlow.Infrastructure.Identity.SeedData.InitializeAsync(seedScope.ServiceProvider);
+}
 
 // Behind IIS / Nginx / a cloud load balancer the app sees the proxy's scheme and IP,
 // not the client's. Without this, UseHttpsRedirection 307-redirects the SignalR

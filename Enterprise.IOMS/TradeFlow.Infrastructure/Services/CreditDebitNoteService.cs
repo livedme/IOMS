@@ -105,7 +105,7 @@ public class CreditDebitNoteService : ICreditDebitNoteService
             Reason = dto.Reason,
             Status = DebitNoteStatus.Draft
         };
-
+       // invoice.PaidAmount= invoice.PaidAmount+ dn.Amount; // Adjust the paid amount of the invoice when a debit note is created
         _context.DebitNotes.Add(dn);
         await _context.SaveChangesAsync();
         return dn.Id;
@@ -120,7 +120,7 @@ public class CreditDebitNoteService : ICreditDebitNoteService
             ?? throw new EntityNotFoundException("DebitNote", id);
 
         dn.Status = DebitNoteStatus.Approved;
-        dn.Invoice.TotalAmount += dn.Amount;
+        dn.Invoice.PaidAmount += dn.Amount;
         await _context.SaveChangesAsync();
     }
 }

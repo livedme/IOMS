@@ -4,8 +4,6 @@
 @inject ISnackbar Snackbar
 @inject IInvoiceService InvoiceService
 
-
-
 <PageTitle>Invoices - IOMS</PageTitle>
 
 <div class="tm-page">
@@ -55,7 +53,18 @@
                     <tr>
                         <th>🧾 Invoice #</th>
                         <th>Type</th>
-                        <th>👤 Customer / Supplier</th>
+                        @if(_typeFilter == InvoiceType.Sales)
+                        {
+                            <th>👤 Customer</th>
+                        }
+                        else if (_typeFilter == InvoiceType.Purchase)
+                        {
+                            <th>👤 Supplier</th>
+                        }
+                        else
+                        {
+                            <th>👤 Party</th>
+                        }
                         <th>📅 Date</th>
                         <th>⏳ Due Date</th>
                         <th>Status</th>

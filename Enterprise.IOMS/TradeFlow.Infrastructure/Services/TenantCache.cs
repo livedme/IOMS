@@ -30,6 +30,12 @@ public interface ITenantCache
     Task RemoveByPrefixAsync(string prefix, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Removes every key registered for the current tenant, regardless of prefix. Used at sign-out
+    /// so no cached tenant data survives an authenticated session ending.
+    /// </summary>
+    Task ClearAllAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Read-through helper that returns the cached value or invokes <paramref name="factory"/>,
     /// stores its result, and returns it. Concurrent callers for the same key collapse onto a
     /// single factory invocation (cache-stampede protection).
@@ -196,6 +202,13 @@ public sealed class TenantCache : ITenantCache
         {
             _logger.LogWarning(ex, "Failed to evict cache entries under '{CachePrefix}'.", tenantPrefix);
         }
+    }
+
+    public async Task ClearAllAsync(CancellationToken cancellationToken = default)
+    {
+        // An empty prefix resolves to the tenant's root scope, so every entry the process has
+        // observed for that tenant is evicted from both levels.
+        await RemoveByPrefixAsync(string.Empty, cancellationToken);
     }
 
     public async Task<T> GetOrCreateAsync<T>(

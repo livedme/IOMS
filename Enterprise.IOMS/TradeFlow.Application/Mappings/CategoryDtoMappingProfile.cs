@@ -16,7 +16,7 @@ public class CategoryDtoMappingProfile : Profile
                 s.ParentCategoryId,
                 s.ParentCategory != null ? s.ParentCategory.Name : null,
                 s.Products.Count,
-                s.Path))
+                s.Path,s.CreatedAt))
             .ForMember(d => d.ParentCategoryName, o => o.MapFrom(s => s.ParentCategory != null ? s.ParentCategory.Name : null))
             .ForMember(d => d.ProductCount, o => o.MapFrom(s => s.Products.Count));
     }

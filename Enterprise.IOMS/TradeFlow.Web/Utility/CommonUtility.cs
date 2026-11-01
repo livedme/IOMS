@@ -184,5 +184,24 @@ namespace TradeFlow.Web.Utility
             AccountType.Expense => "tm-pill tm-pill-amber",
             _ => "tm-pill tm-pill-blue"
         };
+
+        public static string StatusPill(CreditNoteStatus s) => s switch
+        {
+            CreditNoteStatus.Draft => "tm-pill tm-pill-amber",
+            CreditNoteStatus.Approved => "tm-pill tm-pill-green",
+            CreditNoteStatus.Applied => "tm-pill tm-pill-blue",
+            CreditNoteStatus.Cancelled => "tm-pill tm-pill-red",
+            _ => "tm-pill tm-pill-gray"
+        };
+
+        public static string StatusPill(DebitNoteStatus s) => s switch
+        {
+            DebitNoteStatus.Draft => "tm-pill tm-pill-amber",
+            DebitNoteStatus.Approved => "tm-pill tm-pill-green",
+            DebitNoteStatus.Applied => "tm-pill tm-pill-blue",
+            DebitNoteStatus.Cancelled => "tm-pill tm-pill-red",
+            _ => "tm-pill tm-pill-gray"
+        };
+
     }
 }

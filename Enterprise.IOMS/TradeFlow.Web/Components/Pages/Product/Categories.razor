@@ -84,7 +84,7 @@
                     }
                     else
                     {
-                        var items= pagedResultNew.Items.OrderBy(c => c.Path).ToList();
+                        var items= pagedResultNew.Items.OrderBy(c => c.Path).OrderBy(c => c.CreatedAt).ToList();
                         @foreach (var c in items)
                         {
                             var icoBg = GetIconBg(c.Name);

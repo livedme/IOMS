@@ -72,7 +72,7 @@
                                 <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🧾</span>@n.CreditNoteNumber</span></td>
                                 <td class="tm-dim">@n.InvoiceNumber</td>
                                 <td class="tm-dim">@n.Date.ToString("dd MMM yyyy")</td>
-                                <td><span class="@StatusPill(n.Status)"><span class="tm-dot"></span>@n.Status</span></td>
+                                <td><span class="@CommonUtility.StatusPill(n.Status)"><span class="tm-dot"></span>@n.Status</span></td>
                                 <td style="text-align:right" class="tm-money">@n.Amount.ToString("N2")</td>
                                 <td class="tm-dim">@(string.IsNullOrWhiteSpace(n.Reason) ? "-" : n.Reason)</td>
                                 <td>
@@ -117,15 +117,7 @@
     private int CancelledCount => _notes.Count(n => n.Status == CreditNoteStatus.Cancelled);
     private string TotalAmount => _notes.Sum(n => n.Amount).ToString("N2");
 
-    private static string StatusPill(CreditNoteStatus s) => s switch
-    {
-        CreditNoteStatus.Draft => "tm-pill tm-pill-amber",
-        CreditNoteStatus.Approved => "tm-pill tm-pill-green",
-        CreditNoteStatus.Applied => "tm-pill tm-pill-blue",
-        CreditNoteStatus.Cancelled => "tm-pill tm-pill-red",
-        _ => "tm-pill tm-pill-gray"
-    };
-
+  
     private List<CreditNoteDto> Filtered => _notes.Where(n =>
         (_statusFilter == null || n.Status == _statusFilter.Value)
         && (string.IsNullOrWhiteSpace(_search)

@@ -24,6 +24,12 @@ public static class SeedData
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
+        // Seeding runs outside an HTTP request/circuit: initialise the tenant context so audit
+        // interception can stamp records with the default tenant.
+        var tenantId = Guid.Parse(AppConstants.DefaultTenantId);
+        scope.ServiceProvider.GetRequiredService<TradeFlow.Infrastructure.Services.TenantContext>()
+            .Set(tenantId, "system");
+
         await context.Database.MigrateAsync();
 
         // Create roles
@@ -33,7 +39,19 @@ public static class SeedData
                 await roleManager.CreateAsync(new IdentityRole(role));
         }
 
-        var tenantId = Guid.Parse(AppConstants.DefaultTenantId);
+        // Ensure default tenant exists
+        if (!await context.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Id == tenantId))
+        {
+            context.Tenants.Add(new Tenant
+            {
+                Id = tenantId,
+                CompanyCode = "main",
+                CompanyName = "Main Company",
+                TenantStatus = TenantStatus.Base,
+                CreatedBy = "system"
+            });
+            await context.SaveChangesAsync();
+        }
 
         // Create admin user
         var adminEmail = "admin@TradeFlowlocal";
@@ -52,6 +70,9 @@ public static class SeedData
             if (result.Succeeded)
                 await userManager.AddToRoleAsync(admin, Roles.Admin);
         }
+
+        // Seed test users across all roles
+        await SeedUsersAsync(userManager, tenantId);
 
         // Seed Chart of Accounts
         if (!await context.Accounts.IgnoreQueryFilters().AnyAsync(a => a.TenantId == tenantId))
@@ -155,6 +176,51 @@ public static class SeedData
 
         // Seed dummy records in all major tables
         await SeedDummyDataAsync(context, tenantId);
+    }
+
+    private static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, Guid tenantId)
+    {
+        const string password = "User@123!";
+
+        var users = new (string Name, string Role, string Department, string Phone, bool IsActive)[]
+        {
+            ("Sofia Anderson", Roles.Manager, "Operations", "+1-555-3101", true),
+            ("Marcus Chen", Roles.Manager, "Sales", "+1-555-3102", true),
+            ("Emily Rodriguez", Roles.Sales, "Sales", "+1-555-3103", true),
+            ("David Okafor", Roles.Sales, "Sales", "+1-555-3104", true),
+            ("Lena Petrova", Roles.Purchasing, "Procurement", "+1-555-3105", true),
+            ("James Whitfield", Roles.Purchasing, "Procurement", "+1-555-3106", false),
+            ("Aisha Khan", Roles.WarehouseStaff, "Warehouse", "+1-555-3107", true),
+            ("Tomasz Nowak", Roles.WarehouseStaff, "Warehouse", "+1-555-3108", true),
+            ("Grace Lin", Roles.Viewer, "Finance", "+1-555-3109", true),
+            ("Daniel Mensah", Roles.Viewer, "Support", "+1-555-3110", true)
+        };
+
+        foreach (var u in users)
+        {
+            var localPart = u.Name.ToLower().Replace(" ", ".").Replace("'", "");
+            var email = $"{localPart}@tradeflow.local";
+            if (await userManager.FindByEmailAsync(email) != null)
+                continue;
+
+            var user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                FullName = u.Name,
+                Department = u.Department,
+                PhoneNumber = u.Phone,
+                TenantId = tenantId,
+                EmailConfirmed = true,
+                IsActive = u.IsActive,
+                CreatedAt = DateTime.UtcNow.AddDays(-30),
+                LastLoginAt = u.IsActive ? DateTime.UtcNow.AddDays(-1) : null
+            };
+
+            var result = await userManager.CreateAsync(user, password);
+            if (result.Succeeded && u.IsActive)
+                await userManager.AddToRoleAsync(user, u.Role);
+        }
     }
 
     public static async Task InitializeLoadTestDataAsync(IServiceProvider serviceProvider)

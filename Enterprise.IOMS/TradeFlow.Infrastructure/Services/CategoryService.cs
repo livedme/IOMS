@@ -146,7 +146,9 @@ namespace TradeFlow.Infrastructure.Services
                     x.Category.ParentCategoryId,
                     x.Category.ParentCategory == null ? null : x.Category.ParentCategory.Name,
                     x.ProductCount,
-                    x.Category.Path))
+                    x.Category.Path,
+                    x.Category.CreatedAt
+                    ))
                 .ToList();
             response.TotalCount = totalCount;
             response.CurrentPage = page;
@@ -220,7 +222,8 @@ namespace TradeFlow.Infrastructure.Services
                 category.ParentCategoryId,
                 category.ParentCategory?.Name,
                 category.Products.Count,
-                category.Path);
+                category.Path,
+                category.CreatedAt);
         }
 
         public async Task<Guid> UpdateCategoryAsync(Guid id, CreateCategoryDto dto)

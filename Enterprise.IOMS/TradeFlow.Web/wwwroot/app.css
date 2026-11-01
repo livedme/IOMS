@@ -557,6 +557,11 @@ h1:focus {
     font-weight: 700;
 }
 
+.tm-s-amber {
+    border-color: #d5d5d5 !important;
+    background: #eaeeed;
+}
+
 .tm-s-blue {
     background: #f2f6ff;
     border-color: #d8e4ff;
