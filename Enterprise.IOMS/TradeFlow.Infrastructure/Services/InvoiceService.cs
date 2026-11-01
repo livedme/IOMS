@@ -1,13 +1,14 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Text;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using TradeFlow.Shared.Helpers;
 
 namespace TradeFlow.Infrastructure.Services
 {
@@ -62,6 +63,15 @@ namespace TradeFlow.Infrastructure.Services
         {
             await using var _db = await _dbFactory.CreateDbContextAsync();
 
+            // One invoice per order: skip cancelled ones so a duplicate generate call
+            // returns the existing invoice instead of minting a second one.
+            var existing = dto.SalesOrderId.HasValue
+                ? await _db.Invoices.FirstOrDefaultAsync(i => i.SalesOrderId == dto.SalesOrderId.Value && i.Status != InvoiceStatus.Cancelled)
+                : dto.PurchaseOrderId.HasValue
+                    ? await _db.Invoices.FirstOrDefaultAsync(i => i.PurchaseOrderId == dto.PurchaseOrderId.Value && i.Status != InvoiceStatus.Cancelled)
+                    : null;
+            if (existing != null) return existing.Id;
+
             var InvoiceNumber=string.Empty;
 
             var invoice = new Invoice
@@ -77,22 +87,39 @@ namespace TradeFlow.Infrastructure.Services
 
             if (dto.SalesOrderId.HasValue)
             {
-                InvoiceNumber = _numberGen.Generate("SO-Inv");
+                InvoiceNumber = NumberGenerator.GenerateInvoiceNumber("SO");
                 var so = await _db.SalesOrders.FindAsync(dto.SalesOrderId.Value);
-                if (so != null) { invoice.SubTotal = so.SubTotal; invoice.TaxAmount = so.TaxAmount; invoice.TotalAmount = so.TotalAmount; invoice.CustomerId = so.CustomerId; }
+                if (so != null)
+                {
+                    invoice.SubTotal = so.SubTotal; invoice.TaxAmount = so.TaxAmount; invoice.TotalAmount = so.TotalAmount; invoice.CustomerId = so.CustomerId;
+                    ApplyOrderPayment(so.PaidAmount);
+                }
             }
             else if (dto.PurchaseOrderId.HasValue)
             {
-                InvoiceNumber = _numberGen.Generate("PO-Inv");
+                InvoiceNumber = NumberGenerator.GenerateInvoiceNumber("PO");
 
                 var po = await _db.PurchaseOrders.FindAsync(dto.PurchaseOrderId.Value);
-                if (po != null) { invoice.SubTotal = po.SubTotal; invoice.TaxAmount = po.TaxAmount; invoice.TotalAmount = po.TotalAmount; invoice.SupplierId = po.SupplierId; }
+                if (po != null)
+                {
+                    invoice.SubTotal = po.SubTotal; invoice.TaxAmount = po.TaxAmount; invoice.TotalAmount = po.TotalAmount; invoice.SupplierId = po.SupplierId;
+                    ApplyOrderPayment(po.PaidAmount);
+                }
             }
 
             invoice.InvoiceNumber = InvoiceNumber;
             _db.Invoices.Add(invoice);
             await _db.SaveChangesAsync();
             return invoice.Id;
+
+            void ApplyOrderPayment(decimal paidOnOrder)
+            {
+                invoice.PaidAmount = paidOnOrder;
+                if (invoice.TotalAmount > 0 && invoice.PaidAmount >= invoice.TotalAmount)
+                    invoice.Status = InvoiceStatus.Paid;
+                else if (invoice.PaidAmount > 0)
+                    invoice.Status = InvoiceStatus.PartiallyPaid;
+            }
         }
 
         public async Task<Guid> GenerateInvoiceFromSalesOrderAsync(Guid salesOrderId)

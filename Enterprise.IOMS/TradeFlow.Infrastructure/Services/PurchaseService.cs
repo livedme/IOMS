@@ -17,12 +17,14 @@ namespace TradeFlow.Infrastructure.Services
     {
         private readonly IMapper _mapper;
         private readonly IAccountingService _accountingService;
+        private readonly IInvoiceService _invoiceService;
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-        public PurchaseService(IMapper mapper, IAccountingService accountingService, IDbContextFactory<ApplicationDbContext> contextFactory)
+        public PurchaseService(IMapper mapper, IAccountingService accountingService, IInvoiceService invoiceService, IDbContextFactory<ApplicationDbContext> contextFactory)
         {
             _mapper = mapper;
             _accountingService = accountingService;
+            _invoiceService = invoiceService;
             _contextFactory = contextFactory;
         }
 
@@ -80,6 +82,8 @@ namespace TradeFlow.Infrastructure.Services
                 }
             }
             await _context.SaveChangesAsync();
+
+            await _invoiceService.GenerateInvoiceFromPurchaseOrderAsync(po.Id);
 
             return po.Id;
         }

@@ -14,12 +14,14 @@ namespace TradeFlow.Infrastructure.Services
     {
         private readonly IMapper _mapper;
         private readonly IAccountingService _accountingService;
+        private readonly IInvoiceService _invoiceService;
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-        public OrderService(IMapper mapper, IAccountingService accountingService, IDbContextFactory<ApplicationDbContext> contextFactory)
+        public OrderService(IMapper mapper, IAccountingService accountingService, IInvoiceService invoiceService, IDbContextFactory<ApplicationDbContext> contextFactory)
         {
             _mapper = mapper;
             _accountingService = accountingService;
+            _invoiceService = invoiceService;
             _contextFactory = contextFactory;
         }
 
@@ -89,6 +91,8 @@ namespace TradeFlow.Infrastructure.Services
                     serial.Status = ProductSerialStatus.Sold;
             }
             await _context.SaveChangesAsync();
+
+            await _invoiceService.GenerateInvoiceFromSalesOrderAsync(order.Id);
 
             return order.Id;
         }

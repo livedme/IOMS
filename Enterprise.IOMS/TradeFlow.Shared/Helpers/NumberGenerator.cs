@@ -7,8 +7,8 @@ public static class NumberGenerator
     public static string GenerateOrderNumber(string prefix = "SO")
         => $"{prefix}-{DateTime.UtcNow:yyMMdd}{_random.Next(10, 999999)}";
 
-    public static string GenerateInvoiceNumber()
-        => $"INV-{DateTime.UtcNow:yyMMdd}{_random.Next(10, 999999)}";
+    public static string GenerateInvoiceNumber(string prefix)
+        => $"{prefix}-Inv-{DateTime.UtcNow:yyMMdd}{_random.Next(10, 999999)}";
 
     public static string GenerateQuoteNumber()
         => $"QT-{DateTime.UtcNow:yyMMdd}{_random.Next(10, 999999)}";
