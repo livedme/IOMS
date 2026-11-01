@@ -293,8 +293,8 @@
                 _outstanding = _historyDue;
 
                 var statement = await AccountingService.GetCustomerStatement(id, new DateTime(2000, 1, 1), DateTime.UtcNow.AddDays(1));
-                _invoices = statement.Invoices.OrderByDescending(i => i.InvoiceDate).Take(10).ToList();
-                _payments = statement.Payments.OrderByDescending(p => p.PaymentDate).Take(10).ToList();
+                _invoices = statement.Invoices.OrderByDescending(i => i.InvoiceDate).ToList();
+                _payments = statement.Payments.OrderByDescending(p => p.PaymentDate).ToList();
             }
         }
         catch (Exception ex)
