@@ -46,6 +46,61 @@ namespace TradeFlow.Infrastructure.Services
             return invoice == null ? null : _mapper.Map<InvoiceDto>(invoice);
         }
 
+        /// <summary>
+        /// The invoice itself carries no line items — they live on the sales or purchase
+        /// order it was generated from, so pull the linked order with its items and party info.
+        /// </summary>
+        public async Task<InvoiceDetailDto?> GetInvoiceDetailAsync(Guid id)
+        {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
+            var invoice = await _db.Invoices
+                .Include(i => i.Customer)
+                .Include(i => i.Supplier)
+                .Include(i => i.SalesOrder).ThenInclude(o => o!.Items).ThenInclude(it => it.Product)
+                .Include(i => i.SalesOrder).ThenInclude(o => o!.Items).ThenInclude(it => it.UoM)
+                .Include(i => i.PurchaseOrder).ThenInclude(o => o!.Items).ThenInclude(it => it.Product)
+                .Include(i => i.PurchaseOrder).ThenInclude(o => o!.Items).ThenInclude(it => it.UoM)
+                .FirstOrDefaultAsync(i => i.Id == id);
+            if (invoice == null) return null;
+
+            List<InvoiceItemLineDto> items;
+            string? orderNumber = null;
+            DateTime? orderDate = null;
+            if (invoice.InvoiceType == InvoiceType.Sales && invoice.SalesOrder != null)
+            {
+                orderNumber = invoice.SalesOrder.OrderNumber;
+                orderDate = invoice.SalesOrder.OrderDate;
+                items = invoice.SalesOrder.Items
+                    .Select(it => new InvoiceItemLineDto(it.ProductId, it.Product.Name, it.Product.SKU, it.Quantity, it.UnitPrice, it.LineTotalPrice))
+                    .ToList();
+            }
+            else if (invoice.InvoiceType == InvoiceType.Purchase && invoice.PurchaseOrder != null)
+            {
+                orderNumber = invoice.PurchaseOrder.OrderNumber;
+                orderDate = invoice.PurchaseOrder.PurchaseDate;
+                items = invoice.PurchaseOrder.Items
+                    .Select(it => new InvoiceItemLineDto(it.ProductId, it.Product.Name, it.Product.SKU, it.Quantity, it.UnitPrice, it.LineTotal))
+                    .ToList();
+            }
+            else
+            {
+                items = new List<InvoiceItemLineDto>();
+            }
+
+            var dto = _mapper.Map<InvoiceDto>(invoice);
+            return new InvoiceDetailDto(
+                dto,
+                orderNumber,
+                orderDate,
+                invoice.Customer?.PaymentTerms ?? invoice.Supplier?.PaymentTerms,
+                invoice.Customer?.CustomerPhone ?? invoice.Supplier?.SupplierPhone,
+                invoice.Customer?.CustomerEmail ?? invoice.Supplier?.SupplierEmail,
+                invoice.Customer?.Address ?? invoice.Supplier?.Address,
+                invoice.Notes,
+                items);
+        }
+
         /// <summary>Invoices for the credit- and debit-note pickers, which only need number and amount.</summary>
         public async Task<List<InvoiceOptionDto>> GetRecentInvoiceOptions(int count, InvoiceType type)
         {

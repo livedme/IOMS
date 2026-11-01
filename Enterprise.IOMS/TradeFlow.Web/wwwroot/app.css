@@ -3301,6 +3301,59 @@ body {
     width: 100%;
 }
 
+/* ---------- InvoiceViewPanel.razor: product lines + other-information grid ---------- */
+.so-items-card {
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.so-items-card .so-items-table th {
+    background: var(--mud-palette-background-grey, #f5f5f5);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--mud-palette-text-secondary, #757575);
+    padding: 7px 12px;
+    text-align: left;
+}
+
+.so-items-card .so-items-table td {
+    padding: 7px 12px;
+    border-top: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    font-size: 0.85rem;
+    vertical-align: top;
+}
+
+.so-items-card .so-items-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.so-item-name {
+    font-weight: 600;
+    color: var(--mud-palette-text-primary, #212121);
+}
+
+.so-item-sku {
+    font-size: 0.74rem;
+    color: var(--mud-palette-text-secondary, #757575);
+}
+
+.so-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 20px;
+}
+
+.so-info-grid-item .so-val {
+    font-size: 0.875rem;
+}
+
+.so-span-2 {
+    grid-column: span 2;
+}
+
 .so-totals-box {
     background: var(--mud-palette-background-grey, #f5f5f5);
     border-radius: 8px;

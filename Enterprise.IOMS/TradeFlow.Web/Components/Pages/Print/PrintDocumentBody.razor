@@ -415,49 +415,80 @@
             </div>
         </div>
     }
-    else if (Invoice is not null)
+    else if (InvoiceDetail is not null)
     {
         <div class="doc-info-row doc-sec">
             <div class="doc-info-card">
-                <div class="doc-info-icon">&#128100;</div>
+                <div class="doc-info-icon">@(InvoiceDetail.Invoice.InvoiceType == InvoiceType.Sales ? "&#128100;" : "&#127974;")</div>
                 <div>
-                    <div class="doc-lbl">@(Invoice.InvoiceType == InvoiceType.Sales ? "Customer" : "Supplier")</div>
-                    <div class="doc-val doc-val-lg">@(Invoice.CustomerName ?? Invoice.SupplierName ?? "—")</div>
+                    <div class="doc-lbl">@(InvoiceDetail.Invoice.InvoiceType == InvoiceType.Sales ? "Customer" : "Supplier")</div>
+                    <div class="doc-val doc-val-lg">@(InvoiceDetail.Invoice.CustomerName ?? InvoiceDetail.Invoice.SupplierName ?? "—")</div>
                 </div>
             </div>
-            <div class="doc-info-card">
-                <div class="doc-info-icon">&#128196;</div>
-                <div>
-                    <div class="doc-lbl">Invoice Type</div>
-                    <div class="doc-val">@Invoice.InvoiceType</div>
-                    <div class="doc-sm">Issued @Invoice.InvoiceDate.ToString("dd MMM yyyy")</div>
+            @if (InvoiceDetail.SourceOrderNumber != null)
+            {
+                <div class="doc-info-card doc-mid">
+                    <div class="doc-info-icon">&#128196;</div>
+                    <div>
+                        <div class="doc-lbl">@(InvoiceDetail.Invoice.InvoiceType == InvoiceType.Sales ? "Sales Order No" : "Purchase Order No")</div>
+                        <div class="doc-val">@InvoiceDetail.SourceOrderNumber</div>
+                    </div>
                 </div>
-            </div>
+                <div class="doc-info-card doc-r">
+                    <div class="doc-info-icon">&#128197;</div>
+                    <div>
+                        <div class="doc-lbl">Order Date</div>
+                        <div class="doc-val">@InvoiceDetail.SourceOrderDate?.ToString("dd MMM yyyy")</div>
+                    </div>
+                </div>
+            }
         </div>
 
-        <div class="doc-ref-block">
-            <div>
-                <div class="doc-lbl">Invoice Date</div>
-                <div class="doc-val">@Invoice.InvoiceDate.ToString("dd MMM yyyy")</div>
+        @if (InvoiceDetail.Items.Count > 0)
+        {
+            <div class="doc-sec">
+                <div class="doc-sec-title">Products (@InvoiceDetail.Items.Count)</div>
+                <table class="doc-items">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th class="r">Qty</th>
+                            <th class="r">Unit Price</th>
+                            <th class="r">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var it in InvoiceDetail.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <div>@it.ProductName</div>
+                                    @if (!string.IsNullOrEmpty(it.ProductSKU))
+                                    {
+                                        <div class="sub">@it.ProductSKU</div>
+                                    }
+                                </td>
+                                <td class="r">@it.Quantity</td>
+                                <td class="r">@Money(it.UnitPrice)</td>
+                                <td class="r">@Money(it.LineTotal)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
-            <div>
-                <div class="doc-lbl">Due Date</div>
-                <div class="doc-val">@Invoice.DueDate.ToString("dd MMM yyyy")</div>
-            </div>
-            <div class="doc-r">
-                <div class="doc-lbl">Balance Due</div>
-                <div class="doc-val doc-val-lg">@Money(Invoice.BalanceDue)</div>
-            </div>
-        </div>
+        }
 
         <div class="doc-sec">
-            <div class="doc-sec-title">Charges</div>
+            <div class="doc-sec-title">Summary</div>
             <div class="doc-totals" style="margin-left:0; width:100%;">
-                <div class="doc-total-row"><span>Subtotal</span><span>@Money(Invoice.SubTotal)</span></div>
-                <div class="doc-total-row"><span>Tax</span><span>@Money(Invoice.TaxAmount)</span></div>
-                <div class="doc-total-row doc-grand"><span>Total</span><span>@Money(Invoice.TotalAmount)</span></div>
-                <div class="doc-total-row doc-paid"><span>Paid</span><span>@Money(Invoice.PaidAmount)</span></div>
-                <div class="doc-total-row doc-due"><span>Balance Due</span><span>@Money(Invoice.BalanceDue)</span></div>
+                <div class="doc-total-row"><span>Subtotal</span><span>@Money(InvoiceDetail.Invoice.SubTotal)</span></div>
+                @if (InvoiceDetail.Invoice.TaxAmount > 0)
+                {
+                    <div class="doc-total-row"><span>Tax</span><span>@Money(InvoiceDetail.Invoice.TaxAmount)</span></div>
+                }
+                <div class="doc-total-row doc-grand"><span>Total</span><span>@Money(InvoiceDetail.Invoice.TotalAmount)</span></div>
+                <div class="doc-total-row doc-paid"><span>Paid</span><span>@Money(InvoiceDetail.Invoice.PaidAmount)</span></div>
+                <div class="doc-total-row doc-due"><span>Balance Due</span><span>@Money(InvoiceDetail.Invoice.BalanceDue)</span></div>
             </div>
         </div>
     }
@@ -852,7 +883,7 @@
     [Parameter] public SalesQuoteDto? Quote { get; set; }
     [Parameter] public SalesReturnDto? SalesReturn { get; set; }
     [Parameter] public PurchaseReturnDto? PurchaseReturn { get; set; }
-    [Parameter] public InvoiceDto? Invoice { get; set; }
+    [Parameter] public InvoiceDetailDto? InvoiceDetail { get; set; }
     [Parameter] public ProductDetailViewDto? Product { get; set; }
     [Parameter] public CustomerDto? Customer { get; set; }
     [Parameter] public decimal CustomerOutstanding { get; set; }

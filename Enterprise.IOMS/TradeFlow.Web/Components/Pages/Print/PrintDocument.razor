@@ -36,7 +36,7 @@ else
                        Quote="_quote"
                        SalesReturn="_salesReturn"
                        PurchaseReturn="_purchaseReturn"
-                       Invoice="_invoice"
+                        InvoiceDetail="_invoiceDetail"
                        Product="_product" />
 
     <div class="print-chrome print-header">
@@ -83,7 +83,7 @@ else
     private SalesQuoteDto? _quote;
     private SalesReturnDto? _salesReturn;
     private PurchaseReturnDto? _purchaseReturn;
-    private InvoiceDto? _invoice;
+    private InvoiceDetailDto? _invoiceDetail;
     private ProductDetailViewDto? _product;
 
     private string Kind => DocumentType.Trim().ToLowerInvariant();
@@ -107,7 +107,7 @@ else
         "quotation" => _quote?.QuoteNumber ?? "—",
         "sales-return" => _salesReturn?.ReturnNumber ?? "—",
         "purchase-return" => _purchaseReturn?.ReturnNumber ?? "—",
-        "invoice" => _invoice?.InvoiceNumber ?? "—",
+        "invoice" => _invoiceDetail?.Invoice.InvoiceNumber ?? "—",
         "product" => _product?.SKU ?? "—",
         _ => "—"
     };
@@ -119,7 +119,7 @@ else
         "quotation" => _quote?.Status.ToString() ?? "",
         "sales-return" => _salesReturn?.Status.ToString() ?? "",
         "purchase-return" => _purchaseReturn?.Status.ToString() ?? "",
-        "invoice" => _invoice?.Status.ToString() ?? "",
+        "invoice" => _invoiceDetail?.Invoice.Status.ToString() ?? "",
         _ => ""
     };
 
@@ -132,7 +132,7 @@ else
         _quote = null;
         _salesReturn = null;
         _purchaseReturn = null;
-        _invoice = null;
+        _invoiceDetail = null;
         _product = null;
 
         try
@@ -160,8 +160,8 @@ else
                     if (_purchaseReturn is null) _error = "Purchase return not found.";
                     break;
                 case "invoice":
-                    _invoice = await InvoiceService.GetInvoiceByIdAsync(Id);
-                    if (_invoice is null) _error = "Invoice not found.";
+                    _invoiceDetail = await InvoiceService.GetInvoiceDetailAsync(Id);
+                    if (_invoiceDetail is null) _error = "Invoice not found.";
                     break;
                 case "product":
                     _product = await ProductService.GetProductDetailViewAsync(Id);
@@ -230,7 +230,7 @@ else
             [nameof(PrintDocumentBody.Quote)] = _quote,
             [nameof(PrintDocumentBody.SalesReturn)] = _salesReturn,
             [nameof(PrintDocumentBody.PurchaseReturn)] = _purchaseReturn,
-            [nameof(PrintDocumentBody.Invoice)] = _invoice,
+            [nameof(PrintDocumentBody.InvoiceDetail)] = _invoiceDetail,
             [nameof(PrintDocumentBody.Product)] = _product
         });
 

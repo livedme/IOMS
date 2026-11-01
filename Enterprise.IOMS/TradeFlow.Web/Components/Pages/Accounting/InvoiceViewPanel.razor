@@ -71,9 +71,57 @@
                                 <div class="so-lbl">@(_invoice.InvoiceType == InvoiceType.Sales ? "Customer" : "Supplier")</div>
                                 <div class="so-val fw-bold text-truncate">@(_invoice.CustomerName ?? _invoice.SupplierName ?? "—")</div>
                             </div>
+                            @if (_detail != null && _detail.SourceOrderNumber != null)
+                            {
+                                <div class="ms-auto text-end">
+                                    <div class="so-lbl">@(_invoice.InvoiceType == InvoiceType.Sales ? "Sales Order No" : "Purchase Order No")</div>
+                                    <div class="so-val fw-semibold">@_detail.SourceOrderNumber</div>
+                                    
+                                </div>
+                                    <div class="ms-auto text-end">
+                                    <div class="so-sm">Order Date <br /> @(_detail.SourceOrderDate?.ToString("dd MMM yyyy") ?? "—")</div>
+                                </div>
+                            }
                         </div>
                     </MudItem>
                 </MudGrid>
+
+                <MudDivider Class="mb-3" />
+
+                <!-- Products -->
+                @if (_detail is { Items.Count: > 0 })
+                {
+                    <div class="so-section-lbl mb-2">Products</div>
+                    <div class="so-items-card mb-3">
+                        <table class="so-items-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Unit Price</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in _detail.Items)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="so-item-name">@item.ProductName</div>
+                                            @if (!string.IsNullOrEmpty(item.ProductSKU))
+                                            {
+                                                <div class="so-item-sku">@item.ProductSKU</div>
+                                            }
+                                        </td>
+                                        <td class="text-center">@item.Quantity</td>
+                                        <td class="text-end">@Taka.H(item.UnitPrice)</td>
+                                        <td class="text-end fw-semibold">@Taka.H(item.LineTotal)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
 
                 <MudDivider Class="mb-3" />
 
@@ -130,7 +178,9 @@
     private bool _open;
     private bool _animateIn;
     private bool _loading;
-    private InvoiceDto? _invoice;
+    private InvoiceDetailDto? _detail;
+
+    private InvoiceDto? _invoice => _detail?.Invoice;
 
     private Color GetInvoiceStatusColor(InvoiceStatus status) => status switch
     {
@@ -148,7 +198,7 @@
         if (_invoice is null) return;
         try
         {
-            var doc = await PrintRenderer.RenderInvoiceAsync(_invoice);
+            var doc = await PrintRenderer.RenderInvoiceAsync(_detail!);
             await JS.InvokeVoidAsync("downloadFile", doc.Html, doc.FileName + ".pdf", doc.Title, doc.Reference);
         }
         catch (Exception ex)
@@ -162,7 +212,7 @@
         if (_invoice is null) return;
         try
         {
-            var doc = await PrintRenderer.RenderInvoiceAsync(_invoice);
+            var doc = await PrintRenderer.RenderInvoiceAsync(_detail!);
             await JS.InvokeVoidAsync("printHtml", doc.Html, doc.Title, doc.Reference);
         }
         catch (Exception ex)
@@ -176,7 +226,7 @@
         _open = true;
         _loading = true;
         _animateIn = false;
-        _invoice = null;
+        _detail = null;
         StateHasChanged();
 
         await Task.Delay(20);
@@ -185,7 +235,7 @@
 
         try
         {
-            _invoice = await InvoiceService.GetInvoiceByIdAsync(id);
+            _detail = await InvoiceService.GetInvoiceDetailAsync(id);
         }
         catch (Exception ex)
         {
@@ -200,7 +250,7 @@
     {
         _open = false;
         _animateIn = false;
-        _invoice = null;
+        _detail = null;
         StateHasChanged();
     }
 }

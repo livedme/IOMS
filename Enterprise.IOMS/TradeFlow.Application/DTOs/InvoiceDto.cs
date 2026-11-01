@@ -15,6 +15,20 @@ namespace TradeFlow.Application.DTOs
     public record CreateInvoiceDto(InvoiceType InvoiceType, Guid? SalesOrderId, Guid? PurchaseOrderId,
         Guid? CustomerId, Guid? SupplierId, DateTime DueDate, string? Notes);
 
+    public record InvoiceItemLineDto(Guid ProductId, string ProductName, string? ProductSKU,
+        int Quantity, decimal UnitPrice, decimal LineTotal);
+
+    public record InvoiceDetailDto(
+        InvoiceDto Invoice,
+        string? SourceOrderNumber,
+        DateTime? SourceOrderDate,
+        string? PaymentTerms,
+        string? ContactPhone,
+        string? ContactEmail,
+        string? Address,
+        string? Notes,
+        List<InvoiceItemLineDto> Items);
+
     public record CreditNoteDto(Guid Id, string CreditNoteNumber, Guid InvoiceId, string InvoiceNumber,
         DateTime Date, decimal Amount, string? Reason, CreditNoteStatus Status);
 

@@ -15,7 +15,7 @@ public interface IPrintDocumentRenderer
     Task<RenderedDocument> RenderQuoteAsync(SalesQuoteDto quote);
     Task<RenderedDocument> RenderSalesReturnAsync(SalesReturnDto salesReturn);
     Task<RenderedDocument> RenderPurchaseReturnAsync(PurchaseReturnDto purchaseReturn);
-    Task<RenderedDocument> RenderInvoiceAsync(InvoiceDto invoice);
+    Task<RenderedDocument> RenderInvoiceAsync(InvoiceDetailDto invoiceDetail);
     Task<RenderedDocument> RenderProductAsync(ProductDetailViewDto product);
     Task<RenderedDocument> RenderCustomerAsync(CustomerDto customer, decimal outstanding = 0,
         IEnumerable<SalesOrderDto>? orders = null, IEnumerable<StatementInvoiceRowDto>? invoices = null);
@@ -48,8 +48,8 @@ public sealed class PrintDocumentRenderer : IPrintDocumentRenderer
     public Task<RenderedDocument> RenderPurchaseReturnAsync(PurchaseReturnDto purchaseReturn) =>
         RenderCoreAsync("Purchase Return", purchaseReturn.ReturnNumber, purchaseReturn.Status.ToString(), (nameof(PrintDocumentBody.PurchaseReturn), purchaseReturn));
 
-    public Task<RenderedDocument> RenderInvoiceAsync(InvoiceDto invoice) =>
-        RenderCoreAsync("Invoice", invoice.InvoiceNumber, invoice.Status.ToString(), (nameof(PrintDocumentBody.Invoice), invoice));
+    public Task<RenderedDocument> RenderInvoiceAsync(InvoiceDetailDto invoiceDetail) =>
+        RenderCoreAsync("Invoice", invoiceDetail.Invoice.InvoiceNumber, invoiceDetail.Invoice.Status.ToString(), (nameof(PrintDocumentBody.InvoiceDetail), invoiceDetail));
 
     public Task<RenderedDocument> RenderProductAsync(ProductDetailViewDto product) =>
         RenderCoreAsync("Product Details", product.SKU ?? "—", "", (nameof(PrintDocumentBody.Product), product));
