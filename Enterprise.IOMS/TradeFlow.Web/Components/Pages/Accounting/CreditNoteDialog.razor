@@ -1,5 +1,4 @@
 @using TradeFlow.Web.Components.Shared
-
 @inject ICreditDebitNoteService NoteService
 @inject IInvoiceService InvoiceService
 @inject ISnackbar Snackbar
@@ -7,14 +6,28 @@
 <MudDialog>
     <DialogContent>
          <MudForm @ref="_form" Class="gap-3">
-            <MudSelect T="Guid?" @bind-Value="_invoiceId" Label="Invoice" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+            <MudAutocomplete T="ControlItemsDto"
+                             @ref="dataModel.CustomerDdlControl.ControlRef"
+                             Label="Customer Invoice"
+                             Required="true"
+                             @key="dataModel.CustomerDdlControl.LastSelectedItem"
+                             @bind-Value="dataModel.CustomerDdlControl.SelectedItem"
+                             @bind-Text="dataModel.CustomerDdlControl.SelectedText"
+                             SearchFunc="SearchInvoice"
+                             ToStringFunc="@(c => c?.Name ?? "")"
+                             ResetValueOnEmptyText="true"
+                             Placeholder="name,invoice no, price, email"
+                             CoerceText="true"
+                             Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+
+            @* <MudSelect T="Guid?" @bind-Value="_invoiceId" Label="Invoice" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var inv in _invoices)
                 {
                     <MudSelectItem T="Guid?" Value="@((Guid?)inv.Id)">@inv.InvoiceNumber - @Taka.H(inv.BalanceDue)</MudSelectItem>
                 }
-            </MudSelect>
-            <MudNumericField @bind-Value="_amount" Label="Amount" Min="0.01m" Format="N2" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-            <RichTextField @bind-Value="_reason" Label="Reason" Lines="3" Required="true" />
+            </MudSelect> *@
+            <MudNumericField @bind-Value="dataModel.Amount" Label="Amount" Min="0.01m" Format="N2" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <RichTextField @bind-Value="dataModel.Reason" Label="Reason" Lines="3" Required="true" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -26,14 +39,39 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     private MudForm _form = default!;
-    private Guid? _invoiceId;
-    private decimal _amount;
-    private string? _reason;
+    private PaymentNoteDto dataModel = new PaymentNoteDto();
     private List<InvoiceOptionDto> _invoices = new();
 
     protected override async Task OnInitializedAsync()
     {
         _invoices = await InvoiceService.GetRecentInvoiceOptions(1000, InvoiceType.Sales);
+    }
+    private Task<IEnumerable<ControlItemsDto>> SearchInvoice(string text, CancellationToken _)
+    {
+        IEnumerable<ControlItemsDto> baseResults;
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            baseResults = _invoices.Where(c => c.Id != Guid.Empty).Select(c => new ControlItemsDto() { Id = c.Id, Name = $"{c.Name} > {c.InvoiceNumber} - {c.BalanceDue:C}" });
+        }
+        else
+        {
+            baseResults = _invoices.Where(c =>
+                c.Id != Guid.Empty &&(
+                    (c.Name.Contains(text, StringComparison.OrdinalIgnoreCase)) ||
+                    (c.InvoiceNumber.Contains(text, StringComparison.OrdinalIgnoreCase)) ||
+                    (c.BalanceDue.ToString().Contains(text, StringComparison.OrdinalIgnoreCase)) ||
+                    (c.Email.Contains(text, StringComparison.OrdinalIgnoreCase))
+                )).Select(c => new ControlItemsDto() { Id = c.Id, Name = $"{c.Name} > {c.InvoiceNumber} - {c.BalanceDue:C}" });
+        }
+
+        var results = baseResults.OrderBy(x => x.Name).DistinctBy(c => c.Id);
+        //results = baseResults.Concat(new[] { AddNewCustomerOption });
+
+        // var results = new[] { AddNewCustomerOption }.Concat(baseResults).DistinctBy(c => c.Id);
+        //var results = baseResults.Append(AddNewCustomerOption).DistinctBy(c => c.Id).ToList();
+
+        return Task.FromResult(results);
     }
 
     private void Cancel() => MudDialog.Cancel();
@@ -47,9 +85,9 @@
             
         try
         {
-            if (_invoiceId != null)
+            if (dataModel.CustomerDdlControl.SelectedItem != null)
             {
-                var dto = new CreateCreditNoteDto((Guid)_invoiceId, _amount, _reason);
+                var dto = new CreateCreditNoteDto((Guid)dataModel.CustomerDdlControl.SelectedItem.Id, dataModel.Amount, dataModel.Reason);
                 await NoteService.CreateCreditNote(dto);
                 MudDialog.Close(DialogResult.Ok(true));
             }

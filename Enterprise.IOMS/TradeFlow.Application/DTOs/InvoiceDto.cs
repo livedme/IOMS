@@ -39,4 +39,11 @@ namespace TradeFlow.Application.DTOs
     public record CreateCreditNoteDto(Guid InvoiceId, decimal Amount, string? Reason);
     public record CreateDebitNoteDto(Guid InvoiceId, decimal Amount, string? Reason);
 
+    public class PaymentNoteDto
+    {
+        public Guid InvoiceId { get; set; }
+        public decimal Amount { get; set; }
+        public string? Reason { get; set; }
+        public ControlDto CustomerDdlControl { get; set; } = new ControlDto();
+    }
 }

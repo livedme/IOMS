@@ -110,7 +110,7 @@ namespace TradeFlow.Infrastructure.Services
                 .AsNoTracking()
                 .OrderByDescending(i => i.InvoiceDate)
                 .Take(count)
-                .Select(i => new InvoiceOptionDto(i.Id, i.InvoiceNumber, i.TotalAmount, i.PaidAmount, i.BalanceDue))
+                .Select(i => new InvoiceOptionDto(i.Id, i.InvoiceNumber, i.TotalAmount, i.PaidAmount, i.BalanceDue, i.Supplier == null ? i.Customer.CustomerName : i.Supplier.SupplierName, i.Supplier == null ? i.Customer.CustomerEmail : i.Supplier.SupplierEmail))
                 .ToListAsync();
         }
 
