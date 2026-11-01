@@ -127,7 +127,7 @@ public record ProductOrderLineDto(
 
 
 // ── Accounting ──
-public record StatementInvoiceRowDto(Guid Id, string InvoiceNumber, DateTime InvoiceDate, decimal TotalAmount);
+public record StatementInvoiceRowDto(Guid Id, string InvoiceNumber, DateTime InvoiceDate, decimal TotalAmount, decimal PaidAmount, bool IsInitialInvoice);
 
 public record StatementPaymentRowDto(Guid Id, string PaymentNumber, DateTime PaymentDate, decimal Amount);
 

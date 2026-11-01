@@ -26,6 +26,7 @@ public class Invoice : BaseEntity
     public Currency? Currency { get; set; }
     public decimal ExchangeRate { get; set; } = 1;
     public string? Notes { get; set; }
+    public bool IsInitialInvoice { get; set; } = false;
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     public ICollection<CreditNote> CreditNotes { get; set; } = new List<CreditNote>();
     public ICollection<DebitNote> DebitNotes { get; set; } = new List<DebitNote>();

@@ -62,6 +62,19 @@
                             <div class="so-lbl mt-1">Outstanding</div>
                             <div class="so-val fw-semibold @(_outstanding > 0 ? "text-error" : "text-success")">@Taka.H(_outstanding)</div>
                         </div>
+                        @{
+                            var initialBalance = _invoices.Where(x => x.IsInitialInvoice == true).FirstOrDefault();
+
+                            if (initialBalance != null)
+                            {
+                                <div class="text-end">
+                                    <div class="so-lbl">Initial Balance</div>
+                                    <div class="so-val fw-semibold">@Taka.H(initialBalance.TotalAmount)</div>
+                                    <div class="so-lbl">Paid Balance</div>
+                                    <div class="so-val fw-semibold">@Taka.H(initialBalance.PaidAmount)</div>
+                                </div>
+                            }
+                        }
                     </div>
                 </div>
 

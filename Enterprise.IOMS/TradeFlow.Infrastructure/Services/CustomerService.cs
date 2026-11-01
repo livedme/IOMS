@@ -247,6 +247,7 @@ namespace TradeFlow.Infrastructure.Services
                     SubTotal = dto.OpeningBalance,
                     TotalAmount = dto.OpeningBalance,
                     Status = InvoiceStatus.Overdue,
+                    IsInitialInvoice = true,
                     Notes = "Opening balance invoice"
                 });
             }

@@ -29,7 +29,7 @@
                  <MudItem xs="12" sm="4">
                     <MudNumericField @bind-Value="Supplier.OpeningBalance" Label="Opening Balance" ReadOnly="@(!Supplier.CreateOpeningInvoice)" Min="0" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>                           
-                <MudItem xs="12" sm="4" class="d-flex align-end justify-end">
+                <MudItem xs="12" sm="4" class="d-flex">
                     <MudCheckBox @bind-Value="Supplier.IsActive" Label="Is Active" CheckedIcon="@Icons.Material.Filled.CheckBox" UncheckedIcon="@Icons.Material.Outlined.CheckBoxOutlineBlank" />
                 </MudItem>
             </MudGrid>

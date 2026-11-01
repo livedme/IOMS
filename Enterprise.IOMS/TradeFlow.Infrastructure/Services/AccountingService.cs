@@ -550,7 +550,7 @@ public class AccountingService : IAccountingService
             .Where(i => i.CustomerId == customerId && i.InvoiceDate >= from && i.InvoiceDate < to)
             .OrderBy(i => i.InvoiceDate)
             .AsNoTracking()
-            .Select(i => new StatementInvoiceRowDto(i.Id, i.InvoiceNumber, i.InvoiceDate, i.TotalAmount))
+            .Select(i => new StatementInvoiceRowDto(i.Id, i.InvoiceNumber, i.InvoiceDate, i.TotalAmount, i.PaidAmount, i.IsInitialInvoice))
             .ToListAsync();
 
         var payments = await _context.Payments
