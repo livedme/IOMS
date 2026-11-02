@@ -1,6 +1,6 @@
 @using TradeFlow.Web.Components.Shared.Cards
 @inject ICustomerService CustomerService
-@inject IOrderService OrderService
+@inject ISalesServices SalesServices
 @inject IAccountingService AccountingService
 @inject ICreditDebitNoteService CreditDebitNoteService
 @inject ISnackbar Snackbar
@@ -141,6 +141,9 @@
 
                 <MudDivider Class="mb-3" />
                 <PartySalesListCard _recentOrders="@_recentOrders" />    
+
+                <MudDivider Class="mb-3" />
+              @*   <PartySalesItemListCard _recentOrders="@_salesItems" /> *@
                 
                 <MudDivider Class="mb-3" />
                 <PartyInvoiceListCard invoices="_invoices" />
@@ -178,7 +181,8 @@
     private List<StatementInvoiceRowDto> _invoices = new();
     private List<StatementPaymentRowDto> _payments = new();
     private List<CreditNoteDto> _creditNotes = new();
-    
+    private List<SalesOrderItemDto> _salesItems = new();
+
     // private decimal _historyTotal;
     // private decimal _historyPaid;
     // private decimal _historyDue;
@@ -206,7 +210,7 @@
             _customer = await CustomerService.GetCustomerByIdAsync(id);
             if (_customer != null)
             {
-                var history = await OrderService.GetSalesOrdersAsync(new SalesPagedRequest
+                var history = await SalesServices.GetSalesOrdersAsync(new SalesPagedRequest
                 {
                     CustomerId = id,
                     CurrentPage = 0,
@@ -223,6 +227,9 @@
 
                 _creditNotes = await CreditDebitNoteService.GetCreditNotesForCustomer(id);
                 _creditNotes = _creditNotes.OrderByDescending(c => c.InvoiceNumber).ToList();
+
+                _salesItems = await SalesServices.GetSalesItemsOrderByCustomer(id);
+
             }
         }
         catch (Exception ex)

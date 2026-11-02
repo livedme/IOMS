@@ -1,0 +1,60 @@
+<!-- Sales Item Lines -->
+@{
+    var itemLines = _recentOrders
+        .SelectMany(o => o.Items.Select(i => new
+        {
+            OrderNumber = o.OrderNumber,
+            i.ProductName,
+            i.ProductSKU,
+            i.Quantity,
+            i.ShippedQuantity,
+            i.UnitPrice,
+            i.DiscountAmount,
+            i.TotalDiscount,
+            i.LineTotalPrice
+        }))
+        .ToList();
+}
+<div class="so-section-lbl mb-2">Sales Items (@itemLines.Count)</div>
+@if (itemLines.Count == 0)
+{
+    <div class="so-sm mb-3">No sales items recorded.</div>
+}
+else
+{
+    <div class="so-items-wrapper mb-3">
+        <MudTable Items="@itemLines" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+            <HeaderContent>
+                <MudTh>Order #</MudTh>
+                <MudTh>Product</MudTh>
+                <MudTh Style="text-align:center">Qty</MudTh>
+                <MudTh Style="text-align:center">Shipped</MudTh>
+                <MudTh Style="text-align:right">Unit Price(@Taka.HIcon())</MudTh>
+                <MudTh Style="text-align:right">Discount(@Taka.HIcon())</MudTh>
+                <MudTh Style="text-align:right">Total(@Taka.HIcon())</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.OrderNumber</strong></MudTd>
+                <MudTd>
+                    @context.ProductName
+                    @if (!string.IsNullOrEmpty(context.ProductSKU))
+                    {
+                        <div class="so-item-sku">@context.ProductSKU</div>
+                    }
+                </MudTd>
+                <MudTd Style="text-align:center">@context.Quantity</MudTd>
+                <MudTd Style="text-align:center">@context.ShippedQuantity</MudTd>
+                <MudTd Style="text-align:right">@context.UnitPrice</MudTd>
+                <MudTd Style="text-align:right">@context.TotalDiscount</MudTd>
+                <MudTd Style="text-align:right;font-weight:600;">@context.LineTotalPrice</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </div>
+    <div class="so-totals-box mb-3">
+        <div class="so-total-row"><span>Items (@itemLines.Count)</span><span>@Taka.H(itemLines.Sum(i => i.LineTotalPrice))</span></div>
+    </div>
+}
+
+@code {
+    [Parameter] public List<SalesOrderDto> _recentOrders { get; set; } = new();
+}

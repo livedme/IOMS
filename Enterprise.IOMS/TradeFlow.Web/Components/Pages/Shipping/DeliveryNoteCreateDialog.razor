@@ -1,5 +1,5 @@
 @inject IShippingService ShippingService
-@inject IOrderService OrderService
+@inject ISalesServices SalesServices
 @inject ISnackbar Snackbar
 
 <MudDialog>
@@ -37,7 +37,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await OrderService.GetSalesOrders(null, null, 1, 200);
+        var result = await SalesServices.GetSalesOrders(null, null, 1, 200);
         _salesOrders = result.Items;
     }
 

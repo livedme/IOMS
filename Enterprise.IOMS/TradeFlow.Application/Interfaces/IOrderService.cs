@@ -3,7 +3,7 @@ using TradeFlow.Domain.Enums;
 
 namespace TradeFlow.Application.Interfaces;
 
-public interface IOrderService
+public interface ISalesServices
 {
     Task<Guid> CreateSalesOrder(CreateSalesOrderDto dto);
     Task UpdateSalesOrder(Guid id, CreateSalesOrderDto dto);
@@ -12,6 +12,7 @@ public interface IOrderService
     Task CancelOrder(Guid orderId, string reason);
     Task UpdateOrderStatus(Guid orderId, OrderStatus newStatus);
     Task<SalesOrderDto?> GetSalesOrderById(Guid id);
+    Task<List<SalesOrderItemDto>?> GetSalesItemsOrderByCustomer(Guid customerId);
     Task<PagedResult<SalesOrderDto>> GetSalesOrders(string? search, List<OrderStatus?>? status, int page, int pageSize);
     Task<PagedResultNew<SalesOrderDto>> GetSalesOrdersAsync(SalesPagedRequest request);
 }

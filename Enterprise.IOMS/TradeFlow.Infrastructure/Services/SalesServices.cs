@@ -10,14 +10,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace TradeFlow.Infrastructure.Services
 {
-    public class OrderService : IOrderService
+    public class SalesServices : ISalesServices
     {
         private readonly IMapper _mapper;
         private readonly IAccountingService _accountingService;
         private readonly IInvoiceService _invoiceService;
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
 
-        public OrderService(IMapper mapper, IAccountingService accountingService, IInvoiceService invoiceService, IDbContextFactory<ApplicationDbContext> contextFactory)
+        public SalesServices(IMapper mapper, IAccountingService accountingService, IInvoiceService invoiceService, IDbContextFactory<ApplicationDbContext> contextFactory)
         {
             _mapper = mapper;
             _accountingService = accountingService;
@@ -275,6 +275,21 @@ namespace TradeFlow.Infrastructure.Services
 
             return order == null ? null : model;
         }
+        public async Task<List<SalesOrderItemDto>?> GetSalesItemsOrderByCustomer(Guid customerId)
+        {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
+            var orderItems = await _context.SalesOrderItems
+                .AsSplitQuery()
+                .Include(o => o.Product)
+                .Where(o => o.SalesOrder.CustomerId == customerId)
+                .ToListAsync();
+
+            var model = _mapper.Map<List<SalesOrderItemDto>>(orderItems);
+            //var customer = _mapper.Map<CustomerDto>(order.Customer);
+
+            return orderItems == null ? null : model;
+        }
 
         public async Task<PagedResult<SalesOrderDto>> GetSalesOrders(string? search, List<OrderStatus?> status, int page, int pageSize)
         {
@@ -401,7 +416,7 @@ namespace TradeFlow.Infrastructure.Services
                     o.Notes,
                     o.ExchangeRate,
                     o.ExpectedDeliveryDate,
-                    ItemCount = o.Items.Count,
+                    ItemCount = o.Items.Count                    
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)

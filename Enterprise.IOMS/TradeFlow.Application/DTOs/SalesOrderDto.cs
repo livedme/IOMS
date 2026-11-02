@@ -11,9 +11,10 @@ namespace TradeFlow.Application.DTOs
         decimal DiscountAmount, DiscountType DiscountType, decimal TotalAmount, decimal PaidAmount, decimal DueAmount, string? Notes, decimal ExchangeRate,
         DateTime? ExpectedDeliveryDate, List<SalesOrderItemDto> Items,int ItemCount = 0);
 
-    public record SalesOrderItemDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU, int Quantity, int ShippedQuantity, decimal UnitPrice,
-
+    public record SalesOrderItemDto(Guid Id, Guid OrderId, string OrderNumber, Guid CustomerId, Guid ProductId, string ProductName, 
+        string ProductSKU, int Quantity, int ShippedQuantity, decimal UnitPrice,
         decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscount, decimal LineTotalPrice);
+
     public record CreateSalesOrderDto(Guid CustomerId, Guid? WarehouseId, Guid? BranchId, string? Notes, string? ShippingAddress, DateTime? ExpectedDeliveryDate,
         Guid? CurrencyId, OrderStatus Status, DateTime SalesDate, decimal SubTotal, decimal LabourCharge, decimal TruckCharge, decimal TaxAmount, int DiscountType,
         decimal DiscountAmount, decimal TotalAmount, decimal PaidAmount, decimal DueAmount, List<CreateSalesOrderItemDto> Items);

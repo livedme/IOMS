@@ -106,7 +106,7 @@ public static class DependencyInjection
 
         // Application Services
         services.AddScoped<IInventoryService, InventoryService>();
-        services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<ISalesServices, SalesServices>();
         services.AddScoped<IPurchaseService, PurchaseService>();
         services.AddScoped<IAccountingService, AccountingService>();
         services.AddScoped<ITaxService, TaxService>();

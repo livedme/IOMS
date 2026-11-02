@@ -63,7 +63,7 @@ else
     [Parameter] public Guid Id { get; set; }
     [SupplyParameterFromQuery(Name = "action")] public string? Action { get; set; }
 
-    [Inject] private IOrderService OrderService { get; set; } = default!;
+    [Inject] private ISalesServices OrderService { get; set; } = default!;
     [Inject] private IPurchaseService PurchaseService { get; set; } = default!;
     [Inject] private IQuotationService QuotationService { get; set; } = default!;
     [Inject] private ISalesReturnService SalesReturnService { get; set; } = default!;
