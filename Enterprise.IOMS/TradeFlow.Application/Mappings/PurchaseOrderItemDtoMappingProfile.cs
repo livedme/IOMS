@@ -12,6 +12,9 @@ public class PurchaseOrderItemDtoMappingProfile : Profile
         CreateMap<PurchaseOrderItem, PurchaseOrderItemDto>()
             .ConstructUsing(s => new PurchaseOrderItemDto(
                 s.Id,
+                s.PurchaseOrder.Id,
+                s.PurchaseOrder.OrderNumber,
+                s.PurchaseOrder.SupplierId,
                 s.ProductId,
                 s.Product != null ? s.Product.Name : string.Empty,
                 s.Product != null ? s.Product.SKU : string.Empty,

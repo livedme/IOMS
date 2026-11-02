@@ -12,6 +12,7 @@ public interface IPurchaseService
     Task ApprovePurchaseOrder(Guid poId);
     Task ReceiveGoods(Guid poId, List<GoodsReceivedLineDto> lines);
     Task<PurchaseOrderDto?> GetPurchaseOrderById(Guid id);
+    Task<List<PurchaseOrderItemDto>?> GetPurchaseItemsOrderByCustomer(Guid supplierId);
     Task<PagedResult<PurchaseOrderDto>> GetPurchaseOrders(string? search, PurchaseOrderStatus? status, int page, int pageSize);
     Task<PagedResultNew<PurchaseOrderDto>> GetPurchaseOrdersAsync(PurchaseOrderPagedRequest request);
 

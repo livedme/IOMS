@@ -275,6 +275,7 @@ namespace TradeFlow.Infrastructure.Services
 
             return order == null ? null : model;
         }
+       
         public async Task<List<SalesOrderItemDto>?> GetSalesItemsOrderByCustomer(Guid customerId)
         {
             await using var _context = await _contextFactory.CreateDbContextAsync();

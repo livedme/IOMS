@@ -138,16 +138,23 @@
                 </MudGrid>
 
                 <MudDivider Class="mb-3" />
-                <PartyPurchaseListCard _recentOrders ="_recentOrders"/>
-               
-                <MudDivider Class="mb-3" />
-                <PartyInvoiceListCard invoices="_invoices" />                
-
-                <MudDivider Class="mb-3" />
-                <DebiteNoteCard debitNotes="_debitNotes" IsParty="true" />
-
-                <MudDivider Class="mb-3" />
-                <PartyPaymentListCard payments="_payments" />
+                <MudTabs Elevation="0" Rounded="true" Color="Color.Default" Class="mb-3">
+                    <MudTabPanel Text="Recent Purchases">
+                        <PartyPurchaseListCard _recentOrders ="_recentOrders"/>
+                    </MudTabPanel>
+                    <MudTabPanel Text="Purchase Items">
+                        <PartyPurchaseItemListCard itemLines="_purchaseItems" />
+                    </MudTabPanel>
+                      <MudTabPanel Text="Recent Invoices">
+                        <PartyInvoiceListCard invoices="_invoices" />
+                    </MudTabPanel>
+                    <MudTabPanel Text="Debite Notes">
+                        <DebiteNoteCard debitNotes="_debitNotes" IsParty="true" />
+                    </MudTabPanel>
+                    <MudTabPanel Text="Recent Payments">
+                        <PartyPaymentListCard payments="_payments" />
+                    </MudTabPanel>
+                </MudTabs>
             }
         </div>
 
@@ -176,9 +183,7 @@
     private List<StatementInvoiceRowDto> _invoices = new();
     private List<StatementPaymentRowDto> _payments = new();
     private List<DebitNoteDto> _debitNotes = new();
-    private decimal _historyTotal;
-    private decimal _historyPaid;
-    private decimal _historyDue;
+    private List<PurchaseOrderItemDto> _purchaseItems = new();
 
     public async Task OpenAsync(Guid id)
     {
@@ -188,7 +193,6 @@
         _supplier = null;
         _recentOrders = new();
         _debitNotes = new();
-        _historyTotal = _historyPaid = _historyDue = 0;
         StateHasChanged();
 
         await Task.Delay(20);
@@ -209,9 +213,6 @@
                     SortAscending = false
                 });
                 _recentOrders = history.Items;
-                // _historyTotal = _recentOrders.Sum(o => o.TotalAmount);
-                // _historyPaid = _recentOrders.Sum(o => o.PaidAmount);
-                // _historyDue = _recentOrders.Sum(o => o.DueAmount);
 
                 var statement = await AccountingService.GetSupplierStatement(id, new DateTime(2000, 1, 1), DateTime.UtcNow.AddDays(1));
                 _invoices = statement.Invoices.OrderByDescending(i => i.InvoiceDate).ToList();
@@ -219,6 +220,8 @@
 
                 _debitNotes = await CreditDebitNoteService.GetDebitNotesForSupplier(id);
                 _debitNotes = _debitNotes.OrderByDescending(d => d.InvoiceNumber).ToList();
+
+                _purchaseItems=await PurchaseService.GetPurchaseItemsOrderByCustomer(id);
 
             }
         }

@@ -231,6 +231,23 @@ namespace TradeFlow.Infrastructure.Services
             return po == null ? null : _mapper.Map<PurchaseOrderDto>(po);
         }
 
+        public async Task<List<PurchaseOrderItemDto>?> GetPurchaseItemsOrderByCustomer(Guid supplierId)
+        {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
+            var orderItems = await _context.PurchaseOrderItems
+                .AsSplitQuery()
+                .Include(o => o.PurchaseOrder)
+                .Include(o => o.Product)
+                .Where(o => o.PurchaseOrder.SupplierId == supplierId).OrderBy(x => x.PurchaseOrder.OrderNumber)
+                .ToListAsync();
+
+            var model = _mapper.Map<List<PurchaseOrderItemDto>>(orderItems);
+            //var customer = _mapper.Map<CustomerDto>(order.Customer);
+
+            return orderItems == null ? null : model;
+        }
+
         public async Task<PagedResult<PurchaseOrderDto>> GetPurchaseOrders(string? search, PurchaseOrderStatus? status, int page, int pageSize)
         {
             await using var _context = await _contextFactory.CreateDbContextAsync();

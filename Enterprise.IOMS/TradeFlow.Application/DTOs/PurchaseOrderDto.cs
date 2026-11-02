@@ -10,7 +10,7 @@ namespace TradeFlow.Application.DTOs
         PurchaseOrderStatus Status, decimal SubTotal, decimal LabourCharge, decimal TruckCharge, decimal DiscountAmount, DiscountType DiscountType, decimal TotalAmount,
         decimal TaxAmount, decimal PaidAmount, decimal DueAmount, string? Notes, DateTime? ExpectedDeliveryDate, List<PurchaseOrderItemDto> Items);
 
-    public record PurchaseOrderItemDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU, int Quantity, int ReceivedQuantity, decimal UnitPrice,
+    public record PurchaseOrderItemDto(Guid Id, Guid OrderId, string OrderNumber, Guid SupplierId, Guid ProductId, string ProductName, string ProductSKU, int Quantity, int ReceivedQuantity, decimal UnitPrice,
         decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal LineTotalPrice);
 
     public record CreatePurchaseOrderDto(Guid SupplierId, Guid? WarehouseId, string? Notes, DateTime? ExpectedDeliveryDate, Guid? CurrencyId, List<CreatePurchaseOrderItemDto> Items);
