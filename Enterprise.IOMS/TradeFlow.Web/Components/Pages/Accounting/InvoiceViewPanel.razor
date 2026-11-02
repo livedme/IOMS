@@ -1,4 +1,5 @@
 @inject IInvoiceService InvoiceService
+@inject ICreditDebitNoteService CreditDebitNoteService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject IPrintDocumentRenderer PrintRenderer
@@ -123,6 +124,7 @@
                     </div>
                 }
 
+
                 <MudDivider Class="mb-3" />
 
                 <!-- Charges -->
@@ -152,6 +154,91 @@
                         <span>@Taka.H(_invoice.BalanceDue)</span>
                     </div>
                 </div>
+
+
+                
+                <MudDivider Class="mb-3" />
+
+                <!-- Credit & Debit Notes -->
+                @if (_creditNotes.Count > 0 || _debitNotes.Count > 0)
+                {
+                    if (_invoice.InvoiceType == InvoiceType.Sales)
+                    {
+                        <div class="so-section-lbl mb-2">Payment Notes</div>
+                        <div class="so-items-card mb-3">
+                            @if (_creditNotes.Count > 0)
+                            {
+                               @*  <div class="so-lbl ps-3 pt-2" style="color:#2e7d32;">Credit Notes</div> *@
+                                <table class="so-items-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Number</th>
+                                            <th class="text-center">Date</th>
+                                            <th class="text-end">Reason</th>
+                                            <th class="text-end">Amount</th>
+                                            <th class="text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var cn in _creditNotes)
+                                        {
+                                            <tr>
+                                                <td><div class="so-item-name">@cn.CreditNoteNumber</div></td>
+                                                <td class="text-center">@cn.Date.ToString("dd MMM yyyy")</td>
+                                                <td class="text-end so-item-sku">@cn.Reason</td>
+                                                <td class="text-end fw-semibold">@Taka.H(cn.Amount)</td>
+                                                <td class="text-center">
+                                                    <MudChip T="string" Size="Size.Small" Color="@GetNoteStatusColor(cn.Status.ToString())">@cn.Status</MudChip>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="so-section-lbl mb-2">Payment Notes</div>
+
+                        <div class="so-items-card mb-3">
+
+                            @if (_debitNotes.Count > 0)
+                            {
+                                @if (_creditNotes.Count > 0)
+                                {
+                                    <MudDivider Class="my-1" />
+                                }
+                               @*  <div class="so-lbl ps-3 pt-2" style="color:#b71c1c;">Debit Notes</div> *@
+                                <table class="so-items-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Number</th>
+                                            <th class="text-center">Date</th>
+                                            <th class="text-end">Reason</th>
+                                            <th class="text-end">Amount</th>
+                                            <th class="text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var dn in _debitNotes)
+                                        {
+                                            <tr>
+                                                <td><div class="so-item-name">@dn.DebitNoteNumber</div></td>
+                                                <td class="text-center">@dn.Date.ToString("dd MMM yyyy")</td>
+                                                <td class="text-end so-item-sku">@dn.Reason</td>
+                                                <td class="text-end fw-semibold">@Taka.H(dn.Amount)</td>
+                                                <td class="text-center">
+                                                    <MudChip T="string" Size="Size.Small" Color="@GetNoteStatusColor(dn.Status.ToString())">@dn.Status</MudChip>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+                    }
+                }
             }
         </div>
 
@@ -179,6 +266,8 @@
     private bool _animateIn;
     private bool _loading;
     private InvoiceDetailDto? _detail;
+    private List<CreditNoteDto> _creditNotes = new();
+    private List<DebitNoteDto> _debitNotes = new();
 
     private InvoiceDto? _invoice => _detail?.Invoice;
 
@@ -190,6 +279,14 @@
         InvoiceStatus.Draft => Color.Default,
         InvoiceStatus.Overdue => Color.Error,
         InvoiceStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+
+    private Color GetNoteStatusColor(string status) => status switch
+    {
+        "Approved" => Color.Success,
+        "Applied" => Color.Info,
+        "Cancelled" => Color.Error,
         _ => Color.Default
     };
 
@@ -227,6 +324,8 @@
         _loading = true;
         _animateIn = false;
         _detail = null;
+        _creditNotes = new();
+        _debitNotes = new();
         StateHasChanged();
 
         await Task.Delay(20);
@@ -242,6 +341,19 @@
             Snackbar.Add(ex.Message, Severity.Error);
         }
 
+        if (_detail != null)
+        {
+            try
+            {
+                _creditNotes = await CreditDebitNoteService.GetCreditNotesForInvoice(id);
+                _debitNotes = await CreditDebitNoteService.GetDebitNotesForInvoice(id);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("Could not load notes: " + ex.Message, Severity.Warning);
+            }
+        }
+
         _loading = false;
         StateHasChanged();
     }
@@ -251,6 +363,8 @@
         _open = false;
         _animateIn = false;
         _detail = null;
+        _creditNotes = new();
+        _debitNotes = new();
         StateHasChanged();
     }
 }

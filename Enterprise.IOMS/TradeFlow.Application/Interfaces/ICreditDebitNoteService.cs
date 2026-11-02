@@ -4,6 +4,8 @@ namespace TradeFlow.Application.Interfaces;
 
 public interface ICreditDebitNoteService
 {
+    Task<List<CreditNoteDto>> GetCreditNotesForInvoice(Guid invoiceId);
+    Task<List<DebitNoteDto>> GetDebitNotesForInvoice(Guid invoiceId);
     Task<PagedResult<CreditNoteDto>> GetCreditNotes(string? search, int page, int pageSize);
     Task<Guid> CreateCreditNote(CreateCreditNoteDto dto);
     Task ApproveCreditNote(Guid id);

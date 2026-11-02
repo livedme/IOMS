@@ -18,6 +18,30 @@ public class CreditDebitNoteService : ICreditDebitNoteService
         _dbFactory = dbFactory;
     }
 
+    public async Task<List<CreditNoteDto>> GetCreditNotesForInvoice(Guid invoiceId)
+    {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+        return await _context.CreditNotes
+            .Include(c => c.Invoice)
+            .Where(c => c.InvoiceId == invoiceId)
+            .OrderByDescending(c => c.Date)
+            .Select(c => new CreditNoteDto(c.Id, c.CreditNoteNumber, c.InvoiceId,
+                c.Invoice.InvoiceNumber, c.Date, c.Amount, c.Reason, c.Status))
+            .ToListAsync();
+    }
+
+    public async Task<List<DebitNoteDto>> GetDebitNotesForInvoice(Guid invoiceId)
+    {
+        await using var _context = await _dbFactory.CreateDbContextAsync();
+        return await _context.DebitNotes
+            .Include(d => d.Invoice)
+            .Where(d => d.InvoiceId == invoiceId)
+            .OrderByDescending(d => d.Date)
+            .Select(d => new DebitNoteDto(d.Id, d.DebitNoteNumber, d.InvoiceId,
+                d.Invoice.InvoiceNumber, d.Date, d.Amount, d.Reason, d.Status))
+            .ToListAsync();
+    }
+
     public async Task<PagedResult<CreditNoteDto>> GetCreditNotes(string? search, int page, int pageSize)
     {
         await using var _context = await _dbFactory.CreateDbContextAsync();
