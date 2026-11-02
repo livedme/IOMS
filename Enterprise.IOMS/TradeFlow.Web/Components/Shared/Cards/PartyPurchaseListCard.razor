@@ -1,0 +1,38 @@
+﻿<!-- Recent purchases -->
+<div class="so-section-lbl mb-2">Recent Purchase Orders (@_recentOrders.Count)</div>
+@if (_recentOrders.Count == 0)
+{
+    <div class="so-sm mb-3">No purchases recorded.</div>
+}
+else
+{
+    <div class="so-items-wrapper mb-3">
+        <MudTable Items="@_recentOrders" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+            <HeaderContent>
+                <MudTh>Order #</MudTh>
+                <MudTh>Date</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh Style="text-align:right">Total(@Taka.HIcon())</MudTh>
+                <MudTh Style="text-align:right">Paid(@Taka.HIcon())</MudTh>
+                <MudTh Style="text-align:right">Due(@Taka.HIcon())</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.OrderNumber</strong></MudTd>
+                <MudTd>@context.PurchaseDate.ToString("dd MMM yyyy")</MudTd>
+                <MudTd><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
+                <MudTd Style="text-align:right">@context.TotalAmount</MudTd>
+                <MudTd Style="text-align:right">@context.PaidAmount</MudTd>
+                <MudTd Style="text-align:right;font-weight:600;">@context.DueAmount</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </div>
+    <div class="so-totals-box mb-3">
+        <div class="so-total-row"><span>Total Purchases (recent @_recentOrders.Count)</span><span>@_recentOrders.Sum(o => o.TotalAmount)</span></div>
+        <div class="so-total-row"><span>Paid</span><span class="text-success">@_recentOrders.Sum(o => o.PaidAmount)</span></div>
+        <div class="so-total-row so-due-row"><span>Outstanding</span><span>@_recentOrders.Sum(o => o.DueAmount)</span></div>
+    </div>
+}
+
+@code {
+    [Parameter] public List<PurchaseOrderDto> _recentOrders { get; set; } = new();
+}

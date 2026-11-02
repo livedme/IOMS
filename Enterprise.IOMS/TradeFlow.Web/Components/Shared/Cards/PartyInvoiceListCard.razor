@@ -1,0 +1,28 @@
+﻿<!-- Invoices -->
+<div class="so-section-lbl mb-2">Recent Invoices (@invoices.Count)</div>
+@if (invoices.Count == 0)
+{
+    <div class="so-sm mb-3">No invoices.</div>
+}
+else
+{
+    <div class="so-items-wrapper mb-3">
+        <MudTable Items="@invoices" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+            <HeaderContent>
+                <MudTh>Invoice #</MudTh>
+                <MudTh>Date</MudTh>
+                <MudTh Style="text-align:right">Total(@Taka.HIcon())</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.InvoiceNumber</strong></MudTd>
+                <MudTd>@context.InvoiceDate.ToString("dd MMM yyyy")</MudTd>
+                <MudTd Style="text-align:right">@context.TotalAmount</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </div>
+}
+
+
+@code {
+    [Parameter] public List<StatementInvoiceRowDto> invoices { get; set; } = new();
+}

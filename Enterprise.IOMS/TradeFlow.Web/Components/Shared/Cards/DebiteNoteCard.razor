@@ -1,0 +1,39 @@
+﻿<!-- Credit & Debit Notes -->
+@if (_debitNotes.Count > 0)
+{
+    <div class="so-section-lbl mb-2" style="color:#b71c1c;font-weight:600;">Debit Notes (@_debitNotes.Count)</div>
+    @if (_debitNotes.Count > 0)
+    {
+        <div class="so-items-wrapper mb-3">
+            <MudTable Items="@_debitNotes" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+                <HeaderContent>
+                    <MudTh>Note #</MudTh>
+                    @if (IsParty)
+                    {
+                        <MudTh>Invoice #</MudTh>
+                    }
+                    <MudTh>Date</MudTh>
+                    <MudTh>Reason</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh Style="text-align:right">Amount(@Taka.HIcon())</MudTh>                    
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><strong>@context.DebitNoteNumber</strong></MudTd>
+                    @if(IsParty)
+                    {
+                    <MudTd>@context.InvoiceNumber</MudTd>
+                    }
+                    <MudTd>@context.Date.ToString("dd MMM yyyy")</MudTd>
+                    <MudTd>@context.Reason</MudTd>
+                    <MudTd><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetNoteStatusColor(context.Status.ToString())">@context.Status</MudChip></MudTd>
+                    <MudTd Style="text-align:right;font-weight:600;">@context.Amount</MudTd>                    
+                </RowTemplate>
+            </MudTable>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public List<DebitNoteDto> _debitNotes { get; set; } = new();
+    [Parameter] public bool IsParty { get; set; } = false;
+}

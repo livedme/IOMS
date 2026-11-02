@@ -1,0 +1,27 @@
+﻿<!-- Payments -->
+<div class="so-section-lbl mb-2">Recent Payments (@payments.Count)</div>
+@if (payments.Count == 0)
+{
+    <div class="so-sm mb-3">No payments recorded.</div>
+}
+else
+{
+    <div class="so-items-wrapper mb-3">
+        <MudTable Items="@payments" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+            <HeaderContent>
+                <MudTh>Payment #</MudTh>
+                <MudTh>Date</MudTh>
+                <MudTh Style="text-align:right">Amount(@Taka.HIcon())</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><strong>@context.PaymentNumber</strong></MudTd>
+                <MudTd>@context.PaymentDate.ToString("dd MMM yyyy")</MudTd>
+                <MudTd Style="text-align:right">@context.Amount</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </div>
+}
+
+@code {
+    [Parameter] public List<StatementPaymentRowDto> payments { get; set; } = new();
+}

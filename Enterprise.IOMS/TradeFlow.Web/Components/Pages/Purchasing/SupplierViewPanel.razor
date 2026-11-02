@@ -1,6 +1,8 @@
+@using TradeFlow.Web.Components.Shared.Cards
 @inject ISupplierService SupplierService
 @inject IPurchaseService PurchaseService
 @inject IAccountingService AccountingService
+@inject ICreditDebitNoteService CreditDebitNoteService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject IPrintDocumentRenderer PrintRenderer
@@ -136,92 +138,16 @@
                 </MudGrid>
 
                 <MudDivider Class="mb-3" />
-
-                <!-- Recent purchases -->
-                <div class="so-section-lbl mb-2">Recent Purchase Orders (@_recentOrders.Count)</div>
-                @if (_recentOrders.Count == 0)
-                {
-                    <div class="so-sm mb-3">No purchases recorded.</div>
-                }
-                else
-                {
-                    <div class="so-items-wrapper mb-3">
-                        <MudTable Items="@_recentOrders" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
-                            <HeaderContent>
-                                <MudTh>Order #</MudTh>
-                                <MudTh>Date</MudTh>
-                                <MudTh>Status</MudTh>
-                                <MudTh Style="text-align:right">Total</MudTh>
-                                <MudTh Style="text-align:right">Paid</MudTh>
-                                <MudTh Style="text-align:right">Due</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd><strong>@context.OrderNumber</strong></MudTd>
-                                <MudTd>@context.PurchaseDate.ToString("dd MMM yyyy")</MudTd>
-                                <MudTd><MudChip T="string" Size="Size.Small" Color="@CommonUtility.GetStatusColor(context.Status)">@context.Status</MudChip></MudTd>
-                                <MudTd Style="text-align:right">@Taka.H(context.TotalAmount)</MudTd>
-                                <MudTd Style="text-align:right">@Taka.H(context.PaidAmount)</MudTd>
-                                <MudTd Style="text-align:right;font-weight:600;">@Taka.H(context.DueAmount)</MudTd>
-                            </RowTemplate>
-                        </MudTable>
-                    </div>
-                    <div class="so-totals-box mb-3">
-                        <div class="so-total-row"><span>Total Purchases (recent @_recentOrders.Count)</span><span>@Taka.H(_historyTotal)</span></div>
-                        <div class="so-total-row"><span>Paid</span><span class="text-success">@Taka.H(_historyPaid)</span></div>
-                        <div class="so-total-row so-due-row"><span>Outstanding</span><span>@Taka.H(_historyDue)</span></div>
-                    </div>
-                }
-
-                
-                <!-- Invoices -->
-                <div class="so-section-lbl mb-2">Recent Invoices (@_invoices.Count)</div>
-                @if (_invoices.Count == 0)
-                {
-                    <div class="so-sm mb-3">No invoices.</div>
-                }
-                else
-                {
-                    <div class="so-items-wrapper mb-3">
-                        <MudTable Items="@_invoices" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
-                            <HeaderContent>
-                                <MudTh>Invoice #</MudTh>
-                                <MudTh>Date</MudTh>
-                                <MudTh Style="text-align:right">Total</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd><strong>@context.InvoiceNumber</strong></MudTd>
-                                <MudTd>@context.InvoiceDate.ToString("dd MMM yyyy")</MudTd>
-                                <MudTd Style="text-align:right">@Taka.H(context.TotalAmount)</MudTd>
-                            </RowTemplate>
-                        </MudTable>
-                    </div>
-                }
+                <PartyPurchaseListCard _recentOrders ="_recentOrders"/>
+               
+                <MudDivider Class="mb-3" />
+                <PartyInvoiceListCard invoices="_invoices" />                
 
                 <MudDivider Class="mb-3" />
+                <DebiteNoteCard _debitNotes="_debitNotes" IsParty="true" />
 
-                <!-- Payments -->
-                <div class="so-section-lbl mb-2">Recent Payments (@_payments.Count)</div>
-                @if (_payments.Count == 0)
-                {
-                    <div class="so-sm mb-3">No payments recorded.</div>
-                }
-                else
-                {
-                    <div class="so-items-wrapper mb-3">
-                        <MudTable Items="@_payments" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
-                            <HeaderContent>
-                                <MudTh>Payment #</MudTh>
-                                <MudTh>Date</MudTh>
-                                <MudTh Style="text-align:right">Amount</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd><strong>@context.PaymentNumber</strong></MudTd>
-                                <MudTd>@context.PaymentDate.ToString("dd MMM yyyy")</MudTd>
-                                <MudTd Style="text-align:right">@Taka.H(context.Amount)</MudTd>
-                            </RowTemplate>
-                        </MudTable>
-                    </div>
-                }
+                <MudDivider Class="mb-3" />
+                <PartyPaymentListCard payments="_payments" />
             }
         </div>
 
@@ -249,6 +175,7 @@
     private List<PurchaseOrderDto> _recentOrders = new();
     private List<StatementInvoiceRowDto> _invoices = new();
     private List<StatementPaymentRowDto> _payments = new();
+    private List<DebitNoteDto> _debitNotes = new();
     private decimal _historyTotal;
     private decimal _historyPaid;
     private decimal _historyDue;
@@ -260,6 +187,7 @@
         _animateIn = false;
         _supplier = null;
         _recentOrders = new();
+        _debitNotes = new();
         _historyTotal = _historyPaid = _historyDue = 0;
         StateHasChanged();
 
@@ -281,13 +209,16 @@
                     SortAscending = false
                 });
                 _recentOrders = history.Items;
-                _historyTotal = _recentOrders.Sum(o => o.TotalAmount);
-                _historyPaid = _recentOrders.Sum(o => o.PaidAmount);
-                _historyDue = _recentOrders.Sum(o => o.DueAmount);
+                // _historyTotal = _recentOrders.Sum(o => o.TotalAmount);
+                // _historyPaid = _recentOrders.Sum(o => o.PaidAmount);
+                // _historyDue = _recentOrders.Sum(o => o.DueAmount);
 
                 var statement = await AccountingService.GetSupplierStatement(id, new DateTime(2000, 1, 1), DateTime.UtcNow.AddDays(1));
                 _invoices = statement.Invoices.OrderByDescending(i => i.InvoiceDate).ToList();
                 _payments = statement.Payments.OrderByDescending(p => p.PaymentDate).ToList();
+
+                _debitNotes = await CreditDebitNoteService.GetDebitNotesForSupplier(id);
+                _debitNotes = _debitNotes.OrderByDescending(d => d.InvoiceNumber).ToList();
 
             }
         }
@@ -305,8 +236,17 @@
         _open = false;
         _animateIn = false;
         _supplier = null;
+        _debitNotes = new();
         StateHasChanged();
     }
+
+    private static Color GetNoteStatusColor(string status) => status switch
+    {
+        "Approved" => Color.Success,
+        "Applied" => Color.Info,
+        "Cancelled" => Color.Error,
+        _ => Color.Default
+    };
 
     private async Task DownloadPdf()
     {

@@ -202,6 +202,13 @@ namespace TradeFlow.Web.Utility
             DebitNoteStatus.Cancelled => "tm-pill tm-pill-red",
             _ => "tm-pill tm-pill-gray"
         };
+        public static Color GetNoteStatusColor(string status) => status switch
+        {
+            "Approved" => Color.Success,
+            "Applied" => Color.Info,
+            "Cancelled" => Color.Error,
+            _ => Color.Default
+        };
 
     }
 }
