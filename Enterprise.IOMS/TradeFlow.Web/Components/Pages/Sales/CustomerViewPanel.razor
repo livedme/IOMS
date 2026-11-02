@@ -140,19 +140,24 @@
                 </MudGrid>
 
                 <MudDivider Class="mb-3" />
-                <PartySalesListCard _recentOrders="@_recentOrders" />    
 
-                <MudDivider Class="mb-3" />
-                <PartySalesItemListCard itemLines="@_salesItems" />
-                
-                <MudDivider Class="mb-3" />
-                <PartyInvoiceListCard invoices="_invoices" />
-
-                <MudDivider Class="mb-3" />
-                <CrediteNoteCard creditNotes="_creditNotes" IsParty="true" />
-
-                <MudDivider Class="mb-3" />
-                <PartyPaymentListCard payments="_payments" />
+                <MudTabs Elevation="0" Rounded="true" Color="Color.Default" Class="mb-3">
+                    <MudTabPanel Text="Recent Sales">
+                        <PartySalesListCard _recentOrders="@_recentOrders" />
+                    </MudTabPanel>
+                    <MudTabPanel Text="Sales Items Line">
+                        <PartySalesItemListCard itemLines="@_salesItems" />
+                    </MudTabPanel>
+                    <MudTabPanel Text="Recent Invoices">
+                        <PartyInvoiceListCard invoices="_invoices" />
+                    </MudTabPanel>
+                    <MudTabPanel Text="Credit Notes">
+                        <CrediteNoteCard creditNotes="_creditNotes" IsParty="true" />
+                    </MudTabPanel>
+                    <MudTabPanel Text="Recent Payments">
+                        <PartyPaymentListCard payments="_payments" />
+                    </MudTabPanel>
+                </MudTabs>
             }
         </div>
 
