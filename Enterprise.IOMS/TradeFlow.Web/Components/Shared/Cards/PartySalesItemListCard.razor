@@ -1,20 +1,5 @@
 <!-- Sales Item Lines -->
-@{
-    var itemLines = _recentOrders
-        .SelectMany(o => o.Items.Select(i => new
-        {
-            OrderNumber = o.OrderNumber,
-            i.ProductName,
-            i.ProductSKU,
-            i.Quantity,
-            i.ShippedQuantity,
-            i.UnitPrice,
-            i.DiscountAmount,
-            i.TotalDiscount,
-            i.LineTotalPrice
-        }))
-        .ToList();
-}
+
 <div class="so-section-lbl mb-2">Sales Items (@itemLines.Count)</div>
 @if (itemLines.Count == 0)
 {
@@ -56,5 +41,5 @@ else
 }
 
 @code {
-    [Parameter] public List<SalesOrderDto> _recentOrders { get; set; } = new();
+    [Parameter] public List<SalesOrderItemDto> itemLines { get; set; } = new();
 }

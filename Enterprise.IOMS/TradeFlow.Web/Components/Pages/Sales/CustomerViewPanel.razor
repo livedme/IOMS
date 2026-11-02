@@ -143,7 +143,7 @@
                 <PartySalesListCard _recentOrders="@_recentOrders" />    
 
                 <MudDivider Class="mb-3" />
-              @*   <PartySalesItemListCard _recentOrders="@_salesItems" /> *@
+                <PartySalesItemListCard itemLines="@_salesItems" />
                 
                 <MudDivider Class="mb-3" />
                 <PartyInvoiceListCard invoices="_invoices" />
@@ -214,13 +214,14 @@
                 {
                     CustomerId = id,
                     CurrentPage = 0,
-                    PageSize = 100,
+                    PageSize = 10000,
                     SortColumn = "OrderDate",
                     SortAscending = false
                 });
-                _recentOrders = history.Items;                
-                _outstanding = _recentOrders.Sum(o => o.DueAmount);
-
+                _recentOrders = history.Items; 
+                _recentOrders = _recentOrders.OrderBy(o => o.OrderNumber).ToList();
+                _outstanding = _recentOrders.Sum(o => o.DueAmount);                
+       
                 var statement = await AccountingService.GetCustomerStatement(id, new DateTime(2000, 1, 1), DateTime.UtcNow.AddDays(1));
                 _invoices = statement.Invoices.OrderByDescending(i => i.InvoiceDate).ToList();
                 _payments = statement.Payments.OrderByDescending(p => p.PaymentDate).ToList();

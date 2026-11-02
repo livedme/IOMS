@@ -281,8 +281,9 @@ namespace TradeFlow.Infrastructure.Services
 
             var orderItems = await _context.SalesOrderItems
                 .AsSplitQuery()
+                .Include(o => o.SalesOrder)
                 .Include(o => o.Product)
-                .Where(o => o.SalesOrder.CustomerId == customerId)
+                .Where(o => o.SalesOrder.CustomerId == customerId).OrderBy(x=>x.SalesOrder.OrderNumber)
                 .ToListAsync();
 
             var model = _mapper.Map<List<SalesOrderItemDto>>(orderItems);
@@ -326,7 +327,8 @@ namespace TradeFlow.Infrastructure.Services
             var response = new PagedResultNew<SalesOrderDto>();
 
             var page = Math.Max(0, request.CurrentPage);
-            var pageSize = Math.Clamp(request.PageSize, 1, 100);
+            var max = request.PageSize>100 ? request.PageSize : 100;
+            var pageSize = Math.Clamp(request.PageSize, 1, max);
             var search = request.SearchTerm?.Trim();
             var hasSearch = !string.IsNullOrWhiteSpace(search);
 
