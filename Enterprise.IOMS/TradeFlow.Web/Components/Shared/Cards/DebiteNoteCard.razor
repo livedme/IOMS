@@ -1,13 +1,13 @@
 ﻿<!-- Credit & Debit Notes -->
-@if (_debitNotes.Count > 0)
+@if (debitNotes.Count > 0)
 {
-    <div class="so-section-lbl mb-2" style="color:#b71c1c;font-weight:600;">Debit Notes (@_debitNotes.Count)</div>
-    @if (_debitNotes.Count > 0)
+    <div class="so-section-lbl mb-2" style="color:#b71c1c;font-weight:600;">Debit Notes (@debitNotes.Count)</div>
+    @if (debitNotes.Count > 0)
     {
         <div class="so-items-wrapper mb-3">
-            <MudTable Items="@_debitNotes" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
+            <MudTable Items="@debitNotes" Dense="true" Hover="true" Elevation="0" Class="so-items-table">
                 <HeaderContent>
-                    <MudTh>Note #</MudTh>
+                    <MudTh>Number #</MudTh>
                     @if (IsParty)
                     {
                         <MudTh>Invoice #</MudTh>
@@ -34,6 +34,6 @@
 }
 
 @code {
-    [Parameter] public List<DebitNoteDto> _debitNotes { get; set; } = new();
+    [Parameter] public List<DebitNoteDto> debitNotes { get; set; } = new();
     [Parameter] public bool IsParty { get; set; } = false;
 }

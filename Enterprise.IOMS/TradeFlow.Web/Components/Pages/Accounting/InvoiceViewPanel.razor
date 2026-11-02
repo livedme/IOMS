@@ -1,3 +1,4 @@
+@using TradeFlow.Web.Components.Shared.Cards
 @inject IInvoiceService InvoiceService
 @inject ICreditDebitNoteService CreditDebitNoteService
 @inject ISnackbar Snackbar
@@ -158,9 +159,16 @@
 
                 
                 <MudDivider Class="mb-3" />
-
+                if (_invoice.InvoiceType == InvoiceType.Sales)
+                {
+                    <CrediteNoteCard creditNotes="_creditNotes" />
+                }
+                else
+                {
+                    <DebiteNoteCard debitNotes="_debitNotes" />
+                }
                 <!-- Credit & Debit Notes -->
-                @if (_creditNotes.Count > 0 || _debitNotes.Count > 0)
+                @* @if (_creditNotes.Count > 0 || _debitNotes.Count > 0)
                 {
                     if (_invoice.InvoiceType == InvoiceType.Sales)
                     {
@@ -168,7 +176,6 @@
                         <div class="so-items-card mb-3">
                             @if (_creditNotes.Count > 0)
                             {
-                               @*  <div class="so-lbl ps-3 pt-2" style="color:#2e7d32;">Credit Notes</div> *@
                                 <table class="so-items-table">
                                     <thead>
                                         <tr>
@@ -209,7 +216,6 @@
                                 {
                                     <MudDivider Class="my-1" />
                                 }
-                               @*  <div class="so-lbl ps-3 pt-2" style="color:#b71c1c;">Debit Notes</div> *@
                                 <table class="so-items-table">
                                     <thead>
                                         <tr>
@@ -238,7 +244,7 @@
                             }
                         </div>
                     }
-                }
+                } *@
             }
         </div>
 
