@@ -1,10 +1,12 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
+using TradeFlow.Shared.Constants;
 using TradeFlow.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,13 +18,15 @@ namespace TradeFlow.Infrastructure.Services
         private readonly IAccountingService _accountingService;
         private readonly IInvoiceService _invoiceService;
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public SalesServices(IMapper mapper, IAccountingService accountingService, IInvoiceService invoiceService, IDbContextFactory<ApplicationDbContext> contextFactory)
+        public SalesServices(IMapper mapper, IAccountingService accountingService, IInvoiceService invoiceService, IDbContextFactory<ApplicationDbContext> contextFactory, IHttpContextAccessor httpContextAccessor)
         {
             _mapper = mapper;
             _accountingService = accountingService;
             _invoiceService = invoiceService;
             _contextFactory = contextFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<Guid> CreateSalesOrder(CreateSalesOrderDto dto)
@@ -334,11 +338,22 @@ namespace TradeFlow.Infrastructure.Services
             var hasSearch = !string.IsNullOrWhiteSpace(search);
 
             IQueryable<SalesOrder> query;
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true;
+            if (isAdmin)
+            {
+                // Admins see every tenant's records.
+                query = read.SalesOrders.IgnoreQueryFilters().AsNoTracking()
+                    .Where(o => !o.IsDeleted);
+            }
+            else if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            {
                 query = read.SalesOrders.IgnoreQueryFilters().AsNoTracking()
                     .Where(o => !o.IsDeleted && o.TenantId == request.TenantId.Value);
+            }
             else
+            {
                 query = read.SalesOrders.AsNoTracking().Where(o => !o.IsDeleted);
+            }
 
             // Base status scope — the page decides which lifecycle states it owns.
             var scope = request.StatusScope is { Count: > 0 }

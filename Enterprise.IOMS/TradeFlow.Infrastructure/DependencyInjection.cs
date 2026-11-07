@@ -24,11 +24,11 @@ public static class DependencyInjection
         // throws "A second operation was started on this context instance" when two commands
         // overlap on the same instance.
         // Scoped (not singleton) because ApplicationDbContext depends on the scoped ITenantProvider.
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
         services.AddDbContextFactory<ApplicationDbContext>(
             options =>
             {
-                options.UseSqlServer(
-                    configuration.GetConnectionString("DefaultConnection"),
+                options.UseSqlServer(connectionString,
                     b =>
                     {
                         b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
