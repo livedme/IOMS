@@ -24,7 +24,6 @@
                                 <MudSelectItem T="Guid?" Value="@b.Id">@b.Name (@b.Code)</MudSelectItem>
                             }
                         </MudSelect>
-
                     </MudItem>
                     <MudItem xs="12" sm="3" Class="mb-4">
                         <MudAutocomplete T="ControlItemsDto"
@@ -166,9 +165,11 @@
                                     }
                                 </MudTd>
                                 <MudTd Style="width:auto;">@context.Quantity</MudTd>
-                                <MudTd Style="width:auto;">@Taka.H(context.UnitPrice)</MudTd>
-                                <MudTd Style="width:auto;">@Taka.H(context.TotalDiscountAmount)</MudTd>
-                                <MudTd Style="width:auto;">@Taka.H(context.TotalPrice)</MudTd>
+                                <MudTd Style="width:auto;">@context.UnitPrice</MudTd>
+                                <MudTd Style="width:auto;">
+                                    @(context.DiscountType == (int)DiscountType.Percentage ? $"{context.DiscountAmount} %" : $"{context.DiscountAmount}")
+                                </MudTd>
+                                <MudTd Style="width:auto;">@context.TotalPrice</MudTd>
                                 <MudTd Style="width:auto;" class="text-end d-inline-flex justify-content-between">
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Info" OnClick="@(() => StartEditItem(itemIndex, context))" />
                                     <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => dataModel.ItemsLine.Remove(context))" />
@@ -300,8 +301,10 @@
             dataModel.ProductObj.UnitPrice = Products.First().Price;
         }
     }
-    private async Task OnBranncheChanged()
+    
+    private async Task OnBranncheChanged(Guid? value)
     {
+        dataModel.BranchId=value;
 
         await Task.Delay(100);
         if (dataModel.CustomerDdlControl.ControlRef is not null)
@@ -309,6 +312,7 @@
             await dataModel.CustomerDdlControl.ControlRef.FocusAsync();
         }
     }
+    
     protected async Task OnBrancheValueChanged(Guid brancheId)
     {
         var branche = _Branches.FirstOrDefault(b => b.Id == brancheId);
@@ -480,6 +484,7 @@
             await RefDiscountAmount.FocusAsync();
         }
     }
+    
     private async Task RemoveEditItem(CreateSalesOrderItemDto item)
     {
         dataModel.ItemsLine.Remove(item);
@@ -488,6 +493,7 @@
             await RefDiscountAmount.FocusAsync();
         }
     }
+    
     private async Task OnEditProductChanged()
     {
         var prod = dataModel.ProductObj.ProductDdlControl?.SelectedItem;
@@ -510,6 +516,7 @@
             await RefQuantity.FocusAsync();
         }
     }
+    
     private async Task FocusSelectBox()
     {
         await Task.Delay(100);
@@ -519,6 +526,7 @@
             await dataModel.ProductObj.ProductDdlControl.ControlRef.FocusAsync();
         }
     }
+   
     private async Task AddNewItem()
     {
         var item = dataModel.ItemsLine.Where(x => x.ProductId == Guid.Empty).FirstOrDefault();
@@ -730,6 +738,7 @@
 
     private async Task Submit()
     {
+        
         await _form.ValidateAsync();
 
         if (!_form.IsValid)

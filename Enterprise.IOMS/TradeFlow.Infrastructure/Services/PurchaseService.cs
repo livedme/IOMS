@@ -44,13 +44,30 @@ namespace TradeFlow.Infrastructure.Services
 
             foreach (var item in dto.Items)
             {
-                var lineTotal = item.UnitPrice * item.Quantity;
+                //var lineTotal = item.UnitPrice * item.Quantity;
+                //po.Items.Add(new PurchaseOrderItem
+                //{
+                //    ProductId = item.ProductId,
+                //    Quantity = item.Quantity,
+                //    UnitPrice = item.UnitPrice,
+                //    LineTotal = lineTotal,
+                //    UoMId = item.UoMId
+                //});
+
+                //dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity,
+                ////dataModel.ProductObj.UnitPrice, dataModel.ProductObj.DiscountAmount,
+                /////(DiscountType)dataModel.ProductObj.DiscountType, 
+                /////dataModel.ProductObj.TotalDiscount, dataModel.ProductObj.TotalPrice, null, null
+
                 po.Items.Add(new PurchaseOrderItem
                 {
                     ProductId = item.ProductId,
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice,
-                    LineTotal = lineTotal,
+                    DiscountAmount = item.DiscountAmount,
+                    DiscountType = item.DiscountType,
+                    TotalDiscount = item.TotalDiscountAmount,
+                    LineTotal = item.TotalPrice,
                     UoMId = item.UoMId
                 });
             }
@@ -287,6 +304,7 @@ namespace TradeFlow.Infrastructure.Services
             var hasSearch = !string.IsNullOrWhiteSpace(search);
 
             IQueryable<PurchaseOrder> query;
+
             if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
                 query = read.PurchaseOrders.IgnoreQueryFilters().AsNoTracking()
                     .Where(p => !p.IsDeleted && p.TenantId == request.TenantId.Value);
