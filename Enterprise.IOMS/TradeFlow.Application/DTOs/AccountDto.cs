@@ -8,20 +8,12 @@ namespace TradeFlow.Application.DTOs
 
     public class AccountModelDto
     {
+        public Guid? AccountId { get; set; }
         public string Code { get; set; }
         public string Name { get; set; }
         public AccountType AccountType { get; set; }
         public Guid? ParentAccountId { get; set; }
         public string? Description { get; set; }
-
-        //public AccountModelDto(string Code, string Name, AccountType AccountType, Guid? ParentAccountId, string? Description)
-        //{
-        //    this.Code = Code;
-        //    this.Name = Name;
-        //    this.AccountType = AccountType;
-        //    this.ParentAccountId = ParentAccountId;
-        //    this.Description = Description;
-        //}
     }
 
     // Accounting

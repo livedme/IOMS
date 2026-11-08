@@ -1,4 +1,5 @@
 @using MudBlazor
+@inject IAccountingService AccountingService
 <MudDialog>
     <DialogContent>
         <MudForm @ref="_form" Class="gap-3">
@@ -8,6 +9,12 @@
                 @foreach (var type in Enum.GetValues<AccountType>())
                 {
                     <MudSelectItem Value="@type">@type</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="Guid?" @bind-Value="dataModel.ParentAccountId" Label="Main Account (Parent)" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var parent in _availableParents)
+                {
+                    <MudSelectItem T="Guid?" Value="@parent.Id">@($"{parent.Code} - {parent.Name}")</MudSelectItem>
                 }
             </MudSelect>
             <RichTextField @bind-Value="dataModel.Description" Label="Description" Lines="2" Class="mt-3" />
@@ -26,6 +33,12 @@
     public AccountModelDto dataModel { get; set; } = new();
 
     private MudForm _form = default!;
+    private List<AccountDto> _availableParents = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _availableParents = await AccountingService.GetChartOfAccounts();
+    }
 
     private async Task Cancel() => MudDialog.Cancel();
     private async Task Submit()
