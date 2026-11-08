@@ -1,11 +1,13 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using TradeFlow.Shared.Constants;
 
 namespace TradeFlow.Infrastructure.Services
 {
@@ -22,19 +24,22 @@ namespace TradeFlow.Infrastructure.Services
         private readonly ITenantCache _cache;
         private readonly ITenantProvider _tenantProvider;
         private readonly ILogger<ProductService> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public ProductService(
             IDbContextFactory<ApplicationDbContext> dbFactory,
             IMapper mapper,
             ITenantCache cache,
             ITenantProvider tenantProvider,
-            ILogger<ProductService> logger)
+            ILogger<ProductService> logger,
+            IHttpContextAccessor httpContextAccessor)
         {
             _dbFactory = dbFactory;
             _mapper = mapper;
             _cache = cache;
             _tenantProvider = tenantProvider;
             _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<PagedResultNew<ProductDto>> GetProductsAsync(ProductPagedRequest request)
@@ -44,6 +49,9 @@ namespace TradeFlow.Infrastructure.Services
             var page = Math.Max(0, request.CurrentPage);
             var pageSize = Math.Clamp(request.PageSize, 1, 100);
             var search = request.SearchTerm?.Trim();
+
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
 
             // Tenant scoping comes from the global query filter, which is driven by the
             // authenticated principal. A caller-supplied TenantId is honoured only when it matches
@@ -58,8 +66,10 @@ namespace TradeFlow.Infrastructure.Services
                     tenantId);
             }
 
-            // No IgnoreQueryFilters(): the DbContext filter already applies TenantId and IsDeleted.
-            var baseQuery = _db.Products.AsNoTracking();
+            // Admins bypass the global tenant filter; others rely on it.
+            var baseQuery = isAdmin
+                ? _db.Products.IgnoreQueryFilters().AsNoTracking().Where(p => !p.IsDeleted)
+                : _db.Products.AsNoTracking();
 
             // Aggregate stock once per product instead of re-evaluating the correlated
             // Inventories.Sum(...) subquery inside every filter, count, and projection.

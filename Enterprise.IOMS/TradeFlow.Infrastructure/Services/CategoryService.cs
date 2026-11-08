@@ -1,11 +1,13 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using TradeFlow.Shared.Constants;
 
 namespace TradeFlow.Infrastructure.Services
 {
@@ -16,19 +18,22 @@ namespace TradeFlow.Infrastructure.Services
         private readonly ITenantProvider _tenantProvider;
         private readonly ILogger<CategoryService> _logger;
         private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public CategoryService(
             IMapper mapper,
             ITenantCache cache,
             ITenantProvider tenantProvider,
             ILogger<CategoryService> logger,
-            IDbContextFactory<ApplicationDbContext> dbFactory)
+            IDbContextFactory<ApplicationDbContext> dbFactory,
+            IHttpContextAccessor httpContextAccessor)
         {
             _mapper = mapper;
             _cache = cache;
             _tenantProvider = tenantProvider;
             _logger = logger;
             _dbFactory = dbFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
        
@@ -74,8 +79,15 @@ namespace TradeFlow.Infrastructure.Services
             //if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
             //    query = query.Where(c => c.TenantId == request.TenantId.Value);
 
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
             IQueryable<Category> query;
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            if (isAdmin)
+            {
+                query = read.Categories.Include(c => c.ParentCategory).IgnoreQueryFilters().Where(c => !c.IsDeleted).AsNoTracking();
+            }
+            else if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
                 query = read.Categories.Include(c => c.ParentCategory).IgnoreQueryFilters().Where(c => c.TenantId == request.TenantId.Value).AsNoTracking();
             else
                 query = read.Categories.Include(c => c.ParentCategory).AsNoTracking();

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,7 @@ using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
+using TradeFlow.Shared.Constants;
 using TradeFlow.Shared.Helpers;
 
 namespace TradeFlow.Infrastructure.Services
@@ -19,13 +21,15 @@ namespace TradeFlow.Infrastructure.Services
         private readonly IAccountingService _accountingService;
         private readonly IInvoiceService _invoiceService;
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public PurchaseService(IMapper mapper, IAccountingService accountingService, IInvoiceService invoiceService, IDbContextFactory<ApplicationDbContext> contextFactory)
+        public PurchaseService(IMapper mapper, IAccountingService accountingService, IInvoiceService invoiceService, IDbContextFactory<ApplicationDbContext> contextFactory, IHttpContextAccessor httpContextAccessor)
         {
             _mapper = mapper;
             _accountingService = accountingService;
             _invoiceService = invoiceService;
             _contextFactory = contextFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<Guid> CreatePurchaseOrder(CreatePurchaseOrderDto dto)
@@ -303,9 +307,17 @@ namespace TradeFlow.Infrastructure.Services
             var search = request.SearchTerm?.Trim();
             var hasSearch = !string.IsNullOrWhiteSpace(search);
 
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
             IQueryable<PurchaseOrder> query;
 
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            if (isAdmin)
+            {
+                query = read.PurchaseOrders.IgnoreQueryFilters().AsNoTracking()
+                    .Where(p => !p.IsDeleted);
+            }
+            else if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
                 query = read.PurchaseOrders.IgnoreQueryFilters().AsNoTracking()
                     .Where(p => !p.IsDeleted && p.TenantId == request.TenantId.Value);
             else

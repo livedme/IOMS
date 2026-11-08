@@ -1,11 +1,13 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using TradeFlow.Shared.Constants;
 
 namespace TradeFlow.Infrastructure.Services
 {
@@ -16,19 +18,22 @@ namespace TradeFlow.Infrastructure.Services
         private readonly ITenantProvider _tenantProvider;
         private readonly ILogger<WarehousesService> _logger;
         private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public WarehousesService(
             IMapper mapper,
             ITenantCache cache,
             ITenantProvider tenantProvider,
             ILogger<WarehousesService> logger,
-            IDbContextFactory<ApplicationDbContext> dbFactory)
+            IDbContextFactory<ApplicationDbContext> dbFactory,
+            IHttpContextAccessor httpContextAccessor)
         {
             _mapper = mapper;
             _cache = cache;
             _tenantProvider = tenantProvider;
             _logger = logger;
             _dbFactory = dbFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public Task<List<WarehouseDto>> GetAllWarehousesAsync()
@@ -83,9 +88,20 @@ namespace TradeFlow.Infrastructure.Services
             var pageSize = Math.Clamp(request.PageSize, 1, 100);
             var search = request.SearchTerm?.Trim();
 
-            var query = read.Warehouses.AsNoTracking();
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
-                query = query.Where(w => w.TenantId == request.TenantId.Value);
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
+            IQueryable<Warehouse> query;
+            if (isAdmin)
+            {
+                query = read.Warehouses.IgnoreQueryFilters().AsNoTracking().Where(w => !w.IsDeleted);
+            }
+            else
+            {
+                query = read.Warehouses.AsNoTracking();
+                if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+                    query = query.Where(w => w.TenantId == request.TenantId.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {

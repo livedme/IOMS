@@ -1,13 +1,15 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
+using TradeFlow.Shared.Constants;
 using TradeFlow.Shared.Helpers;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace TradeFlow.Infrastructure.Services
 {
@@ -15,11 +17,13 @@ namespace TradeFlow.Infrastructure.Services
     {
         private readonly IMapper _mapper;
         private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public SupplierService(IMapper mapper, IDbContextFactory<ApplicationDbContext> dbFactory)
+        public SupplierService(IMapper mapper, IDbContextFactory<ApplicationDbContext> dbFactory, IHttpContextAccessor httpContextAccessor)
         {
             _mapper = mapper;
             _dbFactory = dbFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
         /// <summary>
         /// Simple paged supplier list for pickers and lookups. The Supplier grid uses the
@@ -108,10 +112,20 @@ namespace TradeFlow.Infrastructure.Services
             var search = request.SearchTerm?.Trim();
             var hasSearch = !string.IsNullOrWhiteSpace(search);
 
-            IQueryable<Supplier> query = read.Suppliers.AsNoTracking();
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
 
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
-                query = query.Where(s => s.TenantId == request.TenantId.Value);
+            IQueryable<Supplier> query;
+            if (isAdmin)
+            {
+                query = read.Suppliers.IgnoreQueryFilters().AsNoTracking().Where(s => !s.IsDeleted);
+            }
+            else
+            {
+                query = read.Suppliers.AsNoTracking();
+                if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+                    query = query.Where(s => s.TenantId == request.TenantId.Value);
+            }
 
             // Stats ignore the status/city filters so the tiles keep showing every
             // bucket while one of those filters is active.

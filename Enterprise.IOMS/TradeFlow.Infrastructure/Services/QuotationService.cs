@@ -2,16 +2,18 @@ using System.Diagnostics;
 using System.Text;
 using AutoMapper;
 using Azure.Core;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
+using TradeFlow.Shared.Constants;
 using TradeFlow.Shared.Helpers;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Logging;
 
 namespace TradeFlow.Infrastructure.Services;
 
@@ -20,11 +22,13 @@ public class QuotationService : IQuotationService
 {
     private readonly IMapper _mapper;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public QuotationService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+    public QuotationService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory, IHttpContextAccessor httpContextAccessor)
     {
         _mapper = mapper;
         _contextFactory = contextFactory;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<PagedResult<SalesQuoteDto>> GetSalesQuotes(string? search, QuoteStatus? status, int page, int pageSize)
@@ -64,8 +68,16 @@ public class QuotationService : IQuotationService
         var search = request.SearchTerm?.Trim();
         var hasSearch = !string.IsNullOrWhiteSpace(search);
 
+        var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+            || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
         IQueryable<SalesQuote> query;
-        if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+        if (isAdmin)
+        {
+            query = read.SalesQuotes.IgnoreQueryFilters().AsNoTracking()
+                .Where(q => !q.IsDeleted);
+        }
+        else if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
             query = read.SalesQuotes.IgnoreQueryFilters().AsNoTracking()
                 .Where(q => !q.IsDeleted && q.TenantId == request.TenantId.Value);
         else

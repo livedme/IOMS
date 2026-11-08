@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,7 @@ using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
+using TradeFlow.Shared.Constants;
 using TradeFlow.Shared.Helpers;
 
 namespace TradeFlow.Infrastructure.Services
@@ -17,11 +19,13 @@ namespace TradeFlow.Infrastructure.Services
     {
         private readonly IMapper _mapper;
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public InventoryService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+        public InventoryService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory, IHttpContextAccessor httpContextAccessor)
         {
             _mapper = mapper;
             _contextFactory = contextFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<PagedResultNew<StockMovementDto>> GetStockMovementsPagedAsync(StockMovementPagedRequest request)
@@ -36,8 +40,16 @@ namespace TradeFlow.Infrastructure.Services
             var search = request.SearchTerm?.Trim();
             var hasSearch = !string.IsNullOrWhiteSpace(search);
 
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
             IQueryable<StockMovement> query;
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            if (isAdmin)
+            {
+                query = read.StockMovements.IgnoreQueryFilters().AsNoTracking()
+                    .Where(m => !m.IsDeleted);
+            }
+            else if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
                 query = read.StockMovements.IgnoreQueryFilters().AsNoTracking()
                     .Where(m => !m.IsDeleted && m.TenantId == request.TenantId.Value);
             else
@@ -160,8 +172,16 @@ namespace TradeFlow.Infrastructure.Services
             var search = request.SearchTerm?.Trim();
             var hasSearch = !string.IsNullOrWhiteSpace(search);
 
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
             IQueryable<Inventory> query;
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+            if (isAdmin)
+            {
+                query = read.Inventories.IgnoreQueryFilters().AsNoTracking()
+                    .Where(i => !i.IsDeleted);
+            }
+            else if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
                 query = read.Inventories.IgnoreQueryFilters().AsNoTracking()
                     .Where(i => !i.IsDeleted && i.TenantId == request.TenantId.Value);
             else

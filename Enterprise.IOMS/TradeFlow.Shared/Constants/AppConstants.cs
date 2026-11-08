@@ -11,13 +11,14 @@ public static class AppConstants
 public static class Roles
 {
     public const string Admin = "Admin";
+    public const string SuperAdmin = "SuperAdmin";
     public const string Manager = "Manager";
     public const string Sales = "Sales";
     public const string Purchasing = "Purchasing";
     public const string WarehouseStaff = "WarehouseStaff";
     public const string Viewer = "Viewer";
 
-    public static readonly string[] All = [Admin, Manager, Sales, Purchasing, WarehouseStaff, Viewer];
+    public static readonly string[] All = [Admin, SuperAdmin, Manager, Sales, Purchasing, WarehouseStaff, Viewer];
 }
 
 public static class AuthorizationPolicies

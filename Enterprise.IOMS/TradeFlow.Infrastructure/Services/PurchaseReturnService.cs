@@ -1,12 +1,14 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
+using TradeFlow.Shared.Constants;
 using TradeFlow.Shared.Helpers;
-using Microsoft.EntityFrameworkCore;
 
 namespace TradeFlow.Infrastructure.Services;
 
@@ -14,11 +16,13 @@ public class PurchaseReturnService : IPurchaseReturnService
 {
     private readonly IMapper _mapper;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public PurchaseReturnService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+    public PurchaseReturnService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory, IHttpContextAccessor httpContextAccessor)
     {
         _mapper = mapper;
         _contextFactory = contextFactory;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<PagedResult<PurchaseReturnDto>> GetPurchaseReturns(string? search, PurchaseReturnStatus? status, int page, int pageSize)
@@ -58,8 +62,16 @@ public class PurchaseReturnService : IPurchaseReturnService
         var search = request.SearchTerm?.Trim();
         var hasSearch = !string.IsNullOrWhiteSpace(search);
 
+        var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+            || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
         IQueryable<PurchaseReturn> query;
-        if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+        if (isAdmin)
+        {
+            query = read.PurchaseReturns.IgnoreQueryFilters().AsNoTracking()
+                .Where(r => !r.IsDeleted);
+        }
+        else if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
             query = read.PurchaseReturns.IgnoreQueryFilters().AsNoTracking()
                 .Where(r => !r.IsDeleted && r.TenantId == request.TenantId.Value);
         else

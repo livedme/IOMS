@@ -1,11 +1,13 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Infrastructure.Data;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+using TradeFlow.Shared.Constants;
 namespace TradeFlow.Infrastructure.Services
 {
     public class UserManagementService : IUserManagementService
@@ -13,18 +15,24 @@ namespace TradeFlow.Infrastructure.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ITenantProvider _tenantProvider;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserManagementService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ITenantProvider tenantProvider)
+        public UserManagementService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ITenantProvider tenantProvider, IHttpContextAccessor httpContextAccessor)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _tenantProvider = tenantProvider;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<List<UserDto>> GetUsers(string? search)
         {
-            var tenantId = _tenantProvider.GetTenantId();
-            var query = _userManager.Users.Where(u => u.TenantId == tenantId).AsQueryable();
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
+            var query = isAdmin
+                ? _userManager.Users.AsQueryable()
+                : _userManager.Users.Where(u => u.TenantId == _tenantProvider.GetTenantId()).AsQueryable();
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(u => u.FullName.Contains(search) || u.Email!.Contains(search));
 
@@ -40,8 +48,12 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<UserDto?> GetUserById(string userId)
         {
-            var user = await _userManager.Users
-                .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId());
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
+            var user = isAdmin
+                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId)
+                : await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId());
             if (user == null) return null;
             var roles = await _userManager.GetRolesAsync(user);
             return new UserDto(user.Id, user.FullName, user.Email, user.Department, user.IsActive, user.CreatedAt, user.LastLoginAt, roles.ToList());
@@ -49,8 +61,12 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task ToggleUserActive(string userId)
         {
-            var user = await _userManager.Users
-                .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId())
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
+            var user = isAdmin
+                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId)
+                : await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId())
                 ?? throw new KeyNotFoundException("User not found");
             user.IsActive = !user.IsActive;
             await _userManager.UpdateAsync(user);
@@ -60,16 +76,24 @@ namespace TradeFlow.Infrastructure.Services
 
         public async Task<List<string>> GetUserRoles(string userId)
         {
-            var user = await _userManager.Users
-                .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId())
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
+            var user = isAdmin
+                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId)
+                : await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId())
                 ?? throw new KeyNotFoundException("User not found");
             return (await _userManager.GetRolesAsync(user)).ToList();
         }
 
         public async Task AssignRole(string userId, string role)
         {
-            var user = await _userManager.Users
-                .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId())
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
+            var user = isAdmin
+                ? await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId)
+                : await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == _tenantProvider.GetTenantId())
                 ?? throw new KeyNotFoundException("User not found");
             if (!await _roleManager.RoleExistsAsync(role)) throw new InvalidOperationException($"Role '{role}' does not exist");
             await _userManager.AddToRoleAsync(user, role);

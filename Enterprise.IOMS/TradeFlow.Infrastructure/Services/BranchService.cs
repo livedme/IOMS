@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
+using TradeFlow.Shared.Constants;
 
 namespace TradeFlow.Infrastructure.Services
 {
@@ -15,11 +17,13 @@ namespace TradeFlow.Infrastructure.Services
     {
         private readonly IMapper _mapper;
         private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public BranchService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+        public BranchService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory, IHttpContextAccessor httpContextAccessor)
         {
             _mapper = mapper;
             _contextFactory = contextFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<PagedResultNew<BranchDto>> GetBranchesPagedAsync(BranchPagedRequest request)
@@ -33,9 +37,20 @@ namespace TradeFlow.Infrastructure.Services
             var pageSize = Math.Clamp(request.PageSize, 1, 100);
             var search = request.SearchTerm?.Trim();
 
-            var query = read.Branches.AsNoTracking();
-            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
-                query = query.Where(b => b.TenantId == request.TenantId.Value);
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+                || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
+
+            IQueryable<Branch> query;
+            if (isAdmin)
+            {
+                query = read.Branches.IgnoreQueryFilters().AsNoTracking().Where(b => !b.IsDeleted);
+            }
+            else
+            {
+                query = read.Branches.AsNoTracking();
+                if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+                    query = query.Where(b => b.TenantId == request.TenantId.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {

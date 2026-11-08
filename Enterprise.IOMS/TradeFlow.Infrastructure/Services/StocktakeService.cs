@@ -1,11 +1,13 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using TradeFlow.Shared.Constants;
 
 namespace TradeFlow.Infrastructure.Services;
 
@@ -13,11 +15,13 @@ public class StocktakeService : IStocktakeService
 {
     private readonly IMapper _mapper;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public StocktakeService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+    public StocktakeService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory, IHttpContextAccessor httpContextAccessor)
     {
         _mapper = mapper;
         _contextFactory = contextFactory;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<PagedResultNew<StocktakeDto>> GetStocktakesPagedAsync(StocktakePagedRequest request)
@@ -31,14 +35,30 @@ public class StocktakeService : IStocktakeService
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
         var search = request.SearchTerm?.Trim();
 
-        IQueryable<Stocktake> query = read.Stocktakes
-            .AsSplitQuery()
-            .AsNoTracking()
-            .Include(s => s.Warehouse)
-            .Include(s => s.Items);
+        var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+            || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
 
-        if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
-            query = query.Where(s => s.TenantId == request.TenantId.Value);
+        IQueryable<Stocktake> query;
+        if (isAdmin)
+        {
+            query = read.Stocktakes
+                .AsSplitQuery()
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Include(s => s.Warehouse)
+                .Include(s => s.Items)
+                .Where(s => !s.IsDeleted);
+        }
+        else
+        {
+            query = read.Stocktakes
+                .AsSplitQuery()
+                .AsNoTracking()
+                .Include(s => s.Warehouse)
+                .Include(s => s.Items);
+            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+                query = query.Where(s => s.TenantId == request.TenantId.Value);
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(s =>

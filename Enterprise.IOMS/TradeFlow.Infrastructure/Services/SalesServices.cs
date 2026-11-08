@@ -58,22 +58,31 @@ namespace TradeFlow.Infrastructure.Services
 
             foreach (var item in dto.Items)
             {
-                var product = await _context.Products.FindAsync(item.ProductId)
-                    ?? throw new EntityNotFoundException("Product", item.ProductId);
+                //var product = await _context.Products.FindAsync(item.ProductId)
+                //    ?? throw new EntityNotFoundException("Product", item.ProductId);
 
-                var taxResult = await CalculateItemTax(item.ProductId, dto.CustomerId, item.UnitPrice * item.Quantity, _context);
-                var discountAmt = item.UnitPrice * item.Quantity * (item.DiscountAmount / 100m);
-                var lineTotal = (item.UnitPrice * item.Quantity) - discountAmt + taxResult.TaxAmount;
+                //var taxResult = await CalculateItemTax(item.ProductId, dto.CustomerId, item.UnitPrice * item.Quantity, _context);
+                //var discountAmt = item.UnitPrice * item.Quantity * (item.DiscountAmount / 100m);
+                //var lineTotal = (item.UnitPrice * item.Quantity) - discountAmt + taxResult.TaxAmount;
 
                 order.Items.Add(new SalesOrderItem
                 {
                     ProductId = item.ProductId,
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice,
+                    DiscountAmount = item.DiscountAmount,
                     DiscountType = (DiscountType)item.DiscountType,
-                    DiscountAmount = discountAmt,
-                    LineTotalPrice = lineTotal,
-                    UoMId = item.UoMId
+                    TotalDiscount = item.TotalDiscountAmount,
+                    LineTotalPrice = item.TotalPrice,
+                    UoMId = item.UoMId                    
+
+                    //ProductId = item.ProductId,
+                    //Quantity = item.Quantity,
+                    //UnitPrice = item.UnitPrice,
+                    //DiscountType = (DiscountType)item.DiscountType,
+                    //DiscountAmount = discountAmt,
+                    //LineTotalPrice = lineTotal,
+                    //UoMId = item.UoMId
                 });
             }
 

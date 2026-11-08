@@ -1,11 +1,13 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using TradeFlow.Application.DTOs;
 using TradeFlow.Application.Interfaces;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using TradeFlow.Shared.Constants;
 
 namespace TradeFlow.Infrastructure.Services;
 
@@ -13,11 +15,13 @@ public class KitService : IKitService
 {
     private readonly IMapper _mapper;
     private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public KitService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory)
+    public KitService(IMapper mapper, IDbContextFactory<ApplicationDbContext> contextFactory, IHttpContextAccessor httpContextAccessor)
     {
         _mapper = mapper;
         _contextFactory = contextFactory;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<PagedResultNew<KitDto>> GetKitsPagedAsync(KitPagedRequest request)
@@ -31,13 +35,28 @@ public class KitService : IKitService
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
         var search = request.SearchTerm?.Trim();
 
-        IQueryable<Kit> query = read.Kits
-            .AsNoTracking()
-            .Include(k => k.Product)
-            .Include(k => k.Components).ThenInclude(c => c.ComponentProduct);
+        var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+            || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
 
-        if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
-            query = query.Where(k => k.TenantId == request.TenantId.Value);
+        IQueryable<Kit> query;
+        if (isAdmin)
+        {
+            query = read.Kits
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Include(k => k.Product)
+                .Include(k => k.Components).ThenInclude(c => c.ComponentProduct)
+                .Where(k => !k.IsDeleted);
+        }
+        else
+        {
+            query = read.Kits
+                .AsNoTracking()
+                .Include(k => k.Product)
+                .Include(k => k.Components).ThenInclude(c => c.ComponentProduct);
+            if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
+                query = query.Where(k => k.TenantId == request.TenantId.Value);
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
