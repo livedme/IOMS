@@ -155,7 +155,7 @@
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
-    [Parameter] public List<AccountDto> Accounts { get; set; } = new();
+    [Parameter] public List<AccountModelDto> Accounts { get; set; } = new();
     [Parameter] public CreateJournalEntryDtoModels dataModel { get; set; } = new CreateJournalEntryDtoModels();
     [Parameter] public EventCallback<CreateJournalEntryDto> OnSubmit { get; set; }
     [Parameter] public EventCallback<CreateJournalEntryDto> OnSubmitAndNew { get; set; }
@@ -249,12 +249,12 @@
 
         if (string.IsNullOrWhiteSpace(text))
         {
-            baseResults = Accounts.Where(a => a.IsActive).Select(a => new ControlItemsDto(){ Id = a.Id, Name = $"{a.Code} - {a.Name}", IsSelected = false });
+            baseResults = Accounts.Where(a => a.IsActive==true).Select(a => new ControlItemsDto(){ Id = a.Id, Name = $"{a.Code} - {a.Name}", IsSelected = false });
         }
         else
         {
             baseResults = Accounts.Where(a =>
-                a.IsActive &&
+                a.IsActive==true &&
                 (a.Name.Contains(text, StringComparison.OrdinalIgnoreCase) ||
                  a.Code.Contains(text, StringComparison.OrdinalIgnoreCase)))
                 .Select(a => new ControlItemsDto(){ Id = a.Id, Name = $"{a.Code} - {a.Name}", IsSelected = false });

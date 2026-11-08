@@ -8,18 +8,23 @@ namespace TradeFlow.Application.DTOs
 
     public class AccountModelDto
     {
-        public Guid? AccountId { get; set; }
+        public Guid? Id { get; set; }
         public string Code { get; set; }
         public string Name { get; set; }
         public AccountType AccountType { get; set; }
         public Guid? ParentAccountId { get; set; }
+        public string? ParentAccountName { get; set; }
+        public bool? IsActive { get; set; }
+        public bool? IsSystemAccount { get; set; }
+        public decimal? Balance { get; set; }
         public string? Description { get; set; }
+        public List<AccountModelDto> ChildAccounts { get; set; } = new List<AccountModelDto>();
     }
 
-    // Accounting
-    public record AccountDto(Guid Id, string Code, string Name, AccountType AccountType,
-        Guid? ParentAccountId, string? ParentAccountName, bool IsActive, bool IsSystemAccount,
-        string? Description, decimal Balance);
+    //Accounting
+    //public record AccountDto(Guid Id, string Code, string Name, AccountType AccountType,
+    //    Guid? ParentAccountId, string? ParentAccountName, bool IsActive, bool IsSystemAccount,
+    //    string? Description, decimal Balance);
 
     //public record CreateAccountDto(string Code, string Name, AccountType AccountType,
     //    Guid? ParentAccountId, string? Description);

@@ -43,53 +43,58 @@
     </div>
 
     <div class="tm-card tm-table-card">
-        <div class="tm-table-wrap">
-            <table class="tm-table" style="min-width:950px">
-                <thead>
-                    <tr>
-                        <th>🔢 Code</th>
-                        <th>📚 Account Name</th>
-                        <th>Type</th>
-                        <th>🌳 Parent</th>
-                        <th style="text-align:right">Balance</th>
-                        <th>🔒 System</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (_loading)
+        <MudTable Hover="true" Breakpoint="Breakpoint.Sm" Height="500px" FixedHeader="true"
+                  Items="@_accountsList"
+                  GroupBy="@_groupDefinition"
+                  GroupHeaderStyle="background-color:var(--mud-palette-background-gray)"
+                  GroupFooterClass="mb-4"
+                  Dense="true"
+                  @ref="_tableRef">
+            <ColGroup>
+                <col style="width: 60px;" />
+                <col />
+                <col />                
+                <col />
+                <col />
+            </ColGroup>
+            <HeaderContent>
+                <MudTh>Code</MudTh>
+                <MudTh>Account Name</MudTh>
+                <MudTh>Type</MudTh>                
+                <MudTh Style="text-align: right">Balance</MudTh>
+                <MudTh>System</MudTh>
+            </HeaderContent>
+            <GroupHeaderTemplate>
+                <MudTh Class="mud-table-cell-custom-group" colspan="6">@($"{context.GroupName}: {context.Key}")</MudTh>
+            </GroupHeaderTemplate>
+            <RowTemplate>
+                <MudTd DataLabel="Code">
+                    <span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🔢</span>@context.Code</span>
+                </MudTd>
+                <MudTd DataLabel="Account Name" Class="tm-branch">@context.Name</MudTd>
+                <MudTd DataLabel="Type">
+                    <span class="@CommonUtility.GetTypePill(context.AccountType)"><span class="tm-dot"></span>@context.AccountType</span>
+                </MudTd>
+                <MudTd DataLabel="Parent" Class="tm-dim">@(string.IsNullOrWhiteSpace(context.ParentAccountName) ? "-" : context.ParentAccountName)</MudTd>
+                <MudTd Style="text-align: right" DataLabel="Balance" Class="tm-money">@context.Balance?.ToString("N0")</MudTd>
+                <MudTd DataLabel="System">
+                    @if (context.IsSystemAccount == true)
                     {
-                        <tr><td colspan="6"><TmLoading Message="Loading accounts..." /></td></tr>
-                    }
-                    else if (Paged.Count == 0)
-                    {
-                        <tr><td colspan="6"><div class="tm-loading">No accounts found</div></td></tr>
+                        <span class="tm-pill tm-pill-amber"><span class="tm-dot"></span>System</span>
                     }
                     else
                     {
-                        @foreach (var a in Paged)
-                        {
-                            <tr>
-                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🔢</span>@a.Code</span></td>
-                                <td class="tm-branch">@a.Name</td>
-                                <td><span class="@CommonUtility.GetTypePill(a.AccountType)"><span class="tm-dot"></span>@a.AccountType</span></td>
-                                <td class="tm-dim">@(string.IsNullOrWhiteSpace(a.ParentAccountName) ? "-" : a.ParentAccountName)</td>
-                                <td style="text-align:right" class="tm-money">@a.Balance.ToString("N0")</td>
-                                <td>
-                                    @if (a.IsSystemAccount)
-                                    {
-                                        <span class="tm-pill tm-pill-amber"><span class="tm-dot"></span>System</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="tm-dim">-</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
+                        <span class="tm-dim">-</span>
                     }
-                </tbody>
-            </table>
-        </div>
+                </MudTd>
+            </RowTemplate>
+            <GroupFooterTemplate>
+                <MudTh Class="mud-table-cell-custom-group mud-table-cell-custom-group-footer" colspan="6">
+                    Total Balance: @((context.Items.Sum((e) => e.Balance) ?? 0m).ToString("N0"))
+                </MudTh>
+            </GroupFooterTemplate>
+        </MudTable>
+
         <TmPager CurrentPage="@(_page - 1)"
                   PageSize="_pageSize"
                   TotalCount="@Filtered.Count"
@@ -103,23 +108,31 @@
 </div>
 
 @code {
-    private List<AccountDto> _accounts = new();
+    private List<AccountModelDto> _accounts = new();
+    private List<AccountModelDto> _accountsList = new();
+
     private AccountType? _typeFilter;
     private string _search = "";
     private bool _loading = true;
     private int _page = 1;
     private int _pageSize = 10;
+    private MudTable<AccountModelDto> _tableRef;
 
-    private List<AccountDto> Filtered => _accounts.Where(a =>
+    private TableGroupDefinition<AccountModelDto> _groupDefinition = new()
+    {
+        GroupName = "Parent Account",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = false,
+        Selector = (e) => e.ParentAccountName ?? "Root Accounts"
+    };
+
+    private List<AccountModelDto> Filtered => _accounts.Where(a =>
         (_typeFilter == null || a.AccountType == _typeFilter.Value)
         && (string.IsNullOrWhiteSpace(_search)
             || a.Code.Contains(_search, StringComparison.OrdinalIgnoreCase)
             || a.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
             || (a.ParentAccountName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false))).ToList();
-
-    private List<AccountDto> Paged => Filtered.Skip((_page - 1) * _pageSize).Take(_pageSize).ToList();
-
-    private int CountOf(AccountType t) => _accounts.Count(a => a.AccountType == t);
 
     protected override async Task OnInitializedAsync() => await LoadAccounts();
 
@@ -137,20 +150,21 @@
             {
                 _accounts = await AccountingService.GetChartOfAccounts();
             }
+
+            _accountsList = Filtered;
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
     }
 
+    private int CountOf(AccountType t) => _accounts.Count(a => a.AccountType == t);
+
     private async Task OpenCreate()
     {
         var parameters = new DialogParameters<AccountDialog>
         {
-            { x => x.dataModel, new AccountModelDto(){
-                Code = NumberGenerator.GenerateAccountCode()                
-            } }
+            { x => x.dataModel, new AccountModelDto(){ Code = NumberGenerator.GenerateAccountCode() } }
         };
-       
         var dialog = await DialogService.ShowAsync<AccountDialog>("New Account", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
@@ -165,26 +179,22 @@
             catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         }
     }
-    
 
     private void OnSearchInput(ChangeEventArgs e)
     {
         _search = e.Value?.ToString() ?? "";
-        _page = 1;
     }
 
     private async Task OnTypeChanged(ChangeEventArgs e)
     {
         var v = e.Value?.ToString();
         _typeFilter = string.IsNullOrEmpty(v) ? null : Enum.Parse<AccountType>(v);
-        _page = 1;
         await LoadAccounts();
     }
 
     private async Task PickType(AccountType t)
     {
         _typeFilter = _typeFilter == t ? null : t;
-        _page = 1;
         await LoadAccounts();
     }
 
@@ -192,7 +202,6 @@
     {
         _search = "";
         _typeFilter = null;
-        _page = 1;
         await LoadAccounts();
     }
 

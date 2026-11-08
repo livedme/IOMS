@@ -13,8 +13,8 @@ public interface IAccountingService
     Task<ProfitAndLossDto> GetProfitAndLoss(DateTime from, DateTime to);
     Task<BalanceSheetDto> GetBalanceSheet(DateTime asOfDate);
     Task<PagedResult<JournalEntryDto>> GetJournalEntries(string? search, int page, int pageSize);
-    Task<PagedResult<AccountDto>> GetAccounts(string? search, AccountType? type, int page, int pageSize);
-    Task<List<AccountDto>> GetChartOfAccounts();
+    Task<PagedResult<AccountModelDto>> GetAccounts(string? search, AccountType? type, int page, int pageSize);
+    Task<List<AccountModelDto>> GetChartOfAccounts();
     Task<Guid> CreateAccount(AccountModelDto dto);
     Task RecordPayment(CreatePaymentDto dto);
     Task RecordPayment(RecordPaymentDto dto);

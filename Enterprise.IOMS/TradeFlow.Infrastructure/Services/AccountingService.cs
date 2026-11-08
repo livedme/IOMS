@@ -246,7 +246,7 @@ public class AccountingService : IAccountingService
         return new PagedResult<JournalEntryDto>(_mapper.Map<List<JournalEntryDto>>(items), total, page, pageSize);
     }
 
-    public async Task<PagedResult<AccountDto>> GetAccounts(string? search, AccountType? type, int page, int pageSize)
+    public async Task<PagedResult<AccountModelDto>> GetAccounts(string? search, AccountType? type, int page, int pageSize)
     {
         await using var _context = await _dbFactory.CreateDbContextAsync();
 
@@ -260,32 +260,34 @@ public class AccountingService : IAccountingService
         var items = await query.OrderBy(a => a.Code)
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-        var dtos = new List<AccountDto>();
+        var dtos = new List<AccountModelDto>();
         foreach (var account in items)
         {
             var balance = await GetAccountBalance(account.Id, _context);
-            var dto = _mapper.Map<AccountDto>(account);
-            dtos.Add(dto with { Balance = balance });
+            var dto = _mapper.Map<AccountModelDto>(account);
+            dto.Balance = balance;
+            dtos.Add(dto);
         }
 
-        return new PagedResult<AccountDto>(dtos, total, page, pageSize);
+        return new PagedResult<AccountModelDto>(dtos, total, page, pageSize);
     }
 
-    public async Task<List<AccountDto>> GetChartOfAccounts()
+    public async Task<List<AccountModelDto>> GetChartOfAccounts()
     {
         await using var _context = await _dbFactory.CreateDbContextAsync();
 
         var accounts = await _context.Accounts
             .Include(a => a.ParentAccount)
-            .OrderBy(a => a.Code)
+            .OrderBy(a => a.CreatedAt)
             .ToListAsync();
 
-        var dtos = new List<AccountDto>();
+        var dtos = new List<AccountModelDto>();
         foreach (var account in accounts)
         {
-            var balance = await GetAccountBalance(account.Id, _context);
-            var dto = _mapper.Map<AccountDto>(account);
-            dtos.Add(dto with { Balance = balance });
+            var balance = await GetAccountBalance(account.Id, _context);            
+            var dto = _mapper.Map<AccountModelDto>(account);
+            dto.Balance = balance;
+            dtos.Add(dto);
         }
         return dtos;
     }
