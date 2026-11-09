@@ -16,6 +16,7 @@ public class PurchaseOrder : BaseEntity
     public decimal TruckCharge { get; set; }
     public decimal DiscountAmount { get; set; }
     public DiscountType DiscountType { get; set; }
+    public decimal TotalDiscount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal PaidAmount { get; set; }

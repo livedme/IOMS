@@ -13,7 +13,7 @@ public class SalesOrderItem : BaseEntity
     public decimal UnitPrice { get; set; }
     public decimal DiscountAmount { get; set; }
     public DiscountType DiscountType { get; set; }
-    public decimal TotalDiscount { get; set; }    
+    public decimal TotalDiscount { get; set; }
     public decimal LineTotalPrice { get; set; }
     public Guid? UoMId { get; set; }
     public UnitOfMeasure? UoM { get; set; }

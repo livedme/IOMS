@@ -19,8 +19,9 @@ public class SalesOrder : BaseEntity
     public decimal LabourCharge { get; set; }
     public decimal TruckCharge { get; set;}
     public decimal TaxAmount { get; set; }
+    public decimal DiscountAmount { get; set; }
     public DiscountType DiscountType { get; set; }
-    public decimal DiscountAmount { get; set; }    
+    public decimal TotalDiscount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal DueAmount { get; set; }

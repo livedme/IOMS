@@ -129,9 +129,9 @@
                         {
                             <MudTd>@ProductLabel(context.ProductId)</MudTd>
                             <MudTd Style="width:auto;">@context.Quantity</MudTd>
-                            <MudTd Style="width:auto;">@Taka.H(context.UnitPrice)</MudTd>
+                            <MudTd Style="width:auto;">@context.UnitPrice</MudTd>
                             <MudTd Style="width:auto;">@DiscountLabel(context)</MudTd>
-                            <MudTd Style="width:auto;">@Taka.H(LineTotal(context))</MudTd>
+                            <MudTd Style="width:auto;">@LineTotal(context)</MudTd>
                             <MudTd Style="width:auto;" class="text-end d-inline-flex justify-content-between">
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Info" OnClick="@(() => StartEditItem(itemIndex, context))" />
                                 <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveItem(context))" />

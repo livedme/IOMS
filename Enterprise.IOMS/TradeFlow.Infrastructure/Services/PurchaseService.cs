@@ -70,7 +70,7 @@ namespace TradeFlow.Infrastructure.Services
                     UnitPrice = item.UnitPrice,
                     DiscountAmount = item.DiscountAmount,
                     DiscountType = item.DiscountType,
-                    TotalDiscount = item.TotalDiscountAmount,
+                    TotalDiscount = item.TotalDiscount,
                     LineTotal = item.TotalPrice,
                     UoMId = item.UoMId
                 });
@@ -142,7 +142,7 @@ namespace TradeFlow.Infrastructure.Services
                     UnitPrice = item.UnitPrice,
                     DiscountAmount = item.DiscountAmount,
                     DiscountType = item.DiscountType,
-                    TotalDiscount = item.TotalDiscountAmount,
+                    TotalDiscount = item.TotalDiscount,
                     LineTotal = item.TotalPrice,
                     UoMId = item.UoMId
                 });

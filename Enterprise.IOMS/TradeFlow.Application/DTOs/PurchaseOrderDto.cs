@@ -11,13 +11,13 @@ namespace TradeFlow.Application.DTOs
         decimal TaxAmount, decimal PaidAmount, decimal DueAmount, string? Notes, DateTime? ExpectedDeliveryDate, List<PurchaseOrderItemDto> Items);
 
     public record PurchaseOrderItemDto(Guid Id, Guid OrderId, string OrderNumber, Guid SupplierId, Guid ProductId, string ProductName, string ProductSKU, int Quantity, int ReceivedQuantity, decimal UnitPrice,
-        decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal LineTotalPrice);
+        decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscount, decimal LineTotalPrice);
 
     public record CreatePurchaseOrderDto(Guid SupplierId, Guid? WarehouseId, string? Notes, DateTime? ExpectedDeliveryDate, Guid? CurrencyId, List<CreatePurchaseOrderItemDto> Items);
 
     public record PurchaseSerialEntryDto(string SerialNumber, string? Barcode = null, DateTime? WarrantyStartDate = null, DateTime? WarrantyEndDate = null, string? BinLocation = null);
 
-    public record CreatePurchaseOrderItemDto(Guid Id, Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscountAmount, decimal TotalPrice, Guid? UoMId, List<PurchaseSerialEntryDto>? Serials = null);
+    public record CreatePurchaseOrderItemDto(Guid Id, Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscount, decimal TotalPrice, Guid? UoMId, List<PurchaseSerialEntryDto>? Serials = null);
 
     public record GoodsReceivedLineDto(Guid PurchaseOrderItemId, Guid ProductId, int ReceivedQuantity);
 
@@ -30,7 +30,8 @@ namespace TradeFlow.Application.DTOs
         public decimal SubTotal { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal DiscountAmount { get; set; }
-        public int DiscountType { get; set; }
+        public DiscountType DiscountType { get; set; }
+        public decimal TotalDiscount { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal DueAmount { get; set; }
@@ -51,7 +52,7 @@ namespace TradeFlow.Application.DTOs
             public Guid Serial { get; set; }
             public decimal UnitPrice { get; set; }
             public decimal DiscountAmount { get; set; }
-            public int DiscountType { get; set; }
+            public DiscountType DiscountType { get; set; }
             public decimal TotalDiscount { get; set; }
             public decimal TotalPrice { get; set; }
             public List<Guid> SelectedSerialIds { get; set; } = new();

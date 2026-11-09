@@ -150,7 +150,7 @@
 
 <PurchaseOrderViewPanel @ref="_purchaseOrderViewPanel" />
 
-    @code {
+@code {
     private static class Col
     {
         public const string OrderNumber = "OrderNumber";
@@ -484,28 +484,29 @@
                 .FirstOrDefault() ?? new ControlItemsDto() { Id = order.SupplierId, Name = order.SupplierName, IsSelected = false };
 
             dataModel = new PurchaseOrderDtoModels()
-            {
-                PurchaseDate = order.PurchaseDate,
-                SupplierId = order.SupplierId,              
-                WarehouseId = order.WarehouseId,
-                DiscountAmount = order.DiscountAmount,
-                TaxAmount = order.TaxAmount,
-                DiscountType = (int)order.DiscountType,
-                DueAmount = order.DueAmount,
-                TotalAmount = order.TotalAmount,
+                {
+                    PurchaseDate = order.PurchaseDate,
+                    SupplierId = order.SupplierId,
+                    WarehouseId = order.WarehouseId,
+                    DiscountAmount = order.DiscountAmount,
+                    TaxAmount = order.TaxAmount,
+                    DiscountType = order.DiscountType,
+                    DueAmount = order.DueAmount,
+                    TotalAmount = order.TotalAmount,
                 //LabourCharge = order.LabourCharge,
                 //TruckCharge = order.TruckCharge,
-                SubTotal = order.SubTotal,
-                PaidAmount = order.PaidAmount,
-                Notes = order.Notes,
-                SupplierDdlControl = new ControlDto() { 
-                    SelectedItem = supplierItem,
-                    SelectedText = supplierItem?.Name,
-                    LastSelectedItem = supplierItem
-                },
-                ItemsLine = order.Items.Select(i => new CreatePurchaseOrderItemDto(i.Id, i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount,
-                    (DiscountType)i.DiscountType, i.TotalDiscountAmount, i.LineTotalPrice, null, null)).ToList()
-            };
+                    SubTotal = order.SubTotal,
+                    PaidAmount = order.PaidAmount,
+                    Notes = order.Notes,
+                    SupplierDdlControl = new ControlDto()
+                    {
+                        SelectedItem = supplierItem,
+                        SelectedText = supplierItem?.Name,
+                        LastSelectedItem = supplierItem
+                    },
+                    ItemsLine = order.Items.Select(i => new CreatePurchaseOrderItemDto(i.Id, i.ProductId, i.Quantity, i.UnitPrice,
+                        i.DiscountAmount, i.DiscountType, i.TotalDiscount, i.LineTotalPrice, null, null)).ToList()
+                };
         }
 
         var parameters = new DialogParameters<PurchaseOrderDialog>

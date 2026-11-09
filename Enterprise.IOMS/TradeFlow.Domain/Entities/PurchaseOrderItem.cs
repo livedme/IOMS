@@ -14,7 +14,7 @@ public class PurchaseOrderItem : BaseEntity
     public decimal TaxRate { get; set; }
     public decimal DiscountAmount { get; set; }
     public DiscountType DiscountType { get; set; }
-    public decimal TotalDiscount { get; set; }    
+    public decimal TotalDiscount { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal LineTotal { get; set; }
     public Guid? UoMId { get; set; }

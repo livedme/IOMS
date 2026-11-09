@@ -89,7 +89,7 @@
                             <MudSelect @bind-Value="dataModel.ProductObj.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense" SelectionOnEnter="true">
                                 @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
                                 {
-                                    <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
+                                    <MudSelectItem Value="@type">@CommonUtility.GetDisplayName(type)</MudSelectItem>
                                 }
                             </MudSelect>
                         </MudTd>
@@ -134,7 +134,7 @@
                                 <MudSelect @bind-Value="dataModel.ProductObj.DiscountType" Class="_discountType" Variant="Variant.Outlined" Margin="Margin.Dense" SelectionOnEnter="true">
                                     @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
                                     {
-                                        <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
+                                        <MudSelectItem Value="@type">@CommonUtility.GetDisplayName(type)</MudSelectItem>
                                     }
                                 </MudSelect>
                             </MudTd>
@@ -193,7 +193,7 @@
                                 <MudSelect @bind-Value="dataModel.DiscountType" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountTypeField pb-1 col-3 mt-2" SelectionOnEnter="true">
                                     @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
                                     {
-                                        <MudSelectItem Value="@((int)type)">@CommonUtility.GetDisplayName(type)</MudSelectItem>
+                                        <MudSelectItem Value="@type">@CommonUtility.GetDisplayName(type)</MudSelectItem>
                                     }
                                 </MudSelect>
                             </div>
@@ -559,8 +559,8 @@
         dataModel.ProductObj.Quantity = item.Quantity;
         dataModel.ProductObj.UnitPrice = item.UnitPrice;
         dataModel.ProductObj.DiscountAmount = item.DiscountAmount;
-        dataModel.ProductObj.DiscountType = (int)item.DiscountType;
-        dataModel.ProductObj.TotalDiscount = item.TotalDiscountAmount;
+        dataModel.ProductObj.DiscountType = item.DiscountType;
+        dataModel.ProductObj.TotalDiscount = item.TotalDiscount;
         dataModel.ProductObj.TotalPrice = item.TotalPrice;
         //_editProductText = product != default ? product.Name : "";
         //_editLastProductSelection = dataModel.ProductObj.ProductDdlControl.SelectedItem;
