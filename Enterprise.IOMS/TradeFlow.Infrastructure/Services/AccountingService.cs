@@ -386,21 +386,21 @@ public class AccountingService : IAccountingService
 
         if (dto.Amount <= 0) throw new DomainException("Payment amount must be positive.");
 
-    //     public Guid Id { get; set; }
-    //public Guid? InvoiceId { get; set; }
-    //public PaymentType PaymentType { get; set; }
-    //public DateTime? PaymentDate { get; set; }
-    //public ControlItemsDto? SelectedParty { get; set; }
-    //public PaymentMethod Method { get; set; }
-    //public string? PaymentMediaName { get; set; } // for credit card, check and bank transfer
-    //public string? AccountName { get; set; }
-    //public string? AccountNumber { get; set; }
-    //public string? CheckOrCardNumber { get; set; }
-    //public string? Reference { get; set; }
-    //public decimal Amount { get; set; }
-    //public string? Notes { get; set; }
+        //     public Guid Id { get; set; }
+        //public Guid? InvoiceId { get; set; }
+        //public PaymentType PaymentType { get; set; }
+        //public DateTime? PaymentDate { get; set; }
+        //public ControlItemsDto? SelectedParty { get; set; }
+        //public PaymentMethod Method { get; set; }
+        //public string? PaymentMediaName { get; set; } // for credit card, check and bank transfer
+        //public string? AccountName { get; set; }
+        //public string? AccountNumber { get; set; }
+        //public string? CheckOrCardNumber { get; set; }
+        //public string? Reference { get; set; }
+        //public decimal Amount { get; set; }
+        //public string? Notes { get; set; }
 
-    var payment = new Payment
+        var payment = new Payment
         {
             PaymentNumber = NumberGenerator.GenerateCode("Pay"),
             PaymentType = dto.PaymentType,
@@ -410,14 +410,13 @@ public class AccountingService : IAccountingService
             Amount = dto.Amount,
             PaymentDate = dto.PaymentDate,
             PaymentMethod = dto.PaymentMethod,
-        PaymentMethod = dto.PaymentMediaName,
-        PaymentMethod = dto.AccountName,
-        PaymentMethod = dto.AccountNumber,
-        PaymentMethod = dto.CheckOrCardNumber,
-
-        Reference = dto.Reference,
-        Reference = dto.Notes
-    };
+            PaymentMediaName = dto.PaymentMediaName,
+            AccountName = dto.AccountName,
+            AccountNumber = dto.AccountNumber,
+            CheckOrCardNumber = dto.CheckOrCardNumber,
+            Reference = dto.Reference,
+            Notes = dto.Notes
+        };
 
         if (dto.InvoiceId.HasValue)
         {

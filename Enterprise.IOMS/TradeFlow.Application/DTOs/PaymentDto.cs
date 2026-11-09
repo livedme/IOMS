@@ -31,8 +31,18 @@ namespace TradeFlow.Application.DTOs
         PaymentMethod Method, string? Reference, string? Notes);
 
     public record RecordPaymentDto(PaymentType PaymentType, Guid? CustomerId, Guid? SupplierId,
-        Guid? InvoiceId, decimal Amount, PaymentMethod PaymentMethod,
-        string? Reference, DateTime PaymentDate);
+        Guid? InvoiceId, decimal Amount, PaymentMethod PaymentMethod, string PaymentMediaName,
+        string AccountName, string AccountNumber, string CheckOrCardNumber,
+        string? Reference, DateTime PaymentDate, string Notes);
+
+
+    //PaymentMethod = dto.PaymentMediaName,
+    //    PaymentMethod = dto.AccountName,
+    //    PaymentMethod = dto.AccountNumber,
+    //    PaymentMethod = dto.CheckOrCardNumber,
+    //    Reference = dto.Reference,
+    //    Reference = dto.Notes
+
 
 
 }

@@ -221,8 +221,12 @@
                 null,
                 paymentModelDto.Amount,
                 paymentModelDto.Method,
+                paymentModelDto.PaymentMediaName,
+                paymentModelDto.AccountName,
+                paymentModelDto.AccountNumber,
+                paymentModelDto.CheckOrCardNumber,
                 paymentModelDto.Reference,
-                paymentModelDto.PaymentDate ?? DateTime.Today);
+                paymentModelDto.PaymentDate ?? DateTime.Today,paymentModelDto.Notes);
 
             await AccountingService.RecordPayment(dto);
             Snackbar.Add("Payment recorded successfully", Severity.Success);
