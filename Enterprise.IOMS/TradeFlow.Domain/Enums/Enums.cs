@@ -25,7 +25,7 @@ namespace TradeFlow.Domain.Enums
 
     public enum PaymentMethod
     {
-        Cash, BankTransfer, Check, CreditCard, Other
+        Cash, BankTransfer, Check, CreditCard,Bkash, Nagad, Other
     }
 
     public enum QuoteStatus

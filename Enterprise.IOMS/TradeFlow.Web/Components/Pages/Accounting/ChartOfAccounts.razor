@@ -43,58 +43,115 @@
     </div>
 
     <div class="tm-card tm-table-card">
-        <MudTable Hover="true" Breakpoint="Breakpoint.Sm" Height="500px" FixedHeader="true"
-                  Items="@_accountsList"
-                  GroupBy="@_groupDefinition"
-                  GroupHeaderStyle="background-color:var(--mud-palette-background-gray)"
-                  GroupFooterClass="mb-4"
-                  Dense="true"
-                  @ref="_tableRef">
-            <ColGroup>
-                <col style="width: 60px;" />
-                <col />
-                <col />                
-                <col />
-                <col />
-            </ColGroup>
-            <HeaderContent>
-                <MudTh>Code</MudTh>
-                <MudTh>Account Name</MudTh>
-                <MudTh>Type</MudTh>                
-                <MudTh Style="text-align: right">Balance</MudTh>
-                <MudTh>System</MudTh>
-            </HeaderContent>
-            <GroupHeaderTemplate>
-                <MudTh Class="mud-table-cell-custom-group" colspan="6">@($"{context.GroupName}: {context.Key}")</MudTh>
-            </GroupHeaderTemplate>
-            <RowTemplate>
-                <MudTd DataLabel="Code">
-                    <span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🔢</span>@context.Code</span>
-                </MudTd>
-                <MudTd DataLabel="Account Name" Class="tm-branch">@context.Name</MudTd>
-                <MudTd DataLabel="Type">
-                    <span class="@CommonUtility.GetTypePill(context.AccountType)"><span class="tm-dot"></span>@context.AccountType</span>
-                </MudTd>
-                <MudTd DataLabel="Parent" Class="tm-dim">@(string.IsNullOrWhiteSpace(context.ParentAccountName) ? "-" : context.ParentAccountName)</MudTd>
-                <MudTd Style="text-align: right" DataLabel="Balance" Class="tm-money">@context.Balance?.ToString("N0")</MudTd>
-                <MudTd DataLabel="System">
-                    @if (context.IsSystemAccount == true)
+        <div class="tm-table-wrap">
+            <table class="tm-table" style="min-width:950px">
+                <thead>
+                    <tr>
+                        <th>🔢 Code</th>
+                        <th>📚 Account Name</th>
+                        <th>Type</th>
+                        @* <th>🌳 Parent</th> *@
+                        <th style="text-align:right">Balance</th>
+                        <th>🔒 System</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (_loading)
                     {
-                        <span class="tm-pill tm-pill-amber"><span class="tm-dot"></span>System</span>
+                        <tr><td colspan="6"><TmLoading Message="Loading accounts..." /></td></tr>
+                    }
+                    else if (_accountsIncludChilds.Count == 0)
+                    {
+                        <tr><td colspan="6"><div class="tm-loading">No accounts found</div></td></tr>
                     }
                     else
                     {
-                        <span class="tm-dim">-</span>
-                    }
-                </MudTd>
-            </RowTemplate>
-            <GroupFooterTemplate>
-                <MudTh Class="mud-table-cell-custom-group mud-table-cell-custom-group-footer" colspan="6">
-                    Total Balance: @((context.Items.Sum((e) => e.Balance) ?? 0m).ToString("N0"))
-                </MudTh>
-            </GroupFooterTemplate>
-        </MudTable>
+                        @foreach (var row in _accountsIncludChilds)
+                        {
+                            <tr class="tm-parent-row">
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🔢</span>@row.Code</span></td>
+                                <td class="tm-branch">@row.Name</td>
+                                <td><span class="@CommonUtility.GetTypePill(row.AccountType)"><span class="tm-dot"></span>@row.AccountType</span></td>
+                                @* <td class="tm-dim">@row.ParentAccountName</td> *@
+                                <td style="text-align:right" class="tm-money">@row.Balance</td>
+                                <td>
+                                    @if (row.IsSystemAccount == true)
+                                    {
+                                        <span class="tm-pill tm-pill-amber"><span class="tm-dot"></span>System</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="tm-dim">-</span>
+                                    }
+                                </td>
+                            </tr>
 
+                            @foreach (var childrow in row.ChildAccounts)
+                            {
+                                <tr class="tm-child-row">
+                                    <td>
+                                        <span class="tm-veh" style="padding-left: 15px;"><span class="tm-veh-ico" style="background:#e0e9ff">🔢</span>@childrow.Code</span>
+                                    </td>
+                                    <td class="tm-branch">@childrow.Name</td>
+                                    <td><span class="@CommonUtility.GetTypePill(childrow.AccountType)"><span class="tm-dot"></span>@childrow.AccountType</span></td>
+                                    @* <td class="tm-dim">@childrow.ParentAccountName</td> *@
+                                    <td style="text-align:right" class="tm-money">@childrow.Balance</td>
+                                    <td>
+                                        @if (childrow.IsSystemAccount == true)
+                                        {
+                                            <span class="tm-pill tm-pill-amber"><span class="tm-dot"></span>System</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tm-dim">-</span>
+                                        }
+                                    </td>
+                                </tr>                                
+                            }
+                        }
+
+
+
+
+                       @*  @foreach (var row in _displayRows)
+                        {
+                            if (row.Type == "GroupHeader")
+                            {
+                                <tr class="tm-group-header">
+                                    <td colspan="6">@row.GroupLabel</td>
+                                </tr>
+                            }
+                            else if (row.Type == "GroupFooter")
+                            {
+                                <tr class="tm-group-footer">
+                                    <td colspan="6">Total Balance: @row.BalanceTotalDisplay</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                <tr class="@(row.Type == "Standalone" ? "" : "tm-child-row")">
+                                    <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">🔢</span>@row.Code</span></td>
+                                    <td class="tm-branch">@row.AccountName</td>
+                                    <td><span class="@CommonUtility.GetTypePill(row.AccountType)"><span class="tm-dot"></span>@row.AccountType</span></td>
+                                    <td class="tm-dim">@row.ParentAccountName</td>
+                                    <td style="text-align:right" class="tm-money">@row.BalanceDisplay</td>
+                                    <td>
+                                        @if (row.IsSystemAccount)
+                                        {
+                                            <span class="tm-pill tm-pill-amber"><span class="tm-dot"></span>System</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tm-dim">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        } *@
+                    }
+                </tbody>
+            </table>
+        </div>
         <TmPager CurrentPage="@(_page - 1)"
                   PageSize="_pageSize"
                   TotalCount="@Filtered.Count"
@@ -106,26 +163,36 @@
                   OnPageSizeChanged="OnPageSizeChanged" />
     </div>
 </div>
+<style>
+    
+</style>
 
 @code {
     private List<AccountModelDto> _accounts = new();
-    private List<AccountModelDto> _accountsList = new();
+    private List<AccountModelDto> _accountsIncludChilds = new();
+    private List<AccountRow> _displayRows = new();
 
     private AccountType? _typeFilter;
     private string _search = "";
     private bool _loading = true;
     private int _page = 1;
     private int _pageSize = 10;
-    private MudTable<AccountModelDto> _tableRef;
 
-    private TableGroupDefinition<AccountModelDto> _groupDefinition = new()
+    private class AccountRow
     {
-        GroupName = "Parent Account",
-        Indentation = false,
-        Expandable = true,
-        IsInitiallyExpanded = false,
-        Selector = (e) => e.ParentAccountName ?? "Root Accounts"
-    };
+        public string Type { get; set; } = "Row";
+        public Guid? Id { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public string AccountName { get; set; } = string.Empty;
+        public AccountType AccountType { get; set; }
+        public string ParentAccountName { get; set; } = string.Empty;
+        public decimal Balance { get; set; }
+        public string BalanceDisplay => Balance.ToString("N0");
+        public bool IsSystemAccount { get; set; }
+        public string GroupLabel { get; set; } = string.Empty;
+        public decimal BalanceTotal { get; set; }
+        public string BalanceTotalDisplay => BalanceTotal.ToString("N0");
+    }
 
     private List<AccountModelDto> Filtered => _accounts.Where(a =>
         (_typeFilter == null || a.AccountType == _typeFilter.Value)
@@ -151,10 +218,100 @@
                 _accounts = await AccountingService.GetChartOfAccounts();
             }
 
-            _accountsList = Filtered;
+            var _parentAccounts = _accounts.Where(x => x.ParentAccountId == null).ToList();
+
+            foreach (var account in _parentAccounts)
+            {
+                account.ChildAccounts = _accounts.Where(a => a.ParentAccountId == account.Id).OrderBy(a => a.Code).ToList();
+                _accountsIncludChilds.Add(account);
+            }
+            
+
+
+            //BuildDisplayRows();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
+    }
+
+    private void BuildDisplayRows()
+    {
+        var filtered = Filtered;
+        _displayRows = new List<AccountRow>();
+
+        foreach (var parent in filtered.Where(a => a.ParentAccountId == null).OrderBy(a => a.Code))
+        {
+            var children = filtered.Where(a => a.ParentAccountId == parent.Id).OrderBy(a => a.Code).ToList();
+
+            if (children.Count > 0)
+            {
+                // Parent WITH children: group header + children + group footer
+                _displayRows.Add(new AccountRow
+                {
+                    Type = "GroupHeader",
+                    GroupLabel = parent.Name,
+                    Code = parent.Code,
+                    AccountName = parent.Name,
+                    AccountType = parent.AccountType,
+                    ParentAccountName = parent.ParentAccountName ?? "-",
+                    Balance = parent.Balance ?? 0m,
+                    IsSystemAccount = parent.IsSystemAccount ?? false
+                });
+
+                foreach (var child in children)
+                {
+                    _displayRows.Add(new AccountRow
+                    {
+                        Type = "Row",
+                        Id = child.Id,
+                        Code = child.Code,
+                        AccountName = child.Name,
+                        AccountType = child.AccountType,
+                        ParentAccountName = child.ParentAccountName ?? "-",
+                        Balance = child.Balance ?? 0m,
+                        IsSystemAccount = child.IsSystemAccount ?? false
+                    });
+                }
+
+                _displayRows.Add(new AccountRow
+                {
+                    Type = "GroupFooter",
+                    BalanceTotal = children.Sum(c => c.Balance ?? 0m)
+                });
+            }
+            else
+            {
+                // Parent WITHOUT children: standalone row (no group wrapper)
+                _displayRows.Add(new AccountRow
+                {
+                    Type = "Standalone",
+                    Id = parent.Id,
+                    Code = parent.Code,
+                    AccountName = parent.Name,
+                    AccountType = parent.AccountType,
+                    ParentAccountName = parent.ParentAccountName ?? "-",
+                    Balance = parent.Balance ?? 0m,
+                    IsSystemAccount = parent.IsSystemAccount ?? false
+                });
+            }
+        }
+
+        // Add orphaned children (accounts with a parent not in the filtered set)
+        var shownChildIds = _displayRows.Where(r => r.Type == "Row").Select(r => r.Id).ToHashSet();
+        foreach (var orphan in filtered.Where(a => a.ParentAccountId != null && !shownChildIds.Contains(a.Id)).OrderBy(a => a.Code))
+        {
+            _displayRows.Add(new AccountRow
+            {
+                Type = "Row",
+                Id = orphan.Id,
+                Code = orphan.Code,
+                AccountName = orphan.Name,
+                AccountType = orphan.AccountType,
+                ParentAccountName = orphan.ParentAccountName ?? "-",
+                Balance = orphan.Balance ?? 0m,
+                IsSystemAccount = orphan.IsSystemAccount ?? false
+            });
+        }
     }
 
     private int CountOf(AccountType t) => _accounts.Count(a => a.AccountType == t);

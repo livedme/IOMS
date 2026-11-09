@@ -820,11 +820,16 @@ table.tm-table {
         white-space: nowrap;
         vertical-align: middle;
     }
-
+    table.tm-table tbody tr.tm-parent-row {
+        background-color: #f9f9f9;
+    }
     table.tm-table tbody tr:hover {
         background: #f8fafc;
     }
-
+  
+/*    tbody .tm-parent-row td:hover {
+        background: #f8fafc;
+    }*/
 .tm-veh {
     display: flex;
     align-items: center;

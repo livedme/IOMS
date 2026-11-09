@@ -10,6 +10,8 @@ public interface IInvoiceService
 
     /// <summary>Full invoice detail for the view panel: source order, line items and party contact info.</summary>
     Task<InvoiceDetailDto?> GetInvoiceDetailAsync(Guid id);
+    Task<List<InvoiceDto?>> GetInvoiceBySupplier(Guid SupplierId);
+    Task<List<InvoiceDto?>> GetInvoiceByCustomer(Guid CustomerId);
     Task<Guid> CreateInvoiceAsync(CreateInvoiceDto dto);
     Task<Guid> GenerateInvoiceFromSalesOrderAsync(Guid salesOrderId);
     Task<Guid> GenerateInvoiceFromPurchaseOrderAsync(Guid purchaseOrderId);

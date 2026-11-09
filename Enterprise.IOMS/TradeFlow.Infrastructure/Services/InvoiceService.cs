@@ -46,6 +46,21 @@ namespace TradeFlow.Infrastructure.Services
             return invoice == null ? null : _mapper.Map<InvoiceDto>(invoice);
         }
 
+        public async Task<List<InvoiceDto>> GetInvoiceBySupplier(Guid SupplierId)
+        {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+            var invoices = await _db.Invoices.Include(i => i.Supplier).Where(i => i.SupplierId == SupplierId).ToListAsync();
+            return invoices.Select(invoice => invoice == null ? null : _mapper.Map<InvoiceDto>(invoice)).ToList();
+        }
+
+        public async Task<List<InvoiceDto>> GetInvoiceByCustomer(Guid CustomerId)
+        {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+            var invoices = await _db.Invoices.Include(i => i.Customer).Where(i => i.CustomerId == CustomerId).ToListAsync();
+            return invoices.Select(invoice => invoice == null ? null : _mapper.Map<InvoiceDto>(invoice)).ToList();
+        }
+
+
         /// <summary>
         /// The invoice itself carries no line items — they live on the sales or purchase
         /// order it was generated from, so pull the linked order with its items and party info.

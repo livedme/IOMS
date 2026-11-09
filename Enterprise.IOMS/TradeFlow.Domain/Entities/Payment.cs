@@ -15,6 +15,10 @@ public class Payment : BaseEntity
     public decimal Amount { get; set; }
     public DateTime PaymentDate { get; set; } = DateTime.UtcNow;
     public PaymentMethod PaymentMethod { get; set; }
+    public string? PaymentMediaName { get; set; }
+    public string? AccountName { get; set; }
+    public string? AccountNumber { get; set; }
+    public string? CheckOrCardNumber { get; set; }
     public string? Reference { get; set; }
     public PaymentStatus Status { get; set; } = PaymentStatus.Completed;
     public Guid? CurrencyId { get; set; }

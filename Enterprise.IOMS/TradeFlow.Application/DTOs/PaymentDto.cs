@@ -7,6 +7,23 @@ namespace TradeFlow.Application.DTOs
 {
 
     // Payments
+    public class PaymentModelDto
+    {
+        public Guid Id { get; set; }        
+        public Guid? InvoiceId { get; set; }
+        public PaymentType PaymentType { get; set; }
+        public DateTime? PaymentDate { get; set; }
+        public ControlItemsDto? SelectedParty { get; set; }
+        public PaymentMethod Method { get; set; }
+        public string? PaymentMediaName { get; set; } // for credit card, check and bank transfer
+        public string? AccountName { get; set; }
+        public string? AccountNumber { get; set; }        
+        public string? CheckOrCardNumber { get; set; }
+        public string? Reference { get; set; }        
+        public decimal Amount { get; set; }        
+        public string? Notes { get; set; }
+    }
+
     public record PaymentDto(Guid Id, Guid InvoiceId, string? InvoiceNumber, decimal Amount,
         DateTime PaymentDate, PaymentMethod Method, string? Reference, string? Notes);
 

@@ -1,6 +1,7 @@
 @inject IAccountingService AccountingService
 @inject ICustomerService CustomerService
 @inject ISupplierService SupplierService
+@inject IInvoiceService InvoiceService
 @inject ISnackbar Snackbar
 
 
@@ -10,21 +11,22 @@
         <MudForm @ref="_form">
             <MudGrid>
                 <MudItem xs="12" sm="6">
-                    <MudSelect @bind-Value="_paymentType" Label="Payment Type" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelect @bind-Value="paymentModelDto.PaymentType" Label="Payment Type" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                         <MudSelectItem Value="PaymentType.Receipt">Receipt (from Customer)</MudSelectItem>
                         <MudSelectItem Value="PaymentType.Payment">Payment (to Supplier)</MudSelectItem>
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker @bind-Date="_paymentDate" Label="Payment Date" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                    <MudDatePicker @bind-Date="paymentModelDto.PaymentDate" Label="Payment Date" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
-                @if (_paymentType == PaymentType.Receipt)
+                @if (paymentModelDto.PaymentType == PaymentType.Receipt)
                 {
-                    <MudItem xs="12">
+                    <MudItem xs="(_invoices != null && _invoices.Count > 0 ? 6 : 12)">
                         <MudAutocomplete T="ControlItemsDto"
                                          Label="Customer"
                                          Required="true"
-                                         @bind-Value="_selectedCustomer"
+                                         @bind-Value="paymentModelDto.SelectedParty"
+                                         @bind-Value:after="OnPartyChanged"
                                          SearchFunc="SearchCustomers"
                                          ToStringFunc="@(c => c?.Name ?? "")"
                                          ResetValueOnEmptyText="true"
@@ -34,11 +36,12 @@
                 }
                 else
                 {
-                    <MudItem xs="12">
+                    <MudItem xs="(_invoices != null && _invoices.Count > 0 ? 6 : 12)">
                         <MudAutocomplete T="ControlItemsDto"
                                          Label="Supplier"
                                          Required="true"
-                                         @bind-Value="_selectedSupplier"
+                                         @bind-Value="paymentModelDto.SelectedParty"
+                                         @bind-Value:after="OnPartyChanged"
                                          SearchFunc="SearchSuppliers"
                                          ToStringFunc="@(c => c?.Name ?? "")"
                                          ResetValueOnEmptyText="true"
@@ -46,23 +49,82 @@
                                          Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudItem>
                 }
+                @if (_invoices != null && _invoices.Count > 0)
+                {
+                    <MudItem xs="6" sm="6">
+                        <MudSelect T="Guid?" @bind-Value="paymentModelDto.InvoiceId" Label="Invoice" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem T="Guid?" Value="@Guid.Empty">Select an invoice</MudSelectItem>
+                            @foreach (var invoice in _invoices)
+                            {
+                                <MudSelectItem T="Guid?" Value="@invoice.Id">@invoice.InvoiceNumber</MudSelectItem>
+                            }
+                        </MudSelect>
+                        @{
+                            var selectedInvoice = _invoices.FirstOrDefault(i => i.Id == paymentModelDto.InvoiceId);
+                            <span style="font-size: 11px;position: absolute;color: red;">
+                                @selectedInvoice?.TotalAmount
+                            </span>
+                        }
+                    </MudItem>
+                }
+
                 <MudItem xs="12" sm="6">
-                    <MudSelect @bind-Value="_paymentMethod" Label="Payment Method" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudNumericField @bind-Value="paymentModelDto.Amount" Label="Amount" Min="0.01m" Required="true" Format="N2" Adornment="Adornment.Start" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="paymentModelDto.Method" Label="Payment Method" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                         @foreach (PaymentMethod m in Enum.GetValues<PaymentMethod>())
                         {
                             <MudSelectItem Value="@m">@m</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudNumericField @bind-Value="_amount" Label="Amount" Min="0.01m" Required="true"
-                                     Format="N2" Adornment="Adornment.Start" AdornmentText="৳" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-                </MudItem>
+                @if (paymentModelDto.Method == PaymentMethod.BankTransfer || paymentModelDto.Method == PaymentMethod.Check || paymentModelDto.Method == PaymentMethod.CreditCard)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="paymentModelDto.PaymentMediaName" Label="Bank Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="paymentModelDto.AccountName" Label="Account Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    @if (paymentModelDto.Method != PaymentMethod.CreditCard)
+                    {
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="paymentModelDto.AccountNumber" Label="Account Number" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                    }
+                    @if (paymentModelDto.Method == PaymentMethod.Check || paymentModelDto.Method == PaymentMethod.CreditCard)
+                    {
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="paymentModelDto.CheckOrCardNumber" Label="@(paymentModelDto.Method == PaymentMethod.Check ? "Check Number" : "Card Number")" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>                        
+                    }
+
+                    if (paymentModelDto.Method == PaymentMethod.Check)
+                    {
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="paymentModelDto.Reference" Label="Reference / Check #" ShrinkLabel="true" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                    }else{
+                        <MudItem xs="6">
+                            <MudTextField @bind-Value="paymentModelDto.Reference" Label="Reference / Check #" ShrinkLabel="true" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                    }
+                }
+                @if (paymentModelDto.Method == PaymentMethod.Bkash ||paymentModelDto.Method == PaymentMethod.Nagad)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="paymentModelDto.AccountName" Label="Account Name" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="paymentModelDto.AccountNumber" Label="Account Number" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="paymentModelDto.Reference" Label="Reference / Check #" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                }
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_reference" Label="Reference / Check #" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
-                </MudItem>
-                <MudItem xs="12">
-                    <RichTextField @bind-Value="_notes" Label="Notes" Lines="2" />
+                    <RichTextField @bind-Value="paymentModelDto.Notes" Label="Notes" Lines="2" />
                 </MudItem>
             </MudGrid>
         </MudForm>
@@ -77,17 +139,18 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     private MudForm _form = null!;
 
-    private PaymentType _paymentType = PaymentType.Receipt;
-    private DateTime? _paymentDate = DateTime.Today;
-    private ControlItemsDto? _selectedCustomer;
-    private ControlItemsDto? _selectedSupplier;
-    private PaymentMethod _paymentMethod = PaymentMethod.BankTransfer;
-    private decimal _amount;
-    private string _reference = "";
-    private string _notes = "";
+    private PaymentModelDto paymentModelDto = new PaymentModelDto();
+    // private DateTime? _paymentDate = DateTime.Today;
+    // private ControlItemsDto? _selectedCustomer;
+    // private ControlItemsDto? _selectedSupplier;
+    // private PaymentMethod _paymentMethod = PaymentMethod.BankTransfer;
+    // private decimal _amount;
+    // private string _reference = "";
+    // private string _notes = "";
 
     private List<CustomerDto> _customers = new();
     private List<SupplierDto> _suppliers = new();
+    private List<InvoiceDto> _invoices = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,7 +187,21 @@
         }
         return Task.FromResult(results);
     }
+    private async Task OnPartyChanged()
+    {
+        var cust = paymentModelDto.SelectedParty;
+        if (paymentModelDto.PaymentType == PaymentType.Receipt && cust != null)
+        {
+            _invoices = await InvoiceService.GetInvoiceByCustomer((Guid)cust.Id);
+            //paymentModelDto.Invoices = invoices.Where(i => i != null).Select(i => new ControlItemsDto { Id = i!.Id, Name = i.InvoiceNumber }).ToList();
+        }
+        else if (paymentModelDto.PaymentType == PaymentType.Payment && cust != null)
+        {
+            _invoices = await InvoiceService.GetInvoiceBySupplier((Guid)cust.Id);
+            //paymentModelDto.Invoices = invoices.Where(i => i != null).Select(i => new ControlItemsDto { Id = i!.Id, Name = i.InvoiceNumber }).ToList();
+        }
 
+    }
     private async Task Submit()
     {
         await _form.ValidateAsync();
@@ -132,15 +209,20 @@
 
         try
         {
+            
+    //public record RecordPaymentDto(PaymentType PaymentType, Guid? CustomerId, Guid? SupplierId,
+      //  Guid? InvoiceId, decimal Amount, PaymentMethod PaymentMethod,
+//        string? Reference, DateTime PaymentDate);
+
             var dto = new RecordPaymentDto(
-                _paymentType,
-                _paymentType == PaymentType.Receipt ? (Guid)_selectedCustomer!.Id : null,
-                _paymentType == PaymentType.Payment ? (Guid)_selectedSupplier!.Id : null,
+                paymentModelDto.PaymentType,
+                paymentModelDto.PaymentType == PaymentType.Receipt ? (Guid)paymentModelDto.SelectedParty!.Id : null,
+                paymentModelDto.PaymentType == PaymentType.Payment ? (Guid)paymentModelDto.SelectedParty!.Id : null,
                 null,
-                _amount,
-                _paymentMethod,
-                _reference,
-                _paymentDate ?? DateTime.Today);
+                paymentModelDto.Amount,
+                paymentModelDto.Method,
+                paymentModelDto.Reference,
+                paymentModelDto.PaymentDate ?? DateTime.Today);
 
             await AccountingService.RecordPayment(dto);
             Snackbar.Add("Payment recorded successfully", Severity.Success);
