@@ -145,12 +145,21 @@ public record GeneralLedgerLineDto(
     decimal Credit);
 
 public record PaymentListItemDto(
+    Guid Id,
     string PaymentNumber,
     DateTime PaymentDate,
     PaymentType PaymentType,
     PaymentMethod PaymentMethod,
+    PaymentStatus Status,
     decimal Amount,
     string? Reference,
+    string? Notes,
+    string? PaymentMediaName,
+    string? AccountName,
+    string? AccountNumber,
+    string? CheckOrCardNumber,
+    Guid? InvoiceId,
+    string? InvoiceNumber,
     string PartyName);
 
 // ── Pickers ──

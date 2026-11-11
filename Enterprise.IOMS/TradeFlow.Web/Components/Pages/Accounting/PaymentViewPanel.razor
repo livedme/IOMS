@@ -1,0 +1,220 @@
+@using TradeFlow.Application.DTOs
+@using TradeFlow.Domain.Enums
+
+@if (_open && _payment != null)
+{
+    <div class="so-backdrop" @onclick="Close"></div>
+
+    <div class="so-side-panel @(_animateIn ? "so-panel-open" : "")">
+
+        <!-- Header -->
+        <div class="so-header">
+            <div class="d-flex align-items-center gap-2">
+                <MudIcon Icon="@(_payment.PaymentType == PaymentType.Receipt ? Icons.Material.Filled.SouthWest : Icons.Material.Filled.NorthEast)"
+                         Color="@GetTypeColor(_payment.PaymentType)" />
+                <div>
+                    <div class="so-header-title">@(_payment.PaymentType == PaymentType.Receipt ? "Receipt" : "Payment")</div>
+                    <div class="so-header-sub">@_payment.PaymentNumber</div>
+                </div>
+                <MudChip T="string" Color="@GetStatusColor(_payment.Status)" Size="Size.Small" Class="ms-1">
+                    @_payment.Status
+                </MudChip>
+            </div>
+            <div class="d-flex gap-1">
+                <MudTooltip Text="Close panel">
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Close" />
+                </MudTooltip>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="so-body">
+            <!-- Reference block -->
+            <div class="so-ref-block mb-3">
+                <div class="d-flex justify-space-between">
+                    <div>
+                        <div class="so-lbl">Payment Number</div>
+                        <div class="so-val-lg">@_payment.PaymentNumber</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="so-lbl">Payment Date</div>
+                        <div class="so-val fw-semibold">@_payment.PaymentDate.ToString("dd MMM yyyy")</div>
+                        <div class="so-sm">@_payment.PaymentType</div>
+                    </div>
+                </div>
+            </div>
+
+            <MudDivider Class="mb-3" />
+
+            <!-- Party -->
+            <div class="so-info-card mb-3">
+                <div class="so-info-icon">
+                    <MudIcon Icon="@(_payment.PaymentType == PaymentType.Receipt ? Icons.Material.Filled.Person : Icons.Material.Filled.Business)"
+                             Size="Size.Small" Style="color:#fff;" />
+                </div>
+                <div class="overflow-hidden">
+                    <div class="so-lbl">@(_payment.PaymentType == PaymentType.Receipt ? "Customer" : "Supplier")</div>
+                    <div class="so-val fw-bold text-truncate">@(string.IsNullOrWhiteSpace(_payment.PartyName) ? "—" : _payment.PartyName)</div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_payment.InvoiceNumber))
+                {
+                    <div class="ms-auto text-end">
+                        <div class="so-lbl">Invoice No</div>
+                        <div class="so-val fw-semibold">@_payment.InvoiceNumber</div>
+                    </div>
+                }
+            </div>
+
+            <MudDivider Class="mb-3" />
+
+            <!-- Amount summary -->
+            <div class="so-section-lbl mb-2">Amount</div>
+            <div class="so-totals-box mb-3">
+                <div class="so-total-row">
+                    <span>Payment Method</span>
+                    <span class="fw-semibold">@_payment.PaymentMethod</span>
+                </div>
+                <div class="so-total-row @(_payment.PaymentType == PaymentType.Receipt ? "text-success" : "text-danger")">
+                    <span>@(_payment.PaymentType == PaymentType.Receipt ? "Amount Received" : "Amount Paid")</span>
+                    <span>@Taka.H(_payment.Amount)</span>
+                </div>
+                <div class="so-total-row so-grand-total">
+                    <span>TOTAL</span>
+                    <span>@Taka.H(_payment.Amount)</span>
+                </div>
+            </div>
+
+            <!-- Payment method details -->
+            @if (ShowDetails)
+            {
+                <MudDivider Class="mb-3" />
+
+                <div class="so-section-lbl mb-2">Payment Details</div>
+                <div class="so-items-card mb-3">
+                    <table class="so-items-table">
+                        <tbody>
+                            @if (ShowMediaRow)
+                            {
+                                <tr>
+                                    <td>Bank / Media</td>
+                                    <td class="text-end fw-semibold">@Display(_payment.PaymentMediaName)</td>
+                                </tr>
+                            }
+                            @if (ShowAccountNameRow)
+                            {
+                                <tr>
+                                    <td>Account Name</td>
+                                    <td class="text-end fw-semibold">@Display(_payment.AccountName)</td>
+                                </tr>
+                            }
+                            @if (ShowAccountNumberRow)
+                            {
+                                <tr>
+                                    <td>Account Number</td>
+                                    <td class="text-end fw-semibold">@Display(_payment.AccountNumber)</td>
+                                </tr>
+                            }
+                            @if (ShowCheckCardRow)
+                            {
+                                <tr>
+                                    <td>@(_payment.PaymentMethod == PaymentMethod.Check ? "Check Number" : "Card Number")</td>
+                                    <td class="text-end fw-semibold">@Display(_payment.CheckOrCardNumber)</td>
+                                </tr>
+                            }
+                            @if (ShowReferenceRow)
+                            {
+                                <tr>
+                                    <td>Reference</td>
+                                    <td class="text-end fw-semibold">@Display(_payment.Reference)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <!-- Notes -->
+            <MudDivider Class="mb-3" />
+
+            <div class="so-section-lbl mb-2">Notes</div>
+            <div class="so-val @(string.IsNullOrWhiteSpace(_payment.Notes) ? "text-muted" : "")">
+                @Display(_payment.Notes)
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="so-footer">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="Close">Close</MudButton>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _open;
+    private bool _animateIn;
+    private PaymentListItemDto? _payment;
+
+    private static Color GetStatusColor(PaymentStatus status) => status switch
+    {
+        PaymentStatus.Completed => Color.Success,
+        PaymentStatus.Pending => Color.Warning,
+        PaymentStatus.Failed => Color.Error,
+        PaymentStatus.Refunded => Color.Info,
+        _ => Color.Default
+    };
+
+    private static Color GetTypeColor(PaymentType type) =>
+        type == PaymentType.Receipt ? Color.Success : Color.Error;
+
+    private bool IsMobileWallet => _payment?.PaymentMethod
+        is PaymentMethod.Bkash or PaymentMethod.Nagad;
+
+    private bool IsBankLike => _payment?.PaymentMethod
+        is PaymentMethod.BankTransfer or PaymentMethod.Check or PaymentMethod.CreditCard;
+
+    // Check, CreditCard, Bkash and Nagad always show their full detail set,
+    // using "—" for values that were not captured.
+    private bool ShowAllDetails => _payment?.PaymentMethod
+        is PaymentMethod.Check or PaymentMethod.CreditCard or PaymentMethod.Bkash or PaymentMethod.Nagad;
+
+    private bool ShowMediaRow => (ShowAllDetails && IsBankLike)
+        || !string.IsNullOrWhiteSpace(_payment?.PaymentMediaName);
+
+    private bool ShowAccountNameRow => ShowAllDetails
+        || !string.IsNullOrWhiteSpace(_payment?.AccountName);
+
+    private bool ShowAccountNumberRow => (ShowAllDetails && _payment?.PaymentMethod != PaymentMethod.CreditCard)
+        || !string.IsNullOrWhiteSpace(_payment?.AccountNumber);
+
+    private bool ShowCheckCardRow => (ShowAllDetails && !IsMobileWallet)
+        || !string.IsNullOrWhiteSpace(_payment?.CheckOrCardNumber);
+
+    private bool ShowReferenceRow => ShowAllDetails
+        || !string.IsNullOrWhiteSpace(_payment?.Reference);
+
+    private bool ShowDetails => ShowMediaRow || ShowAccountNameRow || ShowAccountNumberRow
+        || ShowCheckCardRow || ShowReferenceRow;
+
+    private static string Display(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "—" : value!;
+
+    public async Task OpenAsync(PaymentListItemDto payment)
+    {
+        _payment = payment;
+        _open = true;
+        _animateIn = false;
+        StateHasChanged();
+
+        await Task.Delay(20);
+        _animateIn = true;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        _open = false;
+        _animateIn = false;
+        _payment = null;
+        StateHasChanged();
+    }
+}

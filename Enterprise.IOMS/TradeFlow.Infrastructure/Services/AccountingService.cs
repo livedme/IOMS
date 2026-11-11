@@ -549,12 +549,21 @@ public class AccountingService : IAccountingService
             .OrderByDescending(p => p.PaymentDate)
             .Take(count)
             .Select(p => new PaymentListItemDto(
+                p.Id,
                 p.PaymentNumber,
                 p.PaymentDate,
                 p.PaymentType,
                 p.PaymentMethod,
+                p.Status,
                 p.Amount,
                 p.Reference,
+                p.Notes,
+                p.PaymentMediaName,
+                p.AccountName,
+                p.AccountNumber,
+                p.CheckOrCardNumber,
+                p.InvoiceId,
+                p.Invoice != null ? p.Invoice.InvoiceNumber : null,
                 p.Customer != null ? p.Customer.CustomerName : p.Supplier != null ? p.Supplier.SupplierName : ""))
             .ToListAsync();
     }

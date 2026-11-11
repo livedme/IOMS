@@ -21,7 +21,7 @@
                 </MudItem>
                 @if (paymentModelDto.PaymentType == PaymentType.Receipt)
                 {
-                    <MudItem xs="(_invoices != null && _invoices.Count > 0 ? 6 : 12)">
+                    <MudItem xs="6">
                         <MudAutocomplete T="ControlItemsDto"
                                          Label="Customer"
                                          Required="true"
@@ -36,7 +36,7 @@
                 }
                 else
                 {
-                    <MudItem xs="(_invoices != null && _invoices.Count > 0 ? 6 : 12)">
+                    <MudItem xs="6">
                         <MudAutocomplete T="ControlItemsDto"
                                          Label="Supplier"
                                          Required="true"
@@ -49,11 +49,11 @@
                                          Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudItem>
                 }
-                @if (_invoices != null && _invoices.Count > 0)
-                {
+                @* @if (_invoices != null && _invoices.Count > 0)
+                { *@
                     <MudItem xs="6" sm="6">
                         <MudSelect T="Guid?" @bind-Value="paymentModelDto.InvoiceId" Label="Invoice" Required="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense">
-                            <MudSelectItem T="Guid?" Value="@Guid.Empty">Select an invoice</MudSelectItem>
+                            <MudSelectItem T="Guid?" Value="@Guid.Empty">Select No invoice</MudSelectItem>
                             @foreach (var invoice in _invoices)
                             {
                                 <MudSelectItem T="Guid?" Value="@invoice.Id">@invoice.InvoiceNumber</MudSelectItem>
@@ -66,7 +66,7 @@
                             </span>
                         }
                     </MudItem>
-                }
+                @* } *@
 
                 <MudItem xs="12" sm="6">
                     <MudNumericField @bind-Value="paymentModelDto.Amount" Label="Amount" Min="0.01m" Required="true" Format="N2" Adornment="Adornment.Start" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
