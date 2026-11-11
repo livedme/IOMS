@@ -2870,3 +2870,21 @@ body {
     font-size: 1.35em;
     font-weight: 700;
 }
+
+.stock-list {
+    display: none;
+    padding: 10px;
+    background-color: #dbeafe;
+}
+.tm-pill-blue{
+    position:relative;
+}
+    .tm-pill-blue:hover .stock-list {
+        display: block;
+        position: absolute;
+        margin-left: 90%;
+    }
+
+.stock-list td {
+    padding: 3px 10px !important;
+}

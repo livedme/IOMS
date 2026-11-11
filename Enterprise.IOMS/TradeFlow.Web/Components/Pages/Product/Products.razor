@@ -177,10 +177,16 @@
                                     }
                                     else
                                     {
-                                        @foreach (var w in p.WarehouseStocks)
-                                        {
-                                            <span class="tm-pill tm-pill-blue" title="@w.WarehouseName (avail. @w.AvailableQuantity)"><span class="tm-dot"></span>@w.Code: @w.Quantity</span>
-                                        }
+                                        var totalStock = p.WarehouseStocks.Sum(ws => ws.Quantity);
+
+                                        <div class="tm-pill tm-pill-blue" title="@totalStock"><span class="tm-dot"></span>@totalStock >
+                                            <table class="stock-list">
+                                                @foreach (var w in p.WarehouseStocks)
+                                                {
+                                                    <tr><td>@w.Code</td><td>@w.Quantity</td></tr>
+                                                }
+                                            </table>
+                                        </div>
                                     }
                                 </td>
                                 <td class="tm-num">@p.ReorderStockLevel</td>
