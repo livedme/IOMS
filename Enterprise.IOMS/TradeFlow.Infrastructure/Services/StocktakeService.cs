@@ -235,7 +235,7 @@ public class StocktakeService : IStocktakeService
                 _context.StockMovements.Add(new StockMovement
                 {
                     ProductId = item.ProductId,
-                    WarehouseId = st.WarehouseId,
+                    ToWarehouseId = st.WarehouseId,
                     Type = StockMovementType.Adjustment,
                     Quantity = item.Variance,
                     MovementDate = DateTime.UtcNow,

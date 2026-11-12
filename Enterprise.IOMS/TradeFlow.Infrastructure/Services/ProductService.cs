@@ -379,8 +379,8 @@ namespace TradeFlow.Infrastructure.Services
                 .Where(i => i.ProductId == id)
                 .OrderBy(i => i.Warehouse.Name)
                 .Select(i => new ProductWarehouseStockDto(
-                    i.WarehouseId,
-                    i.Warehouse.Name,
+                    i.WarehouseId ?? Guid.Empty,
+                    i.Warehouse.Name?? "",
                     i.Warehouse.Code,
                     i.Quantity,
                     i.ReservedQuantity,
@@ -395,7 +395,7 @@ namespace TradeFlow.Infrastructure.Services
                 .Select(m => new StockMovementReportRowDto(
                     m.MovementDate,
                     "",
-                    m.Warehouse.Name,
+                    m.ToWarehouse.Name ?? "",
                     m.Type.ToString(),
                     m.Quantity,
                     m.Reference,

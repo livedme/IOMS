@@ -224,7 +224,7 @@ public class SalesReturnService : ISalesReturnService
                     _context.StockMovements.Add(new StockMovement
                     {
                         ProductId = item.ProductId,
-                        WarehouseId = inventory.WarehouseId,
+                        ToWarehouseId = inventory.WarehouseId,
                         Type = StockMovementType.Return,
                         Quantity = item.Quantity,
                         MovementDate = DateTime.UtcNow,

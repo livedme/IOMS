@@ -6,7 +6,7 @@
             </MudItem>
             <MudItem xs="12" sm="4">
                 <MudSelect T="Guid" @ref="RefTarget"
-                           Value="dataModel.TargetWarehouseId"
+                           Value="dataModel.ToWarehouseId"
                            ValueChanged="OnTargetChanged"
                            Label="To Warehouse"
                            Clearable="true"
@@ -43,14 +43,14 @@
                     <MudTd Style="width:190px;">
                         <MudSelect T="Guid"
                                     @ref="RefSource"
-                                   Value="dataModel.ProductObj.SourceWarehouseId"
+                                   Value="dataModel.ProductObj.WarehouseId"
                                    ValueChanged="OnEntrySourceChanged"
                                    ToStringFunc="@(id => WareHouses.FirstOrDefault(g => g.Id == id).Name ?? string.Empty)"
                                    SelectionOnEnter="true"  
                                    Label="From Warehouse" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
                             @foreach (var s in WareHouses)
                             {
-                                if(dataModel.TargetWarehouseId!=s.Id)
+                                if(dataModel.ToWarehouseId!=s.Id)
                                 {
                                     <MudSelectItem Value="@s.Id">@s.Name</MudSelectItem>
                                 }
@@ -67,8 +67,8 @@
                                          @bind-Value:after="OnProductChanged"
                                          SearchFunc="SearchProducts"
                                          ToStringFunc="@(c => c?.Name ?? "")"
-                                         Placeholder="@(dataModel.ProductObj.SourceWarehouseId == Guid.Empty ? "Select a warehouse first" : "Search product")"
-                                         Disabled="@(dataModel.ProductObj.SourceWarehouseId == Guid.Empty)"
+                                         Placeholder="@(dataModel.ProductObj.WarehouseId == Guid.Empty ? "Select a warehouse first" : "Search product")"
+                                         Disabled="@(dataModel.ProductObj.WarehouseId == Guid.Empty)"
                                          ResetValueOnEmptyText="true"
                                          CoerceText="true"
                                          Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -89,14 +89,14 @@
                         <MudTd Style="width:190px;">
                             <MudSelect T="Guid"
                                     @ref="RefSource"
-                                       Value="dataModel.ProductObj.SourceWarehouseId"
+                                       Value="dataModel.ProductObj.WarehouseId"
                                        ValueChanged="OnEntrySourceChanged"
                                        SelectionOnEnter="true"  
                                        ToStringFunc="@(id => WareHouses.FirstOrDefault(g => g.Id == id).Name ?? string.Empty)"
                                        Label="From Warehouse" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
                                 @foreach (var s in WareHouses)
                                 {
-                                    if(dataModel.TargetWarehouseId!=s.Id)
+                                    if(dataModel.ToWarehouseId!=s.Id)
                                 {
                                     <MudSelectItem Value="@s.Id">@s.Name</MudSelectItem>
                                 }
@@ -113,8 +113,8 @@
                                              @bind-Value:after="OnEditProductChanged"
                                              SearchFunc="SearchProducts"
                                              ToStringFunc="@(c => c?.Name ?? "")"
-                                             Placeholder="@(dataModel.ProductObj.SourceWarehouseId == Guid.Empty ? "Select a warehouse first" : "Search product")"
-                                             Disabled="@(dataModel.ProductObj.SourceWarehouseId == Guid.Empty)"
+                                             Placeholder="@(dataModel.ProductObj.WarehouseId == Guid.Empty ? "Select a warehouse first" : "Search product")"
+                                             Disabled="@(dataModel.ProductObj.WarehouseId == Guid.Empty)"
                                              ResetValueOnEmptyText="true"
                                              CoerceText="true"
                                              Clearable="true" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -130,7 +130,7 @@
                     else
                     {
                         <MudTd Style="width:190px;">
-                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@SourceName(context.SourceWarehouseId)</MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@SourceName(context.FromWarehouseId)</MudChip>
                         </MudTd>
                         <MudTd Style="width:auto;">
                             @(Products.FirstOrDefault(p => p.Id == context.ProductId).Name)
@@ -169,7 +169,7 @@
     [Parameter] public List<(Guid Id, string Name)> WareHouses { get; set; } = new();        
     [Parameter] public StockTransferDtoModel dataModel { get; set; } = new();
 
-    private List<(Guid Id, string Name, string SKU, Guid WarehouseId, string WarehouseName, int AvailableQuantity)> Products { get; set; } = new();
+    private List<(Guid Id, string Name, string SKU, Guid? WarehouseId, string? WarehouseName, int AvailableQuantity)> Products { get; set; } = new();
     private int _editingItemIndex = -1;
     private static readonly ControlItemsDto AddNewOption = new() { Id = Guid.Empty, Name = "Add New", IsSelected = false };
     private MudNumericField<int>? RefQuantity;
@@ -205,7 +205,7 @@
             var inventoryTracking = await InventoryService.GetInventoryTrackingByWarehouses(ids, 1, 100000);
             Products = inventoryTracking.Items
                 .Select(x => (x.ProductId, x.ProductName, x.ProductSKU, x.WarehouseId, x.WarehouseName, x.AvailableQuantity))
-                .ToList();
+                .ToList(); 
         }
         catch (Exception ex)
         {
@@ -216,8 +216,8 @@
 
     private async Task OnTargetChanged(Guid value)
     {
-        dataModel.TargetWarehouseId = value;
-        dataModel.TargetWarehouseText = WareHouses.FirstOrDefault(w => w.Id == value).Name;
+        dataModel.ToWarehouseId = value;
+        dataModel.ToWarehouseText = WareHouses.FirstOrDefault(w => w.Id == value).Name;
         if (RefNote is not null)
             await RefNote.FocusAsync();
     }
@@ -236,7 +236,7 @@
     private Task<IEnumerable<ControlItemsDto>> SearchProducts(string text, CancellationToken _)
     {
         // Only products stocked in the line's warehouse, with available quantity.
-        var sourceId = dataModel.ProductObj.SourceWarehouseId;
+        var sourceId = dataModel.ProductObj.WarehouseId;
         if (sourceId == Guid.Empty)
             return Task.FromResult(Enumerable.Empty<ControlItemsDto>());
 
@@ -257,7 +257,7 @@
     /// <summary>Warehouse picked first in the line: the product list changes, so any picked product is cleared.</summary>
     private void OnEntrySourceChanged(Guid value)
     {
-        dataModel.ProductObj.SourceWarehouseId = value;
+        dataModel.ProductObj.WarehouseId = value;
         dataModel.ProductObj.ProductId = Guid.Empty;
         dataModel.ProductObj.Quantity = 1;
         dataModel.ProductObj.ProductDdlControl.SelectedItem = null;
@@ -302,7 +302,7 @@
         _editingItemIndex = index;
         var product = Products.FirstOrDefault(p => p.Id == item.ProductId);
         dataModel.ProductObj.ProductId = item.ProductId;
-        dataModel.ProductObj.SourceWarehouseId = item.SourceWarehouseId;
+        dataModel.ProductObj.WarehouseId= item.FromWarehouseId;
         dataModel.ProductObj.ProductDdlControl.SelectedItem = product != default
             ? new ControlItemsDto() { Id = product.Id, Name = $"{product.Name} ({product.SKU})", IsSelected = false }
             : new ControlItemsDto() { Id = Guid.Empty, Name = "", IsSelected = false };
@@ -312,13 +312,13 @@
     private void SaveEditItem(int index)
     {
         if (dataModel.ProductObj.ProductId == Guid.Empty || dataModel.ProductObj.Quantity <= 0) return;
-        if (!ValidateLineSource(dataModel.ProductObj.SourceWarehouseId, dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity)) return;
+        if (!ValidateLineSource(dataModel.ProductObj.WarehouseId, dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity)) return;
 
         dataModel.ItemsLine[index] = new StockTransferLineDto(
             dataModel.ItemsLine[index].Id,
             dataModel.ProductObj.ProductId,
             dataModel.ProductObj.Quantity,
-            dataModel.ProductObj.SourceWarehouseId);
+            dataModel.ProductObj.WarehouseId);
         _editingItemIndex = -1;
     }
 
@@ -337,7 +337,7 @@
         if (_editingItemIndex < 0)
         {
             dataModel.ProductObj.ProductId = Guid.Empty;
-            dataModel.ProductObj.SourceWarehouseId = Guid.Empty;
+            dataModel.ProductObj.WarehouseId = Guid.Empty;
             dataModel.ProductObj.Quantity = 1;
             dataModel.ProductObj.ProductDdlControl = new ControlDto();
             dataModel.ItemsLine.Insert(0, new StockTransferLineDto(Guid.NewGuid(), Guid.Empty, 0));
@@ -346,22 +346,22 @@
         await FocusSelectBox();
     }
 
-    private bool ValidateLineSource(Guid sourceWarehouseId, Guid productId, int quantity)
+    private bool ValidateLineSource(Guid FromWarehouseId, Guid productId, int quantity)
     {
-        if (sourceWarehouseId == Guid.Empty)
+        if (FromWarehouseId == Guid.Empty)
         {
             Snackbar.Add("Please select the source warehouse for this line.", Severity.Warning);
             return false;
         }
-        if (sourceWarehouseId == dataModel.TargetWarehouseId)
+        if (FromWarehouseId == dataModel.ToWarehouseId)
         {
             Snackbar.Add("A line cannot move stock into its own source warehouse.", Severity.Warning);
             return false;
         }
-        var avail = AvailableFor(productId, sourceWarehouseId);
+        var avail = AvailableFor(productId, FromWarehouseId);
         if (quantity > avail)
         {
-            Snackbar.Add($"Only {avail} unit(s) available in {SourceName(sourceWarehouseId)}.", Severity.Warning);
+            Snackbar.Add($"Only {avail} unit(s) available in {SourceName(FromWarehouseId)}.", Severity.Warning);
             return false;
         }
         return true;
@@ -370,16 +370,16 @@
     private async Task AddItem()
     {
         if (dataModel.ProductObj.ProductId == Guid.Empty || dataModel.ProductObj.Quantity <= 0) return;
-        if (!ValidateLineSource(dataModel.ProductObj.SourceWarehouseId, dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity)) return;
+        if (!ValidateLineSource(dataModel.ProductObj.WarehouseId, dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity)) return;
 
         // var placeholder = dataModel.ItemsLine.FirstOrDefault(i => i.ProductId == Guid.Empty);
         // if (placeholder is not null)
         //     dataModel.ItemsLine.Remove(placeholder);
 
-        dataModel.ItemsLine.Insert(dataModel.ItemsLine.Count,new StockTransferLineDto(Guid.NewGuid(), dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity, dataModel.ProductObj.SourceWarehouseId));
+        dataModel.ItemsLine.Insert(dataModel.ItemsLine.Count, new StockTransferLineDto(Guid.NewGuid(), dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity, dataModel.ProductObj.WarehouseId));
 
         dataModel.ProductObj.ProductId = Guid.Empty;
-        dataModel.ProductObj.SourceWarehouseId = Guid.Empty;
+        dataModel.ProductObj.WarehouseId = Guid.Empty;
         dataModel.ProductObj.Quantity = 1;
 
         await FocusSelectBox();
@@ -399,7 +399,7 @@
 
     private void Submit()
     {
-        if (dataModel.TargetWarehouseId == Guid.Empty)
+        if (dataModel.ToWarehouseId == Guid.Empty)
         {
             Snackbar.Add("Please select the destination warehouse.", Severity.Warning);
             return;
@@ -410,12 +410,12 @@
             Snackbar.Add("Please add at least one item line.", Severity.Warning);
             return;
         }
-        if (lines.Any(i => i.SourceWarehouseId == Guid.Empty))
+        if (lines.Any(i => i.FromWarehouseId == Guid.Empty))
         {
             Snackbar.Add("Each line needs a source warehouse.", Severity.Warning);
             return;
         }
-        if (lines.Any(i => i.SourceWarehouseId == dataModel.TargetWarehouseId))
+        if (lines.Any(i => i.FromWarehouseId == dataModel.ToWarehouseId))
         {
             Snackbar.Add("A line cannot move stock into its own source warehouse.", Severity.Warning);
             return;

@@ -7,10 +7,10 @@ namespace TradeFlow.Domain.Entities
         public Guid ProductId { get; set; }
         public Product Product { get; set; } = null!;
         public int Quantity { get; set; }
-        public Guid? SourceInventoryId { get; set; }
-        public Inventory? SourceInventory { get; set; }
-        public Guid? TargetInventoryId { get; set; }
-        public Inventory? TargetInventory { get; set; }
+        public Guid? FromInventoryId { get; set; }
+        public Inventory? FromInventory { get; set; }
+        public Guid? ToInventoryId { get; set; }
+        public Inventory? ToInventory { get; set; }
         public string? Notes { get; set; }
     }
 }

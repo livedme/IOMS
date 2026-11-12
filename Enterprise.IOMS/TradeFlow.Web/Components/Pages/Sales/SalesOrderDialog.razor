@@ -759,7 +759,7 @@
             return;
 
         var dto = new CreateSalesOrderDto(dataModel.CustomerDdlControl.SelectedItem.Id, null, dataModel.BranchId, dataModel.Notes, null, null, null,
-            OrderStatus.Delivered, dataModel.SalesDate ?? DateTime.Today, dataModel.SubTotal, dataModel.LabourCharge, dataModel.TruckCharge,
+            OrderStatus.Sold, dataModel.SalesDate ?? DateTime.Today, dataModel.SubTotal, dataModel.LabourCharge, dataModel.TruckCharge,
             dataModel.TaxAmount, dataModel.DiscountType, dataModel.DiscountAmount, dataModel.TotalAmount, dataModel.PaidAmount, dataModel.DueAmount, dataModel.ItemsLine);
         await OnSubmitAndPrint.InvokeAsync(dto);
         MudDialog.Close(DialogResult.Ok(dto));

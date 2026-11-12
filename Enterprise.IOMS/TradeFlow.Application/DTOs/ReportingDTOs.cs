@@ -103,8 +103,8 @@ public record ProductRevenueRowDto(
 
 // ── Product detail ──
 public record ProductWarehouseStockDto(
-    Guid WarehouseId,
-    string WarehouseName,
+    Guid? WarehouseId,
+    string? WarehouseName,
     string Code,
     int Quantity,
     int ReservedQuantity,

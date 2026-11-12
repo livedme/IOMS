@@ -80,7 +80,7 @@ namespace TradeFlow.Infrastructure.Services
             response.Stats["StockInCount"] = byType.TryGetValue(StockMovementType.In, out var inRow) ? inRow.Count : 0;
             response.Stats["StockOutCount"] = byType.TryGetValue(StockMovementType.Out, out var outRow) ? outRow.Count : 0;
             response.Stats["DistinctProductCount"] = await statsSource.Select(m => m.ProductId).Distinct().CountAsync();
-            response.Stats["WarehouseCount"] = await statsSource.Select(m => m.WarehouseId).Distinct().CountAsync();
+            response.Stats["WarehouseCount"] = await statsSource.Select(m => m.FromWarehouseId).Distinct().CountAsync();
 
             query = ApplyMovementFilters(query, request, search, hasSearch);
 
@@ -92,7 +92,7 @@ namespace TradeFlow.Infrastructure.Services
             query = (request.SortColumn ?? "MovementDate") switch
             {
                 "ProductName" => sortAsc ? query.OrderBy(m => m.Product.Name) : query.OrderByDescending(m => m.Product.Name),
-                "WarehouseName" => sortAsc ? query.OrderBy(m => m.Warehouse.Name) : query.OrderByDescending(m => m.Warehouse.Name),
+                "WarehouseName" => sortAsc ? query.OrderBy(m => m.FromWarehouse.Name) : query.OrderByDescending(m => m.FromWarehouse.Name),
                 "Type" => sortAsc ? query.OrderBy(m => m.Type) : query.OrderByDescending(m => m.Type),
                 "Quantity" => sortAsc ? query.OrderBy(m => m.Quantity) : query.OrderByDescending(m => m.Quantity),
                 "Reference" => sortAsc ? query.OrderBy(m => m.Reference) : query.OrderByDescending(m => m.Reference),
@@ -103,7 +103,7 @@ namespace TradeFlow.Infrastructure.Services
             var items = await query
                 .AsSplitQuery()
                 .Include(m => m.Product)
-                .Include(m => m.Warehouse)
+                .Include(m => m.FromWarehouse)
                 .Skip(page * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -114,14 +114,16 @@ namespace TradeFlow.Infrastructure.Services
                     m.MovementDate,
                     m.ProductId,
                     m.Product?.Name ?? "",
-                    m.WarehouseId,
-                    m.Warehouse?.Name ?? "",
+                    m.FromWarehouseId,
+                    m.FromWarehouse?.Name ?? "",
+                    m.ToBranchId,
+                    m.ToBranch?.Name ?? "",
                     m.Type,
                     m.Quantity,
                     m.Reference,
                     m.Notes,
-                    m.SourceWarehouseId,
-                    m.DestinationWarehouseId))
+                    m.FromWarehouseId,
+                    m.ToWarehouseId))
                 .ToList();
             response.TotalCount = totalCount;
             response.CurrentPage = page;
@@ -143,10 +145,7 @@ namespace TradeFlow.Infrastructure.Services
             }
 
             if (request.WarehouseId.HasValue && request.WarehouseId != Guid.Empty)
-                query = query.Where(m =>
-                    m.WarehouseId == request.WarehouseId.Value ||
-                    m.SourceWarehouseId == request.WarehouseId.Value ||
-                    m.DestinationWarehouseId == request.WarehouseId.Value);
+                query = query.Where(m => m.FromWarehouseId == request.WarehouseId.Value || m.ToWarehouseId == request.WarehouseId.Value);
 
             if (request.From.HasValue)
                 query = query.Where(m => m.MovementDate >= request.From.Value.Date);
@@ -265,6 +264,8 @@ namespace TradeFlow.Infrastructure.Services
                     i.Product?.SKU ?? "",
                     i.WarehouseId,
                     i.Warehouse?.Name ?? "",
+                    i.BranchId,
+                    i.Branch?.Name ?? "",
                     i.Quantity,
                     i.ReservedQuantity,
                     i.Quantity - i.ReservedQuantity,
@@ -316,7 +317,9 @@ namespace TradeFlow.Infrastructure.Services
                 i.Product.Name,
                 i.Product.SKU,
                 i.WarehouseId,
-                i.Warehouse.Name,
+                i.Warehouse?.Name ?? "",
+                i.BranchId,
+                i.Branch?.Name ?? "",
                 i.Quantity,
                 i.ReservedQuantity,
                 i.AvailableQuantity,
@@ -336,7 +339,7 @@ namespace TradeFlow.Infrastructure.Services
             var query = _context.Inventories
                 .Include(i => i.Product)
                 .Include(i => i.Warehouse)
-                .Where(i => warehouseIds.Contains(i.WarehouseId));
+                .Where(i => warehouseIds.ToList().Contains(i.WarehouseId ?? Guid.Empty));
 
             var total = await query.CountAsync();
             var items = await query
@@ -350,7 +353,9 @@ namespace TradeFlow.Infrastructure.Services
                 i.Product.Name,
                 i.Product.SKU,
                 i.WarehouseId,
-                i.Warehouse.Name,
+                i.Warehouse?.Name ?? "",
+                i.BranchId,
+                i.Branch?.Name ?? "",
                 i.Quantity,
                 i.ReservedQuantity,
                 i.AvailableQuantity,
@@ -392,7 +397,7 @@ namespace TradeFlow.Infrastructure.Services
             _context.StockMovements.Add(new StockMovement
             {
                 ProductId = productId,
-                WarehouseId = warehouseId,
+                FromWarehouseId = warehouseId,
                 Type = StockMovementType.Adjustment,
                 Quantity = quantityChange,
                 Reference = reason,
@@ -405,8 +410,8 @@ namespace TradeFlow.Infrastructure.Services
         public async Task TransferStock(Guid productId, Guid sourceWarehouseId, Guid targetWarehouseId, int quantity, DateTime? movementDate = null, string? notes = null)
         {
             await CreateStockTransferAsync(new StockTransferDtoModel(){
-                //SourceWarehouseId = sourceWarehouseId,
-                TargetWarehouseId = targetWarehouseId,
+                //FromWarehouseId = sourceWarehouseId,
+                ToWarehouseId = targetWarehouseId,
                 Notes = notes,
                 ItemsLine = new List<StockTransferLineDto> { new(Guid.NewGuid(), productId, quantity) },
                 TransferDate = movementDate
@@ -419,7 +424,7 @@ namespace TradeFlow.Infrastructure.Services
 
             try
             {
-                if (dto.TargetWarehouseId == Guid.Empty)
+                if (dto.ToWarehouseId == Guid.Empty)
                     throw new InvalidOperationException("Target warehouse is required.");
 
                 var lines = dto.ItemsLine.Where(i => i.Quantity > 0).ToList();
@@ -432,15 +437,15 @@ namespace TradeFlow.Infrastructure.Services
                 {
                     TransferNumber = NumberGenerator.GenerateOrderNumber("ST"),
                     TransferDate = date,
-                    SourceWarehouseId = mainItem.SourceWarehouseId,
-                    TargetWarehouseId = dto.TargetWarehouseId,
+                    FromWarehouseId = mainItem.FromWarehouseId,
+                    ToWarehouseId = dto.ToWarehouseId,
                     Status = StockTransferStatus.Completed,
                     Notes = dto.Notes
                 };
 
                 foreach (var line in lines)
                 {
-                    var source = await FindInventoryAsync(line.ProductId, line.SourceWarehouseId, _context);
+                    var source = await FindInventoryAsync(line.ProductId, line.FromWarehouseId, _context);
 
                     if (source == null || source.AvailableQuantity < line.Quantity)
                         throw new InsufficientStockException(line.ProductId, line.Quantity, source?.AvailableQuantity ?? 0);
@@ -448,11 +453,11 @@ namespace TradeFlow.Infrastructure.Services
                     source.Quantity -= line.Quantity;
                     source.LastStockDate = DateTime.UtcNow;
 
-                    var target = await FindInventoryAsync(line.ProductId, dto.TargetWarehouseId, _context);
+                    var target = await FindInventoryAsync(line.ProductId, dto.ToWarehouseId, _context);
 
                     if (target == null)
                     {
-                        target = new Inventory { ProductId = line.ProductId, WarehouseId = dto.TargetWarehouseId, Quantity = 0, ReservedQuantity=0};
+                        target = new Inventory { ProductId = line.ProductId, WarehouseId = dto.ToWarehouseId, Quantity = 0, ReservedQuantity=0};
                         _context.Inventories.Add(target);
                     }
 
@@ -463,34 +468,33 @@ namespace TradeFlow.Infrastructure.Services
                     {
                         ProductId = line.ProductId,
                         Quantity = line.Quantity,
-                        SourceInventory = source,
-                        TargetInventory = target,
+                        FromInventory = source,
+                        ToInventory = target,
                         Notes = dto.Notes
                     });
 
                     _context.StockMovements.Add(new StockMovement
                     {
-                        ProductId = line.ProductId,
-                        WarehouseId = line.SourceWarehouseId,
+                        ProductId = line.ProductId,                        
                         Type = StockMovementType.Transfer,
                         Quantity = -line.Quantity,
                         Reference = transfer.TransferNumber,
                         Notes = dto.Notes,
                         MovementDate = date,
-                        SourceWarehouseId = line.SourceWarehouseId,
-                        DestinationWarehouseId = dto.TargetWarehouseId
+                        FromWarehouseId = line.FromWarehouseId,
+                        ToWarehouseId = dto.ToWarehouseId
                     });
                     _context.StockMovements.Add(new StockMovement
                     {
                         ProductId = line.ProductId,
-                        WarehouseId = dto.TargetWarehouseId,
+                        //WarehouseId = dto.ToWarehouseId,
                         Type = StockMovementType.Transfer,
                         Quantity = line.Quantity,
                         Reference = transfer.TransferNumber,
                         Notes = dto.Notes,
                         MovementDate = date,
-                        SourceWarehouseId = line.SourceWarehouseId,
-                        DestinationWarehouseId = dto.TargetWarehouseId
+                        FromWarehouseId = line.FromWarehouseId,
+                        ToWarehouseId = dto.ToWarehouseId
                     });
                 }
 
@@ -537,15 +541,15 @@ namespace TradeFlow.Infrastructure.Services
             // 3. Update the header and post the new lines (same as create).
             var date = dto.TransferDate ?? DateTime.UtcNow;
             transfer.TransferDate = date;
-            transfer.SourceWarehouseId = mainItem.SourceWarehouseId;
-            transfer.TargetWarehouseId = dto.TargetWarehouseId;
+            transfer.FromWarehouseId = mainItem.FromWarehouseId;
+            transfer.ToWarehouseId = dto.ToWarehouseId;
             transfer.Notes = dto.Notes; 
             transfer.Status = StockTransferStatus.Completed;
 
             foreach (var line in lines)
             {
                 var source = await _context.Inventories
-                    .FirstOrDefaultAsync(i => i.ProductId == line.ProductId && i.WarehouseId == line.SourceWarehouseId);
+                    .FirstOrDefaultAsync(i => i.ProductId == line.ProductId && i.WarehouseId == line.FromWarehouseId);
 
                 if (source == null || source.AvailableQuantity < line.Quantity)
                     throw new InsufficientStockException(line.ProductId, line.Quantity, source?.AvailableQuantity ?? 0);
@@ -554,11 +558,11 @@ namespace TradeFlow.Infrastructure.Services
                 source.LastStockDate = DateTime.UtcNow;
 
                 var target = await _context.Inventories
-                    .FirstOrDefaultAsync(i => i.ProductId == line.ProductId && i.WarehouseId == dto.TargetWarehouseId);
+                    .FirstOrDefaultAsync(i => i.ProductId == line.ProductId && i.WarehouseId == dto.ToWarehouseId);
 
                 if (target == null)
                 {
-                    target = new Inventory { ProductId = line.ProductId, WarehouseId = dto.TargetWarehouseId, Quantity = 0 };
+                    target = new Inventory { ProductId = line.ProductId, WarehouseId = dto.ToWarehouseId, Quantity = 0 };
                     _context.Inventories.Add(target);
                 }
 
@@ -569,34 +573,34 @@ namespace TradeFlow.Infrastructure.Services
                 {
                     ProductId = line.ProductId,
                     Quantity = line.Quantity,
-                    SourceInventory = source,
-                    TargetInventory = target,
+                    FromInventory = source,
+                    ToInventory = target,
                     Notes = dto.Notes
                 });
 
                 _context.StockMovements.Add(new StockMovement
                 {
                     ProductId = line.ProductId,
-                    WarehouseId = line.SourceWarehouseId,
+                    //WarehouseId = line.SourceWarehouseId,
                     Type = StockMovementType.Transfer,
                     Quantity = -line.Quantity,
                     Reference = transfer.TransferNumber,
                     Notes = dto.Notes,
                     MovementDate = date,
-                    SourceWarehouseId = line.SourceWarehouseId,
-                    DestinationWarehouseId = dto.TargetWarehouseId
+                    FromWarehouseId = line.FromWarehouseId,
+                    ToWarehouseId = dto.ToWarehouseId
                 });
                 _context.StockMovements.Add(new StockMovement
                 {
                     ProductId = line.ProductId,
-                    WarehouseId = dto.TargetWarehouseId,
+                    //WarehouseId = dto.ToWarehouseId,
                     Type = StockMovementType.Transfer,
                     Quantity = line.Quantity,
                     Reference = transfer.TransferNumber,
                     Notes = dto.Notes,
                     MovementDate = date,
-                    SourceWarehouseId = line.SourceWarehouseId,
-                    DestinationWarehouseId = dto.TargetWarehouseId
+                    FromWarehouseId = line.FromWarehouseId,
+                    ToWarehouseId = dto.ToWarehouseId
                 });
             }
 
@@ -636,13 +640,13 @@ namespace TradeFlow.Infrastructure.Services
         {
             foreach (var old in transfer.Items.ToList())
             {
-                var source = old.SourceInventoryId.HasValue
-                    ? await _context.Inventories.FirstOrDefaultAsync(i => i.Id == old.SourceInventoryId.Value)
-                    : await FindInventoryAsync(old.ProductId, transfer.SourceWarehouseId, _context);
+                var source = old.FromInventoryId.HasValue
+                    ? await _context.Inventories.FirstOrDefaultAsync(i => i.Id == old.FromInventoryId.Value)
+                    : await FindInventoryAsync(old.ProductId, transfer.FromWarehouseId, _context);
 
-                var target = old.TargetInventoryId.HasValue
-                    ? await _context.Inventories.FirstOrDefaultAsync(i => i.Id == old.TargetInventoryId.Value)
-                    : await FindInventoryAsync(old.ProductId, transfer.TargetWarehouseId, _context);
+                var target = old.ToInventoryId.HasValue
+                    ? await _context.Inventories.FirstOrDefaultAsync(i => i.Id == old.ToInventoryId.Value)
+                    : await FindInventoryAsync(old.ProductId, transfer.ToWarehouseId, _context);
 
                 if (source == null || target == null)
                     throw new InvalidOperationException($"Cannot {action} transfer {transfer.TransferNumber}: the original stock records no longer exist.");
@@ -680,8 +684,8 @@ namespace TradeFlow.Infrastructure.Services
             IQueryable<StockTransfer> query = read.StockTransfers
                 .AsSplitQuery()
                 .AsNoTracking()
-                .Include(t => t.SourceWarehouse)
-                .Include(t => t.TargetWarehouse)
+                .Include(t => t.FromWarehouse)
+                .Include(t => t.ToWarehouse)
                 .Include(t => t.Items).ThenInclude(i => i.Product);
 
             if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
@@ -691,8 +695,8 @@ namespace TradeFlow.Infrastructure.Services
                 query = query.Where(t =>
                     EF.Functions.Like(t.TransferNumber, $"%{search}%") ||
                     EF.Functions.Like(t.Notes, $"%{search}%") ||
-                    EF.Functions.Like(t.SourceWarehouse.Name, $"%{search}%") ||
-                    EF.Functions.Like(t.TargetWarehouse.Name, $"%{search}%") ||
+                    EF.Functions.Like(t.FromWarehouse.Name, $"%{search}%") ||
+                    EF.Functions.Like(t.ToWarehouse.Name, $"%{search}%") ||
                     t.Items.Any(i => EF.Functions.Like(i.Product.Name, $"%{search}%") ||
                                      EF.Functions.Like(i.Product.SKU, $"%{search}%")));
 
@@ -702,7 +706,7 @@ namespace TradeFlow.Infrastructure.Services
             if (request.WarehouseId.HasValue && request.WarehouseId != Guid.Empty)
             {
                 var w = request.WarehouseId.Value;
-                query = query.Where(t => t.SourceWarehouseId == w || t.TargetWarehouseId == w);
+                query = query.Where(t => t.FromWarehouseId == w || t.ToWarehouseId == w);
             }
 
             if (request.From.HasValue)
@@ -718,16 +722,16 @@ namespace TradeFlow.Infrastructure.Services
             response.Stats["TotalLines"] = await query.SelectMany(t => t.Items).CountAsync();
             response.Stats["TotalUnits"] = await query.SelectMany(t => t.Items).SumAsync(i => (int?)i.Quantity) ?? 0;
             response.Stats["CompletedCount"] = await query.CountAsync(t => t.Status == StockTransferStatus.Completed);
-            response.Stats["WarehouseCount"] = await query.Select(t => t.SourceWarehouseId)
-                .Union(query.Select(t => t.TargetWarehouseId))
+            response.Stats["WarehouseCount"] = await query.Select(t => t.FromWarehouseId)
+                .Union(query.Select(t => t.ToWarehouseId))
                 .CountAsync();
 
             var sortAsc = request.SortAscending;
             query = (request.SortColumn ?? "TransferDate") switch
             {
                 "TransferNumber" => sortAsc ? query.OrderBy(t => t.TransferNumber) : query.OrderByDescending(t => t.TransferNumber),
-                "SourceWarehouse" => sortAsc ? query.OrderBy(t => t.SourceWarehouse.Name) : query.OrderByDescending(t => t.SourceWarehouse.Name),
-                "TargetWarehouse" => sortAsc ? query.OrderBy(t => t.TargetWarehouse.Name) : query.OrderByDescending(t => t.TargetWarehouse.Name),
+                "SourceWarehouse" => sortAsc ? query.OrderBy(t => t.FromWarehouse.Name) : query.OrderByDescending(t => t.FromWarehouse.Name),
+                "TargetWarehouse" => sortAsc ? query.OrderBy(t => t.ToWarehouse.Name) : query.OrderByDescending(t => t.ToWarehouse.Name),
                 "TotalQuantity" => sortAsc ? query.OrderBy(t => t.Items.Sum(i => i.Quantity)) : query.OrderByDescending(t => t.Items.Sum(i => i.Quantity)),
                 _ => sortAsc ? query.OrderBy(t => t.TransferDate) : query.OrderByDescending(t => t.TransferDate),
             };
@@ -750,10 +754,10 @@ namespace TradeFlow.Infrastructure.Services
             var transfer = await _context.StockTransfers
                 .AsSplitQuery()
                 .AsNoTracking()
-                .Include(t => t.SourceWarehouse)
-                .Include(t => t.TargetWarehouse)
+                .Include(t => t.FromWarehouse)
+                .Include(t => t.ToWarehouse)
                 .Include(t => t.Items).ThenInclude(i => i.Product)
-                .Include(t => t.Items).ThenInclude(i => i.SourceInventory).ThenInclude(w => w!.Warehouse)
+                .Include(t => t.Items).ThenInclude(i => i.FromInventory).ThenInclude(w => w!.Warehouse)
                 .FirstOrDefaultAsync(t => t.Id == id)
                 ?? throw new EntityNotFoundException("StockTransfer", id);
 

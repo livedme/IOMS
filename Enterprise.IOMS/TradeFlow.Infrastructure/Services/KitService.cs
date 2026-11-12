@@ -171,7 +171,7 @@ public class KitService : IKitService
             _context.StockMovements.Add(new StockMovement
             {
                 ProductId = comp.ComponentProductId,
-                WarehouseId = dto.WarehouseId,
+                ToWarehouseId = dto.WarehouseId,
                 Type = StockMovementType.KitAssembly,
                 Quantity = -required,
                 MovementDate = DateTime.UtcNow,
@@ -192,7 +192,7 @@ public class KitService : IKitService
         _context.StockMovements.Add(new StockMovement
         {
             ProductId = kit.ProductId,
-            WarehouseId = dto.WarehouseId,
+            ToWarehouseId = dto.WarehouseId,
             Type = StockMovementType.KitAssembly,
             Quantity = dto.Quantity,
             MovementDate = DateTime.UtcNow,
@@ -221,7 +221,7 @@ public class KitService : IKitService
         _context.StockMovements.Add(new StockMovement
         {
             ProductId = kit.ProductId,
-            WarehouseId = dto.WarehouseId,
+            ToWarehouseId = dto.WarehouseId,
             Type = StockMovementType.KitDisassembly,
             Quantity = -dto.Quantity,
             MovementDate = DateTime.UtcNow,
@@ -244,7 +244,7 @@ public class KitService : IKitService
             _context.StockMovements.Add(new StockMovement
             {
                 ProductId = comp.ComponentProductId,
-                WarehouseId = dto.WarehouseId,
+                ToWarehouseId = dto.WarehouseId,
                 Type = StockMovementType.KitDisassembly,
                 Quantity = returned,
                 MovementDate = DateTime.UtcNow,

@@ -107,7 +107,7 @@ namespace TradeFlow.Infrastructure.Services
             {
                 var query = read.StockMovements.AsNoTracking();
                 if (warehouseId.HasValue)
-                    query = query.Where(m => m.WarehouseId == warehouseId.Value);
+                    query = query.Where(m => m.ToWarehouseId == warehouseId.Value);
 
                 movements = await query
                     .OrderByDescending(m => m.MovementDate)
@@ -115,7 +115,7 @@ namespace TradeFlow.Infrastructure.Services
                     .Select(m => new StockMovementReportRowDto(
                         m.MovementDate,
                         m.Product.Name,
-                        m.Warehouse.Name,
+                        m.ToWarehouse.Name,
                         m.Type.ToString(),
                         m.Quantity,
                         m.Reference,
@@ -240,8 +240,8 @@ namespace TradeFlow.Infrastructure.Services
 
             var lastMovements = await read.StockMovements
                 .Where(m => productIds.Contains(m.ProductId))
-                .GroupBy(m => new { m.ProductId, m.WarehouseId })
-                .Select(g => new { g.Key.ProductId, g.Key.WarehouseId, LastDate = g.Max(m => m.MovementDate) })
+                .GroupBy(m => new { m.ProductId, m.ToWarehouseId })
+                .Select(g => new { g.Key.ProductId, g.Key.ToWarehouseId, LastDate = g.Max(m => m.MovementDate) })
                 .ToListAsync();
 
             // A product/warehouse pair with no movement row at all is treated as never having moved,
@@ -252,7 +252,7 @@ namespace TradeFlow.Infrastructure.Services
                 .Select(inv =>
                 {
                     var lastDate = lastMovements
-                        .FirstOrDefault(m => m.ProductId == inv.ProductId && m.WarehouseId == inv.WarehouseId)?.LastDate;
+                        .FirstOrDefault(m => m.ProductId == inv.ProductId && m.ToWarehouseId == inv.WarehouseId)?.LastDate;
                     var days = lastDate.HasValue ? (int)(DateTime.UtcNow - lastDate.Value).TotalDays : never;
                     return new DeadStockItemDto(inv.ProductId, inv.ProductName, inv.SKU,
                         inv.WarehouseName, inv.Quantity, inv.Value, lastDate, days);

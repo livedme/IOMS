@@ -1029,13 +1029,15 @@ public class DashboardService : IDashboardService
                 i.Product.SKU,
                 i.WarehouseId,
                 i.Warehouse.Name,
+                i.BranchId,
+                i.Branch.Name,
                 i.Quantity,
                 i.ReservedQuantity,
                 i.Quantity - i.ReservedQuantity,
                 i.Product.ReorderStockLevel,
                 i.BinLocation))
             .ToListAsync(ct);
-    }
+    } 
 
     // ── Recent Activities ─────────────────────────────────────────────
 

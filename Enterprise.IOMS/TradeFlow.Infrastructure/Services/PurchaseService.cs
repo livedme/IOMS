@@ -222,7 +222,7 @@ namespace TradeFlow.Infrastructure.Services
                 _context.StockMovements.Add(new StockMovement
                 {
                     ProductId = line.ProductId,
-                    WarehouseId = warehouseId,
+                    ToWarehouseId = warehouseId,
                     Type = StockMovementType.In,
                     Quantity = line.ReceivedQuantity,
                     Reference = $"GRN for PO: {po.OrderNumber}"

@@ -6,7 +6,7 @@ public interface IInventoryService
 {
     Task<int> GetStockLevel(Guid productId, Guid warehouseId);
     Task AdjustStock(Guid productId, Guid warehouseId, int quantityChange, string reason);
-    Task TransferStock(Guid productId, Guid sourceWarehouseId, Guid targetWarehouseId, int quantity, DateTime? movementDate = null, string? notes = null);
+    Task TransferStock(Guid productId, Guid fromWarehouseId, Guid toWarehouseId, int quantity, DateTime? movementDate = null, string? notes = null);
     Task<string> CreateStockTransferAsync(StockTransferDtoModel dto);
     Task<string> UpdateStockTransferAsync(Guid id, StockTransferDtoModel dto);
     Task CancelStockTransferAsync(Guid id);

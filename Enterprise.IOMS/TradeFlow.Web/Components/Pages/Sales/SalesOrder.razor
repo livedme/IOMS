@@ -471,7 +471,7 @@
     {
         return await OrderService.GetSalesOrderById(Id);
     }
-    
+
 
     // ─── Create/Update/Delete ───
     private async Task OpenCreateEdit(Guid? orderId)
@@ -548,6 +548,8 @@
     {
         try
         {
+            var orderId = _editingOrder?.Id ?? Guid.Empty;
+
             if (_drawerMode == SliderMode.Edit && _editingOrder != null)
             {
                 await OrderService.UpdateSalesOrder(_editingOrder.Id, dto);
@@ -555,10 +557,19 @@
             }
             else
             {
-                await OrderService.CreateSalesOrder(dto);
+                orderId = await OrderService.CreateSalesOrder(dto);
                 Snackbar.Add("Sales created successfully", Severity.Success);
             }
-            await LoadOrders();
+
+            if (orderId != null && orderId != Guid.Empty && dto.Status == OrderStatus.Sold)
+            {
+                await Approve(orderId);
+
+            }
+            else
+            {
+                await LoadOrders();
+            }
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }

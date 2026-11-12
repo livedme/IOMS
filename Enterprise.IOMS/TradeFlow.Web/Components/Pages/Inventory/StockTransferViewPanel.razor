@@ -75,7 +75,7 @@
                             </div>
                             <div class="overflow-hidden">
                                 <div class="so-lbl">From Warehouse</div>
-                                <div class="so-val fw-bold text-truncate">@_transfer.SourceWarehouseName</div>
+                                <div class="so-val fw-bold text-truncate">@_transfer.FromWarehouseName</div>
                             </div>
                         </div>
                     </MudItem>
@@ -86,7 +86,7 @@
                             </div>
                             <div class="overflow-hidden">
                                 <div class="so-lbl">To Warehouse</div>
-                                <div class="so-val fw-bold text-truncate">@_transfer.TargetWarehouseName</div>
+                                <div class="so-val fw-bold text-truncate">@_transfer.ToWarehouseName</div>
                             </div>
                         </div>
                     </MudItem>
@@ -171,16 +171,16 @@
         Indentation = false,
         Expandable = true,
         IsInitiallyExpanded = true,
-        Selector = (e) => e.SourceWarehouseName
+        Selector = (e) => e.FromWarehouseName
     };
 
     /// <summary>Flattens lines for the grouped table (missing warehouse falls back to the header source).</summary>
     private void BuildItems()
     {
-        var fallback = _transfer?.SourceWarehouseName ?? string.Empty;
+        var fallback = _transfer?.FromWarehouseName ?? string.Empty;
         _items = (_transfer?.Items ?? new List<StockTransferItemDto>())
-            .Select(i => string.IsNullOrWhiteSpace(i.SourceWarehouseName) ? i with { SourceWarehouseName = fallback } : i)
-            .OrderBy(i => i.SourceWarehouseName)
+            .Select(i => string.IsNullOrWhiteSpace(i.FromWarehouseName) ? i with { FromWarehouseName = fallback } : i)
+            .OrderBy(i => i.FromWarehouseName)
             .ThenBy(i => i.ProductName)
             .ToList();
     }
@@ -230,10 +230,10 @@
         // var editModel = new StockTransferDtoModel
         // {
         //     TransferDate = _transfer.TransferDate,
-        //     TargetWarehouseId = _transfer.TargetWarehouseId,
+        //     ToWarehouseId = _transfer.ToWarehouseId,
         //     Notes = _transfer.Notes,
         //     ItemsLine = _transfer.Items
-        //         .Select(i => new StockTransferLineDto(Guid.NewGuid(), i.ProductId, i.Quantity, _transfer.SourceWarehouseId))
+        //         .Select(i => new StockTransferLineDto(Guid.NewGuid(), i.ProductId, i.Quantity, _transfer.FromWarehouseId))
         //         .ToList()
         // };
         // // Blank entry row on top so more lines can be added immediately.
@@ -246,7 +246,7 @@
         // };
 
         // var transferId = _transfer.Id;
-        // var sourceWarehouseId = _transfer.SourceWarehouseId;
+        // var FromWarehouseId = _transfer.FromWarehouseId;
         // var transferNumber = _transfer.TransferNumber;
         // var dialog = await DialogService.ShowAsync<StockTransferDialog>(
         //     $"Edit Transfer {transferNumber}", parameters,
@@ -258,7 +258,7 @@
         // {
         //     try
         //     {
-        //         if (batches.Count == 1 && batches[0].SourceWarehouseId == sourceWarehouseId)
+        //         if (batches.Count == 1 && batches[0].FromWarehouseId == FromWarehouseId)
         //         {
         //             // Same single source: update in place, keeps the transfer number.
         //             await InventoryService.UpdateStockTransferAsync(transferId, batches[0]);

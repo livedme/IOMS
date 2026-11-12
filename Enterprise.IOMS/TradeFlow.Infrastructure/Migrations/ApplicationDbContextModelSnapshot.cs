@@ -1581,6 +1581,9 @@ namespace TradeFlow.Infrastructure.Migrations
                     b.Property<string>("BinLocation")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Condition")
                         .HasColumnType("nvarchar(max)");
 
@@ -1627,10 +1630,12 @@ namespace TradeFlow.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("WarehouseId")
+                    b.Property<Guid?>("WarehouseId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("ProductId");
 
@@ -1639,7 +1644,8 @@ namespace TradeFlow.Infrastructure.Migrations
                     b.HasIndex("TenantId", "IsDeleted", "WarehouseId");
 
                     b.HasIndex("TenantId", "ProductId", "WarehouseId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[WarehouseId] IS NOT NULL");
 
                     b.ToTable("Inventories");
                 });
@@ -3766,7 +3772,7 @@ namespace TradeFlow.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("DestinationWarehouseId")
+                    b.Property<Guid?>("FromWarehouseId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsDeleted")
@@ -3793,10 +3799,13 @@ namespace TradeFlow.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid?>("SourceWarehouseId")
+                    b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("TenantId")
+                    b.Property<Guid?>("ToBranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ToWarehouseId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Type")
@@ -3808,14 +3817,15 @@ namespace TradeFlow.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("WarehouseId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("FromWarehouseId");
 
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("WarehouseId");
+                    b.HasIndex("ToBranchId");
+
+                    b.HasIndex("ToWarehouseId");
 
                     b.HasIndex("TenantId", "MovementDate");
 
@@ -3839,6 +3849,9 @@ namespace TradeFlow.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("FromWarehouseId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -3851,16 +3864,13 @@ namespace TradeFlow.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("SourceWarehouseId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("TargetWarehouseId")
+                    b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("TenantId")
+                    b.Property<Guid>("ToWarehouseId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("TransferDate")
@@ -3878,9 +3888,9 @@ namespace TradeFlow.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SourceWarehouseId");
+                    b.HasIndex("FromWarehouseId");
 
-                    b.HasIndex("TargetWarehouseId");
+                    b.HasIndex("ToWarehouseId");
 
                     b.HasIndex("TenantId", "TransferNumber")
                         .IsUnique();
@@ -3903,6 +3913,9 @@ namespace TradeFlow.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("FromInventoryId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -3921,16 +3934,13 @@ namespace TradeFlow.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid?>("SourceInventoryId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("StockTransferId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("TargetInventoryId")
+                    b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("TenantId")
+                    b.Property<Guid?>("ToInventoryId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -3941,15 +3951,15 @@ namespace TradeFlow.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("FromInventoryId");
 
-                    b.HasIndex("SourceInventoryId");
+                    b.HasIndex("ProductId");
 
                     b.HasIndex("StockTransferId");
 
-                    b.HasIndex("TargetInventoryId");
-
                     b.HasIndex("TenantId");
+
+                    b.HasIndex("ToInventoryId");
 
                     b.ToTable("StockTransferItems");
                 });
@@ -5273,6 +5283,10 @@ namespace TradeFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("TradeFlow.Domain.Entities.Inventory", b =>
                 {
+                    b.HasOne("TradeFlow.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId");
+
                     b.HasOne("TradeFlow.Domain.Entities.Product", "Product")
                         .WithMany("Inventories")
                         .HasForeignKey("ProductId")
@@ -5288,8 +5302,9 @@ namespace TradeFlow.Infrastructure.Migrations
                     b.HasOne("TradeFlow.Domain.Entities.Warehouse", "Warehouse")
                         .WithMany("Inventories")
                         .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Product");
 
@@ -6009,6 +6024,11 @@ namespace TradeFlow.Infrastructure.Migrations
 
             modelBuilder.Entity("TradeFlow.Domain.Entities.StockMovement", b =>
                 {
+                    b.HasOne("TradeFlow.Domain.Entities.Warehouse", "FromWarehouse")
+                        .WithMany("StockMovements")
+                        .HasForeignKey("FromWarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TradeFlow.Domain.Entities.Product", "Product")
                         .WithMany("StockMovements")
                         .HasForeignKey("ProductId")
@@ -6021,30 +6041,32 @@ namespace TradeFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TradeFlow.Domain.Entities.Warehouse", "Warehouse")
-                        .WithMany("StockMovements")
-                        .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("TradeFlow.Domain.Entities.Branch", "ToBranch")
+                        .WithMany()
+                        .HasForeignKey("ToBranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TradeFlow.Domain.Entities.Warehouse", "ToWarehouse")
+                        .WithMany()
+                        .HasForeignKey("ToWarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("FromWarehouse");
 
                     b.Navigation("Product");
 
                     b.Navigation("Tenant");
 
-                    b.Navigation("Warehouse");
+                    b.Navigation("ToBranch");
+
+                    b.Navigation("ToWarehouse");
                 });
 
             modelBuilder.Entity("TradeFlow.Domain.Entities.StockTransfer", b =>
                 {
-                    b.HasOne("TradeFlow.Domain.Entities.Warehouse", "SourceWarehouse")
+                    b.HasOne("TradeFlow.Domain.Entities.Warehouse", "FromWarehouse")
                         .WithMany()
-                        .HasForeignKey("SourceWarehouseId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TradeFlow.Domain.Entities.Warehouse", "TargetWarehouse")
-                        .WithMany()
-                        .HasForeignKey("TargetWarehouseId")
+                        .HasForeignKey("FromWarehouseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -6054,25 +6076,31 @@ namespace TradeFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("SourceWarehouse");
+                    b.HasOne("TradeFlow.Domain.Entities.Warehouse", "ToWarehouse")
+                        .WithMany()
+                        .HasForeignKey("ToWarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.Navigation("TargetWarehouse");
+                    b.Navigation("FromWarehouse");
 
                     b.Navigation("Tenant");
+
+                    b.Navigation("ToWarehouse");
                 });
 
             modelBuilder.Entity("TradeFlow.Domain.Entities.StockTransferItem", b =>
                 {
+                    b.HasOne("TradeFlow.Domain.Entities.Inventory", "FromInventory")
+                        .WithMany()
+                        .HasForeignKey("FromInventoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TradeFlow.Domain.Entities.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("TradeFlow.Domain.Entities.Inventory", "SourceInventory")
-                        .WithMany()
-                        .HasForeignKey("SourceInventoryId")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TradeFlow.Domain.Entities.StockTransfer", "StockTransfer")
                         .WithMany("Items")
@@ -6080,26 +6108,26 @@ namespace TradeFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TradeFlow.Domain.Entities.Inventory", "TargetInventory")
-                        .WithMany()
-                        .HasForeignKey("TargetInventoryId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("TradeFlow.Domain.Entities.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Product");
+                    b.HasOne("TradeFlow.Domain.Entities.Inventory", "ToInventory")
+                        .WithMany()
+                        .HasForeignKey("ToInventoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("SourceInventory");
+                    b.Navigation("FromInventory");
+
+                    b.Navigation("Product");
 
                     b.Navigation("StockTransfer");
 
-                    b.Navigation("TargetInventory");
-
                     b.Navigation("Tenant");
+
+                    b.Navigation("ToInventory");
                 });
 
             modelBuilder.Entity("TradeFlow.Domain.Entities.Stocktake", b =>

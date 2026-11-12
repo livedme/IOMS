@@ -94,7 +94,7 @@
                             <tr>
                                 <td class="tm-dim">@m.MovementDate.ToString("yyyy-MM-dd HH:mm")</td>
                                 <td><span class="tm-veh"><span class="tm-veh-ico" style="background:@GetIconBg(m.Type)">📦</span>@m.ProductName</span></td>
-                                <td class="tm-branch">@m.WarehouseName</td>
+                                <td class="tm-branch">@m.ToWarehouseName</td>
                                 <td><span class="@GetTypePill(m.Type)"><span class="tm-dot"></span>@m.Type</span></td>
                                 <td style="text-align:right">
                                     <span style="font-weight:700; color:@(m.Quantity >= 0 ? "#15803d" : "#dc2626")">

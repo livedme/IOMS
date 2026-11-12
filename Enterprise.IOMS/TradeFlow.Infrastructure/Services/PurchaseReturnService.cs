@@ -222,7 +222,7 @@ public class PurchaseReturnService : IPurchaseReturnService
                 _context.StockMovements.Add(new StockMovement
                 {
                     ProductId = item.ProductId,
-                    WarehouseId = inv.WarehouseId,
+                    ToWarehouseId = inv.WarehouseId,
                     Type = StockMovementType.Return,
                     Quantity = -item.Quantity,
                     MovementDate = DateTime.UtcNow,

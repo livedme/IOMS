@@ -668,7 +668,7 @@ public static class SeedData
                 context.StockMovements.Add(new StockMovement
                 {
                     ProductId = products[i % 20].Id,
-                    WarehouseId = warehouses[i % warehouses.Count].Id,
+                    ToWarehouseId = warehouses[i % warehouses.Count].Id,
                     Type = types[i % types.Length],
                     Quantity = rng.Next(1, 100),
                     Reference = $"SM-{2026}{i + 1:D4}",

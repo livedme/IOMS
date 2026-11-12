@@ -98,10 +98,10 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 
 // Apply pending migrations and seed roles, users, and reference data (idempotent).
-//using (var seedScope = app.Services.CreateScope())
-//{
-//    await TradeFlow.Infrastructure.Identity.SeedData.InitializeAsync(seedScope.ServiceProvider);
-//}
+using (var seedScope = app.Services.CreateScope())
+{
+    await TradeFlow.Infrastructure.Identity.SeedData.InitializeAsync(seedScope.ServiceProvider);
+}
 
 // Behind IIS / Nginx / a cloud load balancer the app sees the proxy's scheme and IP,
 // not the client's. Without this, UseHttpsRedirection 307-redirects the SignalR

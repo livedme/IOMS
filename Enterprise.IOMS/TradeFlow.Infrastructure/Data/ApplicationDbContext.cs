@@ -373,17 +373,38 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(si => si.StocktakeId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Stock movements have two links to Warehouse (source and target), so both
+        // relationships must be configured explicitly. Warehouse.StockMovements is the
+        // inverse of the source side; the target side has no collection navigation.
+        builder.Entity<StockMovement>()
+            .HasOne(m => m.FromWarehouse)
+            .WithMany(w => w.StockMovements)
+            .HasForeignKey(m => m.FromWarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<StockMovement>()
+            .HasOne(m => m.ToWarehouse)
+            .WithMany()
+            .HasForeignKey(m => m.ToWarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<StockMovement>()
+            .HasOne(m => m.ToBranch)
+            .WithMany()
+            .HasForeignKey(m => m.ToBranchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Stock transfer batches
         builder.Entity<StockTransfer>()
-            .HasOne(t => t.SourceWarehouse)
+            .HasOne(t => t.FromWarehouse)
             .WithMany()
-            .HasForeignKey(t => t.SourceWarehouseId)
+            .HasForeignKey(t => t.FromWarehouseId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Entity<StockTransfer>()
-            .HasOne(t => t.TargetWarehouse)
+            .HasOne(t => t.ToWarehouse)
             .WithMany()
-            .HasForeignKey(t => t.TargetWarehouseId)
+            .HasForeignKey(t => t.ToWarehouseId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Entity<StockTransferItem>()
@@ -399,15 +420,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Entity<StockTransferItem>()
-            .HasOne(i => i.SourceInventory)
+            .HasOne(i => i.FromInventory)
             .WithMany()
-            .HasForeignKey(i => i.SourceInventoryId)
+            .HasForeignKey(i => i.FromInventoryId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Entity<StockTransferItem>()
-            .HasOne(i => i.TargetInventory)
+            .HasOne(i => i.ToInventory)
             .WithMany()
-            .HasForeignKey(i => i.TargetInventoryId)
+            .HasForeignKey(i => i.ToInventoryId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Purchase return items

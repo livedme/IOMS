@@ -172,32 +172,37 @@ namespace TradeFlow.Infrastructure.Services
                 .FirstOrDefaultAsync(o => o.Id == orderId)
                 ?? throw new EntityNotFoundException("SalesOrder", orderId);
 
-            if (order.Status != OrderStatus.Pending)
-                throw new DomainException($"Order cannot be approved. Current status: {order.Status}");
+            //if (order.Status != OrderStatus.Pending)
+               // throw new DomainException($"Order cannot be approved. Current status: {order.Status}");
 
-            var warehouseId = order.WarehouseId
-                ?? (await _context.Warehouses.FirstOrDefaultAsync())?.Id
-                ?? throw new DomainException("No warehouse configured");
+            //var warehouseId = order.WarehouseId
+            //    ?? (await _context.Warehouses.FirstOrDefaultAsync())?.Id
+            //    ?? throw new DomainException("No warehouse configured");
+
+            var brancId = order.BranchId ?? (await _context.Branches.FirstOrDefaultAsync())?.Id ??
+                throw new DomainException("No warehouse configured");
 
             foreach (var item in order.Items)
             {
                 var inv = await _context.Inventories
-                    .FirstOrDefaultAsync(i => i.ProductId == item.ProductId && i.WarehouseId == warehouseId);
+                    .FirstOrDefaultAsync(i => i.ProductId == item.ProductId && i.BranchId == brancId);
 
-                if (inv == null || inv.AvailableQuantity < item.Quantity)
-                    throw new InsufficientStockException(item.ProductId, item.Quantity, inv?.AvailableQuantity ?? 0);
+                //if (inv == null || inv.AvailableQuantity < item.Quantity)
+                //  throw new InsufficientStockException(item.ProductId, item.Quantity, inv?.AvailableQuantity ?? 0);
 
-                inv.Quantity -= item.Quantity;
-                inv.LastStockDate = DateTime.UtcNow;
-
-                _context.StockMovements.Add(new StockMovement
+                if (inv != null)
                 {
-                    ProductId = item.ProductId,
-                    WarehouseId = warehouseId,
-                    Type = StockMovementType.Out,
-                    Quantity = -item.Quantity,
-                    Reference = $"Sales Order: {order.OrderNumber}"
-                });
+                    inv.Quantity -= item.Quantity;
+                    inv.LastStockDate = DateTime.UtcNow;
+                    //_context.StockMovements.Add(new StockMovement
+                    //{
+                    //    ProductId = item.ProductId,
+                    //    ToWarehouseId = warehouseId,
+                    //    Type = StockMovementType.Out,
+                    //    Quantity = -item.Quantity,
+                    //    Reference = $"Sales Order: {order.OrderNumber}"
+                    //});
+                }
             }
 
             order.Status = OrderStatus.Approved;
@@ -235,7 +240,7 @@ namespace TradeFlow.Infrastructure.Services
                         _context.StockMovements.Add(new StockMovement
                         {
                             ProductId = item.ProductId,
-                            WarehouseId = warehouseId.Value,
+                            ToWarehouseId = warehouseId.Value,
                             Type = StockMovementType.In,
                             Quantity = item.Quantity,
                             Reference = $"Cancelled SO: {order.OrderNumber} - {reason}"
