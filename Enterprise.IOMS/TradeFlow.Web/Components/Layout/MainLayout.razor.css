@@ -45,7 +45,18 @@ main {
     width: 56px !important;
     background: #222e3c;
     border-right: 1px solid #2f3d4f;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
 }
+
+    /* The rail wrapper owns the scrollbar. Neutralise MudNavMenu's own
+       overflow/overscroll so wheel events chain to the wrapper instead of
+       being swallowed by a nested, non-scrollable container. */
+    .left-nav-menu ::deep .mud-navmenu {
+        overflow: visible;
+        overscroll-behavior-y: auto;
+    }
 
     .left-nav-menu .mud-nav-link {
         padding: 8px 8px 8px 10px;
