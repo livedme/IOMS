@@ -106,7 +106,7 @@
                                 @{
                                     CalculateLineTotal();
                                 }
-                                <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="N2" Adornment="Adornment.Start" AdornmentText="৳" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                <MudNumericField @bind-Value="dataModel.ProductObj.TotalPrice" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudTd>
                             <MudTd Style="width:auto;padding: 6px !important;" class="">
                                 <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Outlined.Check" Size="Size.Small" Class="float-start" Color="Color.Primary" OnClick="AddItem" />
@@ -194,7 +194,7 @@
                             <MudItem xs="3" Class="pe-2 pt-2">
                                 <MudNumericField @bind-Value="dataModel.SubTotal" ReadOnly="true" Label="Item Amount" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="pb-1" />
                                 <div class="d-flex justify-content-between">
-                                    <MudNumericField @ref="RefDiscountAmount" @bind-Value="dataModel.DiscountAmount" Label="Discount" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountField pb-1 col-7" />
+                                    <MudNumericField @ref="RefDiscountAmount" @bind-Value="dataModel.DiscountAmount"  Label="Discount" Format="N2" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountField pb-1 col-7" />
                                     <MudSelect @bind-Value="dataModel.DiscountType" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="DiscountTypeField pb-1 col-3 mt-2" SelectionOnEnter="true">
                                         @foreach (DiscountType type in Enum.GetValues(typeof(DiscountType)))
                                         {
@@ -305,6 +305,9 @@
     private async Task OnBranncheChanged(Guid? value)
     {
         dataModel.BranchId=value;
+
+        var products = await ProductService.GetProductByStoreIdAsync(value ?? Guid.Empty);
+        Products = products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
 
         await Task.Delay(100);
         if (dataModel.CustomerDdlControl.ControlRef is not null)

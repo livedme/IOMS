@@ -4,8 +4,8 @@
         <MudGrid>
             <MudItem xs="12" sm="3">
                 <MudSelect T="StockTransferType" @bind-Value="@dataModel.TransferType" Label="Transfer Type" ShrinkLabel="true" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
-                    <MudSelectItem Value="@StockTransferType.ToWarehouse">To Warehouse</MudSelectItem>
-                    <MudSelectItem Value="@StockTransferType.ToStore">To Store</MudSelectItem>
+                    <MudSelectItem Value="@StockTransferType.Warehouse">Warehouse</MudSelectItem>
+                    <MudSelectItem Value="@StockTransferType.Store">Store/Branch</MudSelectItem>
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="3">
@@ -25,7 +25,7 @@
                     }
                 </MudSelect>
             </MudItem>
-            @if (dataModel.TransferType == StockTransferType.ToWarehouse)
+            @if (dataModel.TransferType == StockTransferType.Warehouse)
             {
                 <MudItem xs="12" sm="3">
                     <MudSelect T="Guid?" @bind-Value="dataModel.ToWarehouseId"
@@ -65,7 +65,6 @@
 
         <MudTable Items="@dataModel.ItemsLine" Dense="true" Elevation="0" Class="product-item-list" FixedHeader="true" ContainerClass="mud-table-container">
             <HeaderContent>
-                <MudTh Style="width:190px;">From Warehouse</MudTh>
                 <MudTh Style="width:auto;">Product</MudTh>
                 <MudTh Style="width:110px;">Qty</MudTh>
                 <MudTh Style="width:70px;" Class="text-end">
@@ -128,9 +127,9 @@
                     }
                     else
                     {
-                        <MudTd Style="width:190px;">
+                        @* <MudTd Style="width:190px;">
                             <MudChip T="string" Size="Size.Small" Color="Color.Info">@SourceName(context.FromWarehouseId)</MudChip>
-                        </MudTd>
+                        </MudTd> *@
                         <MudTd Style="width:auto;">
                             @(Products.FirstOrDefault(p => p.Id == context.ProductId).Name)
                             <MudChip T="string" Size="Size.Small" Color="Color.Default">

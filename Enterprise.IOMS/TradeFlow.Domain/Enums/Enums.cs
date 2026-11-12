@@ -19,8 +19,8 @@ namespace TradeFlow.Domain.Enums
     }
     public enum StockTransferType
     {  
-        ToWarehouse,
-        ToStore
+        Warehouse,
+        Store
     }
     public enum StockMovementType
     {

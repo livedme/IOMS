@@ -179,11 +179,7 @@ namespace TradeFlow.Infrastructure.Services
                 Stats = stats
             };
         }
-
-        /// <summary>
-        /// Computes the header stock counts in a single round trip. The previous implementation
-        /// issued four separate queries, each re-evaluating <c>Inventories.Sum(...)</c> per row.
-        /// </summary>
+        
         private static async Task<Dictionary<string, int>> BuildStockStatsAsync(IQueryable<Product> products)
         {
             var stats = await products
@@ -207,12 +203,7 @@ namespace TradeFlow.Infrastructure.Services
                 ["OutOfStockCount"] = stats?.OutOfStock ?? 0
             };
         }
-
-        /// <summary>
-        /// Lightweight product list for pickers. A dozen components used to run
-        /// <c>DbContext.Products.ToListAsync()</c> — no filter, no ordering, tracked entities
-        /// included — purely to fill a dropdown that reads four columns.
-        /// </summary>
+        
         public async Task<List<ProductOptionDto>> GetProductOptionsAsync()
         {
             await using var _db = await _dbFactory.CreateDbContextAsync();
@@ -224,22 +215,47 @@ namespace TradeFlow.Infrastructure.Services
                 .ToListAsync();
         }
 
-        public async Task<ProductDto?> GetProductByWarehouseIdAsync(Guid id)
+        public async Task<List<ProductDto>> GetProductByWarehouseIdAsync(Guid id)
         {
             await using var _db = await _dbFactory.CreateDbContextAsync();
 
-            var product = await _db.Products
+            // Products stocked in the given warehouse. TotalStock and AvailableQuantity are
+            // scoped to that warehouse so a caller does not have to re-total the stock itself.
+            return await _db.Products
                 .AsNoTracking()
-                .Where(p => p.Id == id)
+                .Where(p => p.Inventories.Any(i => i.WarehouseId == id))
+                .OrderBy(p => p.Name)
                 .Select(p => new ProductDto(
                     p.Id, p.Name, p.SKU, p.Barcode, p.Description, p.CostPrice, p.SellingPrice,
                     p.WholeSellingPrice, p.ReorderStockLevel, p.MinOrderQuantity, p.WarrantyInMonths, p.CategoryId,
                     p.Category != null ? p.Category.Name : null,
                     p.BrandId, p.Brand != null ? p.Brand.Name : null, p.Model, p.ImageUrl,
-                    p.Inventories.Sum(i => i.Quantity), p.IsKit,
-                    p.OriginCountry ?? string.Empty, p.OriginManufacturer ?? string.Empty))
-                .FirstOrDefaultAsync();
-            return product;
+                    p.Inventories.Where(i => i.WarehouseId == id).Sum(i => i.Quantity), p.IsKit,
+                    p.OriginCountry ?? string.Empty, p.OriginManufacturer ?? string.Empty,
+                    null, null, null,
+                    p.Inventories.Where(i => i.WarehouseId == id).Sum(i => i.Quantity - i.ReservedQuantity)))
+                .ToListAsync();
+        }
+        public async Task<List<ProductDto>> GetProductByStoreIdAsync(Guid id)
+        {
+            await using var _db = await _dbFactory.CreateDbContextAsync();
+
+            // Products stocked in the given store/branch. TotalStock and AvailableQuantity are
+            // scoped to that store so a caller does not have to re-total the stock itself.
+            return await _db.Products
+                .AsNoTracking()
+                .Where(p => p.Inventories.Any(i => i.BranchId == id))
+                .OrderBy(p => p.Name)
+                .Select(p => new ProductDto(
+                    p.Id, p.Name, p.SKU, p.Barcode, p.Description, p.CostPrice, p.SellingPrice,
+                    p.WholeSellingPrice, p.ReorderStockLevel, p.MinOrderQuantity, p.WarrantyInMonths, p.CategoryId,
+                    p.Category != null ? p.Category.Name : null,
+                    p.BrandId, p.Brand != null ? p.Brand.Name : null, p.Model, p.ImageUrl,
+                    p.Inventories.Where(i => i.BranchId == id).Sum(i => i.Quantity), p.IsKit,
+                    p.OriginCountry ?? string.Empty, p.OriginManufacturer ?? string.Empty,
+                    null, null, null,
+                    p.Inventories.Where(i => i.BranchId == id).Sum(i => i.Quantity - i.ReservedQuantity)))
+                .ToListAsync();
         }
 
         public async Task<ProductDto?> GetProductByIdAsync(Guid id)
@@ -331,16 +347,6 @@ namespace TradeFlow.Infrastructure.Services
             _logger.LogInformation("Soft-deleted product {ProductId}", id);
         }
 
-        /// <summary>
-        /// Assembles the product detail screen in one place.
-        /// </summary>
-        /// <remarks>
-        /// The page used to issue eight queries against its own scoped context, starting with a
-        /// tracked product that pulled in the category tree and the whole inventory graph. That
-        /// tracked entity was then handed straight to the Save Changes button, which re-saved an
-        /// unmodified graph. Everything here is <c>AsNoTracking</c> and projected, and the screen
-        /// is read-only, so there is nothing left to persist.
-        /// </remarks>
         public async Task<ProductDetailViewDto?> GetProductDetailViewAsync(Guid id)
         {
             await using var _db = await _dbFactory.CreateDbContextAsync();
@@ -472,7 +478,6 @@ namespace TradeFlow.Infrastructure.Services
                 purchaseOrderLines);
         }
 
-        /// <summary>Stock and catalogue changes alter both the reference lists and the stock counts.</summary>
         private Task InvalidateProductCachesAsync() => _cache.RemoveByPrefixAsync(ProductCachePrefix);
 
         private static void ApplyChanges(Product product, ProductDetailsDto dto)

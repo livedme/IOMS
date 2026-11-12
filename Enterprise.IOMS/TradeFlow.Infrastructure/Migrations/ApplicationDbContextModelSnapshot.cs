@@ -3870,7 +3870,10 @@ namespace TradeFlow.Infrastructure.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("ToWarehouseId")
+                    b.Property<Guid?>("ToBranchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ToWarehouseId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("TransferDate")
@@ -3889,6 +3892,8 @@ namespace TradeFlow.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("FromWarehouseId");
+
+                    b.HasIndex("ToBranchId");
 
                     b.HasIndex("ToWarehouseId");
 
@@ -6076,15 +6081,20 @@ namespace TradeFlow.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("TradeFlow.Domain.Entities.Branch", "ToBranch")
+                        .WithMany()
+                        .HasForeignKey("ToBranchId");
+
                     b.HasOne("TradeFlow.Domain.Entities.Warehouse", "ToWarehouse")
                         .WithMany()
                         .HasForeignKey("ToWarehouseId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("FromWarehouse");
 
                     b.Navigation("Tenant");
+
+                    b.Navigation("ToBranch");
 
                     b.Navigation("ToWarehouse");
                 });

@@ -194,18 +194,18 @@ namespace TradeFlow.Infrastructure.Services
                 {
                     inv.Quantity -= item.Quantity;
                     inv.LastStockDate = DateTime.UtcNow;
-                    //_context.StockMovements.Add(new StockMovement
-                    //{
-                    //    ProductId = item.ProductId,
-                    //    ToWarehouseId = warehouseId,
-                    //    Type = StockMovementType.Out,
-                    //    Quantity = -item.Quantity,
-                    //    Reference = $"Sales Order: {order.OrderNumber}"
-                    //});
+                    _context.StockMovements.Add(new StockMovement
+                    {
+                        ProductId = item.ProductId,
+                        ToBranchId = order.BranchId,
+                        Type = StockMovementType.Out,
+                        Quantity = -item.Quantity,
+                        Reference = $"Sales Order: {order.OrderNumber}"
+                    });
                 }
             }
 
-            order.Status = OrderStatus.Approved;
+            order.Status = OrderStatus.Sold;
             await _context.SaveChangesAsync();
             await _accountingService.AutoPostSalesEntry(order.Id, order.TotalAmount);
         }

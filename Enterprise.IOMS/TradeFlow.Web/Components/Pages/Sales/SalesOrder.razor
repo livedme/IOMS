@@ -563,13 +563,9 @@
 
             if (orderId != null && orderId != Guid.Empty && dto.Status == OrderStatus.Sold)
             {
-                await Approve(orderId);
-
+                await OrderService.ApproveOrder(orderId);
             }
-            else
-            {
-                await LoadOrders();
-            }
+            await LoadOrders();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }

@@ -16,6 +16,7 @@ public class StockTransferDtoMappingProfile : Profile
         CreateMap<StockTransfer, StockTransferListDto>()
             .ForCtorParam("FromWarehouseName", o => o.MapFrom(s => s.FromWarehouse != null ? s.FromWarehouse.Name : string.Empty))
             .ForCtorParam("ToWarehouseName", o => o.MapFrom(s => s.ToWarehouse != null ? s.ToWarehouse.Name : string.Empty))
+            .ForCtorParam("ToBranchName", o => o.MapFrom(s => s.ToBranch != null ? s.ToBranch.Name : string.Empty))
             .ForCtorParam("TotalLines", o => o.MapFrom(s => s.Items.Count))
             .ForCtorParam("TotalQuantity", o => o.MapFrom(s => s.Items.Sum(i => i.Quantity)))
             .ForCtorParam("Items", o => o.MapFrom(s => s.Items));

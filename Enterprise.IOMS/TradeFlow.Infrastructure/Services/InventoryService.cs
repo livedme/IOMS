@@ -451,16 +451,16 @@ namespace TradeFlow.Infrastructure.Services
                 {
                     TransferNumber = NumberGenerator.GenerateOrderNumber("ST"),
                     TransferDate = date,
-                    FromWarehouseId = mainItem.FromWarehouseId,
-                    Status = StockTransferStatus.Completed,
+                    FromWarehouseId = dto.FromWarehouseId,
+                    Status = StockTransferStatus.Completed,                    
                     Notes = dto.Notes
                 };
 
-                if (dto.TransferType == StockTransferType.ToWarehouse)
+                if (dto.TransferType == StockTransferType.Warehouse)
                 {
                     transfer.ToWarehouseId = dto.ToWarehouseId;
                 }
-                if (dto.TransferType == StockTransferType.ToStore)
+                if (dto.TransferType == StockTransferType.Store)
                 {
                     transfer.ToBranchId = dto.ToBranchId;
                 }
@@ -484,7 +484,7 @@ namespace TradeFlow.Infrastructure.Services
                     source.Quantity -= line.Quantity;
                     source.LastStockDate = DateTime.UtcNow;
 
-                    var target = dto.TransferType == StockTransferType.ToStore?(await FindInventoryByBranchAsync(line.ProductId,(Guid)dto.ToBranchId, _context)):
+                    var target = dto.TransferType == StockTransferType.Store?(await FindInventoryByBranchAsync(line.ProductId,(Guid)dto.ToBranchId, _context)):
                          await FindInventoryByWarHouseAsync(line.ProductId, (Guid)dto.ToWarehouseId, _context);
 
                     if (target == null) 
@@ -505,34 +505,40 @@ namespace TradeFlow.Infrastructure.Services
                         Notes = dto.Notes
                     });
 
-                    _context.StockMovements.Add(new StockMovement
+                    if (dto.TransferType == StockTransferType.Warehouse)
                     {
-                        ProductId = line.ProductId,                        
-                        Type = StockMovementType.Transfer,
-                        Quantity = -line.Quantity,
-                        Reference = transfer.TransferNumber,
-                        Notes = dto.Notes,
-                        MovementDate = date,
-                        FromWarehouseId = line.FromWarehouseId,
-                        ToWarehouseId = dto.ToWarehouseId
-                    });
-                    _context.StockMovements.Add(new StockMovement
+                        _context.StockMovements.Add(new StockMovement
+                        {
+                            ProductId = line.ProductId,
+                            Type = StockMovementType.Transfer,
+                            Quantity = -line.Quantity,
+                            Reference = transfer.TransferNumber,
+                            Notes = dto.Notes,
+                            MovementDate = date,
+                            FromWarehouseId = line.FromWarehouseId,
+                            ToWarehouseId = dto.ToWarehouseId
+                        });
+                    }
+                    else
                     {
-                        ProductId = line.ProductId,
-                        //WarehouseId = dto.ToWarehouseId,
-                        Type = StockMovementType.Transfer,
-                        Quantity = line.Quantity,
-                        Reference = transfer.TransferNumber,
-                        Notes = dto.Notes,
-                        MovementDate = date,
-                        FromWarehouseId = line.FromWarehouseId,
-                        ToWarehouseId = dto.ToWarehouseId
-                    });
+                        _context.StockMovements.Add(new StockMovement
+                        {
+                            ProductId = line.ProductId,
+                            Type = StockMovementType.Transfer,
+                            Quantity = line.Quantity,
+                            Reference = transfer.TransferNumber,
+                            Notes = dto.Notes,
+                            MovementDate = date,
+                            FromWarehouseId = line.FromWarehouseId,
+                            ToBranchId = dto.ToBranchId
+                        });
+                    }
                 }
 
                 _context.StockTransfers.Add(transfer);
                 await _context.SaveChangesAsync();
                 return transfer.TransferNumber;
+
             }catch(Exception ex)
             {
                 // Log the exception or handle it as needed
@@ -723,6 +729,7 @@ namespace TradeFlow.Infrastructure.Services
                 .AsNoTracking()
                 .Include(t => t.FromWarehouse)
                 .Include(t => t.ToWarehouse)
+                .Include(t => t.ToBranch)                
                 .Include(t => t.Items).ThenInclude(i => i.Product);
 
             if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
@@ -760,7 +767,7 @@ namespace TradeFlow.Infrastructure.Services
             response.Stats["TotalUnits"] = await query.SelectMany(t => t.Items).SumAsync(i => (int?)i.Quantity) ?? 0;
             response.Stats["CompletedCount"] = await query.CountAsync(t => t.Status == StockTransferStatus.Completed);
             response.Stats["WarehouseCount"] = await query.Select(t => t.FromWarehouseId)
-                .Union(query.Select(t => t.ToWarehouseId))
+                .Union(query.Where(t => t.ToWarehouseId != null).Select(t => t.ToWarehouseId!.Value))
                 .CountAsync();
 
             var sortAsc = request.SortAscending;

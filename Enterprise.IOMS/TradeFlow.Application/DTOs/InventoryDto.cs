@@ -28,9 +28,9 @@ namespace TradeFlow.Application.DTOs
 
     public record StockTransferItemDto(Guid Id, Guid ProductId, string ProductName, string ProductSKU, int Quantity, string FromWarehouseName);
 
-    public record StockTransferListDto(Guid Id, string TransferNumber, DateTime TransferDate,
-        Guid FromWarehouseId, string FromWarehouseName, Guid ToWarehouseId, string ToWarehouseName,
-        StockTransferStatus Status, string? Notes, int TotalLines, int TotalQuantity, List<StockTransferItemDto> Items);
+    public record StockTransferListDto(Guid Id, string TransferNumber, DateTime TransferDate, Guid FromWarehouseId, string FromWarehouseName,
+        Guid ToWarehouseId, string ToWarehouseName, Guid ToBranchId, string ToBranchName, StockTransferStatus Status,
+        string? Notes, int TotalLines, int TotalQuantity, List<StockTransferItemDto> Items);
 
     //public record StockTransferCreateDto(Guid Id, Guid FromWarehouseId, Guid ToWarehouseId, string? Notes, List<StockTransferLineDto> Items, DateTime? TransferDate = null);
 
