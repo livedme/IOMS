@@ -8,10 +8,12 @@ namespace TradeFlow.Domain.Entities
         public DateTime TransferDate { get; set; } = DateTime.UtcNow;
         public Guid FromWarehouseId { get; set; }
         public Warehouse FromWarehouse { get; set; } = null!;
-        public Guid ToWarehouseId { get; set; }
-        public Warehouse ToWarehouse { get; set; } = null!;
+        public Guid? ToWarehouseId { get; set; }
+        public Warehouse? ToWarehouse { get; set; } = null!;
+        public Guid? ToBranchId { get; set; }
+        public Branch? ToBranch { get; set; } = null!;
         public StockTransferStatus Status { get; set; } = StockTransferStatus.Completed;
-        public string? Notes { get; set; }
+        public string? Notes { get; set; } 
         public ICollection<StockTransferItem> Items { get; set; } = new List<StockTransferItem>();
 
         public int TotalLines => Items.Count;

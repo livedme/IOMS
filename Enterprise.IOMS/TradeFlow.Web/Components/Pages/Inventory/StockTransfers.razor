@@ -274,16 +274,14 @@
         else
         {
             model = new StockTransferDtoModel
-            {
-                TransferDate = existing.TransferDate,
-                ToWarehouseId = existing.ToWarehouseId,
-                Notes = existing.Notes,
-                ItemsLine = existing.Items
-                    .Select(i => new StockTransferLineDto(Guid.NewGuid(), i.ProductId, i.Quantity, existing.FromWarehouseId))
-                    .ToList()
-            };
+                {
+                    TransferDate = existing.TransferDate,
+                    ToWarehouseId = existing.ToWarehouseId,
+                    Notes = existing.Notes,
+                    ItemsLine = existing.Items.Select(i => new StockTransferLineDto(Guid.NewGuid(), i.ProductId, i.Quantity, existing.FromWarehouseId)).ToList()
+                };
             // Blank entry row on top so more lines can be added immediately.
-            model.ItemsLine.Insert(0, new StockTransferLineDto(Guid.NewGuid(), Guid.Empty, 0));
+            model.ItemsLine.Insert(0, new StockTransferLineDto(Guid.NewGuid(), Guid.Empty, 0, existing.FromWarehouseId));
             title = $"Edit Transfer {existing.TransferNumber}";
         }
 

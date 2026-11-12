@@ -413,7 +413,7 @@ namespace TradeFlow.Infrastructure.Services
                 //FromWarehouseId = sourceWarehouseId,
                 ToWarehouseId = targetWarehouseId,
                 Notes = notes,
-                ItemsLine = new List<StockTransferLineDto> { new(Guid.NewGuid(), productId, quantity) },
+                ItemsLine = new List<StockTransferLineDto> { new(Guid.NewGuid(), productId, quantity, sourceWarehouseId) },
                 TransferDate = movementDate
             });
         }
@@ -424,8 +424,8 @@ namespace TradeFlow.Infrastructure.Services
 
             try
             {
-                if (dto.ToWarehouseId == Guid.Empty)
-                    throw new InvalidOperationException("Target warehouse is required.");
+                if (dto.ToWarehouseId == Guid.Empty && dto.ToBranchId == Guid.Empty)
+                    throw new InvalidOperationException("Target warehouse/store is required.");
 
                 var lines = dto.ItemsLine.Where(i => i.Quantity > 0).ToList();
                 if (lines.Count == 0)
@@ -433,19 +433,50 @@ namespace TradeFlow.Infrastructure.Services
 
                 var date = dto.TransferDate ?? DateTime.UtcNow;
                 var mainItem= lines.OrderByDescending(l => l.Quantity).FirstOrDefault(); // Sort lines by quantity descending)
+
+                //          public string TransferNumber { get; set; } = string.Empty;
+                //public DateTime TransferDate { get; set; } = DateTime.UtcNow;
+                //public Guid FromWarehouseId { get; set; }
+                //public Warehouse FromWarehouse { get; set; } = null!;
+                //public Guid ToWarehouseId { get; set; }
+                //public Warehouse ToWarehouse { get; set; } = null!;
+                //public StockTransferStatus Status { get; set; } = StockTransferStatus.Completed;
+                //public string? Notes { get; set; }
+                //public ICollection<StockTransferItem> Items { get; set; } = new List<StockTransferItem>();
+
+                //public int TotalLines => Items.Count;
+                //public int TotalQuantity => Items.Sum(i => i.Quantity);
+
                 var transfer = new StockTransfer
                 {
                     TransferNumber = NumberGenerator.GenerateOrderNumber("ST"),
                     TransferDate = date,
                     FromWarehouseId = mainItem.FromWarehouseId,
-                    ToWarehouseId = dto.ToWarehouseId,
                     Status = StockTransferStatus.Completed,
                     Notes = dto.Notes
                 };
 
+                if (dto.TransferType == StockTransferType.ToWarehouse)
+                {
+                    transfer.ToWarehouseId = dto.ToWarehouseId;
+                }
+                if (dto.TransferType == StockTransferType.ToStore)
+                {
+                    transfer.ToBranchId = dto.ToBranchId;
+                }
+
+                //var transfer = new StockTransfer
+                //{
+                //    TransferNumber = NumberGenerator.GenerateOrderNumber("ST"),
+                //    TransferDate = date,
+                //    FromWarehouseId = mainItem.FromWarehouseId,
+                //    Status = StockTransferStatus.Completed,
+                //    Notes = dto.Notes
+                //};
+
                 foreach (var line in lines)
                 {
-                    var source = await FindInventoryAsync(line.ProductId, line.FromWarehouseId, _context);
+                    var source = await FindInventoryByWarHouseAsync(line.ProductId, dto.FromWarehouseId, _context);
 
                     if (source == null || source.AvailableQuantity < line.Quantity)
                         throw new InsufficientStockException(line.ProductId, line.Quantity, source?.AvailableQuantity ?? 0);
@@ -453,11 +484,12 @@ namespace TradeFlow.Infrastructure.Services
                     source.Quantity -= line.Quantity;
                     source.LastStockDate = DateTime.UtcNow;
 
-                    var target = await FindInventoryAsync(line.ProductId, dto.ToWarehouseId, _context);
+                    var target = dto.TransferType == StockTransferType.ToStore?(await FindInventoryByBranchAsync(line.ProductId,(Guid)dto.ToBranchId, _context)):
+                         await FindInventoryByWarHouseAsync(line.ProductId, (Guid)dto.ToWarehouseId, _context);
 
-                    if (target == null)
+                    if (target == null) 
                     {
-                        target = new Inventory { ProductId = line.ProductId, WarehouseId = dto.ToWarehouseId, Quantity = 0, ReservedQuantity=0};
+                        target = new Inventory { ProductId = line.ProductId, WarehouseId = dto.ToWarehouseId, BranchId = dto.ToBranchId, Quantity = 0, ReservedQuantity=0};
                         _context.Inventories.Add(target);
                     }
 
@@ -542,7 +574,7 @@ namespace TradeFlow.Infrastructure.Services
             var date = dto.TransferDate ?? DateTime.UtcNow;
             transfer.TransferDate = date;
             transfer.FromWarehouseId = mainItem.FromWarehouseId;
-            transfer.ToWarehouseId = dto.ToWarehouseId;
+            transfer.ToWarehouseId = dto.ToWarehouseId ?? Guid.Empty;
             transfer.Notes = dto.Notes; 
             transfer.Status = StockTransferStatus.Completed;
 
@@ -642,11 +674,11 @@ namespace TradeFlow.Infrastructure.Services
             {
                 var source = old.FromInventoryId.HasValue
                     ? await _context.Inventories.FirstOrDefaultAsync(i => i.Id == old.FromInventoryId.Value)
-                    : await FindInventoryAsync(old.ProductId, transfer.FromWarehouseId, _context);
+                    : await FindInventoryByWarHouseAsync(old.ProductId, transfer.FromWarehouseId, _context);
 
                 var target = old.ToInventoryId.HasValue
                     ? await _context.Inventories.FirstOrDefaultAsync(i => i.Id == old.ToInventoryId.Value)
-                    : await FindInventoryAsync(old.ProductId, transfer.ToWarehouseId, _context);
+                    : await FindInventoryByBranchAsync(old.ProductId, (Guid)transfer.ToBranchId, _context);
 
                 if (source == null || target == null)
                     throw new InvalidOperationException($"Cannot {action} transfer {transfer.TransferNumber}: the original stock records no longer exist.");
@@ -666,9 +698,14 @@ namespace TradeFlow.Infrastructure.Services
         /// added earlier in the same batch (not yet saved) is reused instead of inserted
         /// twice — which would violate the unique index on Tenant + Product + Warehouse.
         /// </summary>
-        private static async Task<Inventory?> FindInventoryAsync(Guid productId, Guid warehouseId, ApplicationDbContext _context) =>
+        private static async Task<Inventory?> FindInventoryByWarHouseAsync(Guid productId, Guid warehouseId, ApplicationDbContext _context) =>
             _context.Inventories.Local.FirstOrDefault(i => i.ProductId == productId && i.WarehouseId == warehouseId)
             ?? await _context.Inventories.FirstOrDefaultAsync(i => i.ProductId == productId && i.WarehouseId == warehouseId);
+
+        private static async Task<Inventory?> FindInventoryByBranchAsync(Guid productId, Guid branchId, ApplicationDbContext _context) =>
+          _context.Inventories.Local.FirstOrDefault(i => i.ProductId == productId && i.BranchId == branchId)
+          ?? await _context.Inventories.FirstOrDefaultAsync(i => i.ProductId == productId && i.BranchId == branchId);
+
 
         public async Task<PagedResultNew<StockTransferListDto>> GetStockTransfersPagedAsync(StockTransferPagedRequest request)
         {

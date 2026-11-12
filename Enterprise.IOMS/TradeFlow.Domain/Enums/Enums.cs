@@ -17,7 +17,11 @@ namespace TradeFlow.Domain.Enums
     {
         Asset, Liability, Equity, Revenue, Expense
     }
-
+    public enum StockTransferType
+    {  
+        ToWarehouse,
+        ToStore
+    }
     public enum StockMovementType
     {
         In, Out, Transfer, Adjustment, Return, WriteOff, KitAssembly, KitDisassembly
