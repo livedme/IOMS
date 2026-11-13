@@ -10,15 +10,28 @@ public static class AppConstants
 
 public static class Roles
 {
-    public const string Admin = "Admin";
+    /// <summary>
+    /// Administrator of a single tenant/workspace. Created automatically for the first user
+    /// who registers a workspace.
+    /// </summary>
+    public const string TenantAdmin = "TenantAdmin";
+
+    /// <summary>
+    /// Legacy name for <see cref="TenantAdmin"/>. Existing code and role assignments resolve to
+    /// the same tenant-scoped administrator role.
+    /// </summary>
+    public const string Admin = TenantAdmin;
+
+    /// <summary>Platform-wide administrator with access across every tenant.</summary>
     public const string SuperAdmin = "SuperAdmin";
+
     public const string Manager = "Manager";
     public const string Sales = "Sales";
     public const string Purchasing = "Purchasing";
     public const string WarehouseStaff = "WarehouseStaff";
     public const string Viewer = "Viewer";
 
-    public static readonly string[] All = [Admin, SuperAdmin, Manager, Sales, Purchasing, WarehouseStaff, Viewer];
+    public static readonly string[] All = [TenantAdmin, SuperAdmin, Manager, Sales, Purchasing, WarehouseStaff, Viewer];
 }
 
 public static class AuthorizationPolicies

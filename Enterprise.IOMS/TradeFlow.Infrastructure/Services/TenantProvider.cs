@@ -42,6 +42,14 @@ public class TenantProvider : ITenantProvider
 
             if (principal.Identity?.IsAuthenticated != true)
             {
+                // Tenant onboarding (registration) runs in a static server render, before the
+                // new user is signed in. The page explicitly records the tenant it is creating
+                // in the request-scoped context so the audit interceptor can stamp the new rows.
+                if (_tenantContext.TenantId is { } onboardingTenant)
+                {
+                    return onboardingTenant;
+                }
+
                 _logger.LogError(
                     "Tenant resolution requested for an unauthenticated principal (TraceId {TraceId}).",
                     httpContext.TraceIdentifier);

@@ -56,11 +56,11 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(AuthorizationPolicies.Administrator, policy => policy
         .RequireAuthenticatedUser()
-        .RequireRole(Roles.Admin));
+        .RequireRole(Roles.TenantAdmin, Roles.SuperAdmin));
 
     options.AddPolicy(AuthorizationPolicies.Manager, policy => policy
         .RequireAuthenticatedUser()
-        .RequireRole(Roles.Admin, Roles.Manager));
+        .RequireRole(Roles.TenantAdmin, Roles.SuperAdmin, Roles.Manager));
 });
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter(); 

@@ -30,7 +30,7 @@
             <MudTd>
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
                                OnClick="@(() => DeleteRole(context))"
-                               Disabled="@(context is "Admin" or "Manager" or "User")" />
+                               Disabled="@(context is Roles.TenantAdmin or Roles.Manager or "User")" />
             </MudTd>
         </RowTemplate>
     </MudTable>

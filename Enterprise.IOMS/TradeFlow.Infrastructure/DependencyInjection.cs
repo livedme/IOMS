@@ -144,6 +144,7 @@ public static class DependencyInjection
         services.AddScoped<IUoMService, UoMService>();
         services.AddScoped<IExchangeRateService, ExchangeRateService>();
         services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
+        services.AddScoped<ITenantService, TenantService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IReportsService, ReportsService>();
         services.AddSingleton<ISharedNumberGenerator, SharedNumberGenerator>();

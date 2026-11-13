@@ -1,60 +1,347 @@
 ﻿@page "/Account/Register"
 @layout EmptyLayout
 @using System.ComponentModel.DataAnnotations
-@using System.Text
-@using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.WebUtilities
 
 @inject UserManager<ApplicationUser> UserManager
-@inject IUserStore<ApplicationUser> UserStore
 @inject SignInManager<ApplicationUser> SignInManager
-@inject IEmailSender<ApplicationUser> EmailSender
-@inject ILogger<Register> Logger
+@inject ITenantService TenantService
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject ILogger<Register> Logger
 
-<PageTitle>Register</PageTitle>
+<PageTitle>Create your workspace</PageTitle>
 
-<h1>Register</h1>
+<div class="login-page">
 
-<div class="row">
-    <div class="col-lg-6">
-        <StatusMessage Message="@Message" />
-        <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
-            <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
-            <hr />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.Password">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.ConfirmPassword">Confirm Password</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </EditForm>
+    @* Brand panel *@
+    <div class="login-brand">
+        <div class="login-brand-inner">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="56" height="56"><path d="M20 7H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9 8H9v2H7v-2H5v-2h2v-2h2v2h2v2zm5.5 1c-.83 0-1.5-.67-1.5-1.5S15.67 13 16.5 13s1.5.67 1.5 1.5S17.33 16 16.5 16zm3-3c-.83 0-1.5-.67-1.5-1.5S18.67 10 19.5 10s1.5.67 1.5 1.5S20.33 13 19.5 13zM1 6h22V4H1v2z" /></svg>
+            <h2 style="color:#fff;font-weight:800;letter-spacing:-1px;margin:0.5rem 0 0;">IOMS</h2>
+            <p style="color:rgba(255,255,255,0.75);max-width:260px;text-align:center;margin:0.5rem 0 0;line-height:1.5;font-size:0.95rem;">
+                Enterprise Inventory &amp; Order Management
+            </p>
+            <hr style="border:none;height:1px;background:rgba(255,255,255,0.2);width:60px;margin:1.5rem auto;" />
+            <span style="color:rgba(255,255,255,0.5);font-size:0.75rem;">Streamline � Track � Grow</span>
+        </div>
     </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
+
+    @* Form panel *@
+    <div class="login-form-panel">
+        <div class="login-form-inner">
+
+            <h4 style="font-weight:800;letter-spacing:-0.5px;margin:0 0 0.25rem;">Create your workspace</h4>
+            <p style="color:#7C7F93;margin:0 0 1.25rem;font-size:0.9rem;">
+                @(Input.Step == 1 ? "Start with the tenant administrator account." : "Now tell us about your tenant.")
+            </p>
+
+            <div class="register-steps">
+                <div class="register-step @(Input.Step == 1 ? "active" : "")">
+                    <span class="register-step-num">1</span>Account
+                </div>
+                <div class="register-step @(Input.Step == 2 ? "active" : "")">
+                    <span class="register-step-num">2</span> Business info
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(generalError))
+            {
+                <div class="login-alert">
+                    <span>@generalError</span>
+                </div>
+            }
+
+            <EditForm Model="Input" method="post" OnSubmit="HandleSubmit" FormName="register">
+                <input type="hidden" name="Input.Step" value="@Input.Step" />
+
+                @if (Input.Step == 1)
+                {
+                    <div class="field-group">
+                        <label for="Input.FullName">Full name</label>
+                        <div class="input-wrap">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                            <InputText @bind-Value="Input.FullName" id="Input.FullName" placeholder="Jane Doe"
+                                       autocomplete="name" aria-required="true" class="login-input" />
+                        </div>
+                        @if (Error("FullName") is { } fullNameError)
+                        {
+                            <span class="field-error">@fullNameError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.Email">Email address</label>
+                        <div class="input-wrap">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,12 2,6" /></svg>
+                            <InputText @bind-Value="Input.Email" id="Input.Email" type="email" placeholder="name@example.com"
+                                       autocomplete="username" aria-required="true" class="login-input" />
+                        </div>
+                        @if (Error("Email") is { } emailError)
+                        {
+                            <span class="field-error">@emailError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.Password">Password</label>
+                        <div class="input-wrap">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                            <InputText @bind-Value="Input.Password" id="Input.Password" type="password"
+                                       autocomplete="new-password" aria-required="true" class="login-input" />
+                        </div>
+                        @if (Error("Password") is { } passwordError)
+                        {
+                            <span class="field-error">@passwordError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.ConfirmPassword">Confirm password</label>
+                        <div class="input-wrap">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                            <InputText @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" type="password"
+                                       autocomplete="new-password" aria-required="true" class="login-input" />
+                        </div>
+                        @if (Error("ConfirmPassword") is { } confirmError)
+                        {
+                            <span class="field-error">@confirmError</span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    @* Keep the account fields in the form so the second POST carries them. *@
+                    <input type="hidden" name="Input.FullName" value="@Input.FullName" />
+                    <input type="hidden" name="Input.Email" value="@Input.Email" />
+                    <input type="hidden" name="Input.Password" value="@Input.Password" />
+                    <input type="hidden" name="Input.ConfirmPassword" value="@Input.ConfirmPassword" />
+                    @* <div class="register-section-title">Company profile</div> *@
+                    <div class="field-group">
+                        <label for="Input.CompanyName">Company name</label>
+                        <div class="input-wrap">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01" /></svg>
+                            <InputText @bind-Value="Input.CompanyName" id="Input.CompanyName" placeholder="Acme Trading Ltd"
+                                       autocomplete="organization" aria-required="true" class="login-input" />
+                        </div>
+                        @if (Error("CompanyName") is { } companyNameError)
+                        {
+                            <span class="field-error">@companyNameError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.CompanyCode">Company code <span style="color:#9aa0b4;font-weight:400;">(auto-generated)</span></label>
+                        <div class="input-wrap">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 12 22l-9-9V4h9l8.59 8.59a2 2 0 0 1 0 2.82z" /><circle cx="7.5" cy="7.5" r="1" /></svg>
+                            <InputText @bind-Value="Input.CompanyCode" id="Input.CompanyCode" placeholder="Generated from company name"
+                                       readonly="readonly" autocomplete="off" class="login-input" />
+                        </div>
+                        @if (Error("CompanyCode") is { } companyCodeError)
+                        {
+                            <span class="field-error">@companyCodeError</span>
+                        }
+                        else
+                        {
+                            <span style="display:block;color:#9aa0b4;font-size:0.75rem;margin-top:0.3rem;">
+                                Generated automatically from your company name and cannot be changed.
+                            </span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.LegalName">Legal name <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.LegalName" id="Input.LegalName" placeholder="Acme Trading Ltd."
+                                   autocomplete="organization" class="login-input login-input-plain" />
+                        @if (Error("LegalName") is { } legalNameError)
+                        {
+                            <span class="field-error">@legalNameError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.Industry">Industry <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.Industry" id="Input.Industry" placeholder="Retail, Wholesale, Distribution..."
+                                   class="login-input login-input-plain" />
+                        @if (Error("Industry") is { } industryError)
+                        {
+                            <span class="field-error">@industryError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.Website">Website <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.Website" id="Input.Website" type="url" placeholder="https://example.com"
+                                   class="login-input login-input-plain" />
+                        @if (Error("Website") is { } websiteError)
+                        {
+                            <span class="field-error">@websiteError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.PrimaryContactEmail">Primary contact email</label>
+                        <InputText @bind-Value="Input.PrimaryContactEmail" id="Input.PrimaryContactEmail" type="email"
+                                   placeholder="owner@example.com" autocomplete="email" aria-required="true"
+                                   class="login-input login-input-plain" />
+                        @if (Error("PrimaryContactEmail") is { } primaryContactEmailError)
+                        {
+                            <span class="field-error">@primaryContactEmailError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.PrimaryContactPhone">Primary contact phone <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.PrimaryContactPhone" id="Input.PrimaryContactPhone" type="tel"
+                                   placeholder="+880 1XXX XXXXXX" autocomplete="tel" class="login-input login-input-plain" />
+                        @if (Error("PrimaryContactPhone") is { } primaryContactPhoneError)
+                        {
+                            <span class="field-error">@primaryContactPhoneError</span>
+                        }
+                    </div>
+
+                      <div class="field-group">
+                        <label for="Input.BillingEmail">Billing email <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.BillingEmail" id="Input.BillingEmail" type="email"
+                                   placeholder="billing@example.com" class="login-input login-input-plain" />
+                        @if (Error("BillingEmail") is { } billingEmailError)
+                        {
+                            <span class="field-error">@billingEmailError</span>
+                        }
+                    </div>
+
+
+                 @*    <div class="field-group">
+                        <label for="Input.BillingEmail">Billing email <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.BillingEmail" id="Input.BillingEmail" type="email"
+                                   placeholder="billing@example.com" class="login-input login-input-plain" />
+                        @if (Error("BillingEmail") is { } billingEmailError)
+                        {
+                            <span class="field-error">@billingEmailError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.CountryCode">Country code <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.CountryCode" id="Input.CountryCode" placeholder="BD"
+                                   maxlength="2" autocomplete="country" class="login-input login-input-plain" />
+                        @if (Error("CountryCode") is { } countryCodeError)
+                        {
+                            <span class="field-error">@countryCodeError</span>
+                        }
+                    </div>
+
+                    <div class="register-section-title">Regional defaults</div>
+
+                    <div class="field-group">
+                        <label for="Input.DefaultCurrencyCode">Currency code</label>
+                        <InputText @bind-Value="Input.DefaultCurrencyCode" id="Input.DefaultCurrencyCode" placeholder="BDT"
+                                   maxlength="3" aria-required="true" class="login-input login-input-plain" />
+                        @if (Error("DefaultCurrencyCode") is { } currencyError)
+                        {
+                            <span class="field-error">@currencyError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.DefaultTimeZone">Time zone</label>
+                        <InputText @bind-Value="Input.DefaultTimeZone" id="Input.DefaultTimeZone" placeholder="Asia/Dhaka"
+                                   aria-required="true" class="login-input login-input-plain" />
+                        @if (Error("DefaultTimeZone") is { } timeZoneError)
+                        {
+                            <span class="field-error">@timeZoneError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.DefaultCulture">Language / culture</label>
+                        <InputText @bind-Value="Input.DefaultCulture" id="Input.DefaultCulture" placeholder="en-US"
+                                   aria-required="true" class="login-input login-input-plain" />
+                        @if (Error("DefaultCulture") is { } cultureError)
+                        {
+                            <span class="field-error">@cultureError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.Subdomain">Subdomain <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.Subdomain" id="Input.Subdomain" placeholder="acme"
+                                   class="login-input login-input-plain" />
+                        @if (Error("Subdomain") is { } subdomainError)
+                        {
+                            <span class="field-error">@subdomainError</span>
+                        }
+                        else
+                        {
+                            <span style="display:block;color:#9aa0b4;font-size:0.75rem;margin-top:0.3rem;">
+                                Defaults to your company code. Lowercase letters, digits and hyphens only.
+                            </span>
+                        }
+                    </div> *@
+                }
+
+                <div class="register-actions">
+                    @if (Input.Step == 1)
+                    {
+                        <button type="submit" name="Input.Action" value="next" class="btn-signin" style="margin-bottom:0;">
+                            Continue
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" name="Input.Action" value="register" class="btn-signin" style="margin-bottom:0;">
+                            Create workspace
+                        </button>
+                        <button type="submit" name="Input.Action" value="back" class="btn-passkey">
+                            Back
+                        </button>
+                    }
+                </div>
+            </EditForm>
+
+            <hr style="border:none;border-top:1px solid #e8eaf0;margin:1.5rem 0;" />
+
+            <p style="text-align:center;margin:0;font-size:0.875rem;color:#7C7F93;">
+                Already have an account?&nbsp;
+                <a href="@NavigationManager.GetUriWithQueryParameters("Account/Login", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl })"
+                   class="login-link" style="font-weight:600;">Sign in</a>
+            </p>
+        </div>
     </div>
 </div>
 
+<script>
+    (() => {
+        const companyName = document.getElementById('Input.CompanyName');
+        const companyCode = document.getElementById('Input.CompanyCode');
+        if (!companyName || !companyCode) {
+            return;
+        }
+
+        const generate = () => {
+            const value = companyName.value.trim().toLowerCase();
+            if (!value) {
+                companyCode.value = '';
+                return;
+            }
+
+            const slug = value
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 20)
+                .replace(/-+$/g, '');
+
+            companyCode.value = slug || 'tenant';
+        };
+
+        companyName.addEventListener('input', generate);
+        generate();
+    })();
+</script>
+
 @code {
-    private IEnumerable<IdentityError>? identityErrors;
+    private readonly Dictionary<string, string> errors = new();
+    private string? generalError;
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = default!;
@@ -62,90 +349,357 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
-
     protected override void OnInitialized()
     {
         Input ??= new();
+
+        if (Input.Step is < 1 or > 2)
+        {
+            Input.Step = 1;
+        }
     }
 
-    public async Task RegisterUser(EditContext editContext)
+    private string? Error(string field) => errors.TryGetValue(field, out var message) ? message : null;
+
+    private async Task HandleSubmit()
     {
-        var user = CreateUser();
+        errors.Clear();
+        generalError = null;
 
-        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-        var emailStore = GetEmailStore();
-        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
-        var result = await UserManager.CreateAsync(user, Input.Password);
-
-        if (!result.Succeeded)
+        if (Input.Action == "back")
         {
-            identityErrors = result.Errors;
+            Input.Step = 1;
             return;
         }
 
-        Logger.LogInformation("User created a new account with password.");
+        var accountValid = ValidateAccountStep();
 
-        var userId = await UserManager.GetUserIdAsync(user);
-        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
-            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
-            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
-
-        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
-
-        if (UserManager.Options.SignIn.RequireConfirmedAccount)
+        if (Input.Step <= 1 || Input.Action == "next")
         {
-            RedirectManager.RedirectTo(
-                "Account/RegisterConfirmation",
-                new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+            if (accountValid)
+            {
+                PrefillCompanyStep();
+                Input.Step = 2;
+            }
+            else
+            {
+                Input.Step = 1;
+            }
+
+            return;
         }
-        else
+
+        if (!accountValid || !ValidateCompanyStep())
         {
-            await SignInManager.SignInAsync(user, isPersistent: false);
-            RedirectManager.RedirectTo(ReturnUrl);
+            return;
+        }
+
+        await CreateWorkspaceAsync();
+    }
+
+    private bool ValidateAccountStep()
+    {
+        if (string.IsNullOrWhiteSpace(Input.FullName))
+        {
+            errors["FullName"] = "Enter your full name.";
+        }
+
+        if (string.IsNullOrWhiteSpace(Input.Email))
+        {
+            errors["Email"] = "Enter your email address.";
+        }
+        else if (!new EmailAddressAttribute().IsValid(Input.Email.Trim()))
+        {
+            errors["Email"] = "Enter a valid email address.";
+        }
+
+        if (string.IsNullOrEmpty(Input.Password))
+        {
+            errors["Password"] = "Enter a password.";
+        }
+        else if (Input.Password.Length < 8)
+        {
+            errors["Password"] = "Use at least 8 characters.";
+        }
+
+        if (Input.Password != Input.ConfirmPassword)
+        {
+            errors["ConfirmPassword"] = "Passwords do not match.";
+        }
+
+        return errors.Count == 0;
+    }
+
+    private void PrefillCompanyStep()
+    {
+        if (string.IsNullOrWhiteSpace(Input.PrimaryContactEmail))
+        {
+            Input.PrimaryContactEmail = Input.Email.Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(Input.BillingEmail))
+        {
+            Input.BillingEmail = Input.PrimaryContactEmail.Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(Input.Subdomain) && !string.IsNullOrWhiteSpace(Input.CompanyCode))
+        {
+            Input.Subdomain = ToSubdomain(Input.CompanyCode);
         }
     }
 
-    private ApplicationUser CreateUser()
+    private static string ToSubdomain(string value)
+    {
+        var slug = System.Text.RegularExpressions.Regex
+            .Replace(value.Trim().ToLowerInvariant(), "[^a-z0-9-]+", "-")
+            .Trim('-');
+
+        return slug.Length > 63 ? slug[..63].Trim('-') : slug;
+    }
+
+    private bool ValidateCompanyStep()
+    {
+        if (string.IsNullOrWhiteSpace(Input.CompanyName))
+        {
+            errors["CompanyName"] = "Enter your company name.";
+        }
+        else if (Input.CompanyName.Trim().Length > 200)
+        {
+            errors["CompanyName"] = "Company name must be 200 characters or fewer.";
+        }
+
+        var legalName = Input.LegalName.Trim();
+        if (legalName.Length > 200)
+        {
+            errors["LegalName"] = "Legal name must be 200 characters or fewer.";
+        }
+
+        var industry = Input.Industry.Trim();
+        if (industry.Length > 100)
+        {
+            errors["Industry"] = "Industry must be 100 characters or fewer.";
+        }
+
+        var website = Input.Website.Trim();
+        if (website.Length > 0 &&
+            (!Uri.TryCreate(website, UriKind.Absolute, out var websiteUri) ||
+             (websiteUri.Scheme != Uri.UriSchemeHttp && websiteUri.Scheme != Uri.UriSchemeHttps)))
+        {
+            errors["Website"] = "Enter a valid http or https URL.";
+        }
+
+        var contactEmail = Input.PrimaryContactEmail.Trim();
+        if (string.IsNullOrWhiteSpace(contactEmail))
+        {
+            errors["PrimaryContactEmail"] = "Enter a primary contact email.";
+        }
+        else if (!new EmailAddressAttribute().IsValid(contactEmail))
+        {
+            errors["PrimaryContactEmail"] = "Enter a valid email address.";
+        }
+
+        var contactPhone = Input.PrimaryContactPhone.Trim();
+        if (contactPhone.Length > 32)
+        {
+            errors["PrimaryContactPhone"] = "Phone number must be 32 characters or fewer.";
+        }
+
+        var billingEmail = Input.BillingEmail.Trim();
+        if (billingEmail.Length > 0 && !new EmailAddressAttribute().IsValid(billingEmail))
+        {
+            errors["BillingEmail"] = "Enter a valid email address.";
+        }
+
+        // var countryCode = Input.CountryCode.Trim();
+        // if (countryCode.Length > 0 && !System.Text.RegularExpressions.Regex.IsMatch(countryCode, "^[A-Za-z]{2}$"))
+        // {
+        //     errors["CountryCode"] = "Use a two-letter country code (for example, BD).";
+        // }
+
+        // var currency = Input.DefaultCurrencyCode.Trim();
+        // if (!System.Text.RegularExpressions.Regex.IsMatch(currency, "^[A-Za-z]{3}$"))
+        // {
+        //     errors["DefaultCurrencyCode"] = "Use a three-letter currency code (for example, BDT).";
+        // }
+
+        // var timeZone = Input.DefaultTimeZone.Trim();
+        // if (string.IsNullOrWhiteSpace(timeZone))
+        // {
+        //     errors["DefaultTimeZone"] = "Enter a time zone.";
+        // }
+        // else if (!TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out _))
+        // {
+        //     errors["DefaultTimeZone"] = "Enter a valid time zone ID (for example, Asia/Dhaka).";
+        // }
+
+        // var culture = Input.DefaultCulture.Trim();
+        // if (string.IsNullOrWhiteSpace(culture))
+        // {
+        //     errors["DefaultCulture"] = "Enter a language / culture code.";
+        // }
+        // else
+        // {
+        //     try
+        //     {
+        //         _ = System.Globalization.CultureInfo.GetCultureInfo(culture);
+        //     }
+        //     catch (System.Globalization.CultureNotFoundException)
+        //     {
+        //         errors["DefaultCulture"] = "Enter a valid culture code (for example, en-US).";
+        //     }
+        // }
+
+        // var subdomain = Input.Subdomain.Trim().ToLowerInvariant();
+        // if (subdomain.Length > 0 &&
+        //     !System.Text.RegularExpressions.Regex.IsMatch(subdomain, "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"))
+        // {
+        //     errors["Subdomain"] = "Use 2-63 lowercase letters, digits or hyphens.";
+        // }
+
+        return errors.Count == 0;
+    }
+
+    private async Task CreateWorkspaceAsync()
+    {
+        var email = Input.Email.Trim();
+
+        if (await UserManager.FindByEmailAsync(email) is not null)
+        {
+            generalError = "An account with this email already exists. Try signing in instead.";
+            Input.Step = 1;
+            return;
+        }
+
+        var companyCode = await TenantService.GenerateCompanyCodeAsync(Input.CompanyName.Trim());
+        Input.CompanyCode = companyCode;
+
+        var subdomain = string.IsNullOrWhiteSpace(Input.Subdomain)
+            ? ToSubdomain(companyCode)
+            : ToSubdomain(Input.Subdomain);
+
+        if (await TenantService.SubdomainExistsAsync(subdomain))
+        {
+            errors["Subdomain"] = "That subdomain is already taken.";
+            return;
+        }
+
+        TenantDto tenant;
+        try
+        {
+            tenant = await TenantService.CreateTenantAsync(new CreateTenantDto
+            {
+                CompanyName = Input.CompanyName.Trim(),
+                CompanyCode = companyCode,
+                CreatedBy = email,
+                LegalName = Input.LegalName.Trim(),
+                Industry = Input.Industry.Trim(),
+                Website = Input.Website.Trim(),
+                PrimaryContactEmail = Input.PrimaryContactEmail.Trim(),
+                PrimaryContactPhone = Input.PrimaryContactPhone.Trim(),
+                BillingEmail = Input.BillingEmail.Trim()
+                //CountryCode = Input.CountryCode.Trim(),
+                //Subdomain = subdomain,
+                //DefaultCurrencyCode = Input.DefaultCurrencyCode.Trim(),
+                //DefaultTimeZone = Input.DefaultTimeZone.Trim(),
+                //DefaultCulture = Input.DefaultCulture.Trim()
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to create tenant {CompanyCode}.", companyCode);
+            generalError = "We couldn't create your workspace. Please try again.";
+            return;
+        }
+
+        var tenantId = tenant.Id;
+
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            FullName = Input.FullName.Trim(),
+            TenantId = tenantId,
+            EmailConfirmed = true,
+            IsActive = true
+        };
+
+        var createResult = await UserManager.CreateAsync(user, Input.Password);
+        if (!createResult.Succeeded)
+        {
+            generalError = string.Join(" ", createResult.Errors.Select(error => error.Description));
+            await RollBackTenantAsync(tenantId);
+            Input.Step = 2;
+            return;
+        }
+
+        // The first user of a workspace owns it and becomes its Tenant Admin
+        // (SuperAdmin remains the platform-wide role).
+        var roleResult = await UserManager.AddToRoleAsync(user, Roles.TenantAdmin);
+        if (!roleResult.Succeeded)
+        {
+            generalError = string.Join(" ", roleResult.Errors.Select(error => error.Description));
+            await UserManager.DeleteAsync(user);
+            await RollBackTenantAsync(tenantId);
+            Input.Step = 2;
+            return;
+        }
+
+        Logger.LogInformation("Workspace {CompanyCode} registered for {Email}.", companyCode, email);
+
+        await SignInManager.SignInAsync(user, isPersistent: false);
+        RedirectManager.RedirectTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl);
+    }
+
+    private async Task RollBackTenantAsync(Guid tenantId)
     {
         try
         {
-            return Activator.CreateInstance<ApplicationUser>();
+            await TenantService.DeleteTenantAsync(tenantId);
         }
-        catch
+        catch (Exception ex)
         {
-            throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
-                $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor.");
+            Logger.LogWarning(ex, "Failed to roll back tenant {TenantId} after a failed registration.", tenantId);
         }
-    }
-
-    private IUserEmailStore<ApplicationUser> GetEmailStore()
-    {
-        if (!UserManager.SupportsUserEmail)
-        {
-            throw new NotSupportedException("The default UI requires a user store with email support.");
-        }
-        return (IUserEmailStore<ApplicationUser>)UserStore;
     }
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email")]
+        public int Step { get; set; } = 1;
+
+        public string Action { get; set; } = "";
+
+        public string FullName { get; set; } = "";
+
         public string Email { get; set; } = "";
 
-        [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
-        [DataType(DataType.Password)]
-        [Display(Name = "Password")]
         public string Password { get; set; } = "";
 
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; } = "";
+
+        public string CompanyName { get; set; } = "";
+
+        public string CompanyCode { get; set; } = "";
+
+        public string LegalName { get; set; } = "";
+
+        public string Industry { get; set; } = "";
+
+        public string Website { get; set; } = "";
+
+        public string PrimaryContactEmail { get; set; } = "";
+
+        public string PrimaryContactPhone { get; set; } = "";
+
+        public string BillingEmail { get; set; } = "";
+
+        public string CountryCode { get; set; } = "";
+
+        public string DefaultCurrencyCode { get; set; } = "BDT";
+
+        public string DefaultTimeZone { get; set; } = "Asia/Dhaka";
+
+        public string DefaultCulture { get; set; } = "en-US";
+
+        public string Subdomain { get; set; } = "";
     }
 }

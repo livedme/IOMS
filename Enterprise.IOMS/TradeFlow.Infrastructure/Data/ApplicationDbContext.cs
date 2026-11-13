@@ -162,12 +162,36 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(tenant => tenant.CompanyName).HasMaxLength(200).IsRequired();
             entity.Property(tenant => tenant.CompanyCode).HasMaxLength(20).IsRequired();
             entity.HasIndex(tenant => tenant.CompanyCode).IsUnique();
+
+            entity.Property(tenant => tenant.LegalName).HasMaxLength(200);
+            entity.Property(tenant => tenant.LogoUrl).HasMaxLength(2048);
+            entity.Property(tenant => tenant.Industry).HasMaxLength(100);
+            entity.Property(tenant => tenant.Website).HasMaxLength(255);
+            entity.Property(tenant => tenant.PrimaryContactEmail).HasMaxLength(256);
+            entity.Property(tenant => tenant.PrimaryContactPhone).HasMaxLength(32);
+            entity.Property(tenant => tenant.BillingEmail).HasMaxLength(256);
+            entity.Property(tenant => tenant.DefaultCurrencyCode).HasMaxLength(3).IsRequired().HasDefaultValue("BDT");
+            entity.Property(tenant => tenant.DefaultTimeZone).HasMaxLength(100).IsRequired().HasDefaultValue("Asia/Dhaka");
+            entity.Property(tenant => tenant.DefaultCulture).HasMaxLength(10).IsRequired().HasDefaultValue("en-US");
+            entity.Property(tenant => tenant.CountryCode).HasMaxLength(2);
+            entity.Property(tenant => tenant.Subdomain).HasMaxLength(63);
+            entity.Property(tenant => tenant.CustomDomain).HasMaxLength(255);
+            entity.Property(tenant => tenant.StatusReason).HasMaxLength(500);
+            entity.Property(tenant => tenant.UpdatedBy).HasMaxLength(450);
+            entity.Property(tenant => tenant.RowVersion).IsRowVersion();
+
+            entity.HasIndex(tenant => tenant.Subdomain).IsUnique().HasFilter("[Subdomain] IS NOT NULL");
+            entity.HasIndex(tenant => tenant.CustomDomain).IsUnique().HasFilter("[CustomDomain] IS NOT NULL");
+
             entity.HasData(new Tenant
             {
                 Id = Guid.Parse(AppConstants.DefaultTenantId),
                 CompanyName = "Default Tenant",
                 CompanyCode = "default",
                 TenantStatus = TenantStatus.Active,
+                OnboardingStatus = TenantOnboardingStatus.Completed,
+                ActivatedAt = new DateTime(2026, 1, 1),
+                OnboardingCompletedAt = new DateTime(2026, 1, 1),
                 CreatedAt = new DateTime(2026, 1, 1)
             });
         });

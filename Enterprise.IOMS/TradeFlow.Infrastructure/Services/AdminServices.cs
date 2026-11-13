@@ -4,6 +4,7 @@ using TradeFlow.Domain.Entities;
 using TradeFlow.Domain.Enums;
 using TradeFlow.Domain.Exceptions;
 using TradeFlow.Infrastructure.Data;
+using TradeFlow.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 
 namespace TradeFlow.Infrastructure.Services;
@@ -159,7 +160,7 @@ public class ApprovalService : IApprovalService
         {
             request.Steps.Add(new ApprovalRequestStep
             {
-                ApproverId = rule.ApproverRoleOrUserId ?? "Admin",
+                ApproverId = rule.ApproverRoleOrUserId ?? Roles.TenantAdmin,
                 Level = rule.Level,
                 Decision = ApprovalDecision.Pending
             });

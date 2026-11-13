@@ -32,6 +32,10 @@ public static class SeedData
 
         await context.Database.MigrateAsync();
 
+        // The tenant-scoped administrator role used to be named "Admin". Rename it in place so
+        // existing role assignments keep working, then remove any leftover duplicate.
+        await MigrateLegacyAdminRoleAsync(roleManager, userManager);
+
         // Create roles
         foreach (var role in Roles.All)
         {
@@ -68,31 +72,35 @@ public static class SeedData
             };
             var result = await userManager.CreateAsync(admin, "Admin@123!");
             if (result.Succeeded)
-                await userManager.AddToRoleAsync(admin, Roles.Admin);
+                await userManager.AddToRoleAsync(admin, Roles.TenantAdmin);
         }
 
         // Seed test users across all roles
         await SeedUsersAsync(userManager, tenantId);
 
-        // Seed Chart of Accounts
-        if (!await context.Accounts.IgnoreQueryFilters().AnyAsync(a => a.TenantId == tenantId))
+        // Seed Chart of Accounts (ensure every required system account exists)
+        var existingAccountCodes = await context.Accounts.IgnoreQueryFilters()
+            .Where(a => a.TenantId == tenantId).Select(a => a.Code).ToListAsync();
+        var accountDefaults = new (string Code, string Name, AccountType Type)[]
         {
-            var accounts = new List<Account>
-            {
-                new() { Code = AccountCodes.Cash, Name = "Cash", AccountType = AccountType.Asset, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" },
-                new() { Code = AccountCodes.AccountsReceivable, Name = "Accounts Receivable", AccountType = AccountType.Asset, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" },
-                new() { Code = AccountCodes.Inventory, Name = "Inventory", AccountType = AccountType.Asset, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" },
-                new() { Code = AccountCodes.AccountsPayable, Name = "Accounts Payable", AccountType = AccountType.Liability, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" },
-                new() { Code = AccountCodes.OwnersEquity, Name = "Owner's Equity", AccountType = AccountType.Equity, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" },
-                new() { Code = AccountCodes.SalesRevenue, Name = "Sales Revenue", AccountType = AccountType.Revenue, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" },
-                new() { Code = AccountCodes.SalesReturns, Name = "Sales Returns", AccountType = AccountType.Revenue, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" },
-                new() { Code = AccountCodes.CostOfGoodsSold, Name = "Cost of Goods Sold", AccountType = AccountType.Expense, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" },
-                new() { Code = AccountCodes.OperatingExpenses, Name = "Operating Expenses", AccountType = AccountType.Expense, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" },
-                new() { Code = AccountCodes.InventoryAdjustment, Name = "Inventory Adjustment", AccountType = AccountType.Expense, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" },
-                new() { Code = AccountCodes.ExchangeGainLoss, Name = "Exchange Gain/Loss", AccountType = AccountType.Expense, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" },
-            };
-            context.Accounts.AddRange(accounts);
-        }
+            (AccountCodes.Cash, "Cash", AccountType.Asset),
+            (AccountCodes.AccountsReceivable, "Accounts Receivable", AccountType.Asset),
+            (AccountCodes.Inventory, "Inventory", AccountType.Asset),
+            (AccountCodes.AccountsPayable, "Accounts Payable", AccountType.Liability),
+            (AccountCodes.OwnersEquity, "Owner's Equity", AccountType.Equity),
+            (AccountCodes.SalesRevenue, "Sales Revenue", AccountType.Revenue),
+            (AccountCodes.SalesReturns, "Sales Returns", AccountType.Revenue),
+            (AccountCodes.CostOfGoodsSold, "Cost of Goods Sold", AccountType.Expense),
+            (AccountCodes.OperatingExpenses, "Operating Expenses", AccountType.Expense),
+            (AccountCodes.InventoryAdjustment, "Inventory Adjustment", AccountType.Expense),
+            (AccountCodes.ExchangeGainLoss, "Exchange Gain/Loss", AccountType.Expense),
+        };
+        var missingAccounts = accountDefaults
+            .Where(a => !existingAccountCodes.Contains(a.Code, StringComparer.OrdinalIgnoreCase))
+            .Select(a => new Account { Code = a.Code, Name = a.Name, AccountType = a.Type, TenantId = tenantId, IsSystemAccount = true, CreatedBy = "system" })
+            .ToList();
+        if (missingAccounts.Count > 0)
+            context.Accounts.AddRange(missingAccounts);
 
         // Seed default currency
         if (!await context.Currencies.IgnoreQueryFilters().AnyAsync(c => c.TenantId == tenantId))
@@ -176,6 +184,52 @@ public static class SeedData
 
         // Seed dummy records in all major tables
         await SeedDummyDataAsync(context, tenantId);
+    }
+
+    /// <summary>
+    /// Renames the legacy "Admin" role to <see cref="Roles.TenantAdmin"/>. Identity stores role
+    /// assignments by role id, so renaming the role keeps every existing user assignment intact.
+    /// If a "TenantAdmin" role already exists, users are moved across before the legacy role is
+    /// removed.
+    /// </summary>
+    private static async Task MigrateLegacyAdminRoleAsync(
+        RoleManager<IdentityRole> roleManager,
+        UserManager<ApplicationUser> userManager)
+    {
+        const string legacyRoleName = "Admin";
+
+        var legacyRole = await roleManager.FindByNameAsync(legacyRoleName);
+        if (legacyRole is null)
+        {
+            return;
+        }
+
+        var tenantAdminRole = await roleManager.FindByNameAsync(Roles.TenantAdmin);
+        if (tenantAdminRole is null)
+        {
+            legacyRole.Name = Roles.TenantAdmin;
+            legacyRole.NormalizedName = roleManager.NormalizeKey(Roles.TenantAdmin);
+            await roleManager.UpdateAsync(legacyRole);
+            return;
+        }
+
+        if (tenantAdminRole.Id == legacyRole.Id)
+        {
+            return;
+        }
+
+        var users = await userManager.GetUsersInRoleAsync(legacyRoleName);
+        foreach (var user in users)
+        {
+            if (!await userManager.IsInRoleAsync(user, Roles.TenantAdmin))
+            {
+                await userManager.AddToRoleAsync(user, Roles.TenantAdmin);
+            }
+
+            await userManager.RemoveFromRoleAsync(user, legacyRoleName);
+        }
+
+        await roleManager.DeleteAsync(legacyRole);
     }
 
     private static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, Guid tenantId)
@@ -480,23 +534,28 @@ public static class SeedData
             await context.SaveChangesAsync();
         }
 
-        // --- Categories (20 total incl existing "General") ---
-        var existingCat = await context.Categories.IgnoreQueryFilters().FirstAsync(c => c.TenantId == tenantId);
-        var catNames = new[] { "Electronics", "Furniture", "Office Supplies", "Raw Materials", "Packaging", "Tools & Hardware", "Safety Equipment", "Cleaning Supplies", "Automotive Parts", "Medical Supplies", "Food & Beverages", "Textiles", "Chemicals", "Machinery", "Plumbing", "Electrical", "Building Materials", "Garden & Outdoor", "Sports Equipment" };
-        var categories = new List<Category> { existingCat };
-        if (await context.Categories.IgnoreQueryFilters().CountAsync(c => c.TenantId == tenantId) < 20)
+        // --- Categories (20 total incl existing) ---
+        var categories = await context.Categories.IgnoreQueryFilters()
+            .Where(c => c.TenantId == tenantId).OrderBy(c => c.Name).ToListAsync();
+        if (categories.Count < 20)
         {
+            var catNames = new[] { "Electronics", "Furniture", "Office Supplies", "Raw Materials", "Packaging", "Tools & Hardware", "Safety Equipment", "Cleaning Supplies", "Automotive Parts", "Medical Supplies", "Food & Beverages", "Textiles", "Chemicals", "Machinery", "Plumbing", "Electrical", "Building Materials", "Garden & Outdoor", "Sports Equipment" };
+            var existingNames = categories.Select(c => c.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var newCategories = new List<Category>();
             foreach (var cn in catNames)
             {
-                var cat = new Category { Name = cn, Description = $"{cn} products", TenantId = tenantId, CreatedBy = cb };
-                categories.Add(cat);
+                if (existingNames.Contains(cn))
+                    continue;
+
+                newCategories.Add(new Category { Name = cn, Description = $"{cn} products", TenantId = tenantId, CreatedBy = cb });
             }
-            context.Categories.AddRange(categories.Skip(1));
-            await context.SaveChangesAsync();
-        }
-        else
-        {
-            categories = await context.Categories.IgnoreQueryFilters().Where(c => c.TenantId == tenantId).OrderBy(c => c.Name).ToListAsync();
+
+            if (newCategories.Count > 0)
+            {
+                context.Categories.AddRange(newCategories);
+                await context.SaveChangesAsync();
+                categories.AddRange(newCategories);
+            }
         }
 
         // --- Brands (10 test records) ---
@@ -520,17 +579,28 @@ public static class SeedData
         }
 
         // --- Warehouses (20 total incl existing) ---
-        var warehouses = await context.Warehouses.IgnoreQueryFilters().Where(w => w.TenantId == tenantId).ToListAsync();
+        var warehouses = await context.Warehouses.IgnoreQueryFilters()
+            .Where(w => w.TenantId == tenantId).OrderBy(w => w.Code).ToListAsync();
         if (warehouses.Count < 20)
         {
+            var existingCodes = warehouses.Select(w => w.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var whNames = new[] { "North Warehouse", "South Warehouse", "East Warehouse", "West Warehouse", "Downtown Depot", "Airport Storage", "Port Facility", "Cold Storage A", "Cold Storage B", "Overflow Storage", "Returns Center", "Distribution Hub", "Regional DC-1", "Regional DC-2", "Regional DC-3", "Express Bay", "Bulk Storage", "Hazmat Store", "Tech Vault" };
+            var newWarehouses = new List<Warehouse>();
             for (int i = 0; i < whNames.Length; i++)
             {
-                var wh = new Warehouse { Name = whNames[i], Code = $"WH-{i + 2:D3}", Location = $"Location {i + 2}", Address = $"{100 + i * 10} Industrial Ave, City {i + 1}", TenantId = tenantId, CreatedBy = cb };
-                warehouses.Add(wh);
+                var code = $"WH-{i + 2:D3}";
+                if (existingCodes.Contains(code))
+                    continue;
+
+                newWarehouses.Add(new Warehouse { Name = whNames[i], Code = code, Location = $"Location {i + 2}", Address = $"{100 + i * 10} Industrial Ave, City {i + 1}", TenantId = tenantId, CreatedBy = cb });
             }
-            context.Warehouses.AddRange(warehouses.Skip(1));
-            await context.SaveChangesAsync();
+
+            if (newWarehouses.Count > 0)
+            {
+                context.Warehouses.AddRange(newWarehouses);
+                await context.SaveChangesAsync();
+                warehouses.AddRange(newWarehouses);
+            }
         }
 
         // --- Products (20) ---
