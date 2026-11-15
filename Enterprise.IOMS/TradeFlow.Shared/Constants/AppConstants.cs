@@ -1,3 +1,5 @@
+using System.Security.Claims;
+
 namespace TradeFlow.Shared.Constants;
 
 public static class AppConstants
@@ -10,6 +12,14 @@ public static class AppConstants
 
 public static class Roles
 {
+    /// <summary>Platform-wide administrator with access to every tenant and system feature.</summary>
+    public const string SystemAdmin = "SystemAdmin";
+
+    /// <summary>Platform-wide administrator with access to every tenant and system feature.</summary>
+    public const string SuperAdmin = "SuperAdmin";
+    public const string Manager = "Manager";
+    public const string FinanceManager = "FinanceManager";
+
     /// <summary>
     /// Administrator of a single tenant/workspace. Created automatically for the first user
     /// who registers a workspace.
@@ -17,27 +27,51 @@ public static class Roles
     public const string TenantAdmin = "TenantAdmin";
 
     /// <summary>
-    /// Legacy name for <see cref="TenantAdmin"/>. Existing code and role assignments resolve to
-    /// the same tenant-scoped administrator role.
-    /// </summary>
-    public const string Admin = TenantAdmin;
+    /// Legacy platform-administrator alias. Existing platform-level checks use this name; it
+    /// resolves to <see cref="SystemAdmin"/> so those checks never grant tenant admins
+    /// cross-tenant access.
+    /// </summary>    
+    public const string SalesManager = "SalesManager";
+    public const string SalesStaff = "SalesStaff";
+    public const string Staff = "Staff";
+    public const string AccountManager = "AccountManager";
 
-    /// <summary>Platform-wide administrator with access across every tenant.</summary>
-    public const string SuperAdmin = "SuperAdmin";
-
-    public const string Manager = "Manager";
+    // Legacy roles retained for existing users and seeded data.
     public const string Sales = "Sales";
     public const string Purchasing = "Purchasing";
     public const string WarehouseStaff = "WarehouseStaff";
     public const string Viewer = "Viewer";
 
-    public static readonly string[] All = [TenantAdmin, SuperAdmin, Manager, Sales, Purchasing, WarehouseStaff, Viewer];
+    public static readonly string[] All =
+    [
+        SystemAdmin, SuperAdmin, TenantAdmin,
+        Manager, FinanceManager, SalesManager, SalesStaff, Staff, AccountManager,
+        Sales, Purchasing, WarehouseStaff, Viewer
+    ];
+
+    /// <summary>Roles that grant platform-wide access across every tenant.</summary>
+    public static readonly string[] PlatformAdministrators = [SystemAdmin, SuperAdmin];
+
+    /// <summary>Roles a platform administrator can assign when creating a user.</summary>
+    public static readonly string[] PlatformManagedRoles = [Manager, FinanceManager];
+
+    /// <summary>Roles a tenant administrator can assign to users in their own tenant.</summary>
+    public static readonly string[] TenantManagedRoles = [SalesManager, SalesStaff, Staff, AccountManager];
+
+    public static bool IsPlatformAdmin(ClaimsPrincipal? principal)
+        => principal?.IsInRole(SystemAdmin) == true || principal?.IsInRole(SuperAdmin) == true;
+
+    public static bool IsTenantAdmin(ClaimsPrincipal? principal)
+        => principal?.IsInRole(TenantAdmin) == true;
 }
 
 public static class AuthorizationPolicies
 {
     /// <summary>System administration: users, roles, audit logs, privacy and archival tools.</summary>
     public const string Administrator = "Administrator";
+
+    /// <summary>Platform administration: roles and other cross-tenant settings.</summary>
+    public const string PlatformAdministrator = "PlatformAdministrator";
 
     /// <summary>Day-to-day operational management: reports, approvals, configuration.</summary>
     public const string Manager = "Manager";

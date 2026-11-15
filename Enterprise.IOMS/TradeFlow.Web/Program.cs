@@ -56,11 +56,15 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(AuthorizationPolicies.Administrator, policy => policy
         .RequireAuthenticatedUser()
-        .RequireRole(Roles.TenantAdmin, Roles.SuperAdmin));
+        .RequireRole(Roles.TenantAdmin, Roles.SystemAdmin, Roles.SuperAdmin));
+
+    options.AddPolicy(AuthorizationPolicies.PlatformAdministrator, policy => policy
+        .RequireAuthenticatedUser()
+        .RequireRole(Roles.SystemAdmin, Roles.SuperAdmin));
 
     options.AddPolicy(AuthorizationPolicies.Manager, policy => policy
         .RequireAuthenticatedUser()
-        .RequireRole(Roles.TenantAdmin, Roles.SuperAdmin, Roles.Manager));
+        .RequireRole(Roles.TenantAdmin, Roles.SystemAdmin, Roles.SuperAdmin, Roles.Manager, Roles.FinanceManager));
 });
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter(); 

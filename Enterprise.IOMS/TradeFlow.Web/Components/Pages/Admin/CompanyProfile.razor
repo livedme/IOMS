@@ -1,0 +1,274 @@
+@page "/admin/company"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = AuthorizationPolicies.Administrator)]
+
+@inject ITenantService TenantService
+@inject ISnackbar Snackbar
+
+<PageTitle>Company Profile - IOMS</PageTitle>
+
+<MudStack Row="true" Class="align-center mb-4">
+    <MudText Typo="Typo.h4">Company Profile</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Refresh"
+               OnClick="LoadAsync" Disabled="_loading">
+        Refresh
+    </MudButton>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Class="mb-4" />
+}
+
+@if (!_loading && _tenant is null)
+{
+    <MudAlert Severity="Severity.Warning">
+        Your company profile could not be found.
+    </MudAlert>
+}
+else if (_tenant is not null)
+{
+    <MudPaper Class="pa-5 mb-4">
+        <MudStack Row="true" Class="align-center" Spacing="3">
+            @if (!string.IsNullOrWhiteSpace(_tenant.LogoUrl))
+            {
+                <MudAvatar Image="@_tenant.LogoUrl" Size="Size.Large" Square="true" />
+            }
+            else
+            {
+                <MudAvatar Color="Color.Primary" Size="Size.Large" Style="font-size:1.4rem;font-weight:700;">
+                    @CompanyInitial
+                </MudAvatar>
+            }
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h5">@_tenant.CompanyName</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Company code: <strong>@_tenant.CompanyCode</strong>
+                    @if (!string.IsNullOrWhiteSpace(_tenant.LegalName))
+                    {
+                        <span> &middot; @_tenant.LegalName</span>
+                    }
+                </MudText>
+            </MudStack>
+            <MudSpacer />
+            <MudStack Row="true" Spacing="2">
+                <MudChip T="string" Color="@StatusColor(_tenant.TenantStatus)" Size="Size.Small">
+                    @FormatStatus(_tenant.TenantStatus)
+                </MudChip>
+                <MudChip T="string" Color="Color.Default" Size="Size.Small">
+                    Onboarding: @FormatStatus(_tenant.OnboardingStatus)
+                </MudChip>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Company details</MudText>
+                <MudSimpleTable Dense="true" Elevation="0" Class="company-profile-table">
+                    <tbody>
+                        <tr><td>Legal name</td><td>@ValueOrDash(_tenant.LegalName)</td></tr>
+                        <tr><td>Industry</td><td>@ValueOrDash(_tenant.Industry)</td></tr>
+                        <tr>
+                            <td>Website</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(_tenant.Website))
+                                {
+                                    <a href="@WebsiteHref" target="_blank" rel="noopener">@_tenant.Website</a>
+                                }
+                                else
+                                {
+                                    <span>&mdash;</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr><td>Country</td><td>@ValueOrDash(_tenant.CountryCode)</td></tr>
+                        <tr><td>Tenant ID</td><td><code>@_tenant.Id</code></td></tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Contact</MudText>
+                <MudSimpleTable Dense="true" Elevation="0" Class="company-profile-table">
+                    <tbody>
+                        <tr>
+                            <td>Primary email</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(_tenant.PrimaryContactEmail))
+                                {
+                                    <a href="mailto:@_tenant.PrimaryContactEmail">@_tenant.PrimaryContactEmail</a>
+                                }
+                                else
+                                {
+                                    <span>&mdash;</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Primary phone</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(_tenant.PrimaryContactPhone))
+                                {
+                                    <a href="tel:@_tenant.PrimaryContactPhone">@_tenant.PrimaryContactPhone</a>
+                                }
+                                else
+                                {
+                                    <span>&mdash;</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Billing email</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(_tenant.BillingEmail))
+                                {
+                                    <a href="mailto:@_tenant.BillingEmail">@_tenant.BillingEmail</a>
+                                }
+                                else
+                                {
+                                    <span>&mdash;</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr><td>Country</td><td>@ValueOrDash(_tenant.CountryCode)</td></tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Regional settings</MudText>
+                <MudSimpleTable Dense="true" Elevation="0" Class="company-profile-table">
+                    <tbody>
+                        <tr><td>Currency</td><td>@_tenant.DefaultCurrencyCode</td></tr>
+                        <tr><td>Time zone</td><td>@_tenant.DefaultTimeZone</td></tr>
+                        <tr><td>Culture</td><td>@_tenant.DefaultCulture</td></tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Workspace access</MudText>
+                <MudSimpleTable Dense="true" Elevation="0" Class="company-profile-table">
+                    <tbody>
+                        <tr><td>Subdomain</td><td>@ValueOrDash(_tenant.Subdomain)</td></tr>
+                        <tr><td>Custom domain</td><td>@ValueOrDash(_tenant.CustomDomain)</td></tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Lifecycle</MudText>
+                <MudGrid>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                        <MudText>@FormatStatus(_tenant.TenantStatus)</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Onboarding</MudText>
+                        <MudText>@FormatStatus(_tenant.OnboardingStatus)</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Created</MudText>
+                        <MudText>@FormatDate(_tenant.CreatedAt)</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Activated</MudText>
+                        <MudText>@FormatDate(_tenant.ActivatedAt)</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Onboarding completed</MudText>
+                        <MudText>@FormatDate(_tenant.OnboardingCompletedAt)</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Trial ends</MudText>
+                        <MudText>@FormatDate(_tenant.TrialEndsAt)</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Suspended</MudText>
+                        <MudText>@FormatDate(_tenant.SuspendedAt)</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Cancelled</MudText>
+                        <MudText>@FormatDate(_tenant.CancelledAt)</MudText>
+                    </MudItem>
+                </MudGrid>
+
+                @if (!string.IsNullOrWhiteSpace(_tenant.StatusReason))
+                {
+                    <MudDivider Class="my-4" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Status reason</MudText>
+                    <MudText>@_tenant.StatusReason</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private TenantProfileDto? _tenant;
+    private bool _loading = true;
+
+    private string CompanyInitial =>
+        string.IsNullOrWhiteSpace(_tenant?.CompanyName) ? "?" : _tenant.CompanyName[0].ToString().ToUpperInvariant();
+
+    private string WebsiteHref =>
+        _tenant?.Website?.StartsWith("http", StringComparison.OrdinalIgnoreCase) == true
+            ? _tenant.Website
+            : $"https://{_tenant?.Website}";
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _tenant = await TenantService.GetCurrentTenantAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string ValueOrDash(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "—" : value;
+
+    private static string FormatStatus(string status) => status switch
+    {
+        "InActive" => "Inactive",
+        _ => status
+    };
+
+    private static Color StatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Trial" => Color.Info,
+        "Pending" => Color.Warning,
+        "PastDue" => Color.Warning,
+        "Suspended" => Color.Error,
+        "Cancelled" => Color.Error,
+        "Deleted" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string FormatDate(DateTime? value) =>
+        value is null
+            ? "—"
+            : DateTime.SpecifyKind(value.Value, DateTimeKind.Utc).ToLocalTime().ToString("dd MMM yyyy, HH:mm");
+}

@@ -41,6 +41,11 @@ main {
         }
 
 
+.left-nav-menu-scroll {
+    scrollbar-color: rgb(79 87 120) transparent !important;
+    height: calc(100vh - 221px);
+    overflow-y: auto;
+}
 .left-nav-menu {
     width: 56px !important;
     background: #222e3c;
@@ -140,7 +145,7 @@ main {
         top: 54px;
         height: calc(100vh - 54px);
         width: 56px;
-        overflow-y: auto;
+        overflow-y: hidden !important;
         transition: width 160ms ease-out;
     }
 

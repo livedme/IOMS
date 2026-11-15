@@ -10,16 +10,101 @@
 <MudText Typo="Typo.h4" Class="mb-4">User Management</MudText>
 
 <MudPaper Class="pa-4 mb-4">
-    <MudTextField @bind-Value="_search" Label="Search users" Adornment="Adornment.Start"
-                  AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
-                  OnKeyUp="@(async _ => await LoadData())" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+    <MudGrid Class="align-center">
+        <MudItem xs="12" sm="7">
+            <MudTextField @bind-Value="_search" Label="Search users" Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                          OnKeyUp="@(async _ => await LoadData())" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+        </MudItem>
+        @if (_allowedRoles.Count > 0)
+        {
+            <MudItem xs="12" sm="5" Class="d-flex justify-sm-end">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
+                           OnClick="ToggleAddPanel">
+                    Add user
+                </MudButton>
+            </MudItem>
+        }
+    </MudGrid>
 </MudPaper>
+
+@if (_showAddUser && _allowedRoles.Count > 0)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Add user</MudText>
+
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_newUser.FullName" Label="Full name" Required="true"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_newUser.Email" Label="Email" InputType="InputType.Email" Required="true"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_newUser.Password" Label="Temporary password" InputType="InputType.Password"
+                              Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_newUser.ConfirmPassword" Label="Confirm password" InputType="InputType.Password"
+                              Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_newUser.Department" Label="Department"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+
+            @if (_tenants.Count > 0)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" @bind-Value="_newUser.TenantId" Label="Tenant" Required="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var tenant in _tenants)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)tenant.Id)">
+                                @tenant.CompanyName (@tenant.CompanyCode)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="_newUser.Role" Label="Role" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var role in _allowedRoles)
+                    {
+                        <MudSelectItem Value="@role">@role</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+
+        @if (_tenants.Count == 0)
+        {
+            <MudText Typo="Typo.caption" Class="mt-2">
+                The user will be created in your workspace.
+            </MudText>
+        }
+
+        <div class="d-flex gap-2 mt-3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateUser" Disabled="_saving">
+                Create user
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="ToggleAddPanel" Disabled="_saving">
+                Cancel
+            </MudButton>
+        </div>
+    </MudPaper>
+}
 
 <MudTable Items="_users" Hover="true" Striped="true" Loading="_loading">
     <HeaderContent>
         <MudTh>Full Name</MudTh>
         <MudTh>Email</MudTh>
         <MudTh>Department</MudTh>
+        <MudTh>Roles</MudTh>
         <MudTh>Active</MudTh>
         <MudTh>Created</MudTh>
         <MudTh>Last Login</MudTh>
@@ -29,6 +114,12 @@
         <MudTd DataLabel="Full Name">@context.FullName</MudTd>
         <MudTd DataLabel="Email">@context.Email</MudTd>
         <MudTd DataLabel="Department">@context.Department</MudTd>
+        <MudTd DataLabel="Roles">
+            @foreach (var role in context.Roles)
+            {
+                <MudChip T="string" Color="Color.Info" Size="Size.Small" Class="mr-1">@role</MudChip>
+            }
+        </MudTd>
         <MudTd DataLabel="Active">
             <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
                 @(context.IsActive ? "Active" : "Inactive")
@@ -47,10 +138,30 @@
 
 @code {
     private List<UserDto> _users = new();
+    private List<string> _allowedRoles = new();
+    private List<TenantOptionDto> _tenants = new();
+    private NewUserModel _newUser = new();
     private string? _search;
     private bool _loading;
+    private bool _saving;
+    private bool _showAddUser;
 
-    protected override async Task OnInitializedAsync() => await LoadData();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPermissions();
+        await LoadData();
+    }
+
+    private async Task LoadPermissions()
+    {
+        try
+        {
+            _allowedRoles = await UserManagementService.GetAllowedRoles();
+            _tenants = await UserManagementService.GetTenants();
+            ResetNewUser();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
 
     private async Task LoadData()
     {
@@ -66,6 +177,67 @@
         finally { _loading = false; }
     }
 
+    private void ToggleAddPanel()
+    {
+        _showAddUser = !_showAddUser;
+        if (_showAddUser)
+        {
+            ResetNewUser();
+        }
+    }
+
+    private void ResetNewUser()
+    {
+        _newUser = new NewUserModel
+        {
+            Role = _allowedRoles.FirstOrDefault() ?? "",
+            TenantId = _tenants.FirstOrDefault()?.Id
+        };
+    }
+
+    private async Task CreateUser()
+    {
+        if (string.IsNullOrWhiteSpace(_newUser.FullName) ||
+            string.IsNullOrWhiteSpace(_newUser.Email) ||
+            string.IsNullOrWhiteSpace(_newUser.Password) ||
+            string.IsNullOrWhiteSpace(_newUser.Role))
+        {
+            Snackbar.Add("Fill in the required fields.", Severity.Warning);
+            return;
+        }
+
+        if (_newUser.Password != _newUser.ConfirmPassword)
+        {
+            Snackbar.Add("Passwords do not match.", Severity.Warning);
+            return;
+        }
+
+        if (_tenants.Count > 0 && _newUser.TenantId is null)
+        {
+            Snackbar.Add("Select a tenant.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await UserManagementService.CreateUser(new CreateUserDto(
+                _newUser.FullName.Trim(),
+                _newUser.Email.Trim(),
+                _newUser.Password,
+                _newUser.Department,
+                _newUser.Role,
+                _newUser.TenantId));
+
+            Snackbar.Add("User created.", Severity.Success);
+            _showAddUser = false;
+            ResetNewUser();
+            await LoadData();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _saving = false; }
+    }
+
     private async Task ToggleActive(UserDto user)
     {
         try
@@ -78,5 +250,16 @@
             await LoadData();
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private sealed class NewUserModel
+    {
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
+        public string Department { get; set; } = "";
+        public string Role { get; set; } = "";
+        public Guid? TenantId { get; set; }
     }
 }

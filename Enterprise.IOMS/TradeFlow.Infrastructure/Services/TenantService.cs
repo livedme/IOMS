@@ -10,11 +10,16 @@ public class TenantService : ITenantService
 {
     private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
     private readonly TenantContext _tenantContext;
+    private readonly ITenantProvider _tenantProvider;
 
-    public TenantService(IDbContextFactory<ApplicationDbContext> dbFactory, TenantContext tenantContext)
+    public TenantService(
+        IDbContextFactory<ApplicationDbContext> dbFactory,
+        TenantContext tenantContext,
+        ITenantProvider tenantProvider)
     {
         _dbFactory = dbFactory;
         _tenantContext = tenantContext;
+        _tenantProvider = tenantProvider;
     }
 
     public async Task<bool> CompanyCodeExistsAsync(string companyCode, CancellationToken cancellationToken = default)
@@ -27,6 +32,44 @@ public class TenantService : ITenantService
     {
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
         return await db.Tenants.AnyAsync(t => t.Subdomain == subdomain, cancellationToken);
+    }
+
+    public async Task<TenantProfileDto?> GetCurrentTenantAsync(CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantProvider.GetTenantId();
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+
+        return await db.Tenants
+            .AsNoTracking()
+            .Where(tenant => tenant.Id == tenantId && !tenant.IsDeleted)
+            .Select(tenant => new TenantProfileDto(
+                tenant.Id,
+                tenant.CompanyCode,
+                tenant.CompanyName,
+                tenant.LegalName,
+                tenant.LogoUrl,
+                tenant.Industry,
+                tenant.Website,
+                tenant.PrimaryContactEmail,
+                tenant.PrimaryContactPhone,
+                tenant.BillingEmail,
+                tenant.CountryCode,
+                tenant.DefaultCurrencyCode,
+                tenant.DefaultTimeZone,
+                tenant.DefaultCulture,
+                tenant.Subdomain,
+                tenant.CustomDomain,
+                tenant.TenantStatus.ToString(),
+                tenant.StatusReason,
+                tenant.OnboardingStatus.ToString(),
+                tenant.TrialEndsAt,
+                tenant.ActivatedAt,
+                tenant.SuspendedAt,
+                tenant.CancelledAt,
+                tenant.CreatedAt,
+                tenant.UpdatedAt,
+                tenant.OnboardingCompletedAt))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<string> GenerateCompanyCodeAsync(string companyName, CancellationToken cancellationToken = default)

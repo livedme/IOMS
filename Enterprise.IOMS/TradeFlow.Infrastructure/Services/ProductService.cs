@@ -50,7 +50,7 @@ namespace TradeFlow.Infrastructure.Services
             var pageSize = Math.Clamp(request.PageSize, 1, 100);
             var search = request.SearchTerm?.Trim();
 
-            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SystemAdmin) == true
                 || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
 
             // Tenant scoping comes from the global query filter, which is driven by the

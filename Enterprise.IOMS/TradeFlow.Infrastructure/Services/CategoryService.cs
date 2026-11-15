@@ -79,7 +79,7 @@ namespace TradeFlow.Infrastructure.Services
             //if (request.TenantId.HasValue && request.TenantId != Guid.Empty)
             //    query = query.Where(c => c.TenantId == request.TenantId.Value);
 
-            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SystemAdmin) == true
                 || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
 
             IQueryable<Category> query;

@@ -352,7 +352,7 @@ namespace TradeFlow.Infrastructure.Services
             var hasSearch = !string.IsNullOrWhiteSpace(search);
 
             IQueryable<SalesOrder> query;
-            var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true;
+            var isAdmin = Roles.IsPlatformAdmin(_httpContextAccessor.HttpContext?.User);
             if (isAdmin)
             {
                 // Admins see every tenant's records.

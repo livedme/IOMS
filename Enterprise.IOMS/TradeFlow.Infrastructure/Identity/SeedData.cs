@@ -59,9 +59,10 @@ public static class SeedData
 
         // Create admin user
         var adminEmail = "admin@TradeFlowlocal";
-        if (await userManager.FindByEmailAsync(adminEmail) == null)
+        var admin = await userManager.FindByEmailAsync(adminEmail);
+        if (admin == null)
         {
-            var admin = new ApplicationUser
+            admin = new ApplicationUser
             {
                 UserName = adminEmail,
                 Email = adminEmail,
@@ -71,8 +72,21 @@ public static class SeedData
                 EmailConfirmed = true
             };
             var result = await userManager.CreateAsync(admin, "Admin@123!");
-            if (result.Succeeded)
+            if (!result.Succeeded)
+            {
+                admin = null;
+            }
+        }
+
+        if (admin != null)
+        {
+            // The built-in administrator is both the default tenant's owner and a platform
+            // administrator, so it can reach every tenant and manage platform-level data.
+            if (!await userManager.IsInRoleAsync(admin, Roles.TenantAdmin))
                 await userManager.AddToRoleAsync(admin, Roles.TenantAdmin);
+
+            if (!await userManager.IsInRoleAsync(admin, Roles.SystemAdmin))
+                await userManager.AddToRoleAsync(admin, Roles.SystemAdmin);
         }
 
         // Seed test users across all roles

@@ -418,6 +418,15 @@ h1:focus {
     padding: 2px 0px;
 }
 
+.left-nav-menu-scroll {
+    scrollbar-color: rgb(79 87 120) transparent !important;
+    height: calc(100vh - 209px);
+    overflow-y: auto;
+}
+.left-nav-menu.open .left-nav-menu-scroll {
+    height: calc(100vh - 223px);
+}
+
 .left-nav-menu .mud-icon-button {
     padding: 10px;
 }

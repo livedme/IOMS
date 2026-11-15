@@ -13,6 +13,9 @@ public interface ITenantService
     /// <summary>True when a tenant has already claimed the subdomain.</summary>
     Task<bool> SubdomainExistsAsync(string subdomain, CancellationToken cancellationToken = default);
 
+    /// <summary>Returns the tenant profile for the signed-in user's workspace.</summary>
+    Task<TenantProfileDto?> GetCurrentTenantAsync(CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Creates a tenant profile and records it in the current scope so the audit interceptor can
     /// stamp the tenant and the administrator user created immediately afterwards.

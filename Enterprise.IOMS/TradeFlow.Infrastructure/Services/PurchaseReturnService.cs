@@ -62,7 +62,7 @@ public class PurchaseReturnService : IPurchaseReturnService
         var search = request.SearchTerm?.Trim();
         var hasSearch = !string.IsNullOrWhiteSpace(search);
 
-        var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.Admin) == true
+        var isAdmin = _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SystemAdmin) == true
             || _httpContextAccessor.HttpContext?.User?.IsInRole(Roles.SuperAdmin) == true;
 
         IQueryable<PurchaseReturn> query;

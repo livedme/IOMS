@@ -7,6 +7,34 @@ namespace TradeFlow.Application.DTOs
         string TenantStatus,
         DateTime CreatedAt);
 
+    public record TenantProfileDto(
+        Guid Id,
+        string CompanyCode,
+        string CompanyName,
+        string? LegalName,
+        string? LogoUrl,
+        string? Industry,
+        string? Website,
+        string? PrimaryContactEmail,
+        string? PrimaryContactPhone,
+        string? BillingEmail,
+        string? CountryCode,
+        string DefaultCurrencyCode,
+        string DefaultTimeZone,
+        string DefaultCulture,
+        string? Subdomain,
+        string? CustomDomain,
+        string TenantStatus,
+        string? StatusReason,
+        string OnboardingStatus,
+        DateTime? TrialEndsAt,
+        DateTime? ActivatedAt,
+        DateTime? SuspendedAt,
+        DateTime? CancelledAt,
+        DateTime CreatedAt,
+        DateTime? UpdatedAt,
+        DateTime? OnboardingCompletedAt);
+
     public record CreateTenantDto
     {
         public required string CompanyName { get; init; }

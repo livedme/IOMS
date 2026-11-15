@@ -1,6 +1,6 @@
 @page "/admin/roles"
 @rendermode InteractiveServer
-@attribute [Authorize(Policy = AuthorizationPolicies.Administrator)]
+@attribute [Authorize(Policy = AuthorizationPolicies.PlatformAdministrator)]
 @inject IUserManagementService UserService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -30,7 +30,7 @@
             <MudTd>
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
                                OnClick="@(() => DeleteRole(context))"
-                               Disabled="@(context is Roles.TenantAdmin or Roles.Manager or "User")" />
+                               Disabled="@IsProtectedRole(context)" />
             </MudTd>
         </RowTemplate>
     </MudTable>
@@ -46,7 +46,7 @@
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudSelect @bind-Value="_selectedRole" Label="Select Role" Variant="Variant.Outlined" Margin="Margin.Dense">
-                @foreach (var role in _roles)
+                @foreach (var role in _assignableRoles)
                 {
                     <MudSelectItem Value="@role">@role</MudSelectItem>
                 }
@@ -74,6 +74,7 @@
 
 @code {
     private List<string> _roles = new();
+    private List<string> _assignableRoles = new();
     private List<UserDto> _users = new();
     private List<string> _userRoles = new();
     private string _newRoleName = "";
@@ -84,8 +85,12 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadRoles();
+        _assignableRoles = await UserService.GetAllowedRoles();
         _users = await UserService.GetUsers(null);
     }
+
+    private static bool IsProtectedRole(string roleName)
+        => roleName == "User" || Roles.All.Contains(roleName, StringComparer.Ordinal);
 
     private async Task LoadRoles()
     {
