@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using Avancer.License.Models;
@@ -18,6 +19,7 @@ namespace TradeFlow.Web.Middleware;
 public sealed class LicenseMiddleware
 {
     private const string ActivatePath = "/license/activate";
+    private const string ActivateKeyPath = "/license/activate-key";
     private const string ContinueTrialPath = "/license/trial/continue";
 
     private readonly RequestDelegate _next;
@@ -149,7 +151,8 @@ public sealed class LicenseMiddleware
 
         _cache.Set(cacheKey, result, new MemoryCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = lifetime
+            AbsoluteExpirationRelativeToNow = lifetime,
+            Size = 1
         });
 
         return new LicenseCheck(result, true);
@@ -166,6 +169,8 @@ public sealed class LicenseMiddleware
         var settings = _settings.Value;
         var domain = ResolveDomain(context, settings);
         string? error = null;
+        string? submittedKey = null;
+        string? submittedReturnUrl = null;
 
         try
         {
@@ -177,9 +182,9 @@ public sealed class LicenseMiddleware
 
             if (context.Request.Path.Equals(ActivatePath, StringComparison.OrdinalIgnoreCase))
             {
-                var submittedKey = form["licenseKey"].ToString().Trim();
+                var activateKey = form["licenseKey"].ToString().Trim();
 
-                if (submittedKey.Length == 0)
+                if (activateKey.Length == 0)
                 {
                     error = "Enter a license key to continue.";
                 }
@@ -188,13 +193,62 @@ public sealed class LicenseMiddleware
                     var previousKey = await ResolveLicenseKeyAsync(context, settings, domain, context.RequestAborted);
 
                     var synchronizer = context.RequestServices.GetRequiredService<LicenseTenantSynchronizer>();
-                    await synchronizer.PersistLicenseKeyAsync(submittedKey, domain, context.RequestAborted);
+                    await synchronizer.PersistLicenseKeyAsync(activateKey, domain, context.RequestAborted);
 
-                    context.Response.Cookies.Append(LicenseSettings.LicenseKeyCookie, submittedKey, cookieOptions);
+                    context.Response.Cookies.Append(LicenseSettings.LicenseKeyCookie, activateKey, cookieOptions);
                     context.Response.Cookies.Delete(LicenseSettings.TrialCookie);
-                    InvalidateCache(domain, previousKey, submittedKey);
+                    InvalidateCache(domain, previousKey, activateKey);
                     context.Response.Redirect(returnUrl);
                     return;
+                }
+            }
+            else if (context.Request.Path.Equals(ActivateKeyPath, StringComparison.OrdinalIgnoreCase))
+            {
+                submittedKey = form["licenseKey"].ToString().Trim();
+                submittedReturnUrl = returnUrl;
+
+                if (submittedKey.Length == 0)
+                {
+                    error = "Enter a license key to continue.";
+                }
+                else
+                {
+                    var previousKey = await ResolveLicenseKeyAsync(context, settings, domain, context.RequestAborted);
+                    var synchronizer = context.RequestServices.GetRequiredService<LicenseTenantSynchronizer>();
+
+                    await synchronizer.PersistLicenseKeyAsync(submittedKey, domain, context.RequestAborted);
+
+                    LicenseSecurity validation;
+                    try
+                    {
+                        validation = await _validation.ValidateLicenseAsync(domain, submittedKey, context.RequestAborted);
+                    }
+                    catch (Exception exception) when (exception is not OperationCanceledException)
+                    {
+                        _logger.LogError(exception, "License check failed for the submitted key on domain {Domain}.", domain);
+                        validation = new LicenseSecurity
+                        {
+                            IsLicenseValid = false,
+                            IsOffline = true,
+                            Message = "The license check could not be completed. Please try again in a moment.",
+                            CheckedAtUtc = DateTime.UtcNow
+                        };
+                    }
+
+                    if (validation.Response is not null)
+                    {
+                        await synchronizer.SynchronizeAsync(validation, domain, submittedKey, context.RequestAborted);
+
+                        context.Response.Cookies.Append(LicenseSettings.LicenseKeyCookie, submittedKey, cookieOptions);
+                        context.Response.Cookies.Delete(LicenseSettings.TrialCookie);
+                        InvalidateCache(domain, previousKey, submittedKey);
+                        context.Response.Redirect(returnUrl);
+                        return;
+                    }
+
+                    error = string.IsNullOrWhiteSpace(validation.Message)
+                        ? "The license server did not return a response. Please try again."
+                        : validation.Message;
                 }
             }
             else if (ReadTrialExpiry(context) is not null)
@@ -226,6 +280,12 @@ public sealed class LicenseMiddleware
             Message = error ?? "The license could not be activated.",
             CheckedAtUtc = DateTime.UtcNow
         };
+
+        if (context.Request.Path.Equals(ActivateKeyPath, StringComparison.OrdinalIgnoreCase))
+        {
+            await WriteFallbackGateAsync(context, error, submittedKey, submittedReturnUrl);
+            return;
+        }
 
         var trialExpired = ReadTrialExpiry(context) is not null;
         await WriteGatePageAsync(context, result, domain, await ResolveLicenseKeyAsync(context, settings, domain, context.RequestAborted), error, trialExpired);
@@ -275,7 +335,11 @@ public sealed class LicenseMiddleware
         await context.Response.WriteAsync(html, context.RequestAborted);
     }
 
-    private static async Task WriteFallbackGateAsync(HttpContext context)
+    private async Task WriteFallbackGateAsync(
+        HttpContext context,
+        string? error = null,
+        string? licenseKey = null,
+        string? returnUrl = null)
     {
         if (context.Response.HasStarted)
             return;
@@ -284,8 +348,16 @@ public sealed class LicenseMiddleware
         context.Response.StatusCode = StatusCodes.Status200OK;
         context.Response.ContentType = "text/html; charset=utf-8";
 
+        var tokens = _antiforgery.GetAndStoreTokens(context);
+        var requestToken = WebUtility.HtmlEncode(tokens.RequestToken ?? string.Empty);
+        var safeReturnUrl = WebUtility.HtmlEncode(SafeReturnUrl(returnUrl ?? BuildReturnUrl(context)));
+        var key = WebUtility.HtmlEncode(licenseKey ?? string.Empty);
+        var errorHtml = string.IsNullOrWhiteSpace(error)
+            ? string.Empty
+            : $"""<div class="alert" role="alert">{WebUtility.HtmlEncode(error)}</div>""";
+
         await context.Response.WriteAsync(
-            """
+            $$"""
             <!DOCTYPE html>
             <html lang="en">
             <head>
@@ -294,19 +366,44 @@ public sealed class LicenseMiddleware
                 <meta name="robots" content="noindex, nofollow">
                 <title>License check unavailable - Avancer IOMS</title>
                 <style>
+                    :root { color-scheme: light; --ink: #14212b; --muted: #5d6b78; --line: #dbe3ea;
+                            --accent: #166e63; --accent-dark: #0f554c; --danger: #a0342b;
+                            --danger-bg: #fdf1ef; --canvas: #eef3f6; }
+                    * { box-sizing: border-box; }
                     body { margin: 0; min-height: 100vh; display: grid; place-items: center;
-                           padding: 24px; background: #eef3f6; color: #14212b;
+                           padding: 24px; background: var(--canvas); color: var(--ink);
                            font-family: "Segoe UI", system-ui, sans-serif; }
-                    main { max-width: 520px; padding: 32px; background: #fff; border: 1px solid #dbe3ea;
+                    main { width: min(100%, 520px); padding: 32px; background: #fff; border: 1px solid var(--line);
                            border-radius: 16px; box-shadow: 0 24px 70px rgba(20, 33, 43, .13); }
-                    h1 { margin-top: 0; font-size: 1.5rem; }
-                    p { color: #5d6b78; }
+                    h1 { margin: 0 0 8px; font-size: 1.5rem; }
+                    p { color: var(--muted); margin: 0; }
+                    .alert { margin: 18px 0 0; padding: 12px 14px; border: 1px solid #f0c5bf;
+                             border-radius: 10px; background: var(--danger-bg); color: var(--danger); font-size: 14px; }
+                    label { display: block; margin: 22px 0 7px; font-size: 13px; font-weight: 700; }
+                    input[type="text"] { width: 100%; padding: 12px 13px; border: 1px solid #b9c6d0;
+                                         border-radius: 10px; color: var(--ink); font: inherit; font-size: 14px; }
+                    input[type="text"]:focus { outline: 3px solid rgba(22, 110, 99, .18); border-color: var(--accent); }
+                    button { display: inline-flex; align-items: center; justify-content: center; width: 100%;
+                             margin-top: 18px; padding: 12px 16px; border: 0; border-radius: 10px;
+                             background: var(--accent); color: #fff; font: inherit; font-size: 14px;
+                             font-weight: 700; cursor: pointer; }
+                    button:hover { background: var(--accent-dark); }
                 </style>
             </head>
             <body>
                 <main>
                     <h1>License check unavailable</h1>
                     <p>The license check could not be completed. Please try again in a moment.</p>
+                    {{errorHtml}}
+                    <form method="post" action="/license/activate-key">
+                        <input type="hidden" name="__RequestVerificationToken" value="{{requestToken}}">
+                        <input type="hidden" name="returnUrl" value="{{safeReturnUrl}}">
+                        <label for="licenseKey">License key</label>
+                        <input id="licenseKey" name="licenseKey" type="text" value="{{key}}"
+                               autocomplete="off" autocapitalize="off" spellcheck="false"
+                               maxlength="256" required>
+                        <button type="submit">Activate license</button>
+                    </form>
                 </main>
             </body>
             </html>
@@ -532,6 +629,7 @@ public sealed class LicenseMiddleware
 
     private static bool IsLicenseEndpoint(PathString path) =>
         path.Equals(ActivatePath, StringComparison.OrdinalIgnoreCase) ||
+        path.Equals(ActivateKeyPath, StringComparison.OrdinalIgnoreCase) ||
         path.Equals(ContinueTrialPath, StringComparison.OrdinalIgnoreCase);
 
     private static bool ShouldBypass(PathString path)

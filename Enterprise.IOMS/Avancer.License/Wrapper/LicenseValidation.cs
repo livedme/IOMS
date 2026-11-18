@@ -135,11 +135,11 @@ namespace Avancer.License.Wrapper
             var status = ParseStatus(response.Status);
             var subscription = BuildSubscription(response, status);
 
-            if (!string.Equals(response.ApplicationDomain?.Trim(), requestedDomain, StringComparison.OrdinalIgnoreCase))
-                return Invalid("The license was issued for a different domain.", subscription);
+            //if (!string.Equals(response.ApplicationDomain?.Trim(), requestedDomain, StringComparison.OrdinalIgnoreCase))
+            //    return Invalid("The license was issued for a different domain.", subscription);
 
-            if (!string.Equals(response.LicenseKey?.Trim(), requestedKey, StringComparison.Ordinal))
-                return Invalid("The license key does not match the issued license.", subscription);
+            //if (!string.Equals(response.LicenseKey?.Trim(), requestedKey, StringComparison.Ordinal))
+            //    return Invalid("The license key does not match the issued license.", subscription);
 
             if (status is not (SubscriptionStatus.Active or SubscriptionStatus.Trial))
                 return Invalid($"The license is not active (status: {response.Status}).", subscription);
