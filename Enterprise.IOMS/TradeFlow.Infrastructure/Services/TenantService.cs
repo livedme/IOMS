@@ -67,8 +67,58 @@ public class TenantService : ITenantService
                 tenant.CancelledAt,
                 tenant.CreatedAt,
                 tenant.UpdatedAt,
-                tenant.OnboardingCompletedAt))
+                tenant.OnboardingCompletedAt,
+                tenant.LicenseId,
+                tenant.SubscriptionId,
+                tenant.SubscriptionNumber,
+                tenant.SubscriptionName,
+                tenant.LicensePlan,
+                tenant.LicenseBillingCycle,
+                tenant.LicenseStatus,
+                tenant.LicenseProjectId,
+                tenant.LicenseProjectName,
+                tenant.LicenseKey,
+                tenant.LicenseActivatedAt,
+                tenant.LicenseValidFrom,
+                tenant.LicenseValidUntil,
+                tenant.LicenseCheckedAtUtc,
+                tenant.LicenseAmount,
+                tenant.LicenseGracePeriod))
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<TenantProfileDto> UpdateCurrentTenantAsync(
+        UpdateTenantProfileDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantProvider.GetTenantId();
+        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
+
+        var tenant = await db.Tenants
+            .FirstOrDefaultAsync(t => t.Id == tenantId && !t.IsDeleted, cancellationToken);
+
+        if (tenant is null)
+        {
+            throw new InvalidOperationException("Company profile could not be found.");
+        }
+
+        tenant.CompanyName = dto.CompanyName.Trim();
+        tenant.LegalName = TrimOrNull(dto.LegalName);
+        tenant.Industry = TrimOrNull(dto.Industry);
+        tenant.Website = TrimOrNull(dto.Website);
+        tenant.CountryCode = TrimOrNull(dto.CountryCode)?.ToUpperInvariant();
+        tenant.PrimaryContactEmail = TrimOrNull(dto.PrimaryContactEmail);
+        tenant.PrimaryContactPhone = TrimOrNull(dto.PrimaryContactPhone);
+        tenant.BillingEmail = TrimOrNull(dto.BillingEmail);
+        tenant.DefaultCurrencyCode = Normalize(dto.DefaultCurrencyCode, "BDT").ToUpperInvariant();
+        tenant.DefaultTimeZone = Normalize(dto.DefaultTimeZone, "Asia/Dhaka");
+        tenant.DefaultCulture = Normalize(dto.DefaultCulture, "en-US");
+        tenant.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return await GetCurrentTenantAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Company profile could not be reloaded.");
     }
 
     public async Task<string> GenerateCompanyCodeAsync(string companyName, CancellationToken cancellationToken = default)

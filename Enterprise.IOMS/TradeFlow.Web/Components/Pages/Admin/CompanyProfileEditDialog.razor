@@ -1,0 +1,124 @@
+@using MudBlazor
+@using TradeFlow.Application.DTOs
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            @if (_activeTab == 0)
+            {
+                <MudCard>
+                    <MudText Typo="Typo.subtitle2" Class="px-4 pt-3">Company details</MudText>
+                    <MudGrid Class="pt-3">
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.CompanyName" Label="Company name" Required="true"
+                                          ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.LegalName" Label="Legal name" ShrinkLabel="true"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.Industry" Label="Industry" ShrinkLabel="true"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="8">
+                            <MudTextField @bind-Value="_model.Website" Label="Website" ShrinkLabel="true"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_model.CountryCode" Label="Country code" ShrinkLabel="true"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                    </MudGrid>
+                </MudCard>
+            }
+            else if (_activeTab == 1)
+            {
+                <MudCard>
+                    <MudText Typo="Typo.subtitle2" Class="px-4 pt-3">Contact Info</MudText>
+                    <MudGrid Class="pt-3">
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.PrimaryContactEmail" Label="Primary email"
+                                          InputType="InputType.Email" ShrinkLabel="true" Variant="Variant.Outlined"
+                                          Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.PrimaryContactPhone" Label="Primary phone"
+                                          InputType="InputType.Telephone" ShrinkLabel="true" Variant="Variant.Outlined"
+                                          Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.BillingEmail" Label="Billing email"
+                                          InputType="InputType.Email" ShrinkLabel="true" Variant="Variant.Outlined"
+                                          Margin="Margin.Dense" />
+                        </MudItem>
+                    </MudGrid>
+                </MudCard>
+            }
+            else if (_activeTab == 1)
+            {
+                <MudCard>
+                    <MudText Typo="Typo.subtitle2" Class="px-4 pt-3">Regional settings</MudText>
+                    <MudGrid Class="pt-3">
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_model.DefaultCurrencyCode" Label="Currency code"
+                                          ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_model.DefaultTimeZone" Label="Time zone"
+                                          ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_model.DefaultCulture" Label="Culture"
+                                          ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                    </MudGrid>
+                </MudCard>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public TenantProfileDto Tenant { get; set; } = default!;
+    [Parameter] public int InitialTab { get; set; }
+
+    private MudForm _form = default!;
+    private int _activeTab;
+    private UpdateTenantProfileDto _model = default!;
+
+    protected override void OnInitialized()
+    {
+        _activeTab = InitialTab;
+        _model = new UpdateTenantProfileDto
+        {
+            CompanyName = Tenant.CompanyName,
+            LegalName = Tenant.LegalName,
+            Industry = Tenant.Industry,
+            Website = Tenant.Website,
+            CountryCode = Tenant.CountryCode,
+            PrimaryContactEmail = Tenant.PrimaryContactEmail,
+            PrimaryContactPhone = Tenant.PrimaryContactPhone,
+            BillingEmail = Tenant.BillingEmail,
+            DefaultCurrencyCode = Tenant.DefaultCurrencyCode,
+            DefaultTimeZone = Tenant.DefaultTimeZone,
+            DefaultCulture = Tenant.DefaultCulture
+        };
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        MudDialog.Close(DialogResult.Ok(_model));
+    }
+}

@@ -32,7 +32,38 @@ namespace TradeFlow.Application.DTOs
         DateTime? CancelledAt,
         DateTime CreatedAt,
         DateTime? UpdatedAt,
-        DateTime? OnboardingCompletedAt);
+        DateTime? OnboardingCompletedAt,
+        Guid? LicenseId,
+        Guid? SubscriptionId,
+        string? SubscriptionNumber,
+        string? SubscriptionName,
+        string? LicensePlan,
+        string? LicenseBillingCycle,
+        string? LicenseStatus,
+        Guid? LicenseProjectId,
+        string? LicenseProjectName,
+        string? LicenseKey,
+        DateTime? LicenseActivatedAt,
+        DateTime? LicenseValidFrom,
+        DateTime? LicenseValidUntil,
+        DateTime? LicenseCheckedAtUtc,
+        decimal LicenseAmount,
+        int LicenseGracePeriod);
+
+    public record UpdateTenantProfileDto
+    {
+        public required string CompanyName { get; set; }
+        public string? LegalName { get; set; }
+        public string? Industry { get; set; }
+        public string? Website { get; set; }
+        public string? CountryCode { get; set; }
+        public string? PrimaryContactEmail { get; set; }
+        public string? PrimaryContactPhone { get; set; }
+        public string? BillingEmail { get; set; }
+        public string DefaultCurrencyCode { get; set; } = "BDT";
+        public string DefaultTimeZone { get; set; } = "Asia/Dhaka";
+        public string DefaultCulture { get; set; } = "en-US";
+    }
 
     public record CreateTenantDto
     {

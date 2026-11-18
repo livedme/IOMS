@@ -16,6 +16,9 @@ public interface ITenantService
     /// <summary>Returns the tenant profile for the signed-in user's workspace.</summary>
     Task<TenantProfileDto?> GetCurrentTenantAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Updates the editable company and contact details of the current workspace.</summary>
+    Task<TenantProfileDto> UpdateCurrentTenantAsync(UpdateTenantProfileDto dto, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Creates a tenant profile and records it in the current scope so the audit interceptor can
     /// stamp the tenant and the administrator user created immediately afterwards.

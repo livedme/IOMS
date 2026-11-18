@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = AuthorizationPolicies.Administrator)]
 
 @inject ITenantService TenantService
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
 <PageTitle>Company Profile - IOMS</PageTitle>
@@ -53,11 +54,11 @@ else if (_tenant is not null)
             </MudStack>
             <MudSpacer />
             <MudStack Row="true" Spacing="2">
-                <MudChip T="string" Color="@StatusColor(_tenant.TenantStatus)" Size="Size.Small">
-                    @FormatStatus(_tenant.TenantStatus)
+                <MudChip T="string" Color="@CommonUtility.StatusColor(_tenant.TenantStatus)" Size="Size.Small">
+                    @CommonUtility.FormatStatus(_tenant.TenantStatus)
                 </MudChip>
                 <MudChip T="string" Color="Color.Default" Size="Size.Small">
-                    Onboarding: @FormatStatus(_tenant.OnboardingStatus)
+                    Onboarding: @CommonUtility.FormatStatus(_tenant.OnboardingStatus)
                 </MudChip>
             </MudStack>
         </MudStack>
@@ -66,7 +67,14 @@ else if (_tenant is not null)
     <MudGrid>
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4 mb-4">
-                <MudText Typo="Typo.h6" Class="mb-3">Company details</MudText>
+                <MudStack Row="true" Class="align-center mb-3">
+                    <MudText Typo="Typo.h6">Company details</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Outlined.Edit" OnClick="@(() => OpenEditAsync(0))">
+                        Edit
+                    </MudButton>
+                </MudStack>
                 <MudSimpleTable Dense="true" Elevation="0" Class="company-profile-table">
                     <tbody>
                         <tr><td>Legal name</td><td>@ValueOrDash(_tenant.LegalName)</td></tr>
@@ -93,7 +101,14 @@ else if (_tenant is not null)
 
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4 mb-4">
-                <MudText Typo="Typo.h6" Class="mb-3">Contact</MudText>
+                <MudStack Row="true" Class="align-center mb-3">
+                    <MudText Typo="Typo.h6">Contact</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Outlined.Edit" OnClick="@(() => OpenEditAsync(1))">
+                        Edit
+                    </MudButton>
+                </MudStack>
                 <MudSimpleTable Dense="true" Elevation="0" Class="company-profile-table">
                     <tbody>
                         <tr>
@@ -143,7 +158,14 @@ else if (_tenant is not null)
 
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4 mb-4">
-                <MudText Typo="Typo.h6" Class="mb-3">Regional settings</MudText>
+                <MudStack Row="true" Class="align-center mb-3">
+                    <MudText Typo="Typo.h6">Regional settings</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Outlined.Edit" OnClick="@(() => OpenEditAsync(2))">
+                        Edit
+                    </MudButton>
+                </MudStack>
                 <MudSimpleTable Dense="true" Elevation="0" Class="company-profile-table">
                     <tbody>
                         <tr><td>Currency</td><td>@_tenant.DefaultCurrencyCode</td></tr>
@@ -152,30 +174,16 @@ else if (_tenant is not null)
                     </tbody>
                 </MudSimpleTable>
             </MudPaper>
-        </MudItem>
-
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4 mb-4">
-                <MudText Typo="Typo.h6" Class="mb-3">Workspace access</MudText>
-                <MudSimpleTable Dense="true" Elevation="0" Class="company-profile-table">
-                    <tbody>
-                        <tr><td>Custom domain</td><td>@ValueOrDash(_tenant.ApplicationDomain)</td></tr>
-                    </tbody>
-                </MudSimpleTable>
-            </MudPaper>
-        </MudItem>
-
-        <MudItem xs="12">
             <MudPaper Class="pa-4">
                 <MudText Typo="Typo.h6" Class="mb-3">Lifecycle</MudText>
                 <MudGrid>
                     <MudItem xs="12" sm="6" md="3">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
-                        <MudText>@FormatStatus(_tenant.TenantStatus)</MudText>
+                        <MudText>@CommonUtility.FormatStatus(_tenant.TenantStatus)</MudText>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="3">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Onboarding</MudText>
-                        <MudText>@FormatStatus(_tenant.OnboardingStatus)</MudText>
+                        <MudText>@CommonUtility.FormatStatus(_tenant.OnboardingStatus)</MudText> 
                     </MudItem>
                     <MudItem xs="12" sm="6" md="3">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Created</MudText>
@@ -202,24 +210,96 @@ else if (_tenant is not null)
                         <MudText>@FormatDate(_tenant.CancelledAt)</MudText>
                     </MudItem>
                 </MudGrid>
-
-                @if (!string.IsNullOrWhiteSpace(_tenant.StatusReason))
-                {
-                    <MudDivider Class="my-4" />
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Status reason</MudText>
-                    <MudText>@_tenant.StatusReason</MudText>
-                }
             </MudPaper>
         </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4 mb-4">
+                <MudStack Row="true" Class="align-center mb-3">
+                    <MudText Typo="Typo.h6">Workspace access</MudText>
+                    <MudSpacer />
+                    @if (!string.IsNullOrWhiteSpace(_tenant.LicenseStatus))
+                    {
+                        <MudChip T="string" Color="@CommonUtility.StatusColor(_tenant.LicenseStatus)" Size="Size.Small">
+                            @CommonUtility.FormatStatus(_tenant.LicenseStatus)
+                        </MudChip>
+                    }
+                </MudStack>
+                <MudGrid>
+                    <MudItem xs="12">                        
+                        <MudSimpleTable Dense="true" Elevation="0" Class="company-profile-table">
+                            <tbody>
+                                <tr><td>Application domain</td><td>@ValueOrDash(_tenant.ApplicationDomain)</td></tr>
+                                @* <tr><td>Tenant ID</td><td><code>@_tenant.Id</code></td></tr> *@
+                                <tr>
+                                    <td>License key</td>
+                                    <td>
+                                        <MudStack Row="true" Spacing="2" Class="align-center">
+                                            <code>@DisplayLicenseKey</code>
+                                            @if (!string.IsNullOrWhiteSpace(_tenant.LicenseKey))
+                                            {
+                                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                                           OnClick="() => _showLicenseKey = !_showLicenseKey">
+                                                    @(_showLicenseKey ? "Hide" : "Show")
+                                                </MudButton>
+                                            }
+                                        </MudStack>
+                                    </td>
+                                </tr>                                
+                                <tr><td>Project</td><td>@ValueOrDash(_tenant.LicenseProjectName)</td></tr>
+                                <tr><td>Subscription ID</td><td>@ValueOrDash(_tenant.SubscriptionId)</td></tr>
+                                <tr><td>Subscription</td><td>@ValueOrDash(_tenant.SubscriptionName)</td></tr>
+                                <tr><td>Subscription no.</td><td>@ValueOrDash(_tenant.SubscriptionNumber)</td></tr>
+                                <tr><td>License ID</td><td>@ValueOrDash(_tenant.LicenseId)</td></tr>
+                                <tr><td>Plan</td><td>@ValueOrDash(_tenant.LicensePlan)</td></tr>
+                                <tr><td>Billing cycle</td><td>@ValueOrDash(_tenant.LicenseBillingCycle)</td></tr>                                
+                                <tr><td>Amount</td><td>@FormatAmount(_tenant.LicenseAmount) / Month</td></tr>
+                                <tr><td>Activated</td><td>@FormatDate(_tenant.LicenseActivatedAt)</td></tr>
+                                <tr><td>Valid from</td><td>@FormatDate(_tenant.LicenseValidFrom)</td></tr>
+                                <tr><td>Valid until</td><td>@FormatDate(_tenant.LicenseValidUntil)</td></tr>
+                                <tr><td>Last checked</td><td>@FormatDate(_tenant.LicenseCheckedAtUtc)</td></tr>
+                                <tr><td>Grace period</td><td>@_tenant.LicenseGracePeriod day(s)</td></tr>
+                            </tbody>
+                        </MudSimpleTable>
+                    </MudItem>
+                    @if (!string.IsNullOrWhiteSpace(_tenant.StatusReason))
+                    {
+                        <MudDivider Class="my-4" />
+                        @* <MudText Typo="Typo.caption" Color="Color.Secondary">Status reason</MudText> *@
+                        <MudText Class="text-danger">@_tenant.StatusReason</MudText>
+                    }
+                </MudGrid>
+
+            </MudPaper>
+        </MudItem>
+
+       
     </MudGrid>
 }
 
 @code {
     private TenantProfileDto? _tenant;
     private bool _loading = true;
+    private bool _showLicenseKey;
 
     private string CompanyInitial =>
         string.IsNullOrWhiteSpace(_tenant?.CompanyName) ? "?" : _tenant.CompanyName[0].ToString().ToUpperInvariant();
+
+    private string DisplayLicenseKey
+    {
+        get
+        {
+            var key = _tenant?.LicenseKey;
+            if (string.IsNullOrWhiteSpace(key))
+                return "—";
+
+            if (_showLicenseKey)
+                return key;
+
+            var maskedLength = Math.Min(12, Math.Max(0, key.Length - 4));
+            return new string('•', maskedLength) + (key.Length > 4 ? key[^4..] : string.Empty);
+        }
+    }
 
     private string WebsiteHref =>
         _tenant?.Website?.StartsWith("http", StringComparison.OrdinalIgnoreCase) == true
@@ -245,26 +325,49 @@ else if (_tenant is not null)
         }
     }
 
-    private static string ValueOrDash(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? "—" : value;
-
-    private static string FormatStatus(string status) => status switch
+    private async Task OpenEditAsync(int initialTab)
     {
-        "InActive" => "Inactive",
-        _ => status
-    };
+        if (_tenant is null)
+            return;
 
-    private static Color StatusColor(string status) => status switch
+        var parameters = new DialogParameters<CompanyProfileEditDialog>
+        {
+            { x => x.Tenant, _tenant },
+            { x => x.InitialTab, initialTab }
+        };
+
+        var dialog = await DialogService.ShowAsync<CompanyProfileEditDialog>(
+            "Edit company profile",
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not UpdateTenantProfileDto dto)
+            return;
+
+        try
+        {
+            _tenant = await TenantService.UpdateCurrentTenantAsync(dto);
+            Snackbar.Add("Company profile updated", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private static string ValueOrDash(object? value)
     {
-        "Active" => Color.Success,
-        "Trial" => Color.Info,
-        "Pending" => Color.Warning,
-        "PastDue" => Color.Warning,
-        "Suspended" => Color.Error,
-        "Cancelled" => Color.Error,
-        "Deleted" => Color.Error,
-        _ => Color.Default
-    };
+        if (value is Guid guid && guid == Guid.Empty)
+            return "—";
+
+        var text = value?.ToString();
+        return string.IsNullOrWhiteSpace(text) ? "—" : text;
+    }
+
+    private static string FormatAmount(decimal amount) => amount == 0 ? "—" : $"৳{amount:N2}";
+
+   
 
     private static string FormatDate(DateTime? value) =>
         value is null

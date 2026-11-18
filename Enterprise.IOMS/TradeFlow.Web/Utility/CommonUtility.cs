@@ -209,6 +209,21 @@ namespace TradeFlow.Web.Utility
             "Cancelled" => Color.Error,
             _ => Color.Default
         };
+        public static string FormatStatus(string status) => status switch
+        {
+            "InActive" or "Inactive" => "Inactive",
+            "PastDue" => "Past due",
+            _ => status
+        };
+
+        public static Color StatusColor(string status) => status switch
+        {
+            "Active" => Color.Success,
+            "Trial" => Color.Info,
+            "Pending" or "PastDue" or "Inactive" or "InActive" => Color.Warning,
+            "Expired" or "Suspended" or "Revoked" or "Cancelled" or "Deleted" => Color.Error,
+            _ => Color.Default
+        };
 
     }
 }
