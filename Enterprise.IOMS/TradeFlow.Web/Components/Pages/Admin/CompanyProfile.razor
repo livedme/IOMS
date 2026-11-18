@@ -159,8 +159,7 @@ else if (_tenant is not null)
                 <MudText Typo="Typo.h6" Class="mb-3">Workspace access</MudText>
                 <MudSimpleTable Dense="true" Elevation="0" Class="company-profile-table">
                     <tbody>
-                        <tr><td>Subdomain</td><td>@ValueOrDash(_tenant.Subdomain)</td></tr>
-                        <tr><td>Custom domain</td><td>@ValueOrDash(_tenant.CustomDomain)</td></tr>
+                        <tr><td>Custom domain</td><td>@ValueOrDash(_tenant.ApplicationDomain)</td></tr>
                     </tbody>
                 </MudSimpleTable>
             </MudPaper>

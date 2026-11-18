@@ -1,3 +1,5 @@
+using Avancer.License.Models;
+using Avancer.License.Wrapper;
 using TradeFlow.Application;
 using TradeFlow.Domain.Entities;
 using TradeFlow.Infrastructure;
@@ -38,6 +40,27 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // Add Application Services (AutoMapper, all business services)
 builder.Services.AddApplication();
+
+// Avancer License SDK: resolve the API endpoint from configuration and keep a single
+// validator for the lifetime of the app. The gate middleware renders HTML in C# before
+// Blazor starts, so everything it needs must come from the root service provider.
+builder.Services.Configure<LicenseSettings>(builder.Configuration.GetSection(LicenseSettings.SectionName));
+
+var licenseValidationOptions = new LicenseValidationOptions
+{
+    BaseUrl = builder.Configuration.GetValue<string>("License:ApiUrl") ?? KeySetting.DefaultApiUrl,
+    Timeout = TimeSpan.FromSeconds(10)
+};
+
+builder.Services.AddSingleton(licenseValidationOptions);
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<ILicenseValidation>(serviceProvider =>
+    new LicenseValidation(
+        serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("LicenseValidation"),
+        licenseValidationOptions));
+
+builder.Services.AddScoped<LicenseTenantSynchronizer>();
+builder.Services.AddAntiforgery();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -136,6 +159,10 @@ app.UseMiddleware<GlobalExceptionLoggingMiddleware>();
 app.UseRateLimiter();
 
 app.UseAntiforgery();
+
+// Gate every server-rendered page behind the Avancer license check. Invalid, expired,
+// and inactive licenses are stopped here with a C#-rendered banner page.
+app.UseMiddleware<LicenseMiddleware>();
 
 app.MapStaticAssets();
 

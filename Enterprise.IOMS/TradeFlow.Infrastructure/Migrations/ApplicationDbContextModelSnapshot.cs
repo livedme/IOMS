@@ -4461,6 +4461,10 @@ namespace TradeFlow.Infrastructure.Migrations
                     b.Property<DateTime?>("ActivatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ApplicationDomain")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<string>("BillingEmail")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -4487,10 +4491,6 @@ namespace TradeFlow.Infrastructure.Migrations
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CustomDomain")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("DefaultCulture")
                         .IsRequired()
@@ -4527,6 +4527,51 @@ namespace TradeFlow.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<DateTime?>("LicenseActivatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("LicenseAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("LicenseBillingCycle")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("LicenseCheckedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LicenseGracePeriod")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("LicenseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LicenseKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("LicensePlan")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid?>("LicenseProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LicenseProjectName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("LicenseStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("LicenseValidFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LicenseValidUntil")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("LogoUrl")
                         .HasMaxLength(2048)
                         .HasColumnType("nvarchar(2048)");
@@ -4554,9 +4599,16 @@ namespace TradeFlow.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("Subdomain")
-                        .HasMaxLength(63)
-                        .HasColumnType("nvarchar(63)");
+                    b.Property<Guid?>("SubscriptionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SubscriptionName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("SubscriptionNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime?>("SuspendedAt")
                         .HasColumnType("datetime2");
@@ -4580,16 +4632,12 @@ namespace TradeFlow.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApplicationDomain")
+                        .IsUnique()
+                        .HasFilter("[ApplicationDomain] IS NOT NULL");
+
                     b.HasIndex("CompanyCode")
                         .IsUnique();
-
-                    b.HasIndex("CustomDomain")
-                        .IsUnique()
-                        .HasFilter("[CustomDomain] IS NOT NULL");
-
-                    b.HasIndex("Subdomain")
-                        .IsUnique()
-                        .HasFilter("[Subdomain] IS NOT NULL");
 
                     b.ToTable("Tenants");
 
@@ -4605,6 +4653,8 @@ namespace TradeFlow.Infrastructure.Migrations
                             DefaultCurrencyCode = "BDT",
                             DefaultTimeZone = "Asia/Dhaka",
                             IsDeleted = false,
+                            LicenseAmount = 0m,
+                            LicenseGracePeriod = 0,
                             OnboardingCompletedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             OnboardingStatus = 2,
                             TenantStatus = 1

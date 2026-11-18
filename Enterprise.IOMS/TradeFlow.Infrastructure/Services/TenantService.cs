@@ -31,7 +31,7 @@ public class TenantService : ITenantService
     public async Task<bool> SubdomainExistsAsync(string subdomain, CancellationToken cancellationToken = default)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken);
-        return await db.Tenants.AnyAsync(t => t.Subdomain == subdomain, cancellationToken);
+        return await db.Tenants.AnyAsync(t => t.ApplicationDomain == subdomain, cancellationToken);
     }
 
     public async Task<TenantProfileDto?> GetCurrentTenantAsync(CancellationToken cancellationToken = default)
@@ -57,8 +57,7 @@ public class TenantService : ITenantService
                 tenant.DefaultCurrencyCode,
                 tenant.DefaultTimeZone,
                 tenant.DefaultCulture,
-                tenant.Subdomain,
-                tenant.CustomDomain,
+                tenant.ApplicationDomain,
                 tenant.TenantStatus.ToString(),
                 tenant.StatusReason,
                 tenant.OnboardingStatus.ToString(),
@@ -110,7 +109,7 @@ public class TenantService : ITenantService
             PrimaryContactPhone = TrimOrNull(dto.PrimaryContactPhone),
             BillingEmail = TrimOrNull(dto.BillingEmail),
             CountryCode = TrimOrNull(dto.CountryCode)?.ToUpperInvariant(),
-            Subdomain = ToSubdomain(dto.Subdomain, companyCode),
+            ApplicationDomain = ToSubdomain(dto.Subdomain, companyCode),
             DefaultCurrencyCode = Normalize(dto.DefaultCurrencyCode, "BDT").ToUpperInvariant(),
             DefaultTimeZone = Normalize(dto.DefaultTimeZone, "Asia/Dhaka"),
             DefaultCulture = Normalize(dto.DefaultCulture, "en-US"),

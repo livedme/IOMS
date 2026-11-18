@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="17.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.12" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
@@ -29,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Avancer.License\Avancer.License.csproj" />
     <ProjectReference Include="..\TradeFlow.Application\TradeFlow.Application.csproj" />
     <ProjectReference Include="..\TradeFlow.Domain\TradeFlow.Domain.csproj" />
     <ProjectReference Include="..\TradeFlow.Infrastructure\TradeFlow.Infrastructure.csproj" />

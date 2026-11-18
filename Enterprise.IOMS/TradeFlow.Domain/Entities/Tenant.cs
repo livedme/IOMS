@@ -29,10 +29,23 @@ public class Tenant
     public string DefaultCulture { get; set; } = "en-US";
 
     public string? CountryCode { get; set; }
-
-    public string? Subdomain { get; set; }
-
-    public string? CustomDomain { get; set; }
+    public string? ApplicationDomain { get; set; }    
+    public Guid? LicenseId { get; set; }
+    public Guid? SubscriptionId { get; set; }
+    public string? SubscriptionNumber { get; set; }
+    public string? SubscriptionName { get; set; }
+    public string? LicensePlan { get; set; }
+    public string? LicenseKey { get; set; }
+    public string? LicenseBillingCycle { get; set; }    
+    public string? LicenseStatus { get; set; }
+    public Guid? LicenseProjectId { get; set; }
+    public string? LicenseProjectName { get; set; }
+    public DateTime? LicenseActivatedAt { get; set; }
+    public DateTime? LicenseValidFrom { get; set; }
+    public DateTime? LicenseValidUntil { get; set; }
+    public DateTime? LicenseCheckedAtUtc { get; set; }
+    public decimal LicenseAmount { get; set; }
+    public int LicenseGracePeriod { get; set; }
 
     public DateTime? TrialEndsAt { get; set; }
 

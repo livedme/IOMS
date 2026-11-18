@@ -42,7 +42,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         }
     }
 
-    public DbSet<Tenant> Tenants => Set<Tenant>();
+    
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ITenantProvider tenantProvider)
         : base(options)
@@ -50,6 +50,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         _tenantProvider = tenantProvider;
     }
 
+    public DbSet<Tenant> Tenants => Set<Tenant>();
     // Core
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Brand> Brands => Set<Brand>();
@@ -173,15 +174,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(tenant => tenant.DefaultCurrencyCode).HasMaxLength(3).IsRequired().HasDefaultValue("BDT");
             entity.Property(tenant => tenant.DefaultTimeZone).HasMaxLength(100).IsRequired().HasDefaultValue("Asia/Dhaka");
             entity.Property(tenant => tenant.DefaultCulture).HasMaxLength(10).IsRequired().HasDefaultValue("en-US");
-            entity.Property(tenant => tenant.CountryCode).HasMaxLength(2);
-            entity.Property(tenant => tenant.Subdomain).HasMaxLength(63);
-            entity.Property(tenant => tenant.CustomDomain).HasMaxLength(255);
+            entity.Property(tenant => tenant.CountryCode).HasMaxLength(2);            
+            entity.Property(tenant => tenant.ApplicationDomain).HasMaxLength(255);
             entity.Property(tenant => tenant.StatusReason).HasMaxLength(500);
             entity.Property(tenant => tenant.UpdatedBy).HasMaxLength(450);
+            entity.Property(tenant => tenant.LicenseKey).HasMaxLength(256);
+            entity.Property(tenant => tenant.SubscriptionNumber).HasMaxLength(100);
+            entity.Property(tenant => tenant.SubscriptionName).HasMaxLength(200);
+            entity.Property(tenant => tenant.LicensePlan).HasMaxLength(50);
+            entity.Property(tenant => tenant.LicenseBillingCycle).HasMaxLength(50);
+            entity.Property(tenant => tenant.LicenseStatus).HasMaxLength(50);
+            entity.Property(tenant => tenant.LicenseProjectName).HasMaxLength(200);
+            entity.Property(tenant => tenant.LicenseAmount).HasPrecision(18, 2);
             entity.Property(tenant => tenant.RowVersion).IsRowVersion();
-
-            entity.HasIndex(tenant => tenant.Subdomain).IsUnique().HasFilter("[Subdomain] IS NOT NULL");
-            entity.HasIndex(tenant => tenant.CustomDomain).IsUnique().HasFilter("[CustomDomain] IS NOT NULL");
+            entity.HasIndex(tenant => tenant.ApplicationDomain).IsUnique().HasFilter("[ApplicationDomain] IS NOT NULL");
 
             entity.HasData(new Tenant
             {
