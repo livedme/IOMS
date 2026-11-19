@@ -672,6 +672,110 @@ public class AccountingService : IAccountingService
             totalDebits, totalCredits, totalDebits - totalCredits);
     }
 
+    public async Task<SupplierLedgerDto> GetSupplierLedger(Guid? supplierId, DateTime? from, DateTime? to)
+    {
+        await using var context = await _dbFactory.CreateDbContextAsync();
+
+        var fromDate = from?.Date;
+        var toExclusive = to?.Date.AddDays(1);
+
+        var invoiceQuery = context.Invoices.AsNoTracking()
+            .Where(i => i.InvoiceType == InvoiceType.Purchase
+                        && i.SupplierId != null
+                        && i.Status != InvoiceStatus.Cancelled);
+        var paymentQuery = context.Payments.AsNoTracking()
+            .Where(p => p.SupplierId != null
+                        && p.PaymentType == PaymentType.Payment
+                        && p.Status == PaymentStatus.Completed);
+        var debitQuery = context.DebitNotes.AsNoTracking()
+            .Where(d => (d.Status == DebitNoteStatus.Approved || d.Status == DebitNoteStatus.Applied)
+                        && d.Invoice.InvoiceType == InvoiceType.Purchase
+                        && d.Invoice.SupplierId != null);
+
+        if (supplierId.HasValue)
+        {
+            invoiceQuery = invoiceQuery.Where(i => i.SupplierId == supplierId.Value);
+            paymentQuery = paymentQuery.Where(p => p.SupplierId == supplierId.Value);
+            debitQuery = debitQuery.Where(d => d.Invoice.SupplierId == supplierId.Value);
+        }
+
+        var supplierNames = await context.Suppliers.AsNoTracking()
+            .Where(s => !supplierId.HasValue || s.Id == supplierId.Value)
+            .Select(s => new { s.Id, s.SupplierName })
+            .ToDictionaryAsync(s => s.Id, s => s.SupplierName);
+
+        var windowInvoices = invoiceQuery;
+        var windowPayments = paymentQuery;
+        var windowDebits = debitQuery;
+        if (fromDate.HasValue)
+        {
+            windowInvoices = windowInvoices.Where(i => i.InvoiceDate >= fromDate.Value);
+            windowPayments = windowPayments.Where(p => p.PaymentDate >= fromDate.Value);
+            windowDebits = windowDebits.Where(d => d.Date >= fromDate.Value);
+        }
+        if (toExclusive.HasValue)
+        {
+            windowInvoices = windowInvoices.Where(i => i.InvoiceDate < toExclusive.Value);
+            windowPayments = windowPayments.Where(p => p.PaymentDate < toExclusive.Value);
+            windowDebits = windowDebits.Where(d => d.Date < toExclusive.Value);
+        }
+
+        var raw = new List<(DateTime Date, int SortOrder, Guid SupplierId, string Type, string Reference, decimal Debit, decimal Credit)>();
+
+        foreach (var invoice in await windowInvoices
+            .Select(i => new { i.InvoiceDate, SupplierId = i.SupplierId!.Value, i.InvoiceNumber, i.TotalAmount })
+            .ToListAsync())
+        {
+            raw.Add((invoice.InvoiceDate, 0, invoice.SupplierId, "Purchase Invoice", invoice.InvoiceNumber, 0m, invoice.TotalAmount));
+        }
+
+        foreach (var payment in await windowPayments
+            .Select(p => new { p.PaymentDate, SupplierId = p.SupplierId!.Value, p.PaymentNumber, p.InvoiceId, p.Amount })
+            .ToListAsync())
+        {
+            var direct = !payment.InvoiceId.HasValue;
+            raw.Add((payment.PaymentDate, direct ? 3 : 2, payment.SupplierId,
+                direct ? "Direct Payment" : "Payment", payment.PaymentNumber, payment.Amount, 0m));
+        }
+
+        foreach (var debit in await windowDebits
+            .Select(d => new { d.Date, SupplierId = d.Invoice.SupplierId!.Value, d.DebitNoteNumber, d.Amount })
+            .ToListAsync())
+        {
+            raw.Add((debit.Date, 1, debit.SupplierId, "Debit Note", debit.DebitNoteNumber, debit.Amount, 0m));
+        }
+
+        var lines = new List<SupplierLedgerLineDto>();
+        foreach (var group in raw.GroupBy(r => r.SupplierId))
+        {
+            var balance = 0m;
+            foreach (var entry in group.OrderBy(r => r.Date).ThenBy(r => r.SortOrder).ThenBy(r => r.Reference))
+            {
+                balance += entry.Credit - entry.Debit;
+                lines.Add(new SupplierLedgerLineDto(
+                    entry.SupplierId,
+                    supplierNames.GetValueOrDefault(entry.SupplierId, "Supplier"),
+                    entry.Date,
+                    entry.Type,
+                    entry.Reference,
+                    entry.Debit,
+                    entry.Credit,
+                    balance));
+            }
+        }
+
+        var orderedLines = lines
+            .OrderBy(l => l.Date)
+            .ThenBy(l => l.SupplierName)
+            .ThenBy(l => l.Reference)
+            .ToList();
+        var totalDebits = orderedLines.Sum(l => l.Debit);
+        var totalCredits = orderedLines.Sum(l => l.Credit);
+
+        return new SupplierLedgerDto(fromDate, to?.Date, orderedLines,
+            totalDebits, totalCredits, totalCredits - totalDebits);
+    }
+
     /// <summary>
     /// Invoices and receipts for one customer over a window. The statement screen ran both
     /// queries against its own context; the running-balance and chart work stays in the page.

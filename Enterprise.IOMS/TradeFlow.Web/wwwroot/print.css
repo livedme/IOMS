@@ -376,6 +376,10 @@
     line-height: 1.6;
 }
 
+.doc-print-signature {
+    display: none;
+}
+
 /* ---------- Repeating print bands (screen: hidden) ---------- */
 .print-chrome {
     display: none;
@@ -466,14 +470,14 @@
     }
 
     body.ledger-print {
-        padding: 56mm 14mm 34mm !important;
+        padding: 56mm 14mm 22mm !important;
     }
 
     body.ledger-print .print-chrome.print-header {
         display: block;
         height: 50mm;
         padding: 8mm 14mm 0;
-        border-bottom: none;
+        border-bottom: 1px solid #111827;
     }
 
     .ledger-print-header .lp-company {
@@ -542,32 +546,29 @@
     }
 
     body.ledger-print .print-chrome.print-footer {
-        height: 30mm;
-        padding: 2mm 14mm 4mm;
-        flex-direction: column;
-        align-items: stretch;
-        justify-content: space-between;
-        border-top: none;
+        height: 16mm;
+        padding: 0 14mm;
         font-size: 9px;
     }
 
-    .ledger-print-footer .lp-signature {
+    body.ledger-print .doc-print-signature {
+        display: block;
         width: 55mm;
-        margin-left: auto;
-        border-top: 1px solid #111827;
-        padding-top: 1.5mm;
+        margin: 12mm 0 0 auto;
         text-align: center;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    body.ledger-print .doc-print-signature-line {
+        border-top: 1px solid #111827;
+        margin-bottom: 1.5mm;
+    }
+
+    body.ledger-print .doc-print-signature-label {
         font-size: 9px;
         font-weight: 600;
         color: #374151;
-    }
-
-    .ledger-print-footer .lp-footer-row {
-        display: flex;
-        justify-content: space-between;
-        border-top: 1px solid #d1d5db;
-        padding-top: 2mm;
-        color: #6b7280;
     }
 
     .pc-brand {

@@ -21,6 +21,7 @@ public interface IPrintDocumentRenderer
         IEnumerable<SalesOrderDto>? orders = null, IEnumerable<StatementInvoiceRowDto>? invoices = null);
     Task<RenderedDocument> RenderSupplierAsync(SupplierDto supplier, IEnumerable<PurchaseOrderDto>? orders = null);
     Task<RenderedDocument> RenderCustomerLedgerAsync(CustomerLedgerDto ledger, string customerName = "All Customers");
+    Task<RenderedDocument> RenderSupplierLedgerAsync(SupplierLedgerDto ledger, string supplierName = "All Suppliers");
 }
 
 public sealed class PrintDocumentRenderer : IPrintDocumentRenderer
@@ -78,11 +79,23 @@ public sealed class PrintDocumentRenderer : IPrintDocumentRenderer
     {
         var name = string.IsNullOrWhiteSpace(customerName) ? "All Customers" : customerName;
         return RenderCoreAsync("Customer Ledger", name,
-            $"{(ledger.From?.ToString("dd MMM yyyy") ?? "All")} - {ledger.To?.ToString("dd MMM yyyy") ?? "Today"}",
+            $"{(ledger.From?.ToString("dd MMM yyyy") ?? "All")} - {(ledger.To?.ToString("dd MMM yyyy") ?? "Today")}",
             (nameof(PrintDocumentBody.CustomerLedger), ledger),
             new Dictionary<string, object?>
             {
                 [nameof(PrintDocumentBody.LedgerCustomerName)] = name
+            });
+    }
+
+    public Task<RenderedDocument> RenderSupplierLedgerAsync(SupplierLedgerDto ledger, string supplierName = "All Suppliers")
+    {
+        var name = string.IsNullOrWhiteSpace(supplierName) ? "All Suppliers" : supplierName;
+        return RenderCoreAsync("Supplier Ledger", name,
+            $"{(ledger.From?.ToString("dd MMM yyyy") ?? "All")} - {(ledger.To?.ToString("dd MMM yyyy") ?? "Today")}",
+            (nameof(PrintDocumentBody.SupplierLedger), ledger),
+            new Dictionary<string, object?>
+            {
+                [nameof(PrintDocumentBody.LedgerSupplierName)] = name
             });
     }
 

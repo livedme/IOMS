@@ -173,19 +173,28 @@
         try
         {
             var doc = await RenderLedgerDocument();
-            await JS.InvokeVoidAsync("printHtml", doc.Html, doc.Title, doc.Reference);
+            var meta = new
+            {
+                account = GetLedgerCustomerName(),
+                from = _fromDate?.ToString("dd/MM/yyyy") ?? "All",
+                to = _toDate?.ToString("dd/MM/yyyy") ?? "Today",
+                report = "REPORT NO.LB-" + DateTime.Now.ToString("yyyyMMdd")
+            };
+            await JS.InvokeVoidAsync("printHtml", doc.Html, doc.Title, doc.Reference, meta);
         }
         catch (Exception ex) { Snackbar.Add($"Could not print the ledger: {ex.Message}", Severity.Error); }
     }
 
     private async Task<RenderedDocument> RenderLedgerDocument()
     {
-        var customerName = _selectedCustomerId.HasValue
+        var ledger = new CustomerLedgerDto(_fromDate, _toDate, _allEntries, _totalDebits, _totalCredits, _balance);
+        return await PrintRenderer.RenderCustomerLedgerAsync(ledger, GetLedgerCustomerName());
+    }
+
+    private string GetLedgerCustomerName() =>
+        _selectedCustomerId.HasValue
             ? _customers.FirstOrDefault(c => c.Id == _selectedCustomerId.Value)?.CustomerName ?? "Customer"
             : "All Customers";
-        var ledger = new CustomerLedgerDto(_fromDate, _toDate, _allEntries, _totalDebits, _totalCredits, _balance);
-        return await PrintRenderer.RenderCustomerLedgerAsync(ledger, customerName);
-    }
 
     private List<CustomerLedgerLineDto> GetBalance(List<CustomerLedgerLineDto> Lines)
     {

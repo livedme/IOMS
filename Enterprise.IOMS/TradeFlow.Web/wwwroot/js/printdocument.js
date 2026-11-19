@@ -249,8 +249,7 @@ function ledgerPrintBands(meta) {
         + '<div class="lp-opening-row"><span>Opening Tk. :</span><span>0.00 Dr</span></div>'
         + '</div>'
         + '<div class="print-chrome print-footer ledger-print-footer">'
-        + '<div class="lp-signature">Authorized Signature</div>'
-        + '<div class="lp-footer-row"><span>Manager (Accounts)</span><span>Printed by :a</span></div>'
+        + '<span>Manager (Accounts)</span><span>Printed by :a</span>'
         + '</div>';
 }
 
@@ -281,10 +280,10 @@ window.iomsPdf = {
 
     // Prints a server-rendered HTML fragment without navigation: loads it into an off-screen
     // same-origin iframe (with the repeating header/footer bands) and prints from there.
-    printHtml: async function (html, title, reference) {
+    printHtml: async function (html, title, reference, ledgerMeta) {
         await ensureCss('/print.css');
 
-        const ledger = getLedgerMeta(html);
+        const ledger = ledgerMeta || getLedgerMeta(html);
         const bands = ledger ? ledgerPrintBands(ledger) : printChromeBands(title, reference);
         const documentHtml = '<!DOCTYPE html><html><head><meta charset="utf-8">'
             + '<link rel="stylesheet" href="/print.css"></head><body'

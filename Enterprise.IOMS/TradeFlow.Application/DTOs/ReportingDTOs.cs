@@ -153,6 +153,24 @@ public record CustomerLedgerDto(
     decimal TotalCredits,
     decimal Balance);
 
+public record SupplierLedgerLineDto(
+    Guid SupplierId,
+    string SupplierName,
+    DateTime Date,
+    string Type,
+    string Reference,
+    decimal Debit,
+    decimal Credit,
+    decimal RunningBalance);
+
+public record SupplierLedgerDto(
+    DateTime? From,
+    DateTime? To,
+    List<SupplierLedgerLineDto> Lines,
+    decimal TotalDebits,
+    decimal TotalCredits,
+    decimal Balance);
+
 public record GeneralLedgerLineDto(
     DateTime EntryDate,
     string EntryNumber,
