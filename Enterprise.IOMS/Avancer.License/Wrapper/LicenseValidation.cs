@@ -56,10 +56,10 @@ namespace Avancer.License.Wrapper
         {
             domain = domain?.Trim() ?? string.Empty;
             licenseKey = licenseKey?.Trim() ?? string.Empty;
-            if(domain.Equals("localhost", StringComparison.OrdinalIgnoreCase) || domain.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase))
-            {
-                domain = "ims.avancerapp.com";
-            }
+            //if (domain.Equals("localhost", StringComparison.OrdinalIgnoreCase) || domain.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase))
+            //{
+            //    domain = "ims.avancerapp.com";
+            //}
 
             if (domain.Length == 0 || licenseKey.Length == 0)
                 return Invalid("The domain and license key are required.");

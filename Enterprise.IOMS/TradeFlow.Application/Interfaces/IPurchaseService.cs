@@ -5,8 +5,8 @@ namespace TradeFlow.Application.Interfaces;
 
 public interface IPurchaseService
 {
-    Task<Guid> CreatePurchaseOrder(CreatePurchaseOrderDto dto);
-    Task UpdatePurchaseOrder(Guid id, CreatePurchaseOrderDto dto);
+    Task<Guid> CreatePurchaseOrder(PurchaseOrderDtoModels dto);
+    Task UpdatePurchaseOrder(Guid id, PurchaseOrderDtoModels dto);
     Task CancelPurchaseOrder(Guid id);
     Task DeletePurchaseOrder(Guid id);
     Task ApprovePurchaseOrder(Guid poId);

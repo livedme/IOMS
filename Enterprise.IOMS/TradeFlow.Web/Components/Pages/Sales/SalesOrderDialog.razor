@@ -9,9 +9,9 @@
                         <MudDatePicker @bind-Date="dataModel.SalesDate" Label="Sales Date" ShrinkLabel="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudItem>
                     <MudItem xs="12" sm="3">
-                        <MudSelect T="Guid?" Label="Brannche" Required="true" RequiredError=""
+                        <MudSelect T="Guid?" Label="Branche" Required="true" RequiredError=""
                                    Value="dataModel.BranchId"
-                                   ValueChanged="OnBranncheChanged"
+                                   ValueChanged="OnBrancheChanged"
                                    @bind-Text="_branchtext"
                                    For="@(() => dataModel.BranchId)"
                                    SelectionOnEnter="true"
@@ -302,12 +302,12 @@
         }
     }
     
-    private async Task OnBranncheChanged(Guid? value)
+    private async Task OnBrancheChanged(Guid? value)
     {
         dataModel.BranchId=value;
 
-        var products = await ProductService.GetProductByStoreIdAsync(value ?? Guid.Empty);
-        Products = products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
+        // var products = await ProductService.GetProductByStoreIdAsync(value ?? Guid.Empty);
+        // Products = products.Select(p => (p.Id, p.Name, p.SKU, p.SellingPrice)).ToList();
 
         await Task.Delay(100);
         if (dataModel.CustomerDdlControl.ControlRef is not null)

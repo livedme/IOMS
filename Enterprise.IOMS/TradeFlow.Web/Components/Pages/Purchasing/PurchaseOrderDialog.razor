@@ -357,9 +357,12 @@
                 await UpdateControlSelection(dataModel.SupplierDdlControl, previousCustomer);
                 StateHasChanged();
             }
+
+            dataModel.SupplierId = cust.Id;
         }
         else
         {
+            dataModel.SupplierId = dataModel.SupplierDdlControl.SelectedItem.Id;
             //dataModel.SelectedSupplier = cust;
             //dataModel.LastSupplierSelection = dataModel.SelectedSupplier;
             //dataModel.SupplierText = dataModel.SelectedSupplier?.Name;
@@ -698,9 +701,13 @@
         if (!_form.IsValid)
             return;
 
-        MudDialog.Close(DialogResult.Ok(
-        new CreatePurchaseOrderDto(dataModel.SupplierDdlControl.SelectedItem?.Id, dataModel.WarehouseId, dataModel.Notes, null, null,
-            dataModel.ItemsLine.Where(i => i.ProductId != Guid.Empty).ToList())));
+
+        MudDialog.Close(DialogResult.Ok(dataModel));
+
+
+    //     MudDialog.Close(DialogResult.Ok(
+    // new CreatePurchaseOrderDto(dataModel.SupplierDdlControl.SelectedItem?.Id, dataModel.WarehouseId, dataModel.Notes, null, null,
+    //     dataModel.ItemsLine.Where(i => i.ProductId != Guid.Empty).ToList())));
     }
 
 

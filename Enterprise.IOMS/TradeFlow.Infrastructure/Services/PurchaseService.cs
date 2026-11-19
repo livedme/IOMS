@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -32,84 +33,85 @@ namespace TradeFlow.Infrastructure.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<Guid> CreatePurchaseOrder(CreatePurchaseOrderDto dto)
+        public async Task<Guid> CreatePurchaseOrder(PurchaseOrderDtoModels dto)
         {
-            await using var _context = await _contextFactory.CreateDbContextAsync();
-            var po = new PurchaseOrder
+            try
             {
-                OrderNumber = NumberGenerator.GenerateOrderNumber("PO"),
-                SupplierId = dto.SupplierId,
-                WarehouseId = dto.WarehouseId,
-                Notes = dto.Notes,
-                ExpectedDeliveryDate = dto.ExpectedDeliveryDate,
-                CurrencyId = dto.CurrencyId,
-                Status = PurchaseOrderStatus.Draft
-            };
-
-            foreach (var item in dto.Items)
-            {
-                //var lineTotal = item.UnitPrice * item.Quantity;
-                //po.Items.Add(new PurchaseOrderItem
-                //{
-                //    ProductId = item.ProductId,
-                //    Quantity = item.Quantity,
-                //    UnitPrice = item.UnitPrice,
-                //    LineTotal = lineTotal,
-                //    UoMId = item.UoMId
-                //});
-
-                //dataModel.ProductObj.ProductId, dataModel.ProductObj.Quantity,
-                ////dataModel.ProductObj.UnitPrice, dataModel.ProductObj.DiscountAmount,
-                /////(DiscountType)dataModel.ProductObj.DiscountType, 
-                /////dataModel.ProductObj.TotalDiscount, dataModel.ProductObj.TotalPrice, null, null
-
-                po.Items.Add(new PurchaseOrderItem
+                await using var _context = await _contextFactory.CreateDbContextAsync();
+                var po = new PurchaseOrder
                 {
-                    ProductId = item.ProductId,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    DiscountAmount = item.DiscountAmount,
-                    DiscountType = item.DiscountType,
-                    TotalDiscount = item.TotalDiscount,
-                    LineTotal = item.TotalPrice,
-                    UoMId = item.UoMId
-                });
-            }
+                    OrderNumber = NumberGenerator.GenerateOrderNumber("PO"),
+                    SupplierId = dto.SupplierId,
+                    WarehouseId = dto.WarehouseId,
+                    Status = PurchaseOrderStatus.Draft,
+                    PurchaseDate = DateTime.UtcNow,
+                    SubTotal = dto.SubTotal,
+                    DiscountAmount = dto.DiscountAmount,
+                    DiscountType = dto.DiscountType,
+                    TotalDiscount = dto.TotalDiscount,
+                    TaxAmount = dto.TaxAmount,
+                    TotalAmount = dto.TotalAmount,
+                    PaidAmount = dto.PaidAmount,
+                    DueAmount = dto.DueAmount,
+                    Notes = dto.Notes,
+                    ExchangeRate = 0,
+                    ExpectedDeliveryDate = DateTime.Today
+                };
 
-            po.SubTotal = po.Items.Sum(i => i.LineTotal);
-            po.TotalAmount = po.SubTotal + po.TaxAmount;
-
-            _context.PurchaseOrders.Add(po);
-            await _context.SaveChangesAsync();
-
-            // Create ProductSerial records for items that have serial entries
-            foreach (var item in dto.Items.Where(i => i.Serials != null && i.Serials.Count > 0))
-            {
-                foreach (var entry in item.Serials!)
+                foreach (var item in dto.ItemsLine)
                 {
-                    _context.ProductSerials.Add(new ProductSerial
+                    po.Items.Add(new PurchaseOrderItem
                     {
                         ProductId = item.ProductId,
-                        SerialNumber = entry.SerialNumber,
-                        Barcode = entry.Barcode ?? entry.SerialNumber,
-                        Status = ProductSerialStatus.Available,
-                        WarehouseId = dto.WarehouseId,
-                        SupplierId = dto.SupplierId,
-                        PurchaseDate = DateTime.UtcNow,
-                        WarrantyStartDate = entry.WarrantyStartDate,
-                        WarrantyEndDate = entry.WarrantyEndDate,
-                        BinLocation = entry.BinLocation
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice,
+                        DiscountAmount = item.DiscountAmount,
+                        DiscountType = item.DiscountType,
+                        TotalDiscount = item.TotalDiscount,
+                        LineTotal = item.TotalPrice,
+                        UoMId = item.UoMId
                     });
                 }
+
+                //po.SubTotal = po.Items.Sum(i => i.LineTotal);
+                //po.TotalAmount = po.SubTotal + po.TaxAmount;
+
+                _context.PurchaseOrders.Add(po);
+                await _context.SaveChangesAsync();
+
+                // Create ProductSerial records for items that have serial entries
+                foreach (var item in dto.ItemsLine.Where(i => i.Serials != null && i.Serials.Count > 0))
+                {
+                    foreach (var entry in item.Serials!)
+                    {
+                        _context.ProductSerials.Add(new ProductSerial
+                        {
+                            ProductId = item.ProductId,
+                            SerialNumber = entry.SerialNumber,
+                            Barcode = entry.Barcode ?? entry.SerialNumber,
+                            Status = ProductSerialStatus.Available,
+                            WarehouseId = dto.WarehouseId,
+                            SupplierId = dto.SupplierId,
+                            PurchaseDate = DateTime.UtcNow,
+                            WarrantyStartDate = entry.WarrantyStartDate,
+                            WarrantyEndDate = entry.WarrantyEndDate,
+                            BinLocation = entry.BinLocation
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
+
+                await _invoiceService.GenerateInvoiceFromPurchaseOrderAsync(po.Id);
+
+                return po.Id;
+
+            }catch(Exception ex)
+            {
+                return Guid.Empty;
             }
-            await _context.SaveChangesAsync();
-
-            await _invoiceService.GenerateInvoiceFromPurchaseOrderAsync(po.Id);
-
-            return po.Id;
         }
 
-        public async Task UpdatePurchaseOrder(Guid id, CreatePurchaseOrderDto dto)
+        public async Task UpdatePurchaseOrder(Guid id, PurchaseOrderDtoModels dto)
         {
             await using var _context = await _contextFactory.CreateDbContextAsync();
             // Clear stale tracked entities from previous operations in the same Blazor circuit scope
@@ -120,9 +122,20 @@ namespace TradeFlow.Infrastructure.Services
                 ?? throw new EntityNotFoundException("PurchaseOrder", id);
 
             po.SupplierId = dto.SupplierId;
-            po.WarehouseId = dto.WarehouseId;
-            po.Notes = dto.Notes;
-            po.ExpectedDeliveryDate = dto.ExpectedDeliveryDate;
+            po.WarehouseId = dto.WarehouseId;            
+            po.Status = PurchaseOrderStatus.Draft;
+            po.PurchaseDate = DateTime.UtcNow;
+            po.SubTotal = dto.SubTotal;
+            po.DiscountAmount = dto.DiscountAmount;
+            po.DiscountType = dto.DiscountType;
+            po.TotalDiscount = dto.TotalDiscount;
+                po.TaxAmount = dto.TaxAmount;          
+                po.TotalAmount = dto.TotalAmount;
+                po.PaidAmount = dto.PaidAmount;
+                po.DueAmount = dto.DueAmount;
+                po.Notes = dto.Notes;
+
+            //po.ExpectedDeliveryDate = dto.ExpectedDeliveryDate;
 
             // Load old items (IgnoreQueryFilters bypasses TenantId/IsDeleted global filter)
             // then RemoveRange so EF Core tracks them as Deleted with correct RowVersion
@@ -132,7 +145,7 @@ namespace TradeFlow.Infrastructure.Services
                 .ToListAsync();
             _context.PurchaseOrderItems.RemoveRange(oldItems);
 
-            foreach (var item in dto.Items)
+            foreach (var item in dto.ItemsLine)
             {
                 _context.PurchaseOrderItems.Add(new PurchaseOrderItem
                 {
@@ -148,8 +161,8 @@ namespace TradeFlow.Infrastructure.Services
                 });
             }
 
-            po.SubTotal = dto.Items.Sum(i => i.TotalPrice);
-            po.TotalAmount = po.SubTotal + po.TaxAmount;
+            // po.SubTotal = dto.ItemsLine.Sum(i => i.TotalPrice);
+            //po.TotalAmount = po.SubTotal + po.TaxAmount;
 
             await _context.SaveChangesAsync();
         }

@@ -521,7 +521,7 @@
             new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
         var result = await dialog.Result;
 
-        if (result != null && !result.Canceled && result.Data is CreatePurchaseOrderDto dto)
+        if (result != null && !result.Canceled && result.Data is PurchaseOrderDtoModels dto)
         {
             try
             {

@@ -556,11 +556,12 @@ public sealed class LicenseMiddleware
                     return byDomain.LicenseKey;
             }
 
-            var defaultTenant = await db.Tenants
-                .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == Guid.Parse(AppConstants.DefaultTenantId), cancellationToken);
+            //var defaultTenant = await db.Tenants
+            //    .AsNoTracking()
+            //    .FirstOrDefaultAsync(t => t.Id == Guid.Parse(AppConstants.DefaultTenantId), cancellationToken);
+            //return defaultTenant?.LicenseKey;
 
-            return defaultTenant?.LicenseKey;
+            return null;
         }
         catch
         {
