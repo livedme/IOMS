@@ -7,7 +7,13 @@
 <div class="tm-card tm-panel">
     <div class="tm-panel-head" style="align-items:flex-start;">
         <div>
-            <span class="tm-panel-title" style="font-size:15px;">Purchase Overview</span>
+            <div class="d-flex align-center" style="gap:8px;">
+                <span class="tm-panel-title" style="font-size:15px;">Purchase Overview</span>
+                @if (Loading)
+                {
+                    <span class="tm-spinner tm-spinner-sm" role="status" aria-label="Loading purchase overview"></span>
+                }
+            </div>
             <div class="tm-ov-sub">@Subtitle</div>
         </div>
         <div style="text-align:right;">

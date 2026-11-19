@@ -6,7 +6,10 @@
     <div class="tm-kpis">
         @for (int i = 0; i < 6; i++)
         {
-            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="150px;" Style="border-radius:12px;" />
+            <div style="position:relative;">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="150px;" Style="border-radius:12px;" />
+                <span class="tm-spinner tm-spinner-sm" style="position:absolute; top:16px; left:16px; z-index:1;" role="status" aria-label="Loading KPI"></span>
+            </div>
         }
     </div>
 }

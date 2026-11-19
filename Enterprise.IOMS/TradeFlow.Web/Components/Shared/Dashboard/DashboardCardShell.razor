@@ -2,7 +2,13 @@
 
 <div class="tm-card tm-panel" style="@(FillHeight ? "height:100%;" : null)">
     <div class="tm-panel-head">
-        <span class="tm-panel-title">@Title</span>
+        <div class="d-flex align-center" style="gap:8px;">
+            <span class="tm-panel-title">@Title</span>
+            @if (Loading)
+            {
+                <span class="tm-spinner tm-spinner-sm" role="status" aria-label="Loading @Title"></span>
+            }
+        </div>
         <div class="d-flex align-center" style="gap:10px;">
             @HeaderExtra
             @if (!string.IsNullOrEmpty(ViewAllHref))
