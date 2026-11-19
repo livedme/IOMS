@@ -1,0 +1,286 @@
+@page "/accounting/customer-ledger"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IAccountingService AccountingService
+@inject ICustomerService CustomerService
+@inject ISnackbar Snackbar
+@inject IPrintDocumentRenderer PrintRenderer
+@inject IJSRuntime JS
+
+<PageTitle>Customer Ledger - IOMS</PageTitle>
+
+<div class="tm-page">
+    <TmPageHeader Icon="🧾" Title="Customer Ledger" Subtitle="Posted sales invoices, receipts, credit notes and direct payments — running balance per customer">
+        <Actions>
+            <button class="tm-reset" @onclick="PrintLedger" disabled="@_loading">Print</button>
+            <button class="tm-reset" @onclick="DownloadPdf" disabled="@_loading">Download PDF</button>
+            <button class="tm-reset" @onclick="LoadLedger">⟳ Refresh</button>
+        </Actions>
+    </TmPageHeader>
+
+    <div class="tm-stats">
+        <TmStatTile Icon="↘" Number="@Taka.Text(_totalDebits)" Label="Total Debits" Tone="blue" />
+        <TmStatTile Icon="↙" Number="@Taka.Text(_totalCredits)" Label="Total Credits" Tone="green" />
+        <TmStatTile Icon="⚖" Number="@Taka.Text(_balance)" Label="Balance" Tone="teal" />
+    </div>
+
+    <div class="tm-card tm-filters">
+        <div class="tm-select col-md-6" style="flex:0 0 auto;">
+            <select value="@(_selectedCustomerId?.ToString() ?? "")" @onchange="OnCustomerChanged">
+                <option value="">All Customers</option>
+                @foreach (var customer in _customers)
+                {
+                    <option value="@customer.Id">@customer.CustomerName</option>
+                }
+            </select>
+        </div>
+        <TmDateRange From="_fromDate" To="_toDate" RangeChanged="OnRangeChanged" />
+        <button class="tm-reset" @onclick="ResetFilters">Reset</button>
+    </div>
+
+    <div class="tm-card tm-table-card">
+        @if (_loading)
+        {
+            <div style="position:absolute; inset:0; background:rgba(255,255,255,0.62); backdrop-filter:blur(1px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; border-radius:12px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Style="margin-top:8px; color:#334155; font-weight:600;">Loading ledger...</MudText>
+            </div>
+        }
+        <div class="tm-table-wrap">
+            <table class="tm-table">
+                <thead>
+                    <tr>
+                        <th>📅 Date</th>
+                        @if (!_selectedCustomerId.HasValue)
+                        {
+                            <th>Customer</th>
+                        }
+                        <th>Type</th>
+                        <th>Reference</th>
+                        <th style="text-align:right">Debit</th>                        
+                        <th style="text-align:right">Credit</th>                        
+                        <th style="text-align:right">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!_hasLoadedOnce && _loading)
+                    {
+                        <tr><td colspan="@(_selectedCustomerId.HasValue ? 6 : 7)" style="text-align:center; padding:40px; color:#94a3b8;">Loading ledger...</td></tr>
+                    }
+                    else if (!_entries.Any())
+                    {
+                        <tr>
+                            <td colspan="@(_selectedCustomerId.HasValue ? 6 : 7)" style="text-align:center; padding:40px;">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Style="color:#94a3b8;" Class="mb-2" />
+                                <div style="color:#64748b;">No posted customer transactions found — try a different customer or date range</div>
+                                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2" OnClick="ResetFilters">Clear filters</MudButton>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var entry in _entries)
+                        {
+                            <tr>
+                                <td class="tm-dim">@entry.Date.ToString("dd MMM yyyy")</td>
+                                @if (!_selectedCustomerId.HasValue)
+                                {
+                                    <td>@entry.CustomerName</td>
+                                }
+                                <td><span class="@TypePill(entry.Type)"><span class="tm-dot"></span>@entry.Type</span></td>
+                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">📄</span>@entry.Reference</span></td>
+                                <td style="text-align:right" class="tm-money">@(entry.Debit > 0 ? entry.Debit : (MarkupString)"-")</td>
+                                <td style="text-align:right" class="tm-money">@(entry.Credit > 0 ? entry.Credit : (MarkupString)"-")</td>
+                                <td style="text-align:right" class="tm-money"><strong>@entry.RunningBalance</strong></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="opacity:@(_loading ? "0.55" : "1"); pointer-events:@(_loading ? "none" : "auto");">
+            <TmPager CurrentPage="@_currentPage"
+                     PageSize="@_pageSize"
+                     TotalCount="@_allEntries.Count"
+                     TotalPages="@_totalPages"
+                     ItemLabel="Entries"
+                     OnGoToPage="GoToPage"
+                     OnPrev="GoPrevPage"
+                     OnNext="GoNextPage"
+                     OnPageSizeChanged="OnPageSizeChanged" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<CustomerDto> _customers = new();
+    private List<CustomerLedgerLineDto> _allEntries = new();
+    private List<CustomerLedgerLineDto> _entries = new();
+    private Guid? _selectedCustomerId;
+    private DateTime? _fromDate = new DateTime(DateTime.Today.Year, 1, 1);
+    private DateTime? _toDate = DateTime.Today;
+    private decimal _totalDebits;
+    private decimal _totalCredits;
+    private decimal _balance;
+    private bool _loading = true;
+    private bool _hasLoadedOnce;
+
+    private int _currentPage;
+    private int _pageSize = 25;
+    private int _totalPages = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _customers = await CustomerService.GetActiveCustomersAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error loading customers: {ex.Message}", Severity.Error); }
+        await LoadLedger();
+    }
+
+    private async Task LoadLedger()
+    {
+        _loading = true;
+        try
+        {
+            var ledger = await AccountingService.GetCustomerLedger(_selectedCustomerId, _fromDate, _toDate);
+            _allEntries = GetBalance(ledger.Lines);
+            _totalDebits = ledger.TotalDebits;
+            _totalCredits = ledger.TotalCredits;
+            _balance = _totalDebits - _totalCredits;
+            _hasLoadedOnce = true;
+            ApplyPage();
+        }
+        catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private async Task DownloadPdf()
+    {
+        if (_loading || !_hasLoadedOnce) return;
+        try
+        {
+            var doc = await RenderLedgerDocument();
+            await JS.InvokeVoidAsync("downloadFile", doc.Html, doc.FileName + ".pdf", doc.Title, doc.Reference);
+        }
+        catch (Exception ex) { Snackbar.Add($"Could not generate the PDF: {ex.Message}", Severity.Error); }
+    }
+
+    private async Task PrintLedger()
+    {
+        if (_loading || !_hasLoadedOnce) return;
+        try
+        {
+            var doc = await RenderLedgerDocument();
+            await JS.InvokeVoidAsync("printHtml", doc.Html, doc.Title, doc.Reference);
+        }
+        catch (Exception ex) { Snackbar.Add($"Could not print the ledger: {ex.Message}", Severity.Error); }
+    }
+
+    private async Task<RenderedDocument> RenderLedgerDocument()
+    {
+        var customerName = _selectedCustomerId.HasValue
+            ? _customers.FirstOrDefault(c => c.Id == _selectedCustomerId.Value)?.CustomerName ?? "Customer"
+            : "All Customers";
+        var ledger = new CustomerLedgerDto(_fromDate, _toDate, _allEntries, _totalDebits, _totalCredits, _balance);
+        return await PrintRenderer.RenderCustomerLedgerAsync(ledger, customerName);
+    }
+
+    private List<CustomerLedgerLineDto> GetBalance(List<CustomerLedgerLineDto> Lines)
+    {
+        var balance = 0m;
+        var allCalculations = new List<CustomerLedgerLineDto>();
+
+        foreach (var line in Lines)
+        {
+            balance += line.Debit-line.Credit;
+
+            allCalculations.Add(new CustomerLedgerLineDto(line.CustomerId, line.CustomerName, line.Date, line.Type, 
+                line.Reference, line.Debit, line.Credit, balance));
+        }
+
+        return allCalculations;
+    }
+
+    private void ApplyPage()
+    {
+        _totalPages = Math.Max(1, (int)Math.Ceiling(_allEntries.Count / (double)_pageSize));
+        _currentPage = Math.Clamp(_currentPage, 0, _totalPages - 1);
+        _entries = _allEntries.Skip(_currentPage * _pageSize).Take(_pageSize).ToList();
+    }
+
+    private async Task OnCustomerChanged(ChangeEventArgs e)
+    {
+        _selectedCustomerId = ParseGuid(e.Value);
+        _currentPage = 0;
+        await LoadLedger();
+    }
+
+    private async Task OnRangeChanged((DateTime? From, DateTime? To) range)
+    {
+        _fromDate = range.From;
+        _toDate = range.To;
+        _currentPage = 0;
+        await LoadLedger();
+    }
+
+    private async Task ResetFilters()
+    {
+        _selectedCustomerId = null;
+        _fromDate = new DateTime(DateTime.Today.Year, 1, 1);
+        _toDate = DateTime.Today;
+        _currentPage = 0;
+        await LoadLedger();
+    }
+
+    private static Guid? ParseGuid(object? value) =>
+        Guid.TryParse(value?.ToString(), out var g) && g != Guid.Empty ? g : null;
+
+    private static string TypePill(string type) => type switch
+    {
+        "Sales Invoice" => "tm-pill tm-pill-blue",
+        "Credit Note" => "tm-pill tm-pill-amber",
+        "Payment" => "tm-pill tm-pill-green",
+        "Direct Payment" => "tm-pill tm-pill-teal",
+        _ => "tm-pill tm-pill-gray"
+    };
+
+    private Task GoToPage(int page)
+    {
+        _currentPage = Math.Clamp(page, 0, _totalPages - 1);
+        ApplyPage();
+        return Task.CompletedTask;
+    }
+
+    private Task GoPrevPage()
+    {
+        if (_currentPage > 0)
+        {
+            _currentPage--;
+            ApplyPage();
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task GoNextPage()
+    {
+        if (_currentPage < _totalPages - 1)
+        {
+            _currentPage++;
+            ApplyPage();
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var sz))
+        {
+            _pageSize = Math.Clamp(sz, 1, 100);
+            _currentPage = 0;
+            ApplyPage();
+        }
+        return Task.CompletedTask;
+    }
+}

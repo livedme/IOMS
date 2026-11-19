@@ -2,7 +2,13 @@
    so it can be rendered either inside the /print page or to an HTML string on the server and handed
    to the client-side `downloadFile` JS function for PDF generation. *@
 
-<div class="doc-page" id="doc-page">
+<div class="doc-page" id="doc-page"
+     data-ledger="@(CustomerLedger is not null ? "1" : null)"
+     data-ledger-header="@(IsIndividualLedger ? "1" : null)"
+     data-ledger-account="@LedgerCustomerName"
+     data-ledger-from="@(CustomerLedger?.From?.ToString("dd/MM/yyyy") ?? "")"
+     data-ledger-to="@(CustomerLedger?.To?.ToString("dd/MM/yyyy") ?? "")"
+     data-ledger-report="@("REPORT NO.LB-" + DateTime.Now.ToString("yyyyMMdd"))">
     <header class="doc-head">
         <div class="doc-brand">
             <img src="/logo.png" class="doc-logo" alt="Avancer" />
@@ -866,6 +872,79 @@
             </div>
         }
     }
+    else if (CustomerLedger is not null)
+    {
+        @if (!IsIndividualLedger)
+        {
+            <div class="doc-info-row doc-sec">
+                <div class="doc-info-card">
+                    <div class="doc-info-icon">&#128100;</div>
+                    <div>
+                        <div class="doc-lbl">Customer</div>
+                        <div class="doc-val doc-val-lg">@DocRef</div>
+                        <div class="doc-sm">@(CustomerLedger.Lines.Count) ledger entries</div>
+                    </div>
+                </div>
+                <div class="doc-info-card">
+                    <div class="doc-info-icon">&#128197;</div>
+                    <div>
+                        <div class="doc-lbl">Period</div>
+                        <div class="doc-val doc-val-lg">@(CustomerLedger.From?.ToString("dd MMM yyyy") ?? "All") - @(CustomerLedger.To?.ToString("dd MMM yyyy") ?? "Today")</div>
+                        <div class="doc-sm">Balance excluding opening balance</div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="doc-sec">
+            <div class="doc-sec-title">Ledger Entries</div>
+            <table class="doc-items">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        @if (!IsIndividualLedger)
+                        {
+                            <th>Customer</th>
+                        }
+                        <th>Type</th>
+                        <th>Reference</th>
+                        <th class="r">Debit</th>
+                        <th class="r">Credit</th>
+                        <th class="r">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (CustomerLedger.Lines.Count == 0)
+                    {
+                        <tr><td colspan="@(IsIndividualLedger ? 6 : 7)" style="text-align:center;">No transactions found</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var line in CustomerLedger.Lines)
+                        {
+                            <tr>
+                                <td>@line.Date.ToString("dd MMM yyyy")</td>
+                                @if (!IsIndividualLedger)
+                                {
+                                    <td>@line.CustomerName</td>
+                                }
+                                <td>@line.Type</td>
+                                <td>@line.Reference</td>
+                                <td class="r">@(line.Debit > 0 ? Money(line.Debit) : (MarkupString)"-")</td>
+                                <td class="r">@(line.Credit > 0 ? Money(line.Credit) : (MarkupString)"-")</td>
+                                <td class="r">@Money(line.RunningBalance)</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+            <div class="doc-totals">
+                <div class="doc-total-row"><span>Total Debits</span><span>@Money(CustomerLedger.TotalDebits)</span></div>
+                <div class="doc-total-row doc-paid"><span>Total Credits</span><span>@Money(CustomerLedger.TotalCredits)</span></div>
+                <div class="doc-total-row doc-grand"><span>Balance</span><span>@Money(CustomerLedger.Balance)</span></div>
+            </div>
+        </div>
+    }
 
     <div class="doc-footer">
         Avancer Inc. | 123 Business Park, New York, NY 10001, USA<br />
@@ -891,6 +970,13 @@
     [Parameter] public List<StatementInvoiceRowDto> CustomerInvoices { get; set; } = new();
     [Parameter] public SupplierDto? Supplier { get; set; }
     [Parameter] public List<PurchaseOrderDto> SupplierOrders { get; set; } = new();
+    [Parameter] public CustomerLedgerDto? CustomerLedger { get; set; }
+    [Parameter] public string LedgerCustomerName { get; set; } = "All Customers";
+
+    private bool IsIndividualLedger =>
+        CustomerLedger is not null
+        && !string.IsNullOrWhiteSpace(LedgerCustomerName)
+        && LedgerCustomerName != "All Customers";
 
     private static MarkupString Money(decimal value) => Taka.H(value);
 }

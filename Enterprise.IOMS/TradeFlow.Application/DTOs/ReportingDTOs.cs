@@ -135,6 +135,24 @@ public record CustomerStatementDto(
     List<StatementInvoiceRowDto> Invoices,
     List<StatementPaymentRowDto> Payments);
 
+public record CustomerLedgerLineDto(
+    Guid CustomerId,
+    string CustomerName,
+    DateTime Date,
+    string Type,
+    string Reference,
+    decimal Debit,
+    decimal Credit,
+    decimal RunningBalance);
+
+public record CustomerLedgerDto(
+    DateTime? From,
+    DateTime? To,
+    List<CustomerLedgerLineDto> Lines,
+    decimal TotalDebits,
+    decimal TotalCredits,
+    decimal Balance);
+
 public record GeneralLedgerLineDto(
     DateTime EntryDate,
     string EntryNumber,

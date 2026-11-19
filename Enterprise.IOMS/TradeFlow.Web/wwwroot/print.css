@@ -465,6 +465,111 @@
         font-family: 'Segoe UI', Roboto, Arial, sans-serif;
     }
 
+    body.ledger-print {
+        padding: 56mm 14mm 34mm !important;
+    }
+
+    body.ledger-print .print-chrome.print-header {
+        display: block;
+        height: 50mm;
+        padding: 8mm 14mm 0;
+        border-bottom: none;
+    }
+
+    .ledger-print-header .lp-company {
+        line-height: 1.35;
+    }
+
+    .ledger-print-header .lp-brand {
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: .5px;
+        color: #101a33;
+    }
+
+    .ledger-print-header .lp-addr {
+        font-size: 8px;
+        color: #374151;
+    }
+
+    .ledger-print-header .lp-rule {
+        border-top: 1px solid #111827;
+        margin: 2mm 0 1.5mm;
+    }
+
+    .ledger-print-header .lp-report-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+    }
+
+    .ledger-print-header .lp-title {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .3px;
+        color: #111827;
+    }
+
+    .ledger-print-header .lp-report,
+    .ledger-print-header .lp-date {
+        font-size: 9px;
+        color: #374151;
+    }
+
+    .ledger-print-header .lp-account-row {
+        display: flex;
+        gap: 8mm;
+        margin-top: 2mm;
+        font-size: 9px;
+        color: #111827;
+    }
+
+    .ledger-print-header .lp-account-row span:first-child {
+        font-weight: 700;
+    }
+
+    .ledger-print-header .lp-opening-row {
+        display: flex;
+        justify-content: flex-end;
+        gap: 4mm;
+        margin-top: 1.5mm;
+        font-size: 9px;
+        color: #111827;
+    }
+
+    .ledger-print-header .lp-opening-row span:first-child {
+        font-weight: 700;
+    }
+
+    body.ledger-print .print-chrome.print-footer {
+        height: 30mm;
+        padding: 2mm 14mm 4mm;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: space-between;
+        border-top: none;
+        font-size: 9px;
+    }
+
+    .ledger-print-footer .lp-signature {
+        width: 55mm;
+        margin-left: auto;
+        border-top: 1px solid #111827;
+        padding-top: 1.5mm;
+        text-align: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .ledger-print-footer .lp-footer-row {
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px solid #d1d5db;
+        padding-top: 2mm;
+        color: #6b7280;
+    }
+
     .pc-brand {
         font-size: 14px;
         font-weight: 800;

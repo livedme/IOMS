@@ -53,6 +53,80 @@ function drawPdfFooter(pdf, pageW, pageH, margin, footerH, page, total) {
     pdf.text('Page ' + page + ' of ' + total, pageW - margin, textY, { align: 'right' });
 }
 
+function drawLedgerFooter(pdf, pageW, pageH, margin, footerH, page, total, showSignature) {
+    const footerTop = pageH - margin - footerH;
+    const lineY = pageH - margin - 12;
+
+    if (showSignature) {
+        const sigRight = pageW - margin;
+        const sigLeft = sigRight - 55;
+        const sigY = footerTop + 9;
+        pdf.setDrawColor(17, 24, 39);
+        pdf.setLineWidth(0.3);
+        pdf.line(sigLeft, sigY, sigRight, sigY);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(55, 65, 81);
+        pdf.text('Authorized Signature', (sigLeft + sigRight) / 2, sigY + 4, { align: 'center' });
+    }
+
+    pdf.setDrawColor(210, 215, 225);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, lineY, pageW - margin, lineY);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(110, 116, 128);
+    pdf.text('Manager (Accounts)', margin, lineY + 5);
+    pdf.text('Page ' + page + ' of ' + total, pageW - margin, lineY + 5, { align: 'right' });
+    pdf.text('Printed by :a', margin, lineY + 9);
+    pdf.text('Powered by Avancer', pageW - margin, lineY + 9, { align: 'right' });
+}
+
+function drawLedgerHeader(pdf, pageW, margin, headerH, el) {
+    const d = el.dataset || {};
+    const account = d.ledgerAccount || 'All Customers';
+    const from = d.ledgerFrom || 'All';
+    const to = d.ledgerTo || 'Today';
+    const top = margin;
+
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.text('AVANCER', margin, top + 5);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.5);
+    pdf.text('123 Business Park, New York, NY 10001, USA', margin, top + 9);
+    pdf.text('Ph. : (212) 555-0000', margin, top + 13);
+    pdf.text('Mb. : -', margin, top + 17);
+
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.4);
+    pdf.line(margin, top + 19, pageW - margin, top + 19);
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.text('LEDGER BOOK', margin, top + 25);
+    pdf.setFontSize(8);
+    pdf.text(d.ledgerReport || '', pageW / 2, top + 25, { align: 'center' });
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Date ' + from + ' To ' + to, pageW - margin, top + 25, { align: 'right' });
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    pdf.text('Account', margin, top + 31);
+    pdf.text('Account Name: ' + account, margin, top + 35);
+    pdf.text('Mobile No.: -', margin, top + 39);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Opening Tk. :', pageW - margin - 25, top + 45, { align: 'right' });
+    pdf.text('0.00 Dr', pageW - margin, top + 45, { align: 'right' });
+
+    pdf.line(margin, margin + headerH - 3, pageW - margin, margin + headerH - 3);
+}
+
 // Lazily load a stylesheet once. Resolves when it is present (either already loaded or after fetch).
 function ensureCss(href) {
     return new Promise((resolve) => {
@@ -142,6 +216,44 @@ function printChromeBands(title, reference) {
         + '</div>';
 }
 
+function getLedgerMeta(html) {
+    try {
+        const doc = new DOMParser().parseFromString(html || '', 'text/html');
+        const page = doc.querySelector('#doc-page');
+        if (!page || page.getAttribute('data-ledger') !== '1') return null;
+        return {
+            account: page.getAttribute('data-ledger-account') || 'All Customers',
+            from: page.getAttribute('data-ledger-from') || 'All',
+            to: page.getAttribute('data-ledger-to') || 'Today',
+            report: page.getAttribute('data-ledger-report') || ''
+        };
+    } catch {
+        return null;
+    }
+}
+
+function ledgerPrintBands(meta) {
+    return ''
+        + '<div class="print-chrome print-header ledger-print-header">'
+        + '<div class="lp-company"><div class="lp-brand">AVANCER</div>'
+        + '<div class="lp-addr">123 Business Park, New York, NY 10001, USA</div>'
+        + '<div class="lp-addr">Ph. : (212) 555-0000</div>'
+        + '<div class="lp-addr">Mb. : -</div></div>'
+        + '<div class="lp-rule"></div>'
+        + '<div class="lp-report-row"><span class="lp-title">LEDGER BOOK</span>'
+        + '<span class="lp-report">' + esc(meta.report) + '</span>'
+        + '<span class="lp-date">Date ' + esc(meta.from) + ' To ' + esc(meta.to) + '</span></div>'
+        + '<div class="lp-account-row"><span>Account</span>'
+        + '<span>Account Name: ' + esc(meta.account) + '</span>'
+        + '<span>Mobile No.: -</span></div>'
+        + '<div class="lp-opening-row"><span>Opening Tk. :</span><span>0.00 Dr</span></div>'
+        + '</div>'
+        + '<div class="print-chrome print-footer ledger-print-footer">'
+        + '<div class="lp-signature">Authorized Signature</div>'
+        + '<div class="lp-footer-row"><span>Manager (Accounts)</span><span>Printed by :a</span></div>'
+        + '</div>';
+}
+
 window.iomsPdf = {
     // Receives a server-rendered HTML fragment (the document markup) and generates a PDF from it.
     // Used by the /print page and business panels so the server can build the template and hand
@@ -172,9 +284,12 @@ window.iomsPdf = {
     printHtml: async function (html, title, reference) {
         await ensureCss('/print.css');
 
+        const ledger = getLedgerMeta(html);
+        const bands = ledger ? ledgerPrintBands(ledger) : printChromeBands(title, reference);
         const documentHtml = '<!DOCTYPE html><html><head><meta charset="utf-8">'
-            + '<link rel="stylesheet" href="/print.css"></head><body>'
-            + printChromeBands(title, reference)
+            + '<link rel="stylesheet" href="/print.css"></head><body'
+            + (ledger ? ' class="ledger-print"' : '') + '>'
+            + bands
             + (html || '')
             + '</body></html>';
 
@@ -250,9 +365,11 @@ window.iomsPdf = {
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         const pageW = pdf.internal.pageSize.getWidth();
         const pageH = pdf.internal.pageSize.getHeight();
+        const isLedger = !!(el && el.dataset && el.dataset.ledger === '1');
+        const isLedgerHeader = !!(el && el.dataset && el.dataset.ledgerHeader === '1');
         const margin = 10;
-        const headerH = 16;
-        const footerH = 14;
+        const headerH = isLedgerHeader ? 50 : 16;
+        const footerH = isLedger ? 34 : 14;
         const contentW = pageW - margin * 2;
         const contentTop = margin + headerH;
         const contentBottom = pageH - margin - footerH;
@@ -275,8 +392,16 @@ window.iomsPdf = {
             slice.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, slicePx, 0, 0, canvas.width, slicePx);
 
             pdf.addImage(slice.toDataURL('image/jpeg', 0.95), 'JPEG', margin, contentTop, contentW, sliceHmm);
-            drawPdfHeader(pdf, pageW, margin, headerH, title, reference, logo);
-            drawPdfFooter(pdf, pageW, pageH, margin, footerH, page + 1, totalPages);
+            if (isLedgerHeader) {
+                drawLedgerHeader(pdf, pageW, margin, headerH, el);
+            } else {
+                drawPdfHeader(pdf, pageW, margin, headerH, title, reference, logo);
+            }
+            if (isLedger) {
+                drawLedgerFooter(pdf, pageW, pageH, margin, footerH, page + 1, totalPages, page === totalPages - 1);
+            } else {
+                drawPdfFooter(pdf, pageW, pageH, margin, footerH, page + 1, totalPages);
+            }
 
             srcY += slicePx;
         }

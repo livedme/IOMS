@@ -20,6 +20,7 @@ public interface IPrintDocumentRenderer
     Task<RenderedDocument> RenderCustomerAsync(CustomerDto customer, decimal outstanding = 0,
         IEnumerable<SalesOrderDto>? orders = null, IEnumerable<StatementInvoiceRowDto>? invoices = null);
     Task<RenderedDocument> RenderSupplierAsync(SupplierDto supplier, IEnumerable<PurchaseOrderDto>? orders = null);
+    Task<RenderedDocument> RenderCustomerLedgerAsync(CustomerLedgerDto ledger, string customerName = "All Customers");
 }
 
 public sealed class PrintDocumentRenderer : IPrintDocumentRenderer
@@ -73,6 +74,18 @@ public sealed class PrintDocumentRenderer : IPrintDocumentRenderer
                 [nameof(PrintDocumentBody.SupplierOrders)] = orders?.ToList() ?? new List<PurchaseOrderDto>()
             });
 
+    public Task<RenderedDocument> RenderCustomerLedgerAsync(CustomerLedgerDto ledger, string customerName = "All Customers")
+    {
+        var name = string.IsNullOrWhiteSpace(customerName) ? "All Customers" : customerName;
+        return RenderCoreAsync("Customer Ledger", name,
+            $"{(ledger.From?.ToString("dd MMM yyyy") ?? "All")} - {ledger.To?.ToString("dd MMM yyyy") ?? "Today"}",
+            (nameof(PrintDocumentBody.CustomerLedger), ledger),
+            new Dictionary<string, object?>
+            {
+                [nameof(PrintDocumentBody.LedgerCustomerName)] = name
+            });
+    }
+
     private async Task<RenderedDocument> RenderCoreAsync(string title, string reference, string statusText, (string Key, object? Value) document, Dictionary<string, object?>? extraParameters = null)
     {
         await using var renderer = new HtmlRenderer(_services, _loggerFactory);
@@ -101,10 +114,13 @@ public sealed class PrintDocumentRenderer : IPrintDocumentRenderer
             return output.ToHtmlString();
         });
 
+        return new RenderedDocument(html, title, reference, BuildFileName(title, reference));
+    }
+
+    private static string BuildFileName(string title, string reference)
+    {
         var fileName = title + " " + (reference == "—" ? "" : reference);
         fileName = new string(fileName.Where(c => char.IsLetterOrDigit(c) || c == '-' || c == '_' || c == ' ').ToArray()).Trim();
-        if (string.IsNullOrWhiteSpace(fileName)) fileName = "document";
-
-        return new RenderedDocument(html, title, reference, fileName);
+        return string.IsNullOrWhiteSpace(fileName) ? "document" : fileName;
     }
 }
