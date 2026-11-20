@@ -8,12 +8,19 @@
      data-ledger-account="@(SupplierLedger is not null ? LedgerSupplierName : LedgerCustomerName)"
      data-ledger-from="@((SupplierLedger?.From ?? CustomerLedger?.From)?.ToString("dd/MM/yyyy") ?? "")"
      data-ledger-to="@((SupplierLedger?.To ?? CustomerLedger?.To)?.ToString("dd/MM/yyyy") ?? "")"
-     data-ledger-report="@("REPORT NO.LB-" + DateTime.Now.ToString("yyyyMMdd"))">
+     data-ledger-report="@("REPORT NO.LB-" + DateTime.Now.ToString("yyyyMMdd"))"
+     data-tenant-name="@TenantCompanyName"
+     data-tenant-address="@TenantAddressLine"
+     data-tenant-phone="@TenantPhone"
+     data-tenant-mobile="@TenantMobile"
+     data-tenant-email="@TenantEmail"
+     data-tenant-website="@TenantWebsite"
+     data-tenant-logo="@TenantLogoUrl">
     <header class="doc-head">
         <div class="doc-brand">
-            <img src="/logo.png" class="doc-logo" alt="Avancer" />
+            <img src="@TenantLogoSrc" class="doc-logo" alt="@TenantCompanyName" />
             <div>
-                <div class="doc-brand-name">AVANCER</div>
+                <div class="doc-brand-name">@TenantCompanyName</div>
                 <div class="doc-brand-tag">Inventory &amp; Order Management</div>
             </div>
         </div>
@@ -1032,8 +1039,12 @@
     }
 
     <div class="doc-footer">
-        Avancer Inc. | 123 Business Park, New York, NY 10001, USA<br />
-        Phone: (212) 555-0000 | Email: sales@avancer.com | www.avancer.com
+        @TenantFooterLine1
+        @if (!string.IsNullOrWhiteSpace(TenantFooterLine2))
+        {
+            <br />
+            @TenantFooterLine2
+        }
     </div>
 </div>
 
@@ -1041,6 +1052,7 @@
     [Parameter] public string DocTitle { get; set; } = "Document";
     [Parameter] public string DocRef { get; set; } = "—";
     [Parameter] public string StatusText { get; set; } = "";
+    [Parameter] public TenantProfileDto? Tenant { get; set; }
 
     [Parameter] public SalesOrderDto? SalesOrder { get; set; }
     [Parameter] public PurchaseOrderDto? PurchaseOrder { get; set; }
@@ -1069,6 +1081,44 @@
         SupplierLedger is not null
         && !string.IsNullOrWhiteSpace(LedgerSupplierName)
         && LedgerSupplierName != "All Suppliers";
+
+    private string TenantCompanyName =>
+        !string.IsNullOrWhiteSpace(Tenant?.LegalName) ? Tenant!.LegalName!
+        : !string.IsNullOrWhiteSpace(Tenant?.CompanyName) ? Tenant!.CompanyName!
+        : "AVANCER";
+
+    private string TenantLogoUrl => Tenant?.LogoUrl ?? "";
+
+    private string TenantLogoSrc =>
+        string.IsNullOrWhiteSpace(Tenant?.LogoUrl) ? "/logo.png" : Tenant!.LogoUrl!;
+
+    private string TenantPhone => Tenant?.PrimaryContactPhone ?? "";
+
+    private string TenantMobile => "";
+
+    private string TenantEmail =>
+        !string.IsNullOrWhiteSpace(Tenant?.BillingEmail) ? Tenant!.BillingEmail!
+        : Tenant?.PrimaryContactEmail ?? "";
+
+    private string TenantWebsite => Tenant?.Website ?? "";
+
+    private string TenantAddressLine => string.Join(", ",
+        new[] { Tenant?.Address, Tenant?.City, Tenant?.State, Tenant?.Country }
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .Select(part => part!.Trim()));
+
+    private string TenantFooterLine1 =>
+        string.IsNullOrWhiteSpace(TenantAddressLine)
+            ? TenantCompanyName
+            : $"{TenantCompanyName} | {TenantAddressLine}";
+
+    private string TenantFooterLine2 => string.Join(" | ",
+        new[]
+        {
+            string.IsNullOrWhiteSpace(TenantPhone) ? null : $"Phone: {TenantPhone}",
+            string.IsNullOrWhiteSpace(TenantEmail) ? null : $"Email: {TenantEmail}",
+            string.IsNullOrWhiteSpace(TenantWebsite) ? null : $"www.{TenantWebsite.Replace("https://", "").Replace("http://", "").TrimEnd('/')}"
+        }.Where(part => part is not null));
 
     private static MarkupString Money(decimal value) => Taka.HN(value);
 }

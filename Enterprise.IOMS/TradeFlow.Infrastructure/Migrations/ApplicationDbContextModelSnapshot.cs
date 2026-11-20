@@ -4461,6 +4461,10 @@ namespace TradeFlow.Infrastructure.Migrations
                     b.Property<DateTime?>("ActivatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Address")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<string>("ApplicationDomain")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -4472,6 +4476,10 @@ namespace TradeFlow.Infrastructure.Migrations
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("CompanyCode")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -4481,6 +4489,10 @@ namespace TradeFlow.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)
@@ -4594,6 +4606,10 @@ namespace TradeFlow.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<string>("State")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("StatusReason")
                         .HasMaxLength(500)

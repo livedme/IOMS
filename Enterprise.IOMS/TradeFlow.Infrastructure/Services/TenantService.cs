@@ -53,6 +53,10 @@ public class TenantService : ITenantService
                 tenant.PrimaryContactEmail,
                 tenant.PrimaryContactPhone,
                 tenant.BillingEmail,
+                tenant.Address,
+                tenant.City,
+                tenant.State,
+                tenant.Country,
                 tenant.CountryCode,
                 tenant.DefaultCurrencyCode,
                 tenant.DefaultTimeZone,
@@ -110,6 +114,10 @@ public class TenantService : ITenantService
         tenant.PrimaryContactEmail = TrimOrNull(dto.PrimaryContactEmail);
         tenant.PrimaryContactPhone = TrimOrNull(dto.PrimaryContactPhone);
         tenant.BillingEmail = TrimOrNull(dto.BillingEmail);
+        tenant.Address = TrimOrNull(dto.Address);
+        tenant.City = TrimOrNull(dto.City);
+        tenant.State = TrimOrNull(dto.State);
+        tenant.Country = TrimOrNull(dto.Country);
         tenant.DefaultCurrencyCode = Normalize(dto.DefaultCurrencyCode, "BDT").ToUpperInvariant();
         tenant.DefaultTimeZone = Normalize(dto.DefaultTimeZone, "Asia/Dhaka");
         tenant.DefaultCulture = Normalize(dto.DefaultCulture, "en-US");
@@ -158,6 +166,10 @@ public class TenantService : ITenantService
             PrimaryContactEmail = TrimOrNull(dto.PrimaryContactEmail),
             PrimaryContactPhone = TrimOrNull(dto.PrimaryContactPhone),
             BillingEmail = TrimOrNull(dto.BillingEmail),
+            Address = TrimOrNull(dto.Address),
+            City = TrimOrNull(dto.City),
+            State = TrimOrNull(dto.State),
+            Country = TrimOrNull(dto.Country),
             CountryCode = TrimOrNull(dto.CountryCode)?.ToUpperInvariant(),
             ApplicationDomain = ToSubdomain(dto.Subdomain, companyCode),
             DefaultCurrencyCode = Normalize(dto.DefaultCurrencyCode, "BDT").ToUpperInvariant(),

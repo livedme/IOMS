@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.Web.HtmlRendering;
 using TradeFlow.Application.DTOs;
+using TradeFlow.Application.Interfaces;
 using TradeFlow.Web.Components.Pages.Print;
 
 namespace TradeFlow.Web.Services;
@@ -28,11 +29,13 @@ public sealed class PrintDocumentRenderer : IPrintDocumentRenderer
 {
     private readonly IServiceProvider _services;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly ITenantService _tenantService;
 
-    public PrintDocumentRenderer(IServiceProvider services, ILoggerFactory loggerFactory)
+    public PrintDocumentRenderer(IServiceProvider services, ILoggerFactory loggerFactory, ITenantService tenantService)
     {
         _services = services;
         _loggerFactory = loggerFactory;
+        _tenantService = tenantService;
     }
 
     public Task<RenderedDocument> RenderSalesOrderAsync(SalesOrderDto order) =>
@@ -103,11 +106,22 @@ public sealed class PrintDocumentRenderer : IPrintDocumentRenderer
     {
         await using var renderer = new HtmlRenderer(_services, _loggerFactory);
 
+        TenantProfileDto? tenant = null;
+        try
+        {
+            tenant = await _tenantService.GetCurrentTenantAsync();
+        }
+        catch
+        {
+            // Tenant details are decorative on the printed document; render without them if unavailable.
+        }
+
         var documentParameters = new Dictionary<string, object?>
         {
             [nameof(PrintDocumentBody.DocTitle)] = title,
             [nameof(PrintDocumentBody.DocRef)] = reference,
             [nameof(PrintDocumentBody.StatusText)] = statusText,
+            [nameof(PrintDocumentBody.Tenant)] = tenant,
             [document.Key] = document.Value
         };
 

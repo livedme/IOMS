@@ -171,6 +171,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(tenant => tenant.PrimaryContactEmail).HasMaxLength(256);
             entity.Property(tenant => tenant.PrimaryContactPhone).HasMaxLength(32);
             entity.Property(tenant => tenant.BillingEmail).HasMaxLength(256);
+            entity.Property(tenant => tenant.Address).HasMaxLength(255);
+            entity.Property(tenant => tenant.City).HasMaxLength(100);
+            entity.Property(tenant => tenant.State).HasMaxLength(100);
+            entity.Property(tenant => tenant.Country).HasMaxLength(100);
             entity.Property(tenant => tenant.DefaultCurrencyCode).HasMaxLength(3).IsRequired().HasDefaultValue("BDT");
             entity.Property(tenant => tenant.DefaultTimeZone).HasMaxLength(100).IsRequired().HasDefaultValue("Asia/Dhaka");
             entity.Property(tenant => tenant.DefaultCulture).HasMaxLength(10).IsRequired().HasDefaultValue("en-US");

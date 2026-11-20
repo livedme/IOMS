@@ -6,7 +6,7 @@
         <MudForm @ref="_form">
             @if (_activeTab == 0)
             {
-                <MudCard>
+                <MudCard Class="border-0">
                     <MudText Typo="Typo.subtitle2" Class="px-4 pt-3">Company details</MudText>
                     <MudGrid Class="pt-3">
                         <MudItem xs="12">
@@ -27,6 +27,22 @@
                         </MudItem>
                         <MudItem xs="12" sm="4">
                             <MudTextField @bind-Value="_model.CountryCode" Label="Country code" ShrinkLabel="true"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.Address" Label="Address" ShrinkLabel="true"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.City" Label="City" ShrinkLabel="true"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.State" Label="State / Division" ShrinkLabel="true"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.Country" Label="Country" ShrinkLabel="true"
                                           Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudItem>
                     </MudGrid>
@@ -105,6 +121,10 @@
             PrimaryContactEmail = Tenant.PrimaryContactEmail,
             PrimaryContactPhone = Tenant.PrimaryContactPhone,
             BillingEmail = Tenant.BillingEmail,
+            Address = Tenant.Address,
+            City = Tenant.City,
+            State = Tenant.State,
+            Country = Tenant.Country,
             DefaultCurrencyCode = Tenant.DefaultCurrencyCode,
             DefaultTimeZone = Tenant.DefaultTimeZone,
             DefaultCulture = Tenant.DefaultCulture

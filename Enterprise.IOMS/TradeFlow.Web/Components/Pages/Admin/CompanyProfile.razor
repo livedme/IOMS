@@ -92,7 +92,11 @@ else if (_tenant is not null)
                                 }
                             </td>
                         </tr>
-                        <tr><td>Country</td><td>@ValueOrDash(_tenant.CountryCode)</td></tr>
+                        <tr><td>Address</td><td>@ValueOrDash(_tenant.Address)</td></tr>
+                        <tr><td>City</td><td>@ValueOrDash(_tenant.City)</td></tr>
+                        <tr><td>State</td><td>@ValueOrDash(_tenant.State)</td></tr>
+                        <tr><td>Country</td><td>@ValueOrDash(_tenant.Country)</td></tr>
+                        <tr><td>Country code</td><td>@ValueOrDash(_tenant.CountryCode)</td></tr>
                         <tr><td>Tenant ID</td><td><code>@_tenant.Id</code></td></tr>
                     </tbody>
                 </MudSimpleTable>

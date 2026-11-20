@@ -1,4 +1,35 @@
-function drawPdfHeader(pdf, pageW, margin, headerH, title, reference, logo) {
+function tenantMeta(tenant) {
+    const t = tenant || {};
+    return {
+        name: t.name || 'AVANCER',
+        address: t.address || '',
+        phone: t.phone || '',
+        mobile: t.mobile || '',
+        email: t.email || '',
+        website: t.website || '',
+        logo: t.logo || ''
+    };
+}
+
+function stripProtocol(url) {
+    return (url || '').replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+}
+
+function tenantFooterLines(tenant) {
+    const t = tenantMeta(tenant);
+    const contact = [
+        t.phone ? 'Phone: ' + t.phone : '',
+        t.email ? 'Email: ' + t.email : '',
+        t.website ? 'www.' + stripProtocol(t.website) : ''
+    ].filter(Boolean).join(' | ');
+    return {
+        line1: t.address ? t.name + ' | ' + t.address : t.name,
+        line2: contact
+    };
+}
+
+function drawPdfHeader(pdf, pageW, margin, headerH, title, reference, logo, tenant) {
+    const t = tenantMeta(tenant);
     let textX = margin;
     if (logo && logo.dataUrl) {
         const logoH = 7;
@@ -13,7 +44,7 @@ function drawPdfHeader(pdf, pageW, margin, headerH, title, reference, logo) {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(12);
     pdf.setTextColor(2, 21, 45);
-    pdf.text('AVANCER', textX, margin + 6);
+    pdf.text(t.name, textX, margin + 6);
 
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
@@ -38,18 +69,21 @@ function drawPdfHeader(pdf, pageW, margin, headerH, title, reference, logo) {
     pdf.line(margin, margin + headerH - 3, pageW - margin, margin + headerH - 3);
 }
 
-function drawPdfFooter(pdf, pageW, pageH, margin, footerH, page, total) {
+function drawPdfFooter(pdf, pageW, pageH, margin, footerH, page, total, tenant) {
     const lineY = pageH - margin - footerH + 3;
     pdf.setDrawColor(210, 215, 225);
     pdf.setLineWidth(0.3);
     pdf.line(margin, lineY, pageW - margin, lineY);
 
+    const footer = tenantFooterLines(tenant);
     const textY = lineY + 5;
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
     pdf.setTextColor(110, 116, 128);
-    pdf.text('Avancer Inc. | 123 Business Park, New York, NY 10001, USA', margin, textY);
-    pdf.text('Phone: (212) 555-0000 | sales@avancer.com | www.avancer.com', margin, textY + 4);
+    pdf.text(footer.line1, margin, textY);
+    if (footer.line2) {
+        pdf.text(footer.line2, margin, textY + 4);
+    }
     pdf.text('Page ' + page + ' of ' + total, pageW - margin, textY, { align: 'right' });
 }
 
@@ -85,6 +119,7 @@ function drawLedgerFooter(pdf, pageW, pageH, margin, footerH, page, total, showS
 
 function drawLedgerHeader(pdf, pageW, margin, headerH, el) {
     const d = el.dataset || {};
+    const t = tenantMeta(getTenantMeta(el));
     const account = d.ledgerAccount || 'All Customers';
     const from = d.ledgerFrom || 'All';
     const to = d.ledgerTo || 'Today';
@@ -93,13 +128,15 @@ function drawLedgerHeader(pdf, pageW, margin, headerH, el) {
     pdf.setTextColor(0, 0, 0);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(11);
-    pdf.text('AVANCER', margin, top + 5);
+    pdf.text(t.name, margin, top + 5);
      
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(7.5);
-    pdf.text('123 Business Park, New York, NY 10001, USA', margin, top + 9);
-    pdf.text('Ph. : (212) 555-0000', margin, top + 13);
-    pdf.text('Mb. : -', margin, top + 17);
+    if (t.address) {
+        pdf.text(t.address, margin, top + 9);
+    }
+    pdf.text('Ph. : ' + (t.phone || '-'), margin, top + 13);
+    pdf.text('Mb. : ' + (t.mobile || '-'), margin, top + 17);
 
     pdf.setDrawColor(209, 213, 219);
     pdf.setLineWidth(0.4);
@@ -176,11 +213,13 @@ function ensurePdfAssets() {
     ]);
 }
 
-// Load /logo.png once (as a data URL + intrinsic size) so it can be drawn into the PDF header.
-let _logoPromise = null;
-function loadLogo() {
-    if (!_logoPromise) {
-        _logoPromise = fetch('/logo.png')
+// Load a logo once (as a data URL + intrinsic size) so it can be drawn into the PDF header.
+// The tenant logo is used when supplied; otherwise the bundled /logo.png is used.
+const _logoPromises = {};
+function loadLogo(src) {
+    const source = src || '/logo.png';
+    if (!_logoPromises[source]) {
+        _logoPromises[source] = fetch(source)
             .then((r) => (r.ok ? r.blob() : Promise.reject()))
             .then((blob) => new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -195,59 +234,82 @@ function loadLogo() {
             }))
             .catch(() => null);
     }
-    return _logoPromise;
+    return _logoPromises[source];
 }
 
 function esc(value) {
     return (value || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function getTenantMeta(el) {
+    const d = (el && el.dataset) || {};
+    return {
+        name: d.tenantName || 'AVANCER',
+        address: d.tenantAddress || '',
+        phone: d.tenantPhone || '',
+        mobile: d.tenantMobile || '',
+        email: d.tenantEmail || '',
+        website: d.tenantWebsite || '',
+        logo: d.tenantLogo || ''
+    };
+}
+
+function getDocMeta(html) {
+    try {
+        const doc = new DOMParser().parseFromString(html || '', 'text/html');
+        const page = doc.querySelector('#doc-page');
+        const tenant = getTenantMeta(page);
+        const isLedger = !!page && page.getAttribute('data-ledger') === '1';
+        return {
+            tenant,
+            ledger: isLedger
+                ? {
+                    account: page.getAttribute('data-ledger-account') || 'All Customers',
+                    from: page.getAttribute('data-ledger-from') || 'All',
+                    to: page.getAttribute('data-ledger-to') || 'Today',
+                    report: page.getAttribute('data-ledger-report') || '',
+                    tenant
+                }
+                : null
+        };
+    } catch {
+        return { tenant: getTenantMeta(null), ledger: null };
+    }
+}
+
 // Repeating print bands (mirror the markup on the /print page).
-function printChromeBands(title, reference) {
+function printChromeBands(title, reference, tenant) {
+    const t = tenantMeta(tenant);
+    const footer = tenantFooterLines(t);
     return ''
         + '<div class="print-chrome print-header">'
-        + '<div class="pc-left"><img src="/logo.png" class="pc-logo" alt="Avancer" />'
-        + '<span class="pc-text"><span class="pc-brand">AVANCER</span>'
+        + '<div class="pc-left"><img src="' + esc(t.logo || '/logo.png') + '" class="pc-logo" alt="' + esc(t.name) + '" />'
+        + '<span class="pc-text"><span class="pc-brand">' + esc(t.name) + '</span>'
         + '<span class="pc-tag">Inventory &amp; Order Management</span></span></div>'
         + '<div class="pc-right"><span class="pc-title">' + esc(title) + '</span>'
         + '<span class="pc-ref">' + esc(reference) + '</span></div>'
         + '</div>'
         + '<div class="print-chrome print-footer">'
-        + '<span>Avancer Inc. | 123 Business Park, New York, NY 10001, USA</span>'
-        + '<span>Phone: (212) 555-0000 | sales@avancer.com | www.avancer.com</span>'
+        + '<span>' + esc(footer.line1) + '</span>'
+        + '<span>' + esc(footer.line2) + '</span>'
         + '</div>';
 }
 
-function getLedgerMeta(html) {
-    try {
-        const doc = new DOMParser().parseFromString(html || '', 'text/html');
-        const page = doc.querySelector('#doc-page');
-        if (!page || page.getAttribute('data-ledger') !== '1') return null;
-        return {
-            account: page.getAttribute('data-ledger-account') || 'All Customers',
-            from: page.getAttribute('data-ledger-from') || 'All',
-            to: page.getAttribute('data-ledger-to') || 'Today',
-            report: page.getAttribute('data-ledger-report') || ''
-        };
-    } catch {
-        return null;
-    }
-}
-
 function ledgerPrintBands(meta) {
+    const t = tenantMeta(meta && meta.tenant);
     return ''
         + '<div class="print-chrome print-header ledger-print-header">'
-        + '<div class="lp-company"><div class="lp-brand">AVANCER</div>'
-        + '<div class="lp-addr">123 Business Park, New York, NY 10001, USA</div>'
-        + '<div class="lp-addr">Ph. : (212) 555-0000</div>'
-        + '<div class="lp-addr">Mb. : -</div></div>'
+        + '<div class="lp-company"><div class="lp-brand">' + esc(t.name) + '</div>'
+        + (t.address ? '<div class="lp-addr">' + esc(t.address) + '</div>' : '')
+        + '<div class="lp-addr">Ph. : ' + esc(t.phone || '-') + '</div>'
+        + '<div class="lp-addr">Mb. : ' + esc(t.mobile || '-') + '</div></div>'
         + '<div class="lp-rule"></div>'
         + '<div class="lp-report-row"><span class="lp-title">LEDGER BOOK</span>'
         + '<span class="lp-report">' + esc(meta.report) + '</span>'
         + '<span class="lp-date">Date ' + esc(meta.from) + ' To ' + esc(meta.to) + '</span></div>'
         + '<div class="lp-account-row"><span>Account</span>'
         + '<span>Account Name: ' + esc(meta.account) + '</span>'
-        + '<span>Mobile No.: -</span></div>'
+        + '<span>Mobile No.: ' + esc(t.mobile || '-') + '</span></div>'
         + '<div class="lp-opening-row"><span>Opening Tk. :</span><span>0.00 Dr</span></div>'
         + '</div>'
         + '<div class="print-chrome print-footer ledger-print-footer">'
@@ -285,8 +347,9 @@ window.iomsPdf = {
     printHtml: async function (html, title, reference, ledgerMeta) {
         await ensureCss('/print.css');
 
-        const ledger = ledgerMeta || getLedgerMeta(html);
-        const bands = ledger ? ledgerPrintBands(ledger) : printChromeBands(title, reference);
+        const parsed = getDocMeta(html);
+        const ledger = ledgerMeta ? { ...ledgerMeta, tenant: parsed.tenant } : parsed.ledger;
+        const bands = ledger ? ledgerPrintBands(ledger) : printChromeBands(title, reference, parsed.tenant);
         const documentHtml = '<!DOCTYPE html><html><head><meta charset="utf-8">'
             + '<link rel="stylesheet" href="/print.css"></head><body'
             + (ledger ? ' class="ledger-print"' : '') + '>'
@@ -329,7 +392,8 @@ window.iomsPdf = {
         }
         if (!ready()) return false;
 
-        const logo = await loadLogo();
+        const tenant = getTenantMeta(el);
+        const logo = await loadLogo(tenant.logo);
 
         // The document's own header/footer would only land on the first/last page, so hide
         // them and draw a repeating header + footer (with page numbers) on every page instead.
@@ -398,12 +462,12 @@ window.iomsPdf = {
             if (isLedgerHeader) {
                 drawLedgerHeader(pdf, pageW, margin, headerH, el);
             } else {
-                drawPdfHeader(pdf, pageW, margin, headerH, title, reference, logo);
+                drawPdfHeader(pdf, pageW, margin, headerH, title, reference, logo, tenant);
             }
             if (isLedger) {
                 drawLedgerFooter(pdf, pageW, pageH, margin, footerH, page + 1, totalPages, page === totalPages - 1);
             } else {
-                drawPdfFooter(pdf, pageW, pageH, margin, footerH, page + 1, totalPages);
+                drawPdfFooter(pdf, pageW, pageH, margin, footerH, page + 1, totalPages, tenant);
             }
 
             srcY += slicePx;

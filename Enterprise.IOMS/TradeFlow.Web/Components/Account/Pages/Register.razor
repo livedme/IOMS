@@ -210,6 +210,45 @@
                         }
                     </div>
 
+                    <div class="field-group">
+                        <label for="Input.Address">Address <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.Address" id="Input.Address" placeholder="Street, area, building..."
+                                   autocomplete="street-address" class="login-input login-input-plain" />
+                        @if (Error("Address") is { } addressError)
+                        {
+                            <span class="field-error">@addressError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.City">City <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.City" id="Input.City" placeholder="Dhaka"
+                                   autocomplete="address-level2" class="login-input login-input-plain" />
+                        @if (Error("City") is { } cityError)
+                        {
+                            <span class="field-error">@cityError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.State">State / Division <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.State" id="Input.State" placeholder="Dhaka"
+                                   autocomplete="address-level1" class="login-input login-input-plain" />
+                        @if (Error("State") is { } stateError)
+                        {
+                            <span class="field-error">@stateError</span>
+                        }
+                    </div>
+
+                    <div class="field-group">
+                        <label for="Input.Country">Country <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
+                        <InputText @bind-Value="Input.Country" id="Input.Country" placeholder="Bangladesh"
+                                   autocomplete="country-name" class="login-input login-input-plain" />
+                        @if (Error("Country") is { } countryError)
+                        {
+                            <span class="field-error">@countryError</span>
+                        }
+                    </div>
 
                  @*    <div class="field-group">
                         <label for="Input.BillingEmail">Billing email <span style="color:#9aa0b4;font-weight:400;">(optional)</span></label>
@@ -510,6 +549,26 @@
             errors["BillingEmail"] = "Enter a valid email address.";
         }
 
+        if (Input.Address.Trim().Length > 255)
+        {
+            errors["Address"] = "Address must be 255 characters or fewer.";
+        }
+
+        if (Input.City.Trim().Length > 100)
+        {
+            errors["City"] = "City must be 100 characters or fewer.";
+        }
+
+        if (Input.State.Trim().Length > 100)
+        {
+            errors["State"] = "State must be 100 characters or fewer.";
+        }
+
+        if (Input.Country.Trim().Length > 100)
+        {
+            errors["Country"] = "Country must be 100 characters or fewer.";
+        }
+
         // var countryCode = Input.CountryCode.Trim();
         // if (countryCode.Length > 0 && !System.Text.RegularExpressions.Regex.IsMatch(countryCode, "^[A-Za-z]{2}$"))
         // {
@@ -596,7 +655,11 @@
                 Website = Input.Website.Trim(),
                 PrimaryContactEmail = Input.PrimaryContactEmail.Trim(),
                 PrimaryContactPhone = Input.PrimaryContactPhone.Trim(),
-                BillingEmail = Input.BillingEmail.Trim()
+                BillingEmail = Input.BillingEmail.Trim(),
+                Address = Input.Address.Trim(),
+                City = Input.City.Trim(),
+                State = Input.State.Trim(),
+                Country = Input.Country.Trim()
                 //CountryCode = Input.CountryCode.Trim(),
                 //Subdomain = subdomain,
                 //DefaultCurrencyCode = Input.DefaultCurrencyCode.Trim(),
@@ -691,6 +754,14 @@
         public string PrimaryContactPhone { get; set; } = "";
 
         public string BillingEmail { get; set; } = "";
+
+        public string Address { get; set; } = "";
+
+        public string City { get; set; } = "";
+
+        public string State { get; set; } = "";
+
+        public string Country { get; set; } = "";
 
         public string CountryCode { get; set; } = "";
 

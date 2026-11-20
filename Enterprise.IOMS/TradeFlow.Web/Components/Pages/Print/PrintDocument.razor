@@ -37,13 +37,14 @@ else
                        SalesReturn="_salesReturn"
                        PurchaseReturn="_purchaseReturn"
                         InvoiceDetail="_invoiceDetail"
-                       Product="_product" />
+                       Product="_product"
+                       Tenant="_tenant" />
 
     <div class="print-chrome print-header">
         <div class="pc-left">
-            <img src="/logo.png" class="pc-logo" alt="Avancer" />
+            <img src="@TenantLogoSrc" class="pc-logo" alt="@TenantCompanyName" />
             <span class="pc-text">
-                <span class="pc-brand">AVANCER</span>
+                <span class="pc-brand">@TenantCompanyName</span>
                 <span class="pc-tag">Inventory &amp; Order Management</span>
             </span>
         </div>
@@ -53,8 +54,8 @@ else
         </div>
     </div>
     <div class="print-chrome print-footer">
-        <span>Avancer Inc. | 123 Business Park, New York, NY 10001, USA</span>
-        <span>Phone: (212) 555-0000 | sales@avancer.com | www.avancer.com</span>
+        <span>@TenantFooterLine1</span>
+        <span>@TenantFooterLine2</span>
     </div>
 }
 
@@ -70,6 +71,7 @@ else
     [Inject] private IPurchaseReturnService PurchaseReturnService { get; set; } = default!;
     [Inject] private IInvoiceService InvoiceService { get; set; } = default!;
     [Inject] private IProductService ProductService { get; set; } = default!;
+    [Inject] private ITenantService TenantService { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private IServiceProvider Services { get; set; } = default!;
     [Inject] private ILoggerFactory LoggerFactory { get; set; } = default!;
@@ -77,6 +79,7 @@ else
     private bool _loading = true;
     private bool _autoHandled;
     private string? _error;
+    private TenantProfileDto? _tenant;
 
     private SalesOrderDto? _salesOrder;
     private PurchaseOrderDto? _purchaseOrder;
@@ -134,6 +137,16 @@ else
         _purchaseReturn = null;
         _invoiceDetail = null;
         _product = null;
+        _tenant = null;
+
+        try
+        {
+            _tenant = await TenantService.GetCurrentTenantAsync();
+        }
+        catch
+        {
+            // Tenant details are decorative on the printed document; render without them if unavailable.
+        }
 
         try
         {
@@ -196,6 +209,35 @@ else
             await DownloadPdf();
         }
     }
+    private string TenantCompanyName =>
+        !string.IsNullOrWhiteSpace(_tenant?.LegalName) ? _tenant!.LegalName!
+        : !string.IsNullOrWhiteSpace(_tenant?.CompanyName) ? _tenant!.CompanyName!
+        : "AVANCER";
+
+    private string TenantLogoSrc =>
+        string.IsNullOrWhiteSpace(_tenant?.LogoUrl) ? "/logo.png" : _tenant!.LogoUrl!;
+
+    private string TenantAddressLine => string.Join(", ",
+        new[] { _tenant?.Address, _tenant?.City, _tenant?.State, _tenant?.Country }
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .Select(part => part!.Trim()));
+
+    private string TenantFooterLine1 =>
+        string.IsNullOrWhiteSpace(TenantAddressLine)
+            ? TenantCompanyName
+            : $"{TenantCompanyName} | {TenantAddressLine}";
+
+    private string TenantFooterLine2 => string.Join(" | ",
+        new[]
+        {
+            string.IsNullOrWhiteSpace(_tenant?.PrimaryContactPhone) ? null : $"Phone: {_tenant!.PrimaryContactPhone}",
+            string.IsNullOrWhiteSpace(_tenant?.BillingEmail) && string.IsNullOrWhiteSpace(_tenant?.PrimaryContactEmail)
+                ? null
+                : $"Email: {(!string.IsNullOrWhiteSpace(_tenant!.BillingEmail) ? _tenant.BillingEmail : _tenant.PrimaryContactEmail)}",
+            string.IsNullOrWhiteSpace(_tenant?.Website)
+                ? null
+                : $"www.{_tenant!.Website!.Replace("https://", "").Replace("http://", "").TrimEnd('/')}"
+        }.Where(part => part is not null));
 
     private async Task PrintNow() => await JS.InvokeVoidAsync("print");
 
@@ -225,6 +267,7 @@ else
             [nameof(PrintDocumentBody.DocTitle)] = DocTitle,
             [nameof(PrintDocumentBody.DocRef)] = DocRef,
             [nameof(PrintDocumentBody.StatusText)] = StatusText,
+            [nameof(PrintDocumentBody.Tenant)] = _tenant,
             [nameof(PrintDocumentBody.SalesOrder)] = _salesOrder,
             [nameof(PrintDocumentBody.PurchaseOrder)] = _purchaseOrder,
             [nameof(PrintDocumentBody.Quote)] = _quote,
