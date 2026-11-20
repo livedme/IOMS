@@ -80,7 +80,7 @@
     justify-content: space-between;
     gap: 18px;
     padding-bottom: 14px;
-    border-bottom: 2px solid #111827;
+    border-bottom: 0.5px solid #d1d5db;
     margin-bottom: 20px;
 }
 
@@ -266,7 +266,7 @@
 .doc-items {
     width: 100%;
     border-collapse: collapse;
-    border: 1px solid #eef0f4;
+    border: 0.5px solid #e5e7eb;
     border-radius: 8px;
     overflow: hidden;
 }
@@ -279,7 +279,7 @@
     text-transform: uppercase;
     color: #6b7280;
     background: #f5f7fa;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 0.5px solid #e5e7eb;
     padding: 9px 10px;
     white-space: nowrap;
 }
@@ -287,7 +287,7 @@
 .doc-items td {
     font-size: 12.5px;
     color: #374151;
-    border-bottom: 1px solid #f1f3f6;
+    border-bottom: 0.5px solid #f1f3f6;
     padding: 9px 10px;
     vertical-align: top;
 }
@@ -309,6 +309,14 @@
     font-size: 11px;
     color: #9ca3af;
     margin-top: 2px;
+}
+
+.doc-items tr.ledger-total-row td {
+    background: #f5f7fa;
+    border-top: 0.5px solid #d1d5db;
+    border-bottom: none;
+    font-weight: 700;
+    color: #111827;
 }
 
 /* ---------- Totals ---------- */
@@ -477,7 +485,7 @@
         display: block;
         height: 50mm;
         padding: 8mm 14mm 0;
-        border-bottom: 1px solid #111827;
+        border-bottom: 0.5px solid #d1d5db;
     }
 
     .ledger-print-header .lp-company {
@@ -497,7 +505,7 @@
     }
 
     .ledger-print-header .lp-rule {
-        border-top: 1px solid #111827;
+        border-top: 0.5px solid #d1d5db;
         margin: 2mm 0 1.5mm;
     }
 
@@ -561,7 +569,7 @@
     }
 
     body.ledger-print .doc-print-signature-line {
-        border-top: 1px solid #111827;
+        border-top: 0.5px solid #d1d5db;
         margin-bottom: 1.5mm;
     }
 
@@ -669,8 +677,8 @@
     }
 
     .doc-items thead th {
-        border-top: 1px solid #e5e7eb;
-        border-bottom: 1px solid #e5e7eb;
+        border-top: 0.5px solid #e5e7eb;
+        border-bottom: 0.5px solid #e5e7eb;
     }
 
     .doc-items td {

@@ -145,7 +145,7 @@
         try
         {
             var ledger = await AccountingService.GetSupplierLedger(_selectedSupplierId, _fromDate, _toDate);
-            _allEntries = ledger.Lines;
+            _allEntries = GetBalanceCalculations(ledger.Lines);
             _totalDebits = ledger.TotalDebits;
             _totalCredits = ledger.TotalCredits;
             _balance = ledger.Balance;
@@ -155,7 +155,22 @@
         catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
         finally { _loading = false; }
     }
+    private List<SupplierLedgerLineDto> GetBalanceCalculations(List<SupplierLedgerLineDto> Lines)
+    {
+        var balance = 0m;
+        var allCalculations = new List<SupplierLedgerLineDto>();
 
+        foreach (var line in Lines)
+        {
+            balance += line.Credit;
+            balance -= line.Debit;
+
+            allCalculations.Add(new SupplierLedgerLineDto(line.SupplierId, line.SupplierName, line.Date, line.Type,
+                line.Reference, line.Debit, line.Credit, balance));
+        }
+
+        return allCalculations;
+    }
     private async Task DownloadPdf()
     {
         if (_loading || !_hasLoadedOnce) return;

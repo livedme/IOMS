@@ -3,31 +3,22 @@ namespace TradeFlow.Domain.Entities;
 public class Tenant
 {
     public Guid Id { get; set; }
-
     public string CompanyCode { get; set; } = string.Empty;
-
     public string CompanyName { get; set; } = string.Empty;
-
     public string? LegalName { get; set; }
-
     public string? LogoUrl { get; set; }
-
     public string? Industry { get; set; }
-
     public string? Website { get; set; }
-
     public string? PrimaryContactEmail { get; set; }
-
     public string? PrimaryContactPhone { get; set; }
-
     public string? BillingEmail { get; set; }
-
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? Country { get; set; }
     public string DefaultCurrencyCode { get; set; } = "BDT";
-
     public string DefaultTimeZone { get; set; } = "Asia/Dhaka";
-
     public string DefaultCulture { get; set; } = "en-US";
-
     public string? CountryCode { get; set; }
     public string? ApplicationDomain { get; set; }    
     public Guid? LicenseId { get; set; }

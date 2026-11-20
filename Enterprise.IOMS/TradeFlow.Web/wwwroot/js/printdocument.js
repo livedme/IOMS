@@ -61,8 +61,8 @@ function drawLedgerFooter(pdf, pageW, pageH, margin, footerH, page, total, showS
         const sigRight = pageW - margin;
         const sigLeft = sigRight - 55;
         const sigY = footerTop + 9;
-        pdf.setDrawColor(17, 24, 39);
-        pdf.setLineWidth(0.3);
+        pdf.setDrawColor(209, 213, 219);
+        pdf.setLineWidth(0.4);
         pdf.line(sigLeft, sigY, sigRight, sigY);
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(7.5);
@@ -94,14 +94,14 @@ function drawLedgerHeader(pdf, pageW, margin, headerH, el) {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(11);
     pdf.text('AVANCER', margin, top + 5);
-
+     
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(7.5);
     pdf.text('123 Business Park, New York, NY 10001, USA', margin, top + 9);
     pdf.text('Ph. : (212) 555-0000', margin, top + 13);
     pdf.text('Mb. : -', margin, top + 17);
 
-    pdf.setDrawColor(0, 0, 0);
+    pdf.setDrawColor(209, 213, 219);
     pdf.setLineWidth(0.4);
     pdf.line(margin, top + 19, pageW - margin, top + 19);
 
@@ -124,6 +124,8 @@ function drawLedgerHeader(pdf, pageW, margin, headerH, el) {
     pdf.text('Opening Tk. :', pageW - margin - 25, top + 45, { align: 'right' });
     pdf.text('0.00 Dr', pageW - margin, top + 45, { align: 'right' });
 
+    pdf.setDrawColor(209, 213, 219);
+    pdf.setLineWidth(0.4);
     pdf.line(margin, margin + headerH - 3, pageW - margin, margin + headerH - 3);
 }
 
@@ -340,6 +342,7 @@ window.iomsPdf = {
 
         el.style.boxShadow = 'none';
         el.style.border = 'none';
+        el.classList.add('ioms-pdf');
         if (head) head.style.display = 'none';
         if (foot) foot.style.display = 'none';
 
@@ -354,6 +357,7 @@ window.iomsPdf = {
                 scrollY: -window.scrollY
             });
         } finally {
+            el.classList.remove('ioms-pdf');
             el.style.boxShadow = prevShadow;
             el.style.border = prevBorder;
             if (head) head.style.display = headDisplay;

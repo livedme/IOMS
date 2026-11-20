@@ -936,13 +936,14 @@
                             </tr>
                         }
                     }
+                    <tr class="ledger-total-row">
+                        <td colspan="@(IsIndividualLedger ? 3 : 4)" class="r">Total</td>
+                        <td class="r">@Money(CustomerLedger.TotalDebits)</td>
+                        <td class="r">@Money(CustomerLedger.TotalCredits)</td>
+                        <td class="r">@Money(CustomerLedger.Balance)</td>
+                    </tr>
                 </tbody>
             </table>
-            <div class="doc-totals">
-                <div class="doc-total-row"><span>Total Debits</span><span>@Money(CustomerLedger.TotalDebits)</span></div>
-                <div class="doc-total-row doc-paid"><span>Total Credits</span><span>@Money(CustomerLedger.TotalCredits)</span></div>
-                <div class="doc-total-row doc-grand"><span>Balance</span><span>@Money(CustomerLedger.Balance)</span></div>
-            </div>
 
             <div class="doc-print-signature">
                 <div class="doc-print-signature-line"></div>
@@ -1014,13 +1015,14 @@
                             </tr>
                         }
                     }
+                    <tr class="ledger-total-row">
+                        <td colspan="@(IsIndividualSupplierLedger ? 3 : 4)" class="r">Total</td>
+                        <td class="r">@Money(SupplierLedger.TotalDebits)</td>
+                        <td class="r">@Money(SupplierLedger.TotalCredits)</td>
+                        <td class="r">@Money(SupplierLedger.Balance)</td>
+                    </tr>
                 </tbody>
             </table>
-            <div class="doc-totals">
-                <div class="doc-total-row"><span>Total Debits</span><span>@Money(SupplierLedger.TotalDebits)</span></div>
-                <div class="doc-total-row doc-paid"><span>Total Credits</span><span>@Money(SupplierLedger.TotalCredits)</span></div>
-                <div class="doc-total-row doc-grand"><span>Balance</span><span>@Money(SupplierLedger.Balance)</span></div>
-            </div>
 
             <div class="doc-print-signature">
                 <div class="doc-print-signature-line"></div>
@@ -1068,5 +1070,5 @@
         && !string.IsNullOrWhiteSpace(LedgerSupplierName)
         && LedgerSupplierName != "All Suppliers";
 
-    private static MarkupString Money(decimal value) => Taka.H(value);
+    private static MarkupString Money(decimal value) => Taka.HN(value);
 }

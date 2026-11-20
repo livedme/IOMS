@@ -19,7 +19,10 @@ public static class Taka
     public static MarkupString H(decimal value, string format = "N2")
         => (MarkupString)(Mark + value.ToString(format));
 
-    public static MarkupString Ho(decimal value)        => H(value, "N0");
+    public static MarkupString HN(decimal value, string format = "N2")
+        => (MarkupString)(value.ToString(format));
+
+    public static MarkupString Ho(decimal value)=> H(value, "N0");
 
     public static MarkupString H(int value)
         => (MarkupString)(Mark + value.ToString("N0"));
