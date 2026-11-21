@@ -20,6 +20,7 @@ public class SalesOrderItemDtoMappingProfile : Profile
                 s.Product != null ? s.Product.SKU : string.Empty,
                 s.Quantity,
                 s.ShippedQuantity,
+                s.DeliveryQuantity,
                 s.UnitPrice,
                 s.DiscountAmount,
                 s.DiscountType,

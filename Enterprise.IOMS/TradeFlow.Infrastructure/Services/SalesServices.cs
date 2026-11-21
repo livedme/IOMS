@@ -74,7 +74,8 @@ namespace TradeFlow.Infrastructure.Services
                     DiscountType = item.DiscountType,
                     TotalDiscount = item.TotalDiscount,
                     LineTotalPrice = item.TotalPrice,
-                    UoMId = item.UoMId                    
+                    UoMId = item.UoMId,
+                    DeliveryQuantity = item.DeliveryQuantity
 
                     //ProductId = item.ProductId,
                     //Quantity = item.Quantity,
@@ -155,9 +156,36 @@ namespace TradeFlow.Infrastructure.Services
                     DiscountAmount = item.DiscountAmount,
                     TotalDiscount = item.TotalDiscount,
                     LineTotalPrice = item.TotalPrice,
-                    UoMId = item.UoMId
+                    UoMId = item.UoMId,
+                    DeliveryQuantity = item.DeliveryQuantity
                 });
             }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateSalesOrderItemDelivery(Guid orderId, List<SalesOrderItemDeliveryDto> items)
+        {
+            await using var _context = await _contextFactory.CreateDbContextAsync();
+
+            _context.ChangeTracker.Clear();
+
+            var deliveryById = items
+                .Where(i => i.Id != Guid.Empty)
+                .GroupBy(i => i.Id)
+                .ToDictionary(g => g.Key, g => g.First().DeliveryQuantity);
+
+            if (deliveryById.Count == 0)
+                return;
+
+            var itemIds = deliveryById.Keys.ToList();
+            var orderItems = await _context.SalesOrderItems
+                .IgnoreQueryFilters()
+                .Where(i => i.SalesOrderId == orderId && itemIds.Contains(i.Id))
+                .ToListAsync();
+
+            foreach (var orderItem in orderItems)
+                orderItem.DeliveryQuantity = Math.Clamp(deliveryById[orderItem.Id], 0, orderItem.Quantity);
 
             await _context.SaveChangesAsync();
         }

@@ -7,6 +7,7 @@ public interface ISalesServices
 {
     Task<Guid> CreateSalesOrder(CreateSalesOrderDto dto);
     Task UpdateSalesOrder(Guid id, CreateSalesOrderDto dto);
+    Task UpdateSalesOrderItemDelivery(Guid orderId, List<SalesOrderItemDeliveryDto> items);
     Task DeleteSalesOrder(Guid id);
     Task ApproveOrder(Guid orderId);
     Task CancelOrder(Guid orderId, string reason);

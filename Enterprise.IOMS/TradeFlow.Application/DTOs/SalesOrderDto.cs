@@ -12,7 +12,7 @@ namespace TradeFlow.Application.DTOs
         DateTime? ExpectedDeliveryDate, List<SalesOrderItemDto> Items,int ItemCount = 0);
 
     public record SalesOrderItemDto(Guid Id, Guid OrderId, string OrderNumber, Guid CustomerId, Guid ProductId, string ProductName, 
-        string ProductSKU, int Quantity, int ShippedQuantity, decimal UnitPrice,
+        string ProductSKU, int Quantity, int ShippedQuantity, int DeliveryQuantity, decimal UnitPrice,
         decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscount, decimal LineTotalPrice);
 
     public record CreateSalesOrderDto(Guid CustomerId, Guid? WarehouseId, Guid? BranchId, string? Notes, string? ShippingAddress, DateTime? ExpectedDeliveryDate,
@@ -20,7 +20,9 @@ namespace TradeFlow.Application.DTOs
         decimal DiscountAmount, decimal TotalAmount, decimal PaidAmount, decimal DueAmount, List<CreateSalesOrderItemDto> Items);
 
     public record CreateSalesOrderItemDto(Guid ProductId, int Quantity, decimal UnitPrice, decimal DiscountAmount, DiscountType DiscountType, decimal TotalDiscount, 
-        decimal TotalPrice, Guid? UoMId, List<Guid>? SerialIds = null);
+        decimal TotalPrice, Guid? UoMId, List<Guid>? SerialIds = null, Guid Id = default, int DeliveryQuantity = 0);
+
+    public record SalesOrderItemDeliveryDto(Guid Id, int DeliveryQuantity);
 
     public class CreateSalesOrderDtoModels
     {

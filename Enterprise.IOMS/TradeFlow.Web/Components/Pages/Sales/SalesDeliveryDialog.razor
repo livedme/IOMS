@@ -1,0 +1,89 @@
+@using TradeFlow.Application.DTOs
+@using TradeFlow.Application.Interfaces
+
+<MudDialog Class="bg-dialog-sales">
+    <DialogContent>
+        <MudTable Items="@_items" Dense="true" Elevation="0" FixedHeader="true" ContainerClass="mud-table-container">
+            <HeaderContent>
+                <MudTh>Product</MudTh>
+                <MudTh Style="width:100px;">Quantity</MudTh>
+                <MudTh Style="width:170px;">Delivery Quantity</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Product">@GetProductName(context.ProductId)</MudTd>
+                <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+                <MudTd DataLabel="Delivery Quantity">
+                    <MudNumericField T="int"
+                                     Value="context.DeliveryQuantity"
+                                     ValueChanged="@(value => SetDeliveryQuantity(context, value))"
+                                     Min="0"
+                                     Max="@context.Quantity"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     HideSpinButtons="true" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex gap-2 justify-end mt-4 pb-2">
+            <MudButton OnClick="Cancel">Cancel</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">Save</MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@inject ISalesServices SalesService
+@inject ISnackbar Snackbar
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid SalesOrderId { get; set; }
+    [Parameter] public List<CreateSalesOrderItemDto> Items { get; set; } = new();
+    [Parameter] public List<(Guid Id, string Name, string SKU, decimal Price)> Products { get; set; } = new();
+
+    private List<CreateSalesOrderItemDto> _items = new();
+
+    protected override void OnInitialized()
+    {
+        _items = Items
+            .Select(i => i with { DeliveryQuantity = Math.Clamp(i.DeliveryQuantity, 0, i.Quantity) })
+            .ToList();
+    }
+
+    private string GetProductName(Guid productId) =>
+        Products.Where(p => p.Id == productId).Select(p => p.Name).FirstOrDefault() ?? "Unknown";
+
+    private void SetDeliveryQuantity(CreateSalesOrderItemDto item, int value)
+    {
+        var index = _items.IndexOf(item);
+        if (index >= 0)
+            _items[index] = item with { DeliveryQuantity = Math.Clamp(value, 0, item.Quantity) };
+    }
+
+    private async Task Save()
+    {
+        if (SalesOrderId == Guid.Empty)
+        {
+            Snackbar.Add("Save the sale before setting delivery quantities", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var deliveries = _items
+                .Select(i => new SalesOrderItemDeliveryDto(i.Id, Math.Clamp(i.DeliveryQuantity, 0, i.Quantity)))
+                .ToList();
+
+            await SalesService.UpdateSalesOrderItemDelivery(SalesOrderId, deliveries);
+            Snackbar.Add("Delivery quantities saved", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(_items));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

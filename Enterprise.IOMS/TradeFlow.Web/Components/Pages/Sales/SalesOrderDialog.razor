@@ -228,6 +228,9 @@
     <DialogActions>
         <div class="d-flex gap-2 justify-end mt-4 pb-2">
             <MudButton OnClick="Cancel">Cancel</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Outlined" OnClick="OpenDelivery" Disabled="@(SalesOrderId == Guid.Empty || !dataModel.ItemsLine.Any())">
+                Delivery
+            </MudButton>
             <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!dataModel.ItemsLine.Any())">
                 Sale
             </MudButton>
@@ -250,6 +253,7 @@
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Guid SalesOrderId { get; set; }
     [Parameter] public List<CustomerDto> Customers { get; set; } = new();
     [Parameter] public List<(Guid Id, string Name, string SKU, decimal Price)> Products { get; set; } = new();
     [Parameter] public CreateSalesOrderDtoModels dataModel { get; set; } = new CreateSalesOrderDtoModels();
@@ -471,7 +475,9 @@
             dataModel.ProductObj.TotalDiscount,
             dataModel.ProductObj.TotalPrice,
             null,
-            dataModel.ItemsLine[index].SerialIds);
+            dataModel.ItemsLine[index].SerialIds,
+            dataModel.ItemsLine[index].Id,
+            dataModel.ItemsLine[index].DeliveryQuantity);
 
         dataModel.ItemsLine[index] = updated;
         dataModel.SubTotal = dataModel.ItemsLine.Sum(i => i.TotalPrice);
@@ -731,6 +737,26 @@
         dataModel.TotalAmount = dataModel.TotalAmount - (discountAmt ?? 0);
 
         dataModel.DueAmount = (dataModel.TotalAmount) - (dataModel.PaidAmount);
+    }
+
+    private async Task OpenDelivery()
+    {
+        var parameters = new DialogParameters<SalesDeliveryDialog>
+        {
+            { x => x.SalesOrderId, SalesOrderId },
+            { x => x.Items, dataModel.ItemsLine },
+            { x => x.Products, Products }
+        };
+
+        var dialog = await DialogService.ShowAsync<SalesDeliveryDialog>("Delivery", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is List<CreateSalesOrderItemDto> updatedItems)
+        {
+            for (var i = 0; i < updatedItems.Count && i < dataModel.ItemsLine.Count; i++)
+                dataModel.ItemsLine[i] = dataModel.ItemsLine[i] with { DeliveryQuantity = updatedItems[i].DeliveryQuantity };
+        }
     }
 
     private async Task Cancel()

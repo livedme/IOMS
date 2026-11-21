@@ -516,13 +516,14 @@
                 },
                 ItemsLine = order.Items.Select(i => new CreateSalesOrderItemDto(
                     i.ProductId, i.Quantity, i.UnitPrice, i.DiscountAmount, i.DiscountType,
-                    i.TotalDiscount, i.LineTotalPrice, null, null)).ToList()
+                    i.TotalDiscount, i.LineTotalPrice, null, null, i.Id, i.DeliveryQuantity)).ToList()
             };
 
         }
 
         var parameters = new DialogParameters<SalesOrderDialog>
         {
+            { x => x.SalesOrderId, _editingOrder?.Id ?? Guid.Empty },
             { x => x.Customers, _customers },
             { x => x.Products, _drawerProducts },
             { x => x.dataModel, dataModel },

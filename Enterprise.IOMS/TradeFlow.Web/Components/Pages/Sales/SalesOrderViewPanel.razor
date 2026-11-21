@@ -332,12 +332,13 @@
                 .Select(i => new CreateSalesOrderItemDto(
                     i.ProductId, i.Quantity, i.UnitPrice,
                     i.DiscountAmount, i.DiscountType,
-                    i.TotalDiscount, i.LineTotalPrice, null))
+                    i.TotalDiscount, i.LineTotalPrice, null, null, i.Id, i.DeliveryQuantity))
                 .ToList()
         };
 
         var parameters = new DialogParameters<SalesOrderDialog>
         {
+            { x => x.SalesOrderId, _order.Id },
             { x => x.Customers, customers },
             { x => x.Products, products.Select(p => (p.Id, p.Name, p.Sku, p.SellingPrice)).ToList() },
             { x => x.dataModel, editModel }
