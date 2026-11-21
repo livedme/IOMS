@@ -155,6 +155,7 @@ public record CustomerLedgerDto(
     decimal Balance);
 
 public record SupplierLedgerLineDto(
+    Guid Id,
     Guid SupplierId,
     string SupplierName,
     DateTime Date,

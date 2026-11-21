@@ -568,6 +568,33 @@ public class AccountingService : IAccountingService
             .ToListAsync();
     }
 
+    public async Task<PaymentListItemDto?> GetPaymentListItemAsync(Guid id)
+    {
+        await using var context = await _dbFactory.CreateDbContextAsync();
+
+        return await context.Payments
+            .AsNoTracking()
+            .Where(p => p.Id == id)
+            .Select(p => new PaymentListItemDto(
+                p.Id,
+                p.PaymentNumber,
+                p.PaymentDate,
+                p.PaymentType,
+                p.PaymentMethod,
+                p.Status,
+                p.Amount,
+                p.Reference,
+                p.Notes,
+                p.PaymentMediaName,
+                p.AccountName,
+                p.AccountNumber,
+                p.CheckOrCardNumber,
+                p.InvoiceId,
+                p.Invoice != null ? p.Invoice.InvoiceNumber : null,
+                p.Customer != null ? p.Customer.CustomerName : p.Supplier != null ? p.Supplier.SupplierName : ""))
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<CustomerLedgerDto> GetCustomerLedger(Guid? customerId, DateTime? from, DateTime? to)
     {
         await using var context = await _dbFactory.CreateDbContextAsync();
@@ -721,29 +748,29 @@ public class AccountingService : IAccountingService
             windowDebits = windowDebits.Where(d => d.Date < toExclusive.Value);
         }
 
-        var raw = new List<(DateTime Date, int SortOrder, Guid SupplierId, string Type, string Reference, decimal Debit, decimal Credit)>();
+        var raw = new List<(Guid Id, DateTime Date, int SortOrder, Guid SupplierId, string Type, string Reference, decimal Debit, decimal Credit)>();
 
         foreach (var invoice in await windowInvoices
-            .Select(i => new { i.InvoiceDate, SupplierId = i.SupplierId!.Value, i.InvoiceNumber, i.TotalAmount })
+            .Select(i => new { i.Id, i.InvoiceDate, SupplierId = i.SupplierId!.Value, i.InvoiceNumber, i.TotalAmount })
             .ToListAsync())
         {
-            raw.Add((invoice.InvoiceDate, 0, invoice.SupplierId, "Purchase Invoice", invoice.InvoiceNumber, 0m, invoice.TotalAmount));
+            raw.Add((invoice.Id, invoice.InvoiceDate, 0, invoice.SupplierId, "Purchase Invoice", invoice.InvoiceNumber, 0m, invoice.TotalAmount));
         }
 
         foreach (var payment in await windowPayments
-            .Select(p => new { p.PaymentDate, SupplierId = p.SupplierId!.Value, p.PaymentNumber, p.InvoiceId, p.Amount })
+            .Select(p => new { p.Id, p.PaymentDate, SupplierId = p.SupplierId!.Value, p.PaymentNumber, p.InvoiceId, p.Amount })
             .ToListAsync())
         {
             var direct = !payment.InvoiceId.HasValue;
-            raw.Add((payment.PaymentDate, direct ? 3 : 2, payment.SupplierId,
+            raw.Add((payment.Id, payment.PaymentDate, direct ? 3 : 2, payment.SupplierId,
                 direct ? "Direct Payment" : "Payment", payment.PaymentNumber, payment.Amount, 0m));
         }
 
         foreach (var debit in await windowDebits
-            .Select(d => new { d.Date, SupplierId = d.Invoice.SupplierId!.Value, d.DebitNoteNumber, d.Amount })
+            .Select(d => new { d.Id, d.Date, SupplierId = d.Invoice.SupplierId!.Value, d.DebitNoteNumber, d.Amount })
             .ToListAsync())
         {
-            raw.Add((debit.Date, 1, debit.SupplierId, "Debit Note", debit.DebitNoteNumber, debit.Amount, 0m));
+            raw.Add((debit.Id, debit.Date, 1, debit.SupplierId, "Debit Note", debit.DebitNoteNumber, debit.Amount, 0m));
         }
 
         var lines = new List<SupplierLedgerLineDto>();
@@ -754,6 +781,7 @@ public class AccountingService : IAccountingService
             {
                 balance += entry.Credit - entry.Debit;
                 lines.Add(new SupplierLedgerLineDto(
+                    entry.Id,
                     entry.SupplierId,
                     supplierNames.GetValueOrDefault(entry.SupplierId, "Supplier"),
                     entry.Date,

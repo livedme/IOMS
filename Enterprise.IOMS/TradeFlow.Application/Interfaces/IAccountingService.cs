@@ -30,6 +30,7 @@ public interface IAccountingService
 
     /// <summary>Most recent payments with their counterparty resolved, for the payments screen.</summary>
     Task<List<PaymentListItemDto>> GetRecentPayments(int count);
+    Task<PaymentListItemDto?> GetPaymentListItemAsync(Guid id);
 
     Task<CustomerLedgerDto> GetCustomerLedger(Guid? customerId, DateTime? from, DateTime? to);
     Task<SupplierLedgerDto> GetSupplierLedger(Guid? supplierId, DateTime? from, DateTime? to);

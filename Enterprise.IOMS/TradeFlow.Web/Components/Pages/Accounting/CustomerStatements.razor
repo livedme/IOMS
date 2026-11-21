@@ -117,7 +117,10 @@
                 <MudChip T="string" Size="Size.Small"
                          Color="@(context.Type == "Invoice" ? Color.Info : Color.Success)">@context.Type</MudChip>
             </MudTd>
-            <MudTd DataLabel="Reference">@context.Reference</MudTd>
+            <MudTd DataLabel="Reference">
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="pa-0"
+                           OnClick="@(() => OpenReference(context))">@context.Reference</MudButton>
+            </MudTd>
             <MudTd DataLabel="Debit" Style="text-align:right">@(context.Debit > 0 ? Taka.H(context.Debit) : "")</MudTd>
             <MudTd DataLabel="Credit" Style="text-align:right">@(context.Credit > 0 ? Taka.H(context.Credit) : "")</MudTd>
             <MudTd DataLabel="Balance" Style="text-align:right"><strong>@Taka.H(context.RunningBalance)</strong></MudTd>
@@ -125,8 +128,11 @@
     </MudTable>
 </MudPaper>
 
+<InvoiceViewPanel @ref="_invoiceViewPanel" />
+<PaymentViewPanel @ref="_paymentViewPanel" />
+
 @code {
-    private record StatementLine(DateTime Date, string Type, string Reference, decimal Debit, decimal Credit, decimal RunningBalance);
+    private record StatementLine(DateTime Date, string Type, string Reference, decimal Debit, decimal Credit, decimal RunningBalance, Guid SourceId, bool IsPayment);
 
     private List<CustomerDto> _customers = new();
     private Guid? _customerId;
@@ -134,6 +140,8 @@
     private DateTime? _to = DateTime.Today;
     private CustomerDto? _selectedCustomer;
     private List<StatementLine> _statementLines = new();
+    private InvoiceViewPanel? _invoiceViewPanel;
+    private PaymentViewPanel? _paymentViewPanel;
     private decimal _totalInvoiced;
     private decimal _totalPaid;
     private decimal _balanceDue;
@@ -167,14 +175,14 @@
             var lines = new List<StatementLine>();
             decimal balance = 0;
 
-            var allTxns = invoices.Select(i => new { Date = i.InvoiceDate, Type = "Invoice", Reference = i.InvoiceNumber, Debit = i.TotalAmount, Credit = 0m })
-                .Concat(payments.Select(p => new { Date = p.PaymentDate, Type = "Payment", Reference = p.PaymentNumber, Debit = 0m, Credit = p.Amount }))
+            var allTxns = invoices.Select(i => new { Date = i.InvoiceDate, Type = "Invoice", Reference = i.InvoiceNumber, Debit = i.TotalAmount, Credit = 0m, SourceId = i.Id, IsPayment = false })
+                .Concat(payments.Select(p => new { Date = p.PaymentDate, Type = "Payment", Reference = p.PaymentNumber, Debit = 0m, Credit = p.Amount, SourceId = p.Id, IsPayment = true }))
                 .OrderBy(t => t.Date);
 
             foreach (var txn in allTxns)
             {
                 balance += txn.Debit - txn.Credit;
-                lines.Add(new StatementLine(txn.Date, txn.Type, txn.Reference, txn.Debit, txn.Credit, balance));
+                lines.Add(new StatementLine(txn.Date, txn.Type, txn.Reference, txn.Debit, txn.Credit, balance, txn.SourceId, txn.IsPayment));
             }
 
             _statementLines = lines;
@@ -186,6 +194,30 @@
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
         finally { _loading = false; }
+    }
+
+    private async Task OpenReference(StatementLine line)
+    {
+        try
+        {
+            if (line.IsPayment)
+            {
+                var payment = await AccountingService.GetPaymentListItemAsync(line.SourceId);
+                if (payment is null)
+                {
+                    Snackbar.Add("Payment not found.", Severity.Warning);
+                    return;
+                }
+
+                if (_paymentViewPanel is not null)
+                    await _paymentViewPanel.OpenAsync(payment);
+            }
+            else if (_invoiceViewPanel is not null)
+            {
+                await _invoiceViewPanel.OpenAsync(line.SourceId);
+            }
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 
     private void BuildChartData()

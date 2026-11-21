@@ -89,11 +89,9 @@
                                 }
                                 <td><span class="@TypePill(entry.Type)"><span class="tm-dot"></span>@entry.Type</span></td>
                                  <td>
-                                     <span class="tm-veh">
-                                         <span class="tm-veh-ico" style="background:#e0e9ff">📄</span>
-                                         <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="pa-0"
-                                                    OnClick="@(() => OpenReference(entry))">@entry.Reference</MudButton>
-                                     </span>
+                                    <span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">📄</span>@entry.Reference
+                                        <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" Size="Size.Small" Class="pa-0" OnClick="@(() => OpenReference(entry))"></MudIconButton>
+                                    </span>
                                  </td>
                                 <td style="text-align:right" class="tm-money">@(entry.Debit > 0 ? entry.Debit : (MarkupString)"-")</td>
                                 <td style="text-align:right" class="tm-money">@(entry.Credit > 0 ? entry.Credit : (MarkupString)"-")</td>
@@ -169,21 +167,19 @@
 
     private async Task OpenReference(CustomerLedgerLineDto entry)
     {
-       // if (!entry.SourceId.HasValue) return;
-
         try
         {
-            if (entry.Type is "Payment" or "Direct Payment" && _paymentViewPanel is not null)
+            if (entry.Type is "Payment" or "Direct Payment")
             {
-                // var payment = await AccountingService.GetPaymentListItemAsync(entry.Id);
-                // if (payment is null)
-                // {
-                //     Snackbar.Add("Payment not found.", Severity.Warning);
-                //     return;
-                // }
+                var payment = await AccountingService.GetPaymentListItemAsync(entry.Id);
+                if (payment is null)
+                {
+                    Snackbar.Add("Payment not found.", Severity.Warning);
+                    return;
+                }
 
-                // if (_paymentViewPanel is not null)
-                //     await _paymentViewPanel.OpenAsync(payment);
+                if (_paymentViewPanel is not null)
+                    await _paymentViewPanel.OpenAsync(payment);
             }
             else if (entry.Type == "Sales Invoice" && _invoiceViewPanel is not null)
             {

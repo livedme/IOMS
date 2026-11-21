@@ -90,9 +90,11 @@
                                 <td><span class="@TypePill(entry.Type)"><span class="tm-dot"></span>@entry.Type</span></td>
                                 <td>
                                     <span class="tm-veh">
-                                        <span class="tm-veh-ico" style="background:#e0e9ff">📄</span>
-                                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="pa-0"
-                                                   OnClick="@(() => OpenReference(entry))">@entry.Reference</MudButton>
+                                        <span class="tm-veh-ico" style="background:#e0e9ff">📄</span>@entry.Reference
+                                        <MudIconButton Variant="Variant.Text" Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" Size="Size.Small" Class="pa-0" OnClick="@(() => OpenReference(entry))"></MudIconButton>
+
+                                        @* <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="pa-0"
+                                                   OnClick="@(() => OpenReference(entry))">@entry.Reference</MudButton> *@
                                     </span>
                                 </td>
                                 <td style="text-align:right" class="tm-money">@(entry.Debit > 0 ? entry.Debit : (MarkupString)"-")</td>
@@ -169,28 +171,26 @@
 
     private async Task OpenReference(SupplierLedgerLineDto entry)
     {
-        // if (!entry.SourceId.HasValue) return;
+        try
+        {
+            if (entry.Type is "Payment" or "Direct Payment")
+            {
+                var payment = await AccountingService.GetPaymentListItemAsync(entry.Id);
+                if (payment is null)
+                {
+                    Snackbar.Add("Payment not found.", Severity.Warning);
+                    return;
+                }
 
-        // try
-        // {
-        //     if (entry.Type is "Payment" or "Direct Payment")
-        //     {
-        //         var payment = await AccountingService.GetPaymentListItemAsync(entry.SourceId.Value);
-        //         if (payment is null)
-        //         {
-        //             Snackbar.Add("Payment not found.", Severity.Warning);
-        //             return;
-        //         }
-
-        //         if (_paymentViewPanel is not null)
-        //             await _paymentViewPanel.OpenAsync(payment);
-        //     }
-        //     else if (entry.Type == "Purchase Invoice" && _invoiceViewPanel is not null)
-        //     {
-        //         await _invoiceViewPanel.OpenAsync(entry.SourceId.Value);
-        //     }
-        // }
-        // catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+                if (_paymentViewPanel is not null)
+                    await _paymentViewPanel.OpenAsync(payment);
+            }
+            else if (entry.Type == "Purchase Invoice" && _invoiceViewPanel is not null)
+            {
+                await _invoiceViewPanel.OpenAsync(entry.Id);
+            }
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 
     private List<SupplierLedgerLineDto> GetBalanceCalculations(List<SupplierLedgerLineDto> Lines)
@@ -203,7 +203,7 @@
             balance += line.Credit;
             balance -= line.Debit;
 
-            allCalculations.Add(new SupplierLedgerLineDto(line.SupplierId, line.SupplierName, line.Date, line.Type,
+            allCalculations.Add(new SupplierLedgerLineDto(line.Id, line.SupplierId, line.SupplierName, line.Date, line.Type,
                 line.Reference, line.Debit, line.Credit, balance));
         }
 
