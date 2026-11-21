@@ -136,6 +136,7 @@ public record CustomerStatementDto(
     List<StatementPaymentRowDto> Payments);
 
 public record CustomerLedgerLineDto(
+    Guid Id,
     Guid CustomerId,
     string CustomerName,
     DateTime Date,

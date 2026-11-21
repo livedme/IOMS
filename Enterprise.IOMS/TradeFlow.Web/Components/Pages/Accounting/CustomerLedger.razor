@@ -88,7 +88,13 @@
                                     <td>@entry.CustomerName</td>
                                 }
                                 <td><span class="@TypePill(entry.Type)"><span class="tm-dot"></span>@entry.Type</span></td>
-                                <td><span class="tm-veh"><span class="tm-veh-ico" style="background:#e0e9ff">📄</span>@entry.Reference</span></td>
+                                 <td>
+                                     <span class="tm-veh">
+                                         <span class="tm-veh-ico" style="background:#e0e9ff">📄</span>
+                                         <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="pa-0"
+                                                    OnClick="@(() => OpenReference(entry))">@entry.Reference</MudButton>
+                                     </span>
+                                 </td>
                                 <td style="text-align:right" class="tm-money">@(entry.Debit > 0 ? entry.Debit : (MarkupString)"-")</td>
                                 <td style="text-align:right" class="tm-money">@(entry.Credit > 0 ? entry.Credit : (MarkupString)"-")</td>
                                 <td style="text-align:right" class="tm-money"><strong>@entry.RunningBalance</strong></td>
@@ -112,10 +118,15 @@
     </div>
 </div>
 
+<InvoiceViewPanel @ref="_invoiceViewPanel" />
+<PaymentViewPanel @ref="_paymentViewPanel" />
+
 @code {
     private List<CustomerDto> _customers = new();
     private List<CustomerLedgerLineDto> _allEntries = new();
     private List<CustomerLedgerLineDto> _entries = new();
+    private InvoiceViewPanel? _invoiceViewPanel;
+    private PaymentViewPanel? _paymentViewPanel;
     private Guid? _selectedCustomerId;
     private DateTime? _fromDate = new DateTime(DateTime.Today.Year, 1, 1);
     private DateTime? _toDate = DateTime.Today;
@@ -154,6 +165,32 @@
         }
         catch (Exception ex) { Snackbar.Add($"Error: {ex.Message}", Severity.Error); }
         finally { _loading = false; }
+    }
+
+    private async Task OpenReference(CustomerLedgerLineDto entry)
+    {
+       // if (!entry.SourceId.HasValue) return;
+
+        try
+        {
+            if (entry.Type is "Payment" or "Direct Payment" && _paymentViewPanel is not null)
+            {
+                // var payment = await AccountingService.GetPaymentListItemAsync(entry.Id);
+                // if (payment is null)
+                // {
+                //     Snackbar.Add("Payment not found.", Severity.Warning);
+                //     return;
+                // }
+
+                // if (_paymentViewPanel is not null)
+                //     await _paymentViewPanel.OpenAsync(payment);
+            }
+            else if (entry.Type == "Sales Invoice" && _invoiceViewPanel is not null)
+            {
+                await _invoiceViewPanel.OpenAsync(entry.Id);
+            }
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }
 
     private async Task DownloadPdf()
@@ -206,7 +243,7 @@
             balance += line.Credit;
             balance -= line.Debit;
 
-            allCalculations.Add(new CustomerLedgerLineDto(line.CustomerId, line.CustomerName, line.Date, line.Type, 
+            allCalculations.Add(new CustomerLedgerLineDto(line.Id, line.CustomerId, line.CustomerName, line.Date, line.Type, 
                 line.Reference, line.Debit, line.Credit, balance));
         }
 

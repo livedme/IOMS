@@ -616,29 +616,29 @@ public class AccountingService : IAccountingService
             windowCredits = windowCredits.Where(c => c.Date < toExclusive.Value);
         }
 
-        var raw = new List<(DateTime Date, int SortOrder, Guid CustomerId, string Type, string Reference, decimal Debit, decimal Credit)>();
+        var raw = new List<(Guid Id, DateTime Date, int SortOrder, Guid CustomerId, string Type, string Reference, decimal Debit, decimal Credit)>();
 
         foreach (var invoice in await windowInvoices
-            .Select(i => new { i.InvoiceDate, CustomerId = i.CustomerId!.Value, i.InvoiceNumber, i.TotalAmount })
+            .Select(i => new { i.Id, i.InvoiceDate, CustomerId = i.CustomerId!.Value, i.InvoiceNumber, i.TotalAmount })
             .ToListAsync())
         {
-            raw.Add((invoice.InvoiceDate, 0, invoice.CustomerId, "Sales Invoice", invoice.InvoiceNumber, invoice.TotalAmount, 0m));
+            raw.Add((invoice.Id, invoice.InvoiceDate, 0, invoice.CustomerId, "Sales Invoice", invoice.InvoiceNumber, invoice.TotalAmount, 0m));
         }
 
         foreach (var payment in await windowPayments
-            .Select(p => new { p.PaymentDate, CustomerId = p.CustomerId!.Value, p.PaymentNumber, p.InvoiceId, p.Amount })
+            .Select(p => new { p.Id, p.PaymentDate, CustomerId = p.CustomerId!.Value, p.PaymentNumber, p.InvoiceId, p.Amount })
             .ToListAsync())
         {
             var direct = !payment.InvoiceId.HasValue;
-            raw.Add((payment.PaymentDate, direct ? 3 : 2, payment.CustomerId,
+            raw.Add((payment.Id, payment.PaymentDate, direct ? 3 : 2, payment.CustomerId,
                 direct ? "Direct Payment" : "Payment", payment.PaymentNumber, 0m, payment.Amount));
         }
 
         foreach (var credit in await windowCredits
-            .Select(c => new { c.Date, CustomerId = c.Invoice.CustomerId!.Value, c.CreditNoteNumber, c.Amount })
+            .Select(c => new { c.Id, c.Date, CustomerId = c.Invoice.CustomerId!.Value, c.CreditNoteNumber, c.Amount })
             .ToListAsync())
         {
-            raw.Add((credit.Date, 1, credit.CustomerId, "Credit Note", credit.CreditNoteNumber, 0m, credit.Amount));
+            raw.Add((credit.Id, credit.Date, 1, credit.CustomerId, "Credit Note", credit.CreditNoteNumber, 0m, credit.Amount));
         }
 
         var lines = new List<CustomerLedgerLineDto>();
@@ -649,6 +649,7 @@ public class AccountingService : IAccountingService
             {
                 balance += entry.Debit - entry.Credit;
                 lines.Add(new CustomerLedgerLineDto(
+                    entry.Id,
                     entry.CustomerId,
                     customerNames.GetValueOrDefault(entry.CustomerId, "Customer"),
                     entry.Date,
